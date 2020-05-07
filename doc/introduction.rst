@@ -208,8 +208,8 @@ SIP also includes some additional command line tools.
     This builds one or more elements of the :mod:`sip` module for a set of
     package projects:
 
-    - an sdist of module which can be installed by :program:`pip` or uploaded
-      to PyPI
+    - an sdist of the module which can be installed by :program:`pip` or
+      uploaded to PyPI
 
     - a :file:`sip.h` header file which defines the module's ABI.  Normally you
       do not need to worry about this file but this will install a local copy

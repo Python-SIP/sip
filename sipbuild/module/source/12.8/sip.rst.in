@@ -1,26 +1,22 @@
-The ``sip`` Module
-==================
-
-.. module:: @_SIP_FQ_NAME@
-
-The main purpose of the :mod:`@_SIP_FQ_NAME@` module is to provide
+The main purpose of the :py:mod:`~@SIP_MODULE_FQ_NAME@` module is to provide
 functionality common to all SIP generated bindings.  It is loaded automatically
 and most of the time you will completely ignore it.  However, it does expose
 some functionality that can be used by applications.
 
-.. class:: array
+
+.. py:class:: array
 
     This is the type object for the type SIP uses to represent an array of a
     limited number of C/C++ types.  Typically the memory is not owned by Python
-    so that it is not freed when the object is garbage collected.  A
-    :class:`@_SIP_FQ_NAME@.array` object can be created from a
-    :class:`@_SIP_FQ_NAME@.voidptr` object by calling
-    :func:`@_SIP_FQ_NAME@.voidptr.asarray`.  This allows the underlying memory
-    (interpreted as a sequence of unsigned bytes) to be processed much more
-    quickly.
+    so that it is not freed when the object is garbage collected.  An
+    :py:class:`~@SIP_MODULE_FQ_NAME@.array` object can be created from a
+    :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr` object by calling
+    :py:func:`~@SIP_MODULE_FQ_NAME@.voidptr.asarray`.  This allows the
+    underlying memory (interpreted as a sequence of unsigned bytes) to be
+    processed much more quickly.
 
 
-.. function:: assign(obj, other)
+.. py:function:: assign(obj, other)
 
     This does the Python equivalent of invoking the assignment operator of a
     C++ instance (i.e. ``*obj = other``).
@@ -31,21 +27,21 @@ some functionality that can be used by applications.
         the Python object being assigned.
 
 
-.. function:: cast(obj, type) -> object
+.. py:function:: cast(obj, type)
 
     This does the Python equivalent of casting a C++ instance to one of its
     sub or super-class types.
 
     :param obj:
         the Python object.
-    :param type:
+    :param type type:
         the type.
     :return:
         a new Python object is that wraps the same C++ instance as *obj*, but
         has the type *type*.
 
 
-.. function:: delete(obj)
+.. py:function:: delete(obj)
 
     For C++ instances this calls the C++ destructor.  For C structures it
     returns the structure's memory to the heap.
@@ -54,7 +50,7 @@ some functionality that can be used by applications.
         the Python object.
 
 
-.. function:: dump(obj)
+.. py:function:: dump(obj)
 
     This displays various bits of useful information about the internal state
     of the Python object that wraps a C++ instance or C structure.  Note that
@@ -65,30 +61,31 @@ some functionality that can be used by applications.
         the Python object.
 
 
-.. function:: enableautoconversion(type, enable) -> bool
+.. py:function:: enableautoconversion(type, enable)
 
     Instances of some classes may be automatically converted to other Python
     objects even though the class has been wrapped.  This allows that behaviour
     to be suppressed so that an instances of the wrapped class is returned
     instead.  By default it is enabled.
 
-    :param type:
+    :param type type:
         the Python type object.
-    :param enable:
+    :param bool enable:
         is ``True`` if auto-conversion should be enabled for the type.
     :return:
         ``True`` or ``False`` depending on whether or not auto-conversion was
         previously enabled for the type.  This allows the previous state to be
         restored later on.
 
-.. function:: enableoverflowchecking(enable) -> bool
+
+.. py:function:: enableoverflowchecking(enable)
 
     This enables or disables the checking for overflows when converting Python
     integer objects to C/C++ integer types.  When it is enabled an exception is
     raised when the value of a Python integer object is too large to fit in the
     corresponding C/C++ type.  By default it is disabled.
 
-    :param enable:
+    :param bool enable:
         is ``True`` if overflow checking should be enabled.
     :return:
         ``True`` or ``False`` depending on whether or not overflow checking was
@@ -96,23 +93,7 @@ some functionality that can be used by applications.
         later on.
 
 
-.. function:: getapi(name) -> version
-
-    .. deprecated:: 12.6
-        This will be removed in v13.0.
-
-    This returns the version number that has been set for an API.  The version
-    number is either set explicitly by a call to :func:`@_SIP_FQ_NAME@.setapi`
-    or implicitly by importing the module that defines it.
-
-    :param name:
-        the name of the API.
-    :return:
-        The version number that has been set for the API.  An exception will
-        be raised if the API is unknown.
-
-
-.. function:: isdeleted(obj) -> bool
+.. py:function:: isdeleted(obj)
 
     This checks if the C++ instance or C structure has been deleted and
     returned to the heap.
@@ -123,7 +104,7 @@ some functionality that can be used by applications.
         ``True`` if the C/C++ instance has been deleted.
 
 
-.. function:: ispycreated(obj) -> bool
+.. py:function:: ispycreated(obj)
 
     This checks if the C++ instance or C structure was created by Python.  If
     it was then it is possible to call a C++ instance's protected methods.
@@ -134,7 +115,7 @@ some functionality that can be used by applications.
         ``True`` if the C/C++ instance was created by Python.
 
 
-.. function:: ispyowned(obj) -> bool
+.. py:function:: ispyowned(obj)
 
     This checks if the C++ instance or C structure is owned by Python.
 
@@ -144,23 +125,7 @@ some functionality that can be used by applications.
         ``True`` if the C/C++ instance is owned by Python.
 
 
-.. function:: setapi(name, version)
-
-    .. deprecated:: 12.6
-        This will be removed in v13.0.
-
-    This sets the version number of an API.  An exception is raised if a
-    different version number has already been set, either explicitly by a
-    previous call, or implicitly by importing the module that defines it.
-
-    :param name:
-        the name of the API.
-    :param version:
-        The version number to set for the API.  Version numbers must be
-        greater than or equal to 1.
-
-
-.. function:: setdeleted(obj)
+.. py:function:: setdeleted(obj)
 
     This marks the C++ instance or C structure as having been deleted and
     returned to the heap so that future references to it raise an exception
@@ -171,7 +136,7 @@ some functionality that can be used by applications.
         the Python object.
 
 
-.. function:: setdestroyonexit(destroy)
+.. py:function:: setdestroyonexit(destroy)
 
     When the Python interpreter exits it garbage collects those objects that it
     can.  This means that any corresponding C++ instances and C structures
@@ -180,19 +145,19 @@ some functionality that can be used by applications.
     library.  Calling this function with a value of ``False`` disables the
     automatic destruction of C++ instances and C structures.
 
-    :param destroy:
+    :param bool destroy:
         ``True`` if all C++ instances and C structures owned by Python should
         be destroyed when the interpreter exits.  This is the default.
 
 
-.. function:: settracemask(mask)
+.. py:function:: settracemask(mask)
 
-    If the bindings have been created with SIP's :option:`-r <sip -r>` command
-    line option then the generated code will include debugging statements that
-    trace the execution of the code.  (It is particularly useful when trying to
-    understand the operation of a C++ library's virtual function calls.)
+    If the bindings have been created with tracing enabled then the generated
+    code will include debugging statements that trace the execution of the
+    code.  (It is particularly useful when trying to understand the operation
+    of a C++ library's virtual function calls.)
 
-    :param mask:
+    :param int mask:
         the mask that determines which debugging statements are enabled.
 
     Debugging statements are generated at the following points:
@@ -208,38 +173,60 @@ some functionality that can be used by applications.
     disabled.
 
 
-.. class:: simplewrapper
+.. py:class:: simplewrapper
 
     This is an alternative type object than can be used as the base type of an
     instance wrapped by SIP.  Objects using this are smaller than those that
-    use the default :class:`@_SIP_FQ_NAME@.wrapper` type but do not support the
-    concept of object ownership.
+    use the default :py:class:`~@SIP_MODULE_FQ_NAME@.wrapper` type but do not
+    support the concept of object ownership.
+
+    .. py:method:: __dtor__
+
+        If the wrapped instance is a C++ class with a virtual destructor then
+        this is called by the destructor.
 
 
-.. data:: SIP_VERSION
+.. py:data:: SIP_VERSION
 
     This is a Python integer object that represents the SIP version number as
-    a 3 part hexadecimal number (e.g. v4.0.0 is represented as ``0x040000``).
+    a 3 part hexadecimal number (e.g. v5.0.0 is represented as ``0x050000``).
+    Note that it is not the version number of the
+    :py:mod:`~@SIP_MODULE_FQ_NAME@` module.
 
 
-.. data:: SIP_VERSION_STR
+.. py:data:: SIP_VERSION_STR
 
     This is a Python string object that defines the SIP version number as
-    represented as a string.  For development versions it will contain either
-    ``.dev`` or ``-snapshot-``.
+    represented as a string.  For development versions it will contain 
+    ``.dev``.  Note that it is not the version number of the
+    :py:mod:`~@SIP_MODULE_FQ_NAME@` module.
 
 
-.. function:: transferback(obj)
+.. py:function:: transferback(obj)
 
-    This function is a wrapper around :c:func:`sipTransferBack()`.
+    This transfers ownership of a C++ instance or C structure to Python.
 
-
-.. function:: transferto(obj, owner)
-
-    This function is a wrapper around :c:func:`sipTransferTo()`.
+    :param obj:
+        the Python object.
 
 
-.. function:: unwrapinstance(obj) -> integer
+.. py:function:: transferto(obj, owner)
+
+    This transfers ownership of a C++ instance or C structure to C/C++.
+
+    :param obj:
+        the Python object.
+    :param owner:
+        an optional wrapped instance that *obj* becomes associated with with
+        regard to the cyclic garbage collector.  If *owner* is ``None`` then no
+        such association is made.  If *owner* is the same value as *obj* then
+        any reference cycles involving *obj* can never be detected or broken by
+        the cyclic garbage collector.  Responsibility for destroying the C++
+        instance’s destructor or freeing the C structure is always transfered
+        to C/C++.
+
+
+.. py:function:: unwrapinstance(obj)
 
     This returns the address, as an integer, of a wrapped C/C++ structure or
     class instance.
@@ -250,35 +237,29 @@ some functionality that can be used by applications.
         an integer that is the address of the C/C++ instance.
 
 
-.. class:: voidptr
+.. py:class:: voidptr
 
     This is the type object for the type SIP uses to represent a C/C++
     ``void *``.  It may have a size associated with the address in which case
     the Python buffer interface is supported.  The type has the following
     methods.
 
-    .. method:: __init__(address[, size=-1[, writeable=True]])
+    .. py:method:: __init__(address, size=-1, writeable=True)
 
         :param address:
-            the address, either another :class:`@_SIP_FQ_NAME@.voidptr`,
-            ``None``, a Python Capsule, an object that implements the buffer
-            protocol or an integer.
-        :param size:
+            the address, either another
+            :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr`, ``None``, a Python
+            Capsule, an object that implements the buffer protocol or an
+            integer.
+        :param int size:
             the optional associated size of the block of memory and is negative
             if the size is not known.
-        :param writeable:
+        :param bool writeable:
             set if the memory is writeable.  If it is not specified, and
-            *address* is a :class:`@_SIP_FQ_NAME@.voidptr` instance then its
-            value will be used.
+            *address* is a :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr` instance
+            then its value will be used.
 
-    .. method:: __int__() -> integer
-
-        This returns the address as an integer.
-
-        :return:
-            the integer address.
-
-    .. method:: __getitem__(idx) -> item
+    .. py:method:: __getitem__(idx)
 
         This returns the item at a given index.  An exception will be raised if
         the address does not have an associated size.  In this way it behaves
@@ -291,24 +272,31 @@ some functionality that can be used by applications.
             the item.  If the index is an integer then the item will be a bytes
             object containing the single byte at that index.  If the index is a
             slice object then the item will be a new
-            :class:`@_SIP_FQ_NAME@.voidptr` object defining the subset of the
-            memory corresponding to the slice.
+            :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr` object defining the
+            subset of the memory corresponding to the slice.
 
-    .. method:: __hex__() -> string
+    .. py:method:: __hex__()
 
         This returns the address as a hexadecimal string.
 
         :return:
             the hexadecimal string address.
 
-    .. method:: __len__() -> integer
+    .. py:method:: __int__()
+
+        This returns the address as an integer.
+
+        :return:
+            the integer address.
+
+    .. py:method:: __len__()
 
         This returns the size associated with the address.
         
         :return:
             the associated size.  An exception will be raised if there is none.
 
-    .. method:: __setitem__(idx, item)
+    .. py:method:: __setitem__(idx, item)
 
         This updates the memory at a given index.  An exception will be raised
         if the address does not have an associated size or is not writable.  In
@@ -322,88 +310,88 @@ some functionality that can be used by applications.
             must implement the buffer interface and be the same size as the
             data that is being updated.
 
-    .. method:: asarray([size=-1]) -> :class:`@_SIP_FQ_NAME@.array`
+    .. py:method:: asarray(size=-1)
 
-        This returned the block of memory as a :class:`@_SIP_FQ_NAME@.array`
-        object.  The memory is *not* copied.
+        This returns the block of memory as an
+        :py:class:`~@SIP_MODULE_FQ_NAME@.array` object.  The memory is **not**
+        copied.
         
-        :param size:
+        :param int size:
             the size of the array.  If it is negative then the size associated
             with the address is used.  If there is no associated size then an
             exception is raised.
         :return:
-            the :class:`@_SIP_FQ_NAME@.array` object.
+            the :py:class:`~@SIP_MODULE_FQ_NAME@.array` object.
 
-    .. method:: ascapsule() -> capsule
+    .. py:method:: ascapsule()
 
         This returns the address as an unnamed Python Capsule.
 
         :return:
             the Capsule.
 
-    .. method:: asstring([size=-1]) -> string/bytes
+    .. py:method:: asstring(size=-1)
 
         This returns a copy of the block of memory as a bytes object.
         
-        :param size:
+        :param int size:
             the number of bytes to copy.  If it is negative then the size
             associated with the address is used.  If there is no associated
             size then an exception is raised.
         :return:
             the bytes object.
 
-    .. method:: getsize() -> integer
+    .. py:method:: getsize()
 
         This returns the size associated with the address.
         
         :return:
             the associated size which will be negative if there is none.
 
-    .. method:: setsize(size)
+    .. py:method:: setsize(size)
 
         This sets the size associated with the address.
-        
-        :param size:
+
+        :param int size:
             the size to associate.  If it is negative then no size is
             associated.
 
-    .. method:: getwriteable() -> bool
+    .. py:method:: getwriteable()
 
         This returns the writeable state of the memory.
 
         :return:
             ``True`` if the memory is writeable.
 
-    .. method:: setwriteable(writeable)
+    .. py:method:: setwriteable(writeable)
 
         This sets the writeable state of the memory.
 
-        :param writeable:
+        :param bool writeable:
             the writeable state to set.
 
 
-.. function:: wrapinstance(addr, type) -> object
+.. py:function:: wrapinstance(addr, type)
 
     This wraps a C structure or C++ class instance in a Python object.  If the
     instance has already been wrapped then a new reference to the existing
     object is returned.
     
-    :param addr:
+    :param int addr:
         the address of the instance as a number.
-    :param type:
+    :param type type:
         the Python type of the instance.
     :return:
         the Python object that wraps the instance.
 
 
-.. class:: wrapper
+.. py:class:: wrapper
 
     This is the type object of the default base type of all instances wrapped
-    by SIP.  The :canno:`Supertype` class annotation can be used to specify a
-    different base type for a class.
+    by SIP.
 
 
-.. class:: wrappertype
+.. py:class:: wrappertype
 
     This is the type object of the metatype of the
-    :class:`@_SIP_FQ_NAME@.wrapper` type.
+    :py:class:`~@SIP_MODULE_FQ_NAME@.wrapper` type.

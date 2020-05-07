@@ -593,6 +593,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
+"#define sipIsPyMethod_12_8          sipAPI_%s->api_is_py_method_12_8\n"
 "#define sipCallHook                 sipAPI_%s->api_call_hook\n"
 "#define sipEndThread                sipAPI_%s->api_end_thread\n"
 "#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
@@ -701,6 +702,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipLong_AsSizeT             sipAPI_%s->api_long_as_size_t\n"
 "#define sipVisitWrappers            sipAPI_%s->api_visit_wrappers\n"
 "#define sipRegisterExitNotifier     sipAPI_%s->api_register_exit_notifier\n"
+        ,mname
         ,mname
         ,mname
         ,mname
@@ -2263,10 +2265,12 @@ static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp)
 "\n"
 "    if (sip_capiobj == SIP_NULLPTR || !PyCapsule_CheckExact(sip_capiobj))\n"
 "    {\n"
+"        PyErr_SetString(PyExc_AttributeError, \"%s._C_API is missing or has the wrong type\");\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
 "    }\n"
 "\n"
+        , sipName
         , sipName);
 
     if (generating_c)
@@ -6419,7 +6423,11 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 "    _id = %S::qt_metacall(_c,_id,_a);\n"
 "\n"
 "    if (_id >= 0)\n"
+"    {\n"
+"        SIP_BLOCK_THREADS\n"
 "        _id = sip_%s_qt_metacall(sipPySelf,sipType_%C,_c,_id,_a);\n"
+"        SIP_UNBLOCK_THREADS\n"
+"    }\n"
 "\n"
 "    return _id;\n"
 "}\n"
@@ -6574,9 +6582,32 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     prcode(fp,
 "    sip_gilstate_t sipGILState;\n"
-"    PyObject *sipMeth;\n"
+"    PyObject *sipMeth;\n");
+
+    /* For the module ABI v12.8 and later. */
+    prcode(fp,
 "\n"
-"    sipMeth = sipIsPyMethod(&sipGILState,");
+"#if SIP_ABI_MAJOR_VERSION >= 12 && SIP_ABI_MINOR_VERSION >= 8\n"
+"    sipMeth = sipIsPyMethod_12_8(&sipGILState, ");
+
+    if (isConst(od))
+        prcode(fp, "const_cast<char *>(&sipPyMethods[%d]), const_cast<sipSimpleWrapper **>(&sipPySelf), ",virtNr);
+    else
+        prcode(fp, "&sipPyMethods[%d], &sipPySelf, ",virtNr);
+
+    if (isAbstract(od))
+        prcode(fp, "%N", cd->pyname);
+    else
+        prcode(fp, "SIP_NULLPTR");
+
+    prcode(fp,", %N);\n"
+        ,od->common->pyname);
+
+    /* For the module ABI v12.7 and earlier. */
+    prcode(fp,
+"\n"
+"#else\n"
+"    sipMeth = sipIsPyMethod(&sipGILState, ");
 
     if (isConst(od))
         prcode(fp, "const_cast<char *>(");
@@ -6584,19 +6615,21 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     prcode(fp,"&sipPyMethods[%d]",virtNr);
 
     if (isConst(od))
-        prcode(fp,")");
+        prcode(fp, ")");
 
-    prcode(fp,",sipPySelf,");
+    prcode(fp,", sipPySelf, ");
 
     if (isAbstract(od))
         prcode(fp, "%N", cd->pyname);
     else
         prcode(fp, "SIP_NULLPTR");
 
-    prcode(fp,",%N);\n"
+    prcode(fp,", %N);\n"
+"#endif\n"
 "\n"
         ,od->common->pyname);
 
+    /* The rest of the common code. */
     prcode(fp,
 "    if (!sipMeth)\n"
         );

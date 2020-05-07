@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -7,7 +7,7 @@
 # This copy of SIP may also used under the terms of the GNU General Public
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -21,19 +21,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .code_generator import set_globals, parse, generateXML
-from .exceptions import UserException
-from .version import SIP_VERSION, SIP_VERSION_STR
+import glob
+import sys
+
+from setuptools import Extension, setup
 
 
-def extract_xml(specification, xml_extract, include_dirs=None):
-    """ Create the XML extract. """
+# Build the extension module.
+module_src = sorted(glob.glob('*.c'))
 
-    # Set the globals.
-    set_globals(SIP_VERSION, SIP_VERSION_STR, UserException, include_dirs)
+if sys.platform == 'win32':
+    module_src.append('bool.cpp')
 
-    # Parse the input file.
-    pt = parse(specification, False, None, None, None, False)
+module = Extension('@_SIP_MODULE_FQ_NAME@', module_src)
 
-    # Generate the XML extract.
-    generateXML(pt, xml_extract)
+# Do the setup.
+setup(
+        name='@SIP_MODULE_PROJECT_NAME@',
+        version='@SIP_MODULE_VERSION@',
+        license='SIP',
+        python_requires='>=3.5',
+        ext_modules=[module]
+     )
