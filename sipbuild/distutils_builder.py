@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -78,7 +78,7 @@ class DistutilsBuilder(Builder):
 
         create_distinfo(project.get_distinfo_dir(target_dir), wheel_tag,
                 installed, project.metadata, project.get_requires_dists(),
-                project.root_dir, project.console_scripts)
+                project.root_dir, project.console_scripts, project.gui_scripts)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources. """

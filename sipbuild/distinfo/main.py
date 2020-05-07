@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -41,6 +41,9 @@ def main():
             help="the name of the program generating the directory",
             metavar="NAME")
 
+    parser.add_argument('--gui-script', dest='gui_scripts', action='append',
+            help="the entry point of a GUI script", metavar='ENTRY-POINT')
+
     parser.add_argument('--inventory', required=True,
             help="the file containing the names of the files in the project",
             metavar="FILE")
@@ -64,8 +67,9 @@ def main():
 
     try:
         distinfo(name=args.names[0], console_scripts=args.console_scripts,
-                generator=args.generator, inventory=args.inventory,
-                prefix=args.prefix, project_root=args.project_root,
+                gui_scripts=args.gui_scripts, generator=args.generator,
+                inventory=args.inventory, prefix=args.prefix,
+                project_root=args.project_root,
                 requires_dists=args.requires_dists, wheel_tag=args.wheel_tag)
     except Exception as e:
         handle_exception(e)

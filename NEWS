@@ -1,6 +1,8 @@
 v5.2.1 ??? ??? 2020
   - The latest version of the module ABI is v12.8.0.
-  - Bug fixes.
+  - Added the 'gui-scripts' project option to specify a list of GUI entry
+    points to create.  sip-distinfo has a corresponding '--gui-script' command
+    line option.
 
 v5.2.0 10th April 2020
   - Added the 'manylinux' project option to disable the support for 'manylinux'

@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -36,8 +36,8 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
-        requires_dists, wheel_tag):
+def distinfo(name, console_scripts, gui_scripts, generator, inventory, prefix,
+        project_root, requires_dists, wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     if prefix is None:
@@ -55,13 +55,13 @@ def distinfo(name, console_scripts, generator, inventory, prefix, project_root,
     os.chdir(saved)
 
     create_distinfo(name, wheel_tag, installed, pyproject.get_metadata(),
-            requires_dists, project_root, console_scripts, prefix_dir=prefix,
-            generator=generator)
+            requires_dists, project_root, console_scripts, gui_scripts,
+            prefix_dir=prefix, generator=generator)
 
 
 def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
-        requires_dists, project_root, console_scripts, prefix_dir='',
-        generator=None):
+        requires_dists, project_root, console_scripts, gui_scripts,
+        prefix_dir='', generator=None):
     """ Create and populate a .dist-info directory. """
 
     if generator is None:
@@ -101,14 +101,19 @@ def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
             print(generator, file=installer_f)
     else:
         # Define any entry points.
-        if console_scripts:
+        if console_scripts or gui_scripts:
             eps_fn = os.path.join(distinfo_dir, 'entry_points.txt')
             installed.append(eps_fn)
 
             with open(prefix_dir + eps_fn, 'w') as eps_f:
-                eps_f.write(
-                        '[console_scripts]\n' + '\n'.join(
-                                console_scripts) + '\n')
+                if console_scripts:
+                    eps_f.write(
+                            '[console_scripts]\n' + '\n'.join(
+                                    console_scripts) + '\n')
+
+                if gui_scripts:
+                    eps_f.write(
+                            '[gui_scripts]\n' + '\n'.join(gui_scripts) + '\n')
 
         # Create the WHEEL file.
         WHEEL = '''Wheel-Version: {}

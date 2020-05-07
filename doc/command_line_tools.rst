@@ -146,6 +146,12 @@ The full set of command line options is:
     directory.  Otherwise ``NAME`` is written to the :file:`INSTALLER` file.
     By default ``sip-distinfo`` is written.
 
+.. option:: --gui-script ENTRY-POINT
+
+    The GUI entry point ``ENTRY-POINT`` is added to the wheel.  It is
+    ignored if the :option:`--wheel-tag` option is not specified.  This option
+    may be specified multiple times.
+
 .. option:: --inventory FILE
 
     ``FILE`` contains a list of the relative names of the files, one per line, 

@@ -63,6 +63,9 @@ class Project(AbstractProject, Configurable):
         # Set if an __init__.py should be installed.
         Option('dunder_init', option_type=bool, default=False),
 
+        # The list of GUI script entry points.
+        Option('gui_scripts', option_type=list),
+
         # The minimum GLIBC version required by the project.  This is used to
         # determine the correct platform tag to use for Linux wheels.
         Option('minimum_glibc_version'),

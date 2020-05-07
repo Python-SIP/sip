@@ -352,21 +352,21 @@ class Builder(AbstractBuilder):
         project = self.project
 
         # Handle the trivial case.
-        console_scripts = project.console_scripts
-        if not console_scripts:
+        scripts = project.console_scripts + project.gui_scripts
+        if not scripts:
             return
 
         # Create an installable for the scripts.
         installable = Installable('scripts',
                 target_subdir=os.path.dirname(sys.executable))
 
-        for ep in console_scripts:
+        for ep in scripts:
             # Parse the entry point.
             ep_parts = ep.replace(' ', '').split('=')
 
             if len(ep_parts) != 2:
                 raise UserException(
-                        "'{0}' is an invalid console script specification".format(ep))
+                        "'{0}' is an invalid script specification".format(ep))
 
             script, module = ep_parts
 

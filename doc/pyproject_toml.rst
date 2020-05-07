@@ -132,6 +132,10 @@ list options may contain environment markers as defined in `PEP 508
     installed in the top level package directory.  By default it is not
     installed and the value is ignored for standalone projects.
 
+**gui-scripts**
+    The value is a list of entry points that defines one or more GUI scripts to
+    be installed as part of the project.
+
 **manylinux**
     The boolean value specifies if support for ``manylinux`` in the platform
     tag of a name of a wheel is enabled.  By default ``manylinux`` support is
