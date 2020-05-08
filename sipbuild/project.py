@@ -70,6 +70,10 @@ class Project(AbstractProject, Configurable):
         # determine the correct platform tag to use for Linux wheels.
         Option('minimum_glibc_version'),
 
+        # The minimum macOS version required by the project.  This is used to
+        # determine the correct platform tag to use for macOS wheels.
+        Option('minimum_macos_version'),
+
         # Set if building for a debug version of Python.
         Option('py_debug', option_type=bool),
 
@@ -534,13 +538,9 @@ class Project(AbstractProject, Configurable):
         # Make sure any minimum GLIBC version is valid and convert it to a
         # 2-tuple.
         if self.minimum_glibc_version:
-            parts = self.minimum_glibc_version.split('.')
-
             try:
-                if len(parts) != 2:
-                    raise ValueError()
-
-                self.minimum_glibc_version = (int(parts[0]), int(parts[1]))
+                self.minimum_glibc_version = self._convert_major_minor(
+                        self.minimum_glibc_version)
             except ValueError:
                 raise PyProjectOptionException('minimum-glibc-version',
                         "'{0}' is an invalid GLIBC version number".format(
@@ -548,6 +548,18 @@ class Project(AbstractProject, Configurable):
                         section_name='tool.sip.project')
         else:
             self.minimum_glibc_version = (2, 5)
+
+        # Make sure any minimum macOS version is valid and convert it to a
+        # 2-tuple.
+        if self.minimum_macos_version:
+            try:
+                self.minimum_macos_version = self._convert_major_minor(
+                        self.minimum_macos_version)
+            except ValueError:
+                raise PyProjectOptionException('minimum-macos-version',
+                        "'{0}' is an invalid macOS version number".format(
+                                self.minimum_macos_version),
+                        section_name='tool.sip.project')
 
         # Make sure relevent paths are absolute and use native separators.
         self.sip_files_dir = self.project_path(self.sip_files_dir)
@@ -645,6 +657,18 @@ class Project(AbstractProject, Configurable):
                 if hasattr(args, option.dest):
                     setattr(configurable, option.name,
                             getattr(args, option.dest))
+
+    @staticmethod
+    def _convert_major_minor(value):
+        """ Convert a 'major.minor' version number to a 2-tuple of integers.
+        Raise a ValueError exception if it is invalid.
+        """
+
+        parts = value.split('.')
+        if len(parts) != 2:
+            raise ValueError()
+
+        return int(parts[0]), int(parts[1])
 
     def _enable_disable_bindings(self):
         """ Check the enabled bindings are valid and remove any disabled ones.
