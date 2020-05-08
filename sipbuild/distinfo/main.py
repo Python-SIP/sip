@@ -48,6 +48,11 @@ def main():
             help="the file containing the names of the files in the project",
             metavar="FILE")
 
+    parser.add_argument('--metadata', dest='metadata_overrides',
+            action='append',
+            help="a name/value to override any pyproject.toml metadata",
+            metavar='NAME[=VALUE]')
+
     parser.add_argument('--prefix', help="the installation prefix directory",
             metavar="DIR")
 
@@ -68,7 +73,8 @@ def main():
     try:
         distinfo(name=args.names[0], console_scripts=args.console_scripts,
                 gui_scripts=args.gui_scripts, generator=args.generator,
-                inventory=args.inventory, prefix=args.prefix,
+                inventory=args.inventory,
+                metadata_overrides=args.metadata_overrides, prefix=args.prefix,
                 project_root=args.project_root,
                 requires_dists=args.requires_dists, wheel_tag=args.wheel_tag)
     except Exception as e:

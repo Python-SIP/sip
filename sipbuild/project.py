@@ -152,6 +152,7 @@ class Project(AbstractProject, Configurable):
         self.buildables = []
         self.installables = []
 
+        self._metadata_overrides = None
         self._temp_build_dir = None
 
     def apply_nonuser_defaults(self, tool):
@@ -188,8 +189,8 @@ class Project(AbstractProject, Configurable):
     def apply_user_defaults(self, tool):
         """ Set default values for user options that haven't been set yet. """
 
-        # If we the backend to a 3rd-party frontend (most probably pip) then
-        # let it handle the verbosity of messages.
+        # If we are the backend to a 3rd-party frontend (most probably pip)
+        # then let it handle the verbosity of messages.
         if self.verbose is None and tool == '':
             self.verbose = True
 
@@ -266,6 +267,15 @@ class Project(AbstractProject, Configurable):
         # This default implementation will create an empty file.
         return ''
 
+    def get_metadata_overrides(self):
+        """ Return a mapping of PEP 566 metadata names and values that will
+        override any corresponding values defined in the pyproject.toml file.
+        A typical use is to determine a project's version dynamically.
+        """
+
+        # This default implementation does not override any metadata.
+        return {}
+
     def get_options(self):
         """ Return the list of configurable options. """
 
@@ -314,6 +324,56 @@ class Project(AbstractProject, Configurable):
 
         return ['{} (>={}, <{})'.format(sip_project_name, self.abi_version,
                 next_abi_major)]
+
+    def get_sip_distinfo_command_line(self, sip_distinfo, inventory,
+            generator=None, wheel_tag=None):
+        """ Return a sequence of command line arguments to invoke sip-distinfo.
+        """
+
+        args = [
+            sip_distinfo,
+
+            '--inventory',
+            inventory,
+
+            '--project-root',
+            self.root_dir,
+
+            '--prefix',
+            '\\"$(INSTALL_ROOT)\\"',
+        ]
+
+        if generator is not None:
+            args.append('--generator')
+            args.append(generator)
+
+        if wheel_tag is not None:
+            args.append('--wheel-tag')
+            args.append(wheel_tag)
+
+        for ep in self.console_scripts:
+            args.append('--console-script')
+            args.append(ep.replace(' ', ''))
+
+        for ep in self.gui_scripts:
+            args.append('--gui-script')
+            args.append(ep.replace(' ', ''))
+
+        for rd in self.get_requires_dists():
+            args.append('--requires-dist')
+            args.append('\\"{}\\"'.format(rd))
+
+        for metadata, value in self._metadata_overrides.items():
+            if value:
+                metadata += '=' + value
+
+            if ' ' in metadata:
+                metadata = '\\"' + metadata + '\\"'
+
+            args.append('--metadata')
+            args.append(metadata)
+
+        return args
 
     def install(self):
         """ Install the project. """
@@ -626,6 +686,8 @@ class Project(AbstractProject, Configurable):
 
         # Get the metadata and extract the version.
         self.metadata = pyproject.get_metadata()
+        self._metadata_overrides = self.get_metadata_overrides()
+        self.metadata.update(self._metadata_overrides)
         self.version_str = self.metadata['version']
 
         # Convert the version as a string to number.

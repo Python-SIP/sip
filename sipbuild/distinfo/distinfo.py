@@ -36,8 +36,8 @@ from ..version import SIP_VERSION_STR
 WHEEL_VERSION = '1.0'
 
 
-def distinfo(name, console_scripts, gui_scripts, generator, inventory, prefix,
-        project_root, requires_dists, wheel_tag):
+def distinfo(name, console_scripts, gui_scripts, generator, inventory,
+        metadata_overrides, prefix, project_root, requires_dists, wheel_tag):
     """ Create and populate a .dist-info directory from an inventory file. """
 
     if prefix is None:
@@ -54,9 +54,20 @@ def distinfo(name, console_scripts, gui_scripts, generator, inventory, prefix,
     pyproject = PyProject()
     os.chdir(saved)
 
-    create_distinfo(name, wheel_tag, installed, pyproject.get_metadata(),
-            requires_dists, project_root, console_scripts, gui_scripts,
-            prefix_dir=prefix, generator=generator)
+    # Get the metadata and update it from the command line.
+    metadata = pyproject.get_metadata()
+
+    if metadata_overrides is not None:
+        for oride in metadata_overrides:
+            parts = oride.split('=', maxsplit=1)
+            name = parts[0].strip()
+            value = parts[1].strip() if len(parts) == 2 else ''
+            metadata[name] = value
+
+    # Create the directory.
+    create_distinfo(name, wheel_tag, installed, metadata, requires_dists,
+            project_root, console_scripts, gui_scripts, prefix_dir=prefix,
+            generator=generator)
 
 
 def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,

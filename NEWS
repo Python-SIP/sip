@@ -1,5 +1,9 @@
 v5.2.1 ??? ??? 2020
   - The latest version of the module ABI is v12.8.0.
+  - Added the 'get_metadata_overrides()' and 'get_sip_distinfo_command_line()'
+    methods to the 'Project' class, and the '--metadata' command line option to
+    sip-distinfo.  Together they allow a project.py script to override any
+    PEP 566 metadata values specified in the pyproject.toml file.
   - Added the 'gui-scripts' project option to specify a list of GUI entry
     points to create.  sip-distinfo has a corresponding '--gui-script' command
     line option.

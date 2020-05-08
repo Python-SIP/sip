@@ -587,6 +587,16 @@ build systems.
 
         :return: the contents of the :file:`__init__.py` file.
 
+    .. py:method:: get_metadata_overrides()
+
+        Called by the project to get a mapping of `PEP 566
+        <https://www.python.org/dev/peps/pep-0566/>`__ metadata names and
+        values that will override any corresponding values defined in the
+        pyproject.toml file.  A typical use is to determine a project's version
+        dynamically.
+
+        :return: the mapping.
+
     .. py:method:: get_options()
 
         Called by the project to get the list of the project's options.  If it
@@ -602,6 +612,25 @@ build systems.
         ``[tool.sip.metadata]`` section of the :file:`pyproject.toml` file.
 
         :return: the list of ``requires-dist`` expressions.
+
+    .. py:method:: get_sip_distinfo_command_line(sip_distinfo, inventory, generator=None, wheel_tag=None)
+
+        Get a sequence of command line arguments to invoke
+        :program:`sip-distinfo`.  The :option:`--console-script`,
+        :option:`--gui-script`, :option:`--metadata`, :option:`--prefix`,
+        :option:`--project-root` and :option:`--requires-dist` command line
+        options are handled automatically.  The arguments do not contain the
+        name of the :file:``.dist-info`` directory to create.
+
+        :param str sip_distinfo: is the name of the :program:`sip-distinfo`
+            executable.
+        :param str inventory: is the value of the :option:`--inventory` command
+            line option.
+        :param str generator: is the value of the :option:`--generator` command
+            line option.
+        :param str wheel_tag: is the value of the :option:`--wheel-tag` command
+            line option.
+        :return: the sequence of command line arguments.
 
     .. py:attribute:: installables
 

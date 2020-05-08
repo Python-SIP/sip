@@ -158,6 +158,11 @@ The full set of command line options is:
     that comprise the installation or wheel contents.  This option must be
     specified.
 
+.. option:: --metadata NAME[=VALUE]
+
+    ``VALUE`` is used instead of any value specified for ``NAME`` in the
+    ``[tool.sip.metadata]`` section of the :file:`pyproject.toml` file.
+
 .. option:: --prefix DIR
 
     This option is provided as an aid to Linux package builders.  ``DIR`` is
