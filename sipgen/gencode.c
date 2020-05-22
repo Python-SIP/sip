@@ -6214,7 +6214,6 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 {
                     prcode(fp,
 "\n"
-"    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoMethod(sipParseErr, %N, ", pyname);
 
                     if (md->slot == setattr_slot)
@@ -11894,7 +11893,6 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         {
             prcode(fp,
 "\n"
-"    /* Raise an exception if the arguments couldn't be parsed. */\n"
 "    sipNoMethod(%s, %N, %N, ", (need_args ? "sipParseErr" : "SIP_NULLPTR"), cd->pyname, md->pyname);
 
             if (has_auto_docstring)
@@ -12415,6 +12413,13 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case size_type:
         prcode(fp,
 "            %s PyLong_FromUnsignedLong(%s);\n"
+            , prefix, vname);
+
+        break;
+
+    case ssize_type:
+        prcode(fp,
+"            %s PyLong_FromSsize_t(%s);\n"
             , prefix, vname);
 
         break;
