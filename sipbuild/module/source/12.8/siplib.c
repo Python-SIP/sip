@@ -8386,7 +8386,7 @@ static PyObject *sip_api_is_py_method(sip_gilstate_t *gil, char *pymc,
 static PyObject *sip_api_is_py_method_12_8(sip_gilstate_t *gil, char *pymc,
         sipSimpleWrapper **sipSelfp, const char *cname, const char *mname)
 {
-    const sipSimpleWrapper *sipSelf;
+    sipSimpleWrapper *sipSelf;
     PyObject *mname_obj, *reimp, *mro, *cls;
     Py_ssize_t i;
 
