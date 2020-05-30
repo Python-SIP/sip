@@ -92,6 +92,11 @@ class DistutilsBuilder(Builder):
         module_builder = ExtensionCommand(distribution, buildable)
         module_builder.build_lib = buildable.build_dir
         module_builder.debug = buildable.debug
+
+        if buildable.debug:
+            # Enable assert().
+            module_builder.undef = 'NDEBUG'
+
         module_builder.ensure_finalized()
 
         # Convert the #defines.
