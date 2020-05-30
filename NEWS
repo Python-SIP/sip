@@ -1,4 +1,4 @@
-v5.3.0 ??? June 2020
+v5.3.0 1st June 2020
   - The latest version of the module ABI is v12.8.0.
   - Added the 'get_metadata_overrides()' and 'get_sip_distinfo_command_line()'
     methods to the 'Project' class, and the '--metadata' command line option to
