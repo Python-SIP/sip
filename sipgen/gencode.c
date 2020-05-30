@@ -6878,13 +6878,47 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
-    if (generating_c || assignmentHelper(cd))
+    /* The array allocation helper. */
+    if (generating_c || arrayHelper(cd))
+    {
+        prcode(fp,
+"\n"
+"\n"
+            );
+
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static void *array_%L(Py_ssize_t);}\n"
+                , cd->iff);
+
+        prcode(fp,
+"static void *array_%L(Py_ssize_t sipNrElem)\n"
+"{\n"
+            , cd->iff);
+
+        if (generating_c)
+            prcode(fp,
+"    return sipMalloc(sizeof (struct %U) * sipNrElem);\n"
+                , cd);
+        else
+            prcode(fp,
+"    return new %U[sipNrElem];\n"
+                , cd);
+
+        prcode(fp,
+"}\n"
+            );
+    }
+
+    /* The copy and assignment helpers. */
+    if (generating_c || copyHelper(cd))
     {
         /*
-         * Generate the assignment helper.  Note that the source pointer is not
-         * const.  This is to allow the source instance to be modified as a
-         * consequence of the assignment, eg. if it is implementing some sort
-         * of reference counting scheme.
+         * The assignment helper.  We assume that there will be a valid
+         * assigment operator if there is a a copy ctor.  Note that the source
+         * pointer is not const.  This is to allow the source instance to be
+         * modified as a consequence of the assignment, eg. if it is
+         * implementing some sort of reference counting scheme.
          */
         prcode(fp,
 "\n"
@@ -6909,35 +6943,6 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             prcode(fp,
 "    reinterpret_cast<%U *>(sipDst)[sipDstIdx] = *reinterpret_cast<%U *>(sipSrc);\n"
                 , cd, cd);
-
-        prcode(fp,
-"}\n"
-            );
-
-        /* The array allocation helper. */
-        prcode(fp,
-"\n"
-"\n"
-            );
-
-        if (!generating_c)
-            prcode(fp,
-"extern \"C\" {static void *array_%L(SIP_SSIZE_T);}\n"
-                , cd->iff);
-
-        prcode(fp,
-"static void *array_%L(SIP_SSIZE_T sipNrElem)\n"
-"{\n"
-            , cd->iff);
-
-        if (generating_c)
-            prcode(fp,
-"    return sipMalloc(sizeof (struct %U) * sipNrElem);\n"
-                , cd);
-        else
-            prcode(fp,
-"    return new %U[sipNrElem];\n"
-                , cd);
 
         prcode(fp,
 "}\n"
@@ -10547,18 +10552,30 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 "    SIP_NULLPTR,\n"
             );
 
-    if (generating_c || assignmentHelper(cd))
+    if (generating_c || copyHelper(cd))
         prcode(fp,
 "    assign_%L,\n"
-"    array_%L,\n"
-"    copy_%L,\n"
-            , cd->iff
-            , cd->iff
             , cd->iff);
     else
         prcode(fp,
 "    SIP_NULLPTR,\n"
+            );
+
+    if (generating_c || arrayHelper(cd))
+        prcode(fp,
+"    array_%L,\n"
+            , cd->iff);
+    else
+        prcode(fp,
 "    SIP_NULLPTR,\n"
+            );
+
+    if (generating_c || copyHelper(cd))
+        prcode(fp,
+"    copy_%L,\n"
+            , cd->iff);
+    else
+        prcode(fp,
 "    SIP_NULLPTR,\n"
             );
 
@@ -13872,7 +13889,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
                 if (ad->atype == mapped_type && noRelease(ad->u.mtd))
                     fatal("Mapped type does not support /Array/\n");
 
-                if (ad->atype == class_type && !(generating_c || assignmentHelper(ad->u.cd)))
+                if (ad->atype == class_type && !(generating_c || arrayHelper(ad->u.cd)))
                 {
                     fatalScopedName(classFQCName(ad->u.cd));
                     fatal(" does not support /Array/\n");

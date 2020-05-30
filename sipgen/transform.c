@@ -93,7 +93,7 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
         mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
 static int generatingCodeForModule(sipSpec *pt, moduleDef *mod);
-static void checkAssignmentHelper(sipSpec *pt, classDef *cd);
+static void checkHelpers(sipSpec *pt, classDef *cd);
 static void addComplementarySlots(sipSpec *pt, classDef *cd);
 static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
         slotType cslot, const char *cslot_name);
@@ -306,7 +306,7 @@ void transform(sipSpec *pt, int strict)
     /* Additional class specific checks. */
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        checkAssignmentHelper(pt, cd);
+        checkHelpers(pt, cd);
         checkProperties(cd);
     }
 
@@ -540,17 +540,16 @@ static void addComplementarySlot(sipSpec *pt, classDef *cd, memberDef *md,
 
 
 /*
- * See if a class supports an assignment helper.
+ * See if a class supports array and copy helpers.
  */
-static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
+static void checkHelpers(sipSpec *pt, classDef *cd)
 {
     int pub_def_ctor, pub_copy_ctor;
     ctorDef *ct;
 
     /*
-     * We register types with Qt if the class is not abstract, doesn't have a
-     * private assignment operator, has a public default ctor, a public copy
-     * ctor and a public dtor.
+     * We disregard classes that are abstract, or have a private assignment
+     * operator or don't have a public dtor.
      */
     if (isAbstractClass(cd))
         return;
@@ -561,6 +560,7 @@ static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
     if (!isPublicDtor(cd))
         return;
 
+    /* See if the class has a default ctor and a public copy ctor. */
     pub_def_ctor = pub_copy_ctor = FALSE;
 
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
@@ -593,9 +593,15 @@ static void checkAssignmentHelper(sipSpec *pt, classDef *cd)
         }
     }
 
-    if (pub_def_ctor && pub_copy_ctor)
+    if (pub_def_ctor)
     {
-        setAssignmentHelper(cd);
+        setArrayHelper(cd);
+        appendToIfaceFileList(&cd->iff->module->used, cd->iff);
+    }
+
+    if (pub_copy_ctor)
+    {
+        setCopyHelper(cd);
         appendToIfaceFileList(&cd->iff->module->used, cd->iff);
     }
 }
