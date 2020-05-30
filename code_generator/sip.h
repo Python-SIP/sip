@@ -138,7 +138,7 @@
 #define CLASS_NO_DEFAULT_CTORS  0x00200000  /* Don't create default ctors. */
 #define CLASS_QOBJECT_SUB   0x00400000  /* It is derived from QObject. */
 #define CLASS_DTOR_HOLD_GIL 0x00800000  /* The dtor holds the GIL. */
-#define CLASS_ASSIGN_HELPER 0x01000000  /* Generate an assignment helper. */
+#define CLASS_ARRAY_HELPER  0x01000000  /* Generate an array helper. */
 #define CLASS_NO_QMETAOBJECT    0x02000000  /* It has no QMetaObject. */
 #define CLASS_IS_TEMPLATE   0x04000000  /* It is a template class. */
 #define CLASS_IS_DEPRECATED 0x08000000  /* It is deprecated. */
@@ -181,8 +181,8 @@
 #define setIsQObjectSubClass(cd)    ((cd)->classflags |= CLASS_QOBJECT_SUB)
 #define isHoldGILDtor(cd)   ((cd)->classflags & CLASS_DTOR_HOLD_GIL)
 #define setIsHoldGILDtor(cd) ((cd)->classflags |= CLASS_DTOR_HOLD_GIL)
-#define assignmentHelper(cd) ((cd)->classflags & CLASS_ASSIGN_HELPER)
-#define setAssignmentHelper(cd) ((cd)->classflags |= CLASS_ASSIGN_HELPER)
+#define arrayHelper(cd)     ((cd)->classflags & CLASS_ARRAY_HELPER)
+#define setArrayHelper(cd)  ((cd)->classflags |= CLASS_ARRAY_HELPER)
 #define noPyQtQMetaObject(cd)   ((cd)->classflags & CLASS_NO_QMETAOBJECT)
 #define setPyQtNoQMetaObject(cd)    ((cd)->classflags |= CLASS_NO_QMETAOBJECT)
 #define isTemplateClass(cd) ((cd)->classflags & CLASS_IS_TEMPLATE)
@@ -215,6 +215,7 @@
 #define CLASS2_HIDDEN_NS    0x08        /* The namespace is hidden. */
 #define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
 #define CLASS2_NEEDS_SHADOW 0x20        /* The class needs a shadow class. */
+#define CLASS2_COPY_HELPER  0x40        /* Generate a copy helper. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -227,8 +228,10 @@
 #define setHiddenNamespace(cd)  ((cd)->classflags2 |= CLASS2_HIDDEN_NS)
 #define useTemplateName(cd) ((cd)->classflags2 & CLASS2_USE_TMPL_NAME)
 #define setUseTemplateName(cd)  ((cd)->classflags2 |= CLASS2_USE_TMPL_NAME)
-#define needsShadow(cd)      ((cd)->classflags & CLASS2_NEEDS_SHADOW)
-#define setNeedsShadow(cd)   ((cd)->classflags |= CLASS2_NEEDS_SHADOW)
+#define needsShadow(cd)      ((cd)->classflags2 & CLASS2_NEEDS_SHADOW)
+#define setNeedsShadow(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_SHADOW)
+#define copyHelper(cd)      ((cd)->classflags2 & CLASS2_COPY_HELPER)
+#define setCopyHelper(cd)   ((cd)->classflags2 |= CLASS2_COPY_HELPER)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
