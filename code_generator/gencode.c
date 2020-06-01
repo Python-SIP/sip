@@ -279,7 +279,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
         FILE *fp);
 static void generateDocstringText(docstringDef *docstring, FILE *fp);
-static int copyConstRefArg(argDef *ad);
+static int needsHeapCopy(argDef *ad);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
@@ -8027,7 +8027,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 break;
             }
 
-            if (copyConstRefArg(ad))
+            if (needsHeapCopy(ad))
             {
                 fmt = "N";
                 break;
@@ -8105,7 +8105,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         if (ad->atype == mapped_type || ad->atype == class_type ||
             ad->atype == fake_void_type)
         {
-            int copy = copyConstRefArg(ad);
+            int copy = needsHeapCopy(ad);
 
             prcode(fp,", ");
 
@@ -11717,21 +11717,27 @@ static const char *getBuildResultFormat(argDef *ad)
 
 
 /*
- * Return TRUE if an argument (or result) should be copied because it is a
- * const reference to a type.
+ * Return TRUE if an argument (or result) needs to be copied to the heap.
  */
-static int copyConstRefArg(argDef *ad)
+static int needsHeapCopy(argDef *ad)
 {
+    /* The type is a class or mapped type and not a pointer. */
     if (!noCopy(ad) && (ad->atype == class_type || ad->atype == mapped_type) && ad->nrderefs == 0)
     {
-        /* Make a copy if it is not a reference or it is a const reference. */
+        /* We need a copy unless it is a non-const reference. */
         if (!isReference(ad) || isConstArg(ad))
         {
-            /* If it is a class then we must be able to copy it. */
-            if (ad->atype != class_type || !(cannotCopy(ad->u.cd) || isAbstractClass(ad->u.cd)))
-            {
+            /*
+             * If it is a class then we must be able to either copy or assign
+             * it.
+             */
+            if (ad->atype != class_type)
                 return TRUE;
-            }
+
+            if (isAbstractClass(ad->u.cd))
+                return FALSE;
+
+            return (!cannotAssign(ad->u.cd) || !cannotCopy(ad->u.cd));
         }
     }
 
@@ -11830,7 +11836,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     orig_res = *res;
 
     /* See if we need to make a copy of the result on the heap. */
-    needsNew = copyConstRefArg(res);
+    needsNew = needsHeapCopy(res);
 
     if (needsNew)
         resetIsConstArg(res);
@@ -12010,6 +12016,11 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
                 {
                     prcode(fp,"*sipRes = ");
                 }
+                else if (res->atype == class_type && cannotCopy(res->u.cd))
+                {
+                    prcode(fp, "sipRes = reinterpret_cast<%b *>(::operator new(sizeof (%b)));\n"
+"            *sipRes = ", res, res);
+                }
                 else
                 {
                     prcode(fp,"sipRes = new %b(",res);
@@ -12020,7 +12031,10 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
             {
                 prcode(fp,"sipRes = ");
 
-                /* See if we need the address of the result. */
+                /*
+                 * See if we need the address of the result.  Any reference
+                 * will be non-const.
+                 */
                 if ((res->atype == class_type || res->atype == mapped_type) && (res->nrderefs == 0 || isReference(res)))
                     prcode(fp,"&");
             }
