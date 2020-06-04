@@ -289,7 +289,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
         FILE *fp);
 static void generateDocstringText(docstringDef *docstring, FILE *fp);
-static int needsHeapCopy(argDef *ad);
+static int needsHeapCopy(argDef *ad, int usingCopyCtor);
 static void generatePreprocLine(int linenr, const char *fname, FILE *fp);
 static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
@@ -8769,7 +8769,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
                 break;
             }
 
-            if (needsHeapCopy(ad))
+            if (needsHeapCopy(ad, TRUE))
             {
                 fmt = "N";
                 break;
@@ -8851,7 +8851,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             ad->atype == rxcon_type || ad->atype == rxdis_type ||
             ad->atype == qobject_type || ad->atype == fake_void_type)
         {
-            int copy = needsHeapCopy(ad);
+            int copy = needsHeapCopy(ad, TRUE);
 
             prcode(fp,", ");
 
@@ -12665,7 +12665,7 @@ static const char *getBuildResultFormat(argDef *ad)
 /*
  * Return TRUE if an argument (or result) needs to be copied to the heap.
  */
-static int needsHeapCopy(argDef *ad)
+static int needsHeapCopy(argDef *ad, int usingCopyCtor)
 {
     /* The type is a class or mapped type and not a pointer. */
     if (!noCopy(ad) && (ad->atype == class_type || ad->atype == mapped_type) && ad->nrderefs == 0)
@@ -12673,17 +12673,24 @@ static int needsHeapCopy(argDef *ad)
         /* We need a copy unless it is a non-const reference. */
         if (!isReference(ad) || isConstArg(ad))
         {
-            /*
-             * If it is a class then we must be able to either copy or assign
-             * it.
-             */
+            /* We assume we can copy a mapped type. */
             if (ad->atype != class_type)
                 return TRUE;
 
+            /* We can't copy an abstract class. */
             if (isAbstractClass(ad->u.cd))
                 return FALSE;
 
-            return (!cannotAssign(ad->u.cd) || !cannotCopy(ad->u.cd));
+            /* We can copy if we have a public copy ctor. */
+            if (!cannotCopy(ad->u.cd))
+                return TRUE;
+
+            /* We can't copy if we must use a copy ctor. */
+            if (usingCopyCtor)
+                return FALSE;
+
+            /* We can copy if we have a public assignment operator. */
+            return !cannotAssign(ad->u.cd);
         }
     }
 
@@ -12782,7 +12789,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
     orig_res = *res;
 
     /* See if we need to make a copy of the result on the heap. */
-    needsNew = needsHeapCopy(res);
+    needsNew = needsHeapCopy(res, FALSE);
 
     if (needsNew)
         resetIsConstArg(res);
