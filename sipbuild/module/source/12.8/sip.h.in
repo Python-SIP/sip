@@ -35,14 +35,13 @@ extern "C" {
 
 
 /* The patch version of this implementation of the ABI. */
-#define SIP_MODULE_PATCH_VERSION    0
+#define SIP_MODULE_PATCH_VERSION    1
 
 
 /*
  * The changes to this version of the ABI.
  *
- * Added sip_api_is_py_method_12_8() to the private API.
- * Deprecated sip_api_is_py_method() .
+ * Preserve any current exception in the wrapper tp_dealloc functions.
  */
 
 
