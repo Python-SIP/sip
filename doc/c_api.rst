@@ -955,6 +955,9 @@ it.
 
     This retrieves a frame object from the current execution stack.
 
+    .. note::
+        On PyPy this will always return NULL.
+
     :param depth:
         the depth of frame to retrieve where 0 is the current frame, 1 is the
         previous frame etc.

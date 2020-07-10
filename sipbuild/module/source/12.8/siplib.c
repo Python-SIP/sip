@@ -12734,6 +12734,10 @@ static int sip_api_is_user_type(const sipWrapperType *wt)
  */
 static struct _frame *sip_api_get_frame(int depth)
 {
+#if defined(PYPY_VERSION)
+    /* PyPy only supports a depth of 0. */
+    return NULL;
+#else
     struct _frame *frame = PyEval_GetFrame();
 
     while (frame != NULL && depth > 0)
@@ -12743,6 +12747,7 @@ static struct _frame *sip_api_get_frame(int depth)
     }
 
     return frame;
+#endif
 }
 
 
