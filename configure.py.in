@@ -50,6 +50,7 @@ sip_module_dir = ''
 sip_module_dest_dir = ''
 sip_sip_dir = ''
 pyi_dir = ''
+android_abi = ''
 sysroot = ''
 src_dir = os.path.dirname(os.path.abspath(__file__))
 sip_module_name = None
@@ -281,6 +282,7 @@ def create_config(module, template, macros):
         "py_inc_dir":       plat_py_inc_dir,
         "py_conf_inc_dir":  plat_py_conf_inc_dir,
         "py_lib_dir":       plat_py_lib_dir,
+        "android_abi":      android_abi,
         "universal":        opts.universal,
         "arch":             opts.arch,
         "deployment_target":    opts.deployment_target,
@@ -462,6 +464,10 @@ def create_makefiles(macros):
         pro.write("CONFIG += warn_on exceptions_off %s %s\n" % (
                 ("staticlib" if opts.static else "plugin plugin_bundle"),
                 ("debug" if opts.debug else "release")))
+
+        if android_abi:
+            pro.write("\n")
+            pro.write("ANDROID_ABIS = {}\n".format(android_abi))
 
         pro.write("\n")
         pro.write("# Work around QTBUG-39300.\n")
@@ -686,7 +692,7 @@ def update_from_configuration_file(config_file):
 
     # Override the relevant values.
     global py_platform, plat_py_conf_inc_dir, plat_py_inc_dir, plat_py_lib_dir
-    global sip_bin_dir, sip_inc_dir, sip_module_dir, sip_sip_dir
+    global sip_bin_dir, sip_inc_dir, sip_module_dir, sip_sip_dir, android_abi
 
     py_platform = _get_configuration_value(config, 'py_platform', py_platform)
     plat_py_inc_dir = _get_configuration_value(config, 'py_inc_dir',
@@ -709,6 +715,8 @@ def update_from_configuration_file(config_file):
 
     # Note that this is only used when creating sipconfig.py.
     sip_sip_dir = _get_configuration_value(config, 'sip_sip_dir', sip_sip_dir)
+
+    android_abi = _get_configuration_value(config, 'android_abi', android_abi)
 
 
 def create_optparser(sdk_dir):
