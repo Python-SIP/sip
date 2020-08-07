@@ -7375,32 +7375,29 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     res_isref = FALSE;
     res_instancecode = NULL;
 
-    if (res->nrderefs == 0)
+    if (res->atype == void_type && res->nrderefs == 0)
     {
-        if (res->atype == void_type)
+        res = NULL;
+    }
+    else
+    {
+        /*
+         * If we are returning a reference to an instance then we take care to
+         * handle Python errors but still return a valid C++ instance.
+         */
+        if ((res->atype == class_type || res->atype == mapped_type) && res->nrderefs == 0)
         {
-            res = NULL;
+            if (isReference(res))
+                res_isref = TRUE;
+            else if (res->atype == class_type)
+                res_instancecode = res->u.cd->instancecode;
+            else
+                res_instancecode = res->u.mtd->instancecode;
         }
-        else
-        {
-            /*
-             * If we are returning a reference to an instance then we take care
-             * to handle Python errors but still return a valid C++ instance.
-             */
-            if (res->atype == class_type || res->atype == mapped_type)
-            {
-                if (isReference(res))
-                    res_isref = TRUE;
-                else if (res->atype == class_type)
-                    res_instancecode = res->u.cd->instancecode;
-                else
-                    res_instancecode = res->u.mtd->instancecode;
-            }
 
-            res_noconstref = *res;
-            resetIsConstArg(&res_noconstref);
-            resetIsReference(&res_noconstref);
-        }
+        res_noconstref = *res;
+        resetIsConstArg(&res_noconstref);
+        resetIsReference(&res_noconstref);
     }
 
     prcode(fp,
