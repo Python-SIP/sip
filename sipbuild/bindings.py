@@ -273,6 +273,7 @@ class Bindings(Configurable):
         super().verify_configuration(tool)
 
         # Make sure relevent paths are absolute and use native separators.
+        self.headers = [project.project_path(h) for h in self.headers]
         self.include_dirs = [project.project_path(d)
                 for d in self.include_dirs]
         self.library_dirs = [project.project_path(d)
