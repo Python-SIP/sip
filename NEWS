@@ -1,4 +1,5 @@
 v4.19.24 ??? August 2020
+  - Added support for Python v3.9.
   - %InstanceCode is now used to provide the default result of virtual handlers
     that return a class or mapped type by value.
   - 'android_abi' can now be used in a configuration file when building the sip
