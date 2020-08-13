@@ -2,7 +2,7 @@
  * The SIP library code that implements the interface to the optional module
  * supplied Qt support.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -212,7 +212,7 @@ PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
     {
         PyObject *nsa, *xtype, *xvalue, *xtb, *resobj;
 
-        if ((resobj = PyEval_CallObject(sfunc, sa)) != NULL)
+        if ((resobj = PyObject_CallObject(sfunc, sa)) != NULL)
         {
             Py_DECREF(sfunc);
             Py_XDECREF(sref);
