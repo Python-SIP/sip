@@ -1,4 +1,5 @@
 v5.3.1 ??? ??? 2020
+  - Python v3.9 is supported.
   - The latest version of the module ABI is v12.8.1.
   - Added support for building the sip module for PyPy.
   - Bug fixes.
