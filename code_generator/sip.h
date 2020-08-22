@@ -1026,7 +1026,7 @@ typedef struct _mappedTypeDef {
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */
-    codeBlockList *instancecode;        /* Create instance code. */
+    codeBlockList *instanceonheapcode;  /* Create instance on the heap code. */
     codeBlockList *typecode;            /* Type code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
@@ -1261,7 +1261,7 @@ typedef struct _classDef {
     codeBlockList *cppcode;             /* Class C++ code. */
     codeBlockList *convtosubcode;       /* Convert to sub C++ code. */
     struct _classDef *subbase;          /* Sub-class base class. */
-    codeBlockList *instancecode;        /* Create instance code. */
+    codeBlockList *instanceonheapcode;  /* Create instance on the heap code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *travcode;            /* Traverse code. */

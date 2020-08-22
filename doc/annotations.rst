@@ -750,7 +750,8 @@ Function Annotations
     a constructor with no arguments if no constructors are specified.)  This
     annotation is used to explicitly specify which constructor to use.  Zero is
     passed as the value of any arguments to the constructor.  This annotation
-    is ignored if the class defines :directive:`%InstanceCode`.
+    is ignored if the class defines :directive:`%InstanceCode` or
+    :directive:`%InstanceOnHeapCode`.
 
 
 .. function-annotation:: Deprecated

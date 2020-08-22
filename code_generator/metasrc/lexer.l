@@ -489,8 +489,16 @@ SIP_SSIZE_T                 {
 
 ^[ \t]*%InstanceCode {
     /* The start of a create instance code block. */
+    deprecated("The %AInstanceCode directive is deprecated and will be removed in v6");
+
     codeIdx = 0;
-    return TK_INSTANCECODE;
+    return TK_INSTANCEONHEAPCODE;
+}
+
+^[ \t]*%InstanceOnHeapCode {
+    /* The start of a create instance on the heap code block. */
+    codeIdx = 0;
+    return TK_INSTANCEONHEAPCODE;
 }
 
 ^[ \t]*%PickleCode {

@@ -88,6 +88,7 @@ file.
             :directive:`%GCClearCode` |
             :directive:`%GCTraverseCode` |
             :directive:`%InstanceCode` |
+            :directive:`%InstanceOnHeapCode` |
             :directive:`%PickleCode` |
             :directive:`%TypeCode` |
             :directive:`%TypeHeaderCode` |
