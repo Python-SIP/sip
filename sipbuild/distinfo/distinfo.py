@@ -60,9 +60,9 @@ def distinfo(name, console_scripts, gui_scripts, generator, inventory,
     if metadata_overrides is not None:
         for oride in metadata_overrides:
             parts = oride.split('=', maxsplit=1)
-            name = parts[0].strip()
-            value = parts[1].strip() if len(parts) == 2 else ''
-            metadata[name] = value
+            or_name = parts[0].strip()
+            or_value = parts[1].strip() if len(parts) == 2 else ''
+            metadata[or_name] = or_value
 
     # Create the directory.
     create_distinfo(name, wheel_tag, installed, metadata, requires_dists,

@@ -74,7 +74,7 @@ it.
     array is read-only.
 
 
-.. c:function:: SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
+.. c:function:: void SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
 
     This is called from the handwritten code specified with the
     :directive:`VirtualErrorHandler` in order to release the Python Global
@@ -179,11 +179,11 @@ it.
     Python object that implements the buffer protocol.  The structure elements
     are as follows.
 
-    .. c:member:: void \*bi_buf
+    .. c:member:: void *bi_buf
 
         The address of the buffer.
 
-    .. c:member:: PyObject \*bi_obj
+    .. c:member:: PyObject *bi_obj
 
         A reference to the object that implements the buffer protocol.
 
@@ -191,7 +191,7 @@ it.
 
         The length of the buffer in bytes.
 
-    .. c:member:: char \*bi_format
+    .. c:member:: char *bi_format
 
         The format of each element of the buffer.
 
@@ -388,11 +388,11 @@ it.
     the components parts of a Python C function.  The structure elements are as
     follows.
 
-    .. c:member:: PyMethodDef \*cf_function
+    .. c:member:: PyMethodDef *cf_function
 
         The C function.
 
-    .. c:member:: PyObject \*cf_self
+    .. c:member:: PyObject *cf_self
 
         The optional bound object.
 
@@ -954,6 +954,9 @@ it.
 .. c:function:: struct _frame sipGetFrame(int depth)
 
     This retrieves a frame object from the current execution stack.
+
+    .. note::
+        On PyPy this will always return NULL.
 
     :param depth:
         the depth of frame to retrieve where 0 is the current frame, 1 is the
@@ -1650,8 +1653,8 @@ it.
         the function that is called whenever a user defined sub-class of the
         type is created.  The function takes a single argument which is the
         :c:type:`sipWrapperType` of the user defined class.  It returns an
-        :c:type:`int` which is 0 if there was no error.  A Python exception is
-        raised and -1 returned if there was an error.
+        ``int`` which is 0 if there was no error.  A Python exception is raised
+        and -1 returned if there was an error.
     :return:
         the previously installed handler.  This allows handlers to be chained.
 
