@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -35,3 +35,4 @@ from .installable import Installable
 from .project import Project
 from .pyproject import (PyProjectOptionException,
         PyProjectUndefinedOptionException)
+from .version import SIP_VERSION, SIP_VERSION_STR

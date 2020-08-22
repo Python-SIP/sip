@@ -14,6 +14,17 @@ build systems.
     Unless they are documented here they are **not** part of the public API and
     may be changed in any future release.
 
+.. py:data:: SIP_VERSION
+    :type: int
+
+    The major.minor.patch version number encoded as an integer.  For example
+    v5.4.0 would be encoded as 0x050400.
+
+.. py:data:: SIP_VERSION_STR
+    :type: str
+
+    The version number as it should be displayed to the user.
+
 
 :py:class:`~sipbuild.AbstractBuilder`
 -------------------------------------
