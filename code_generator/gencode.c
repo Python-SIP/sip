@@ -7441,10 +7441,19 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     {
         if (res_instancecode != NULL)
         {
-            prcode(fp, "    ");
-            generateBaseType(NULL, &res_noconstref, TRUE, STRIP_NONE, fp);
-            prcode(fp, " *sipCpp;\n");
+            prcode(fp,
+"    static %B *sipCpp = SIP_NULLPTR;\n"
+"\n"
+"    if (!sipCpp)\n"
+"    {\n"
+                , &res_noconstref);
+
             generateCppCodeBlock(res_instancecode, fp);
+
+            prcode(fp,
+"    }\n"
+"\n"
+                );
         }
 
         prcode(fp, "    ");
@@ -7470,8 +7479,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         {
             if (res_instancecode != NULL)
             {
-                prcode(fp," = *sipCpp;\n"
-"    delete sipCpp");
+                prcode(fp, " = *sipCpp");
             }
             else if (res->atype == class_type)
             {
