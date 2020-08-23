@@ -286,7 +286,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_VIRTUALCALLCODE
 %token          TK_METHODCODE
 %token          TK_PREMETHODCODE
-%token          TK_INSTANCEONHEAPCODE
+%token          TK_INSTANCECODE
 %token          TK_FROMTYPE
 %token          TK_TOTYPE
 %token          TK_TOSUBCLASS
@@ -421,7 +421,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <codeb>           virtualcallcode
 %type <codeb>           methodcode
 %type <codeb>           premethodcode
-%type <codeb>           instanceonheapcode
+%type <codeb>           instancecode
 %type <codeb>           raisecode
 %type <docstr>          optdocstring
 %type <docstr>          docstring
@@ -1215,7 +1215,7 @@ mtline: ifstart
             if (notSkipping())
             {
                 if (currentMappedType->convfromcode != NULL)
-                    yyerror("%ConvertFromTypeCode already given for %MappedType");
+                    yyerror("%MappedType has more than one %ConvertFromTypeCode directive");
 
                 appendCodeBlock(&currentMappedType->convfromcode, $2);
             }
@@ -1224,18 +1224,18 @@ mtline: ifstart
             if (notSkipping())
             {
                 if (currentMappedType->convtocode != NULL)
-                    yyerror("%ConvertToTypeCode already given for %MappedType");
+                    yyerror("%MappedType has more than one %ConvertToTypeCode directive");
 
                 appendCodeBlock(&currentMappedType->convtocode, $2);
             }
         }
-    |   instanceonheapcode {
+    |   instancecode {
             if (notSkipping())
             {
-                if (currentMappedType->instanceonheapcode != NULL)
-                    yyerror("%InstanceOnHeapCode already given for %MappedType");
+                if (currentMappedType->instancecode != NULL)
+                    yyerror("%MappedType has more than one %InstanceCode directive");
 
-                appendCodeBlock(&currentMappedType->instanceonheapcode, $1);
+                appendCodeBlock(&currentMappedType->instancecode, $1);
             }
         }
     |   enum
@@ -2104,7 +2104,7 @@ charbufcode:    TK_CHARBUFFERCODE codeblock {
         }
     ;
 
-instanceonheapcode: TK_INSTANCEONHEAPCODE codeblock {
+instancecode:   TK_INSTANCECODE codeblock {
             $$ = $2;
         }
     ;
@@ -3064,15 +3064,15 @@ classline:  ifstart
     |   charbufcode {
             /* Remove in v6. */
         }
-    |   instanceonheapcode {
+    |   instancecode {
             if (notSkipping())
             {
                 classDef *scope = currentScope();
 
-                if (scope->instanceonheapcode != NULL)
-                    yyerror("%InstanceOnHeapCode already given for class");
+                if (scope->instancecode != NULL)
+                    yyerror("%InstanceCode already given for class");
 
-                appendCodeBlock(&scope->instanceonheapcode, $1);
+                appendCodeBlock(&scope->instancecode, $1);
             }
         }
     |   picklecode {
@@ -5813,28 +5813,17 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
             type_values);
 
     cd->cppcode = templateCode(pt, used, cd->cppcode, type_names, type_values);
-    cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names,
-            type_values);
-    cd->convtosubcode = templateCode(pt, used, cd->convtosubcode, type_names,
-            type_values);
-    cd->convtocode = templateCode(pt, used, cd->convtocode, type_names,
-            type_values);
-    cd->travcode = templateCode(pt, used, cd->travcode, type_names,
-            type_values);
-    cd->clearcode = templateCode(pt, used, cd->clearcode, type_names,
-            type_values);
-    cd->getbufcode = templateCode(pt, used, cd->getbufcode, type_names,
-            type_values);
-    cd->releasebufcode = templateCode(pt, used, cd->releasebufcode, type_names,
-            type_values);
-    cd->instanceonheapcode = templateCode(pt, used, cd->instanceonheapcode,
-            type_names, type_values);
-    cd->picklecode = templateCode(pt, used, cd->picklecode, type_names,
-            type_values);
-    cd->finalcode = templateCode(pt, used, cd->finalcode, type_names,
-            type_values);
-    cd->typehintcode = templateCode(pt, used, cd->typehintcode, type_names,
-            type_values);
+    cd->iff->hdrcode = templateCode(pt, used, cd->iff->hdrcode, type_names, type_values);
+    cd->convtosubcode = templateCode(pt, used, cd->convtosubcode, type_names, type_values);
+    cd->convtocode = templateCode(pt, used, cd->convtocode, type_names, type_values);
+    cd->travcode = templateCode(pt, used, cd->travcode, type_names, type_values);
+    cd->clearcode = templateCode(pt, used, cd->clearcode, type_names, type_values);
+    cd->getbufcode = templateCode(pt, used, cd->getbufcode, type_names, type_values);
+    cd->releasebufcode = templateCode(pt, used, cd->releasebufcode, type_names, type_values);
+    cd->instancecode = templateCode(pt, used, cd->instancecode, type_names, type_values);
+    cd->picklecode = templateCode(pt, used, cd->picklecode, type_names, type_values);
+    cd->finalcode = templateCode(pt, used, cd->finalcode, type_names, type_values);
+    cd->typehintcode = templateCode(pt, used, cd->typehintcode, type_names, type_values);
     cd->next = pt->classes;
 
     pt->classes = cd;

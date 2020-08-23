@@ -6978,9 +6978,9 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
     if (res->nrderefs == 0)
     {
         if (res->atype == mapped_type)
-            instance_code = res->u.mtd->instanceonheapcode;
+            instance_code = res->u.mtd->instancecode;
         else if (res->atype == class_type)
-            instance_code = res->u.cd->instanceonheapcode;
+            instance_code = res->u.cd->instancecode;
     }
 
     if (instance_code != NULL)
@@ -7368,12 +7368,12 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     int a, nrvals, res_isref;
     argDef *res, res_noconstref, *ad;
     signatureDef saved;
-    codeBlockList *res_instanceonheapcode;
+    codeBlockList *res_instancecode;
 
     res = &vhd->cppsig->result;
 
     res_isref = FALSE;
-    res_instanceonheapcode = NULL;
+    res_instancecode = NULL;
 
     if (res->atype == void_type && res->nrderefs == 0)
     {
@@ -7390,9 +7390,9 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
             if (isReference(res))
                 res_isref = TRUE;
             else if (res->atype == class_type)
-                res_instanceonheapcode = res->u.cd->instanceonheapcode;
+                res_instancecode = res->u.cd->instancecode;
             else
-                res_instanceonheapcode = res->u.mtd->instanceonheapcode;
+                res_instancecode = res->u.mtd->instancecode;
         }
 
         res_noconstref = *res;
@@ -7439,12 +7439,12 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
     if (res != NULL)
     {
-        if (res_instanceonheapcode != NULL)
+        if (res_instancecode != NULL)
         {
             prcode(fp, "    ");
             generateBaseType(NULL, &res_noconstref, TRUE, STRIP_NONE, fp);
             prcode(fp, " *sipCpp;\n");
-            generateCppCodeBlock(res_instanceonheapcode, fp);
+            generateCppCodeBlock(res_instancecode, fp);
         }
 
         prcode(fp, "    ");
@@ -7468,7 +7468,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 
         if ((res->atype == class_type || res->atype == mapped_type || res->atype == template_type) && res->nrderefs == 0)
         {
-            if (res_instanceonheapcode != NULL)
+            if (res_instancecode != NULL)
             {
                 prcode(fp," = *sipCpp");
             }
