@@ -7470,7 +7470,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         {
             if (res_instancecode != NULL)
             {
-                prcode(fp," = *sipCpp");
+                prcode(fp," = *sipCpp;\n"
+"    delete sipCpp");
             }
             else if (res->atype == class_type)
             {
