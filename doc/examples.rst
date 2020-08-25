@@ -145,7 +145,7 @@ possible approaches:
 
 - the project provides command line options to SIP's build tools (i.e.
   :program:`sip-build`, :program:`sip-install` and :program:`sip-wheel`) that
-  allows the user to specifiy the locations.
+  allows the user to specify the locations.
 
 The first approach, while not particularly user friendly, is legitimate so long
 as you document it.  However note that it cannot work when building and
