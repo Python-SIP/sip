@@ -124,6 +124,8 @@ class Project(AbstractProject, Configurable):
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('build_tag', help="the build tag to be used in the wheel name",
                 metavar="TAG", tools=['wheel']),
+        Option('distinfo', option_type=bool, inverted=True,
+                help="don't create a .dist-info directory", tools=['install']),
         Option('manylinux', option_type=bool, inverted=True,
                 help="disable the use of manylinux in the platform tag used "
                         "in the wheel name",

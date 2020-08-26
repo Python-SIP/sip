@@ -121,16 +121,21 @@ list options may contain environment markers as defined in `PEP 508
     The value is a list of the names of the bindings that are disabled and will
     not be built.  This is also a user option.
 
+**dunder-init**
+    The boolean value specifies if a :file:`__init__.py` file should be
+    installed in the top level package directory.  By default it is not
+    installed and the value is ignored for standalone projects.
+
+**distinfo**
+    The boolean value specifies if a :file:`.dist-info` directory is to be
+    created when a project is installed.  By default it is enabled.  This is
+    also a user option.
+
 **enable**
     The value is a list of the names of the bindings that are enabled and will
     be built.  Any associated configuration tests that would normally be run to
     determine if the bindings should be built are suppressed.  This is also a
     user option.
-
-**dunder-init**
-    The boolean value specifies if a :file:`__init__.py` file should be
-    installed in the top level package directory.  By default it is not
-    installed and the value is ignored for standalone projects.
 
 **gui-scripts**
     The value is a list of entry points that defines one or more GUI scripts to

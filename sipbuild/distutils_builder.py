@@ -30,7 +30,6 @@ import os
 
 from .buildable import BuildableModule
 from .builder import Builder
-from .distinfo import create_distinfo
 from .exceptions import UserException
 from .installable import Installable
 
@@ -76,9 +75,13 @@ class DistutilsBuilder(Builder):
             for installable in buildable.installables:
                 installable.install(target_dir, installed)
 
-        create_distinfo(project.get_distinfo_dir(target_dir), wheel_tag,
-                installed, project.metadata, project.get_requires_dists(),
-                project.root_dir, project.console_scripts, project.gui_scripts)
+        if project.distinfo:
+            from .distinfo import create_distinfo
+
+            create_distinfo(project.get_distinfo_dir(target_dir), wheel_tag,
+                    installed, project.metadata, project.get_requires_dists(),
+                    project.root_dir, project.console_scripts,
+                    project.gui_scripts)
 
     def _build_extension_module(self, buildable):
         """ Build an extension module from the sources. """

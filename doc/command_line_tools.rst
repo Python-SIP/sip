@@ -256,6 +256,10 @@ The full set of command line options is:
     The generation of docstrings that describe the signature of all functions,
     methods and constructors is disabled.
 
+.. option:: --no-distinfo
+
+    The creation of the :file:`.dist-info` directory is disabled.
+
 .. option:: --pep484-pyi
 
     The generation of Python type hints stub files is enabled.  These files
