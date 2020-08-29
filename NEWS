@@ -1,6 +1,6 @@
-v5.4.0 ??? ??? 2020
-  - Python v3.9 is supported.
+v5.4.0 ??? August 2020
   - The latest version of the module ABI is v12.8.1.
+  - Python v3.9 is supported.
   - Added support for building the sip module for PyPy.
   - Added the 'distinfo' project option to allow the creation of a .dist-info
     directory to be disabled.  sip-install has a corresponding '--no-distinfo'
