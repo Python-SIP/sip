@@ -22,5 +22,5 @@
 
 
 # The first and last supported minor versions of Python v3.
-FIRST_SUPPORTED_MINOR = 5
+FIRST_SUPPORTED_MINOR = 6
 LAST_SUPPORTED_MINOR = 9
