@@ -149,9 +149,6 @@ typedef struct _sipCFunctionDef sipCFunctionDef;
 struct _sipDateDef;
 typedef struct _sipDateDef sipDateDef;
 
-struct _sipEnumTypeObject;
-typedef struct _sipEnumTypeObject sipEnumTypeObject;
-
 struct _sipMethodDef;
 typedef struct _sipMethodDef sipMethodDef;
 
@@ -1381,11 +1378,11 @@ typedef struct _sipAPIDef {
     size_t (*api_long_as_size_t)(PyObject *o);
     void (*api_visit_wrappers)(sipWrapperVisitorFunc visitor, void *closure);
     int (*api_register_exit_notifier)(PyMethodDef *md);
-    void (*)();
-    void (*)();
-    void (*)();
-    void (*)();
-    void (*)();
+    void (*unused_public_1)();
+    void (*unused_public_2)();
+    void (*unused_public_3)();
+    void (*unused_public_4)();
+    void (*unused_public_5)();
 
     /*
      * The following are not part of the public API.
@@ -1449,11 +1446,11 @@ typedef struct _sipAPIDef {
     void (*api_instance_destroyed_ex)(sipSimpleWrapper **sipSelfp);
     PyObject *(*api_is_py_method_12_8)(sip_gilstate_t *gil, char *pymc,
             sipSimpleWrapper **sipSelfp, const char *cname, const char *mname);
-    void (*)();
-    void (*)();
-    void (*)();
-    void (*)();
-    void (*)();
+    void (*unused_private_1)();
+    void (*unused_private_2)();
+    void (*unused_private_3)();
+    void (*unused_private_4)();
+    void (*unused_private_5)();
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);
