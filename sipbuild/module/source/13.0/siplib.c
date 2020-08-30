@@ -272,7 +272,6 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         int flags);
 static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         PyObject *transferObj, int flags, int *statep, int *iserrp);
-static int sip_api_can_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static int sip_api_convert_to_enum(PyObject *pyObj, const sipTypeDef *td);
 static void sip_api_release_type(void *cpp, const sipTypeDef *td, int state);
 static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
@@ -282,10 +281,6 @@ static PyObject *sip_api_convert_from_new_pytype(void *cpp,
         const char *fmt, ...);
 static int sip_api_get_state(PyObject *transferObj);
 static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td);
-static sipWrapperType *sip_api_map_int_to_class(int typeInt,
-        const sipIntTypeClassMap *map, int maplen);
-static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
-        const sipStringTypeClassMap *map, int maplen);
 static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
         sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
         PyObject *method, PyObject *res, const char *fmt, ...);
@@ -333,9 +328,6 @@ static void sip_api_add_delayed_dtor(sipSimpleWrapper *w);
 static int sip_api_export_symbol(const char *name, void *sym);
 static void *sip_api_import_symbol(const char *name);
 static const sipTypeDef *sip_api_find_type(const char *type);
-static sipWrapperType *sip_api_find_class(const char *type);
-static const sipMappedType *sip_api_find_mapped_type(const char *type);
-static PyTypeObject *sip_api_find_named_enum(const char *type);
 static char sip_api_bytes_as_char(PyObject *obj);
 static const char *sip_api_bytes_as_string(PyObject *obj);
 static char sip_api_string_as_ascii_char(PyObject *obj);
@@ -440,7 +432,6 @@ static const sipAPIDef sip_api = {
     sip_api_can_convert_to_type,
     sip_api_convert_to_type,
     sip_api_force_convert_to_type,
-    sip_api_can_convert_to_enum,
     sip_api_release_type,
     sip_api_convert_from_type,
     sip_api_convert_from_new_type,
@@ -504,19 +495,39 @@ static const sipAPIDef sip_api = {
     sip_api_release_buffer_info,
     sip_api_get_user_object,
     sip_api_set_user_object,
+    sip_api_instance_destroyed,
+    sip_api_is_owned_by_python,
+    sip_api_enable_gc,
+    sip_api_print_object,
+    sip_api_register_event_handler,
+    sip_api_convert_to_enum,
+    sip_api_convert_to_bool,
+    sip_api_enable_overflow_checking,
+    sip_api_long_as_char,
+    sip_api_long_as_signed_char,
+    sip_api_long_as_unsigned_char,
+    sip_api_long_as_short,
+    sip_api_long_as_unsigned_short,
+    sip_api_long_as_int,
+    sip_api_long_as_unsigned_int,
+    sip_api_long_as_long,
+    sip_api_long_as_long_long,
+    sip_api_long_as_unsigned_long_long,
+    sip_api_convert_from_slice_object,
+    sip_api_long_as_size_t,
+    sip_api_visit_wrappers,
+    sip_api_register_exit_notifier,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     /*
      * The following are not part of the public API.
      */
     sip_api_init_module,
     sip_api_parse_args,
     sip_api_parse_pair,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_instance_destroyed,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_no_function,
     sip_api_no_method,
     sip_api_abstract_method,
@@ -550,14 +561,14 @@ static const sipAPIDef sip_api = {
     sip_api_call_error_handler,
     sip_api_init_mixin,
     sip_api_get_reference,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_is_owned_by_python,
-    /*
-     * The following are not part of the public API.
-     */
     sip_api_is_derived_class,
+    sip_api_instance_destroyed_ex,
+    sip_api_is_py_method_12_8,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     /*
      * The following may be used by Qt support code but by no other handwritten
      * code.
@@ -570,53 +581,6 @@ static const sipAPIDef sip_api = {
     sip_api_save_slot,
     sip_api_clear_any_slot_reference,
     sip_api_visit_slot,
-    /*
-     * The following are deprecated parts of the public API.
-     */
-    sip_api_find_named_enum,
-    sip_api_find_mapped_type,
-    sip_api_find_class,
-    sip_api_map_int_to_class,
-    sip_api_map_string_to_class,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_enable_gc,
-    sip_api_print_object,
-    sip_api_register_event_handler,
-    sip_api_convert_to_enum,
-    sip_api_convert_to_bool,
-    sip_api_enable_overflow_checking,
-    sip_api_long_as_char,
-    sip_api_long_as_signed_char,
-    sip_api_long_as_unsigned_char,
-    sip_api_long_as_short,
-    sip_api_long_as_unsigned_short,
-    sip_api_long_as_int,
-    sip_api_long_as_unsigned_int,
-    sip_api_long_as_long,
-#if defined(HAVE_LONG_LONG)
-    sip_api_long_as_long_long,
-    sip_api_long_as_unsigned_long_long,
-#else
-    0,
-    0,
-#endif
-    /*
-     * The following are not part of the public API.
-     */
-    sip_api_instance_destroyed_ex,
-    /*
-     * The following are part of the public API.
-     */
-    sip_api_convert_from_slice_object,
-    sip_api_long_as_size_t,
-    sip_api_visit_wrappers,
-    sip_api_register_exit_notifier,
-    /*
-     * The following are not part of the public API.
-     */
-    sip_api_is_py_method_12_8,
 };
 
 
@@ -2489,7 +2453,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'E':
             {
-                /* Remove in v5.1. */
+                /* Remove in v6. */
 
                 int ev = va_arg(va, int);
                 PyTypeObject *et = va_arg(va, PyTypeObject *);
@@ -2612,7 +2576,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'B':
             {
-                /* Remove in v5.1. */
+                /* Remove in v6. */
 
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
@@ -2636,7 +2600,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
 
         case 'C':
             {
-                /* Remove in v5.1. */
+                /* Remove in v6. */
 
                 void *p = va_arg(va,void *);
                 sipWrapperType *wt = va_arg(va, sipWrapperType *);
@@ -2982,7 +2946,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'E':
                 {
-                    /* Remove in v5.1. */
+                    /* Remove in v6. */
 
                     PyTypeObject *et = va_arg(va, PyTypeObject *);
                     int *p = va_arg(va, int *);
@@ -3191,7 +3155,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 's':
                 {
-                    /* Remove in v5.1. */
+                    /* Remove in v6. */
 
                     const char **p = va_arg(va, const char **);
 
@@ -3263,7 +3227,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'C':
                 {
-                    /* Remove in v5.1. */
+                    /* Remove in v6. */
 
                     if (*fmt == '\0')
                     {
@@ -3297,7 +3261,7 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'D':
                 {
-                    /* Remove in v5.1. */
+                    /* Remove in v6. */
 
                     if (*fmt == '\0')
                     {
@@ -7285,23 +7249,6 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 
 
 /*
- * Return TRUE if an object can be converted to a named enum.
- */
-static int sip_api_can_convert_to_enum(PyObject *obj, const sipTypeDef *td)
-{
-    /* Remove in v5.1. */
-
-    assert(sipTypeIsEnum(td));
-
-    /* If the object is an enum then it must be the right enum. */
-    if (PyObject_TypeCheck((PyObject *)Py_TYPE(obj), &sipEnumType_Type))
-        return (PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(td)));
-
-    return PyLong_Check(obj);
-}
-
-
-/*
  * Convert a Python object implementing a named enum to an integer value.
  */
 static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
@@ -7866,7 +7813,7 @@ static void sip_api_transfer_back(PyObject *self)
  */
 static void sip_api_transfer_break(PyObject *self)
 {
-    /* Remove in v5.1. */
+    /* Remove in v6. */
 
     if (self != NULL && PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
     {
@@ -9222,56 +9169,6 @@ static const sipTypeDef *sip_api_find_type(const char *type)
 
 
 /*
- * Return the mapped type structure for a particular mapped type.  This is
- * deprecated.
- */
-static const sipMappedType *sip_api_find_mapped_type(const char *type)
-{
-    /* Remove in v5.1. */
-
-    const sipTypeDef *td = sip_api_find_type(type);
-
-    if (td != NULL && sipTypeIsMapped(td))
-        return (const sipMappedType *)td;
-
-    return NULL;
-}
-
-
-/*
- * Return the type structure for a particular class.  This is deprecated.
- */
-static sipWrapperType *sip_api_find_class(const char *type)
-{
-    /* Remove in v5.1. */
-
-    const sipTypeDef *td = sip_api_find_type(type);
-
-    if (td != NULL && sipTypeIsClass(td))
-        return (sipWrapperType *)sipTypeAsPyTypeObject(td);
-
-    return NULL;
-}
-
-
-/*
- * Return the type structure for a particular named unscoped enum.  This is
- * deprecated.
- */
-static PyTypeObject *sip_api_find_named_enum(const char *type)
-{
-    /* Remove in v5.1. */
-
-    const sipTypeDef *td = sip_api_find_type(type);
-
-    if (td != NULL && sipTypeIsEnum(td))
-        return sipTypeAsPyTypeObject(td);
-
-    return NULL;
-}
-
-
-/*
  * Save the components of a Python method.
  */
 void sipSaveMethod(sipPyMethod *pm, PyObject *meth)
@@ -9411,74 +9308,6 @@ static int convertPass(const sipTypeDef **tdp, void **cppPtr)
      * convertors.
      */
     return FALSE;
-}
-
-
-/*
- * The bsearch() helper function for searching a sorted string map table.
- */
-static int compareStringMapEntry(const void *key,const void *el)
-{
-    return strcmp((const char *)key,((const sipStringTypeClassMap *)el)->typeString);
-}
-
-
-/*
- * A convenience function for %ConvertToSubClassCode for types represented as a
- * string.  Returns the Python class object or NULL if the type wasn't
- * recognised.  This is deprecated.
- */
-static sipWrapperType *sip_api_map_string_to_class(const char *typeString,
-        const sipStringTypeClassMap *map, int maplen)
-{
-    /* Remove in v5.1. */
-
-    sipStringTypeClassMap *me;
-
-    me = (sipStringTypeClassMap *)bsearch((const void *)typeString,
-                          (const void *)map,maplen,
-                          sizeof (sipStringTypeClassMap),
-                          compareStringMapEntry);
-
-        return ((me != NULL) ? *me->pyType : NULL);
-}
-
-
-/*
- * The bsearch() helper function for searching a sorted integer map table.
- */
-static int compareIntMapEntry(const void *keyp,const void *el)
-{
-    int key = *(int *)keyp;
-
-    if (key > ((const sipIntTypeClassMap *)el)->typeInt)
-        return 1;
-
-    if (key < ((const sipIntTypeClassMap *)el)->typeInt)
-        return -1;
-
-    return 0;
-}
-
-
-/*
- * A convenience function for %ConvertToSubClassCode for types represented as
- * an integer.  Returns the Python class object or NULL if the type wasn't
- * recognised.  This is deprecated.
- */
-static sipWrapperType *sip_api_map_int_to_class(int typeInt,
-        const sipIntTypeClassMap *map, int maplen)
-{
-    /* Remove in v5.1. */
-
-    sipIntTypeClassMap *me;
-
-    me = (sipIntTypeClassMap *)bsearch((const void *)&typeInt,
-                       (const void *)map,maplen,
-                       sizeof (sipIntTypeClassMap),
-                       compareIntMapEntry);
-
-        return ((me != NULL) ? *me->pyType : NULL);
 }
 
 
