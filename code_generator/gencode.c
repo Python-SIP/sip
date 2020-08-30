@@ -553,6 +553,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             , nd, pt->module->name, (int)nd->offset);
     }
 
+    /* These are common to all ABI versions. */
     prcode(fp,
 "\n"
 "#define sipMalloc                   sipAPI_%s->api_malloc\n"
@@ -592,8 +593,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetMixinAddress          sipAPI_%s->api_get_mixin_address\n"
 "#define sipGetCppPtr                sipAPI_%s->api_get_cpp_ptr\n"
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
-"#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
-"#define sipIsPyMethod_12_8          sipAPI_%s->api_is_py_method_12_8\n"
 "#define sipCallHook                 sipAPI_%s->api_call_hook\n"
 "#define sipEndThread                sipAPI_%s->api_end_thread\n"
 "#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
@@ -845,9 +844,23 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
-        ,mname
         ,mname);
+
+    /* These are dependent on the specific ABI version. */
+    if (abiVersion >= 0x0c08)
+    {
+        /* ABI v12.8 and later. */
+        prcode(fp,
+"#define sipIsPyMethod               sipAPI_%s->api_is_py_method_12_8\n"
+            , mname);
+    }
+    else
+    {
+        /* ABI v12.7 and earlier. */
+        prcode(fp,
+"#define sipIsPyMethod               sipAPI_%s->api_is_py_method\n"
+            , mname);
+    }
 
     /* The name strings. */
     prcode(fp,
@@ -6586,55 +6599,57 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     prcode(fp,
 "    sip_gilstate_t sipGILState;\n"
-"    PyObject *sipMeth;\n");
-
-    /* For the module ABI v12.8 and later. */
-    prcode(fp,
+"    PyObject *sipMeth;\n"
 "\n"
-"#if SIP_ABI_MAJOR_VERSION >= 12 && SIP_ABI_MINOR_VERSION >= 8\n"
-"    sipMeth = sipIsPyMethod_12_8(&sipGILState, ");
+        );
 
-    if (isConst(od))
-        prcode(fp, "const_cast<char *>(&sipPyMethods[%d]), const_cast<sipSimpleWrapper **>(&sipPySelf), ",virtNr);
-    else
-        prcode(fp, "&sipPyMethods[%d], &sipPySelf, ",virtNr);
-
-    if (isAbstract(od))
-        prcode(fp, "%N", cd->pyname);
-    else
-        prcode(fp, "SIP_NULLPTR");
-
-    prcode(fp,", %N);\n"
-        ,od->common->pyname);
-
-    /* For the module ABI v12.7 and earlier. */
-    prcode(fp,
-"\n"
-"#else\n"
+    if (abiVersion >= 0x0c08)
+    {
+        /* For ABI v12.8 and later. */
+        prcode(fp,
 "    sipMeth = sipIsPyMethod(&sipGILState, ");
 
-    if (isConst(od))
-        prcode(fp, "const_cast<char *>(");
+        if (isConst(od))
+            prcode(fp, "const_cast<char *>(&sipPyMethods[%d]), const_cast<sipSimpleWrapper **>(&sipPySelf), ", virtNr);
+        else
+            prcode(fp, "&sipPyMethods[%d], &sipPySelf, ", virtNr);
 
-    prcode(fp,"&sipPyMethods[%d]",virtNr);
+        if (isAbstract(od))
+            prcode(fp, "%N", cd->pyname);
+        else
+            prcode(fp, "SIP_NULLPTR");
 
-    if (isConst(od))
-        prcode(fp, ")");
-
-    prcode(fp,", sipPySelf, ");
-
-    if (isAbstract(od))
-        prcode(fp, "%N", cd->pyname);
+        prcode(fp, ", %N);\n"
+            , od->common->pyname);
+    }
     else
-        prcode(fp, "SIP_NULLPTR");
+    {
+        /* For ABI v12.7 and earlier. */
+        prcode(fp,
+"    sipMeth = sipIsPyMethod(&sipGILState, ");
 
-    prcode(fp,", %N);\n"
-"#endif\n"
-"\n"
-        ,od->common->pyname);
+        if (isConst(od))
+            prcode(fp, "const_cast<char *>(");
+
+        prcode(fp, "&sipPyMethods[%d]", virtNr);
+
+        if (isConst(od))
+            prcode(fp, ")");
+
+        prcode(fp,", sipPySelf, ");
+
+        if (isAbstract(od))
+            prcode(fp, "%N", cd->pyname);
+        else
+            prcode(fp, "SIP_NULLPTR");
+
+        prcode(fp, ", %N);\n"
+            , od->common->pyname);
+    }
 
     /* The rest of the common code. */
     prcode(fp,
+"\n"
 "    if (!sipMeth)\n"
         );
 
