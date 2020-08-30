@@ -7,7 +7,6 @@ SIP Reference Guide
     introduction
     examples
     command_line_tools
-    legacy_command_line_tools
     specification_files
     directives
     annotations

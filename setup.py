@@ -64,7 +64,6 @@ setup(
                 'sip-build = sipbuild.tools.build:main',
                 'sip-install = sipbuild.tools.install:main',
                 'sip-sdist = sipbuild.tools.sdist:main',
-                'sip-wheel = sipbuild.tools.wheel:main',
-                'sip5 = sipbuild.legacy.sip5:main']
+                'sip-wheel = sipbuild.tools.wheel:main']
         }
      )

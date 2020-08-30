@@ -444,9 +444,7 @@ Class Annotations
 .. class-annotation:: FileExtension
 
     This string annotation is used to specify the filename extension to be used
-    for the file containing the generated code for this class.  A separate file
-    will be generated even if the :option:`-j <sip5 -j>` command line option is
-    specified.
+    for the file containing the generated code for this class.
 
 .. class-annotation:: ExportDerived
 

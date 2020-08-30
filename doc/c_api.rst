@@ -578,9 +578,8 @@ it.
     buffer protocol and so can be passed to other modules, again without the
     underlying memory being copied.
 
-    :class:`sip.array` objects are not supported by the :program:`sip5` code
-    generator.  They can only be created by handwritten code or by
-    :func:`sip.voidptr.asarray`.
+    :class:`sip.array` objects are not supported by the code generator.  They
+    can only be created by handwritten code or by :func:`sip.voidptr.asarray`.
 
     :param data:
         the address of the start of the C/C++ array.
@@ -684,8 +683,8 @@ it.
     so can be passed to other modules, again without the underlying memory
     being copied.
 
-    :class:`sip.array` objects are not supported by the :program:`sip5` code
-    generator.  They can only be created by handwritten code.
+    :class:`sip.array` objects are not supported by the code generator.  They
+    can only be created by handwritten code.
 
     :param data:
         the address of the start of the C/C++ array.

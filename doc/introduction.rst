@@ -8,7 +8,7 @@ bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.  SIP can also be used write self contained extension
 modules, i.e. without a library to be wrapped.
 
-This version of SIP generates bindings for Python v3.5 and later.
+This version of SIP generates bindings for Python v3.6 and later.
 
 SIP can be installed from the `Python Package Index
 <https://pypi.org/project/SIP/>`__ using :program:`pip`.
@@ -217,11 +217,6 @@ SIP also includes some additional command line tools.
 
     - a :file:`sip.rst` file that documents the Python API of the module for
       inclusion in your project's documentation.
-
-:program:`sip5`
-    This is is a drop-in replacement for the :program:`sip` code generator from
-    SIP v4.  It is provided as an aid in moving projects from SIP v4 to SIP v5
-    and will be removed in SIP v6.
 
 
 Installation
