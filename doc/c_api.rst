@@ -1247,11 +1247,10 @@ it.
         the converted C/C++ value.
 
 
-.. c:function:: PY_LONG_LONG sipLong_AsLongLong(PyObject *obj)
+.. c:function:: long long sipLong_AsLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ long long.  If the value is too
-    large then an exception is raised if overflow checking is enabled.  It is
-    not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
+    large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1259,11 +1258,10 @@ it.
         the converted C/C++ value.
 
 
-.. c:function:: unsigned PY_LONG_LONG sipLong_AsUnsignedLongLong(PyObject *obj)
+.. c:function:: unsigned long long sipLong_AsUnsignedLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned long long.  If the value
     is too large then an exception is raised if overflow checking is enabled.
-    It is not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
 
     :param obj:
         the Python object.

@@ -8943,11 +8943,11 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case ulonglong_type:
-            prcode(fp, "unsigned PY_LONG_LONG");
+            prcode(fp, "unsigned long long");
             break;
 
         case longlong_type:
-            prcode(fp, "PY_LONG_LONG");
+            prcode(fp, "long long");
             break;
 
         case struct_type:

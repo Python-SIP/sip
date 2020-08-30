@@ -106,14 +106,14 @@ typedef unsigned int uint;
 #endif
 
 
-/* Remove in v5.1. */
+/* Remove in v6. */
 #define SIP_SSIZE_T             Py_ssize_t
 #define SIP_SSIZE_T_FORMAT      "%zd"
 #define SIP_USE_PYCAPSULE
 #define SIP_MODULE_RETURN(v)    return (v)
 
 /*
- * Remove in v5.1.  These are undocumented and can be removed when PyQt5 drops
+ * Remove in v6.  These are undocumented and can be removed when PyQt5 drops
  * support for Python v2.
  */
 #define SIPLong_Check       PyLong_Check
@@ -141,7 +141,8 @@ typedef unsigned int uint;
 
 
 /*
- * Hide some thread dependent stuff.
+ * Hide some thread dependent stuff.  This can be removed when support for
+ * Python v3.6 is dropped.
  */
 #ifdef WITH_THREAD
 typedef PyGILState_STATE sip_gilstate_t;
@@ -351,7 +352,7 @@ struct _sipWrapper {
 
 
 /*
- * Removed in v5.1.
+ * Removed in v6.
  * The meta-type of an enum type.  (This is exposed only to support the
  * deprecated sipConvertFromNamedEnum() macro.)
  */
@@ -938,7 +939,7 @@ typedef struct _sipExternalTypeDef {
 
 
 /*
- * Remove in v5.1.
+ * Remove in v6.
  * The information describing a mapped class.  This (and anything that uses it)
  * is deprecated.
  */
@@ -1250,11 +1251,7 @@ typedef struct _sipLongLongInstanceDef {
     const char *lli_name;
 
     /* The long long value. */
-#if defined(HAVE_LONG_LONG)
-    PY_LONG_LONG lli_val;
-#else
-    long lli_val;
-#endif
+    long long lli_val;
 } sipLongLongInstanceDef;
 
 
@@ -1267,11 +1264,7 @@ typedef struct _sipUnsignedLongLongInstanceDef {
     const char *ulli_name;
 
     /* The unsigned long long value. */
-#if defined(HAVE_LONG_LONG)
-    unsigned PY_LONG_LONG ulli_val;
-#else
-    unsigned long ulli_val;
-#endif
+    unsigned long long ulli_val;
 } sipUnsignedLongLongInstanceDef;
 
 
@@ -1307,7 +1300,7 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
- * Remove in v5.1.
+ * Remove in v6.
  * Define a mapping between a wrapped type identified by a string and the
  * corresponding Python type.
  */
@@ -1321,7 +1314,7 @@ typedef struct _sipStringTypeClassMap {
 
 
 /*
- * Remove in v5.1.
+ * Remove in v6.
  * Define a mapping between a wrapped type identified by an integer and the
  * corresponding Python type.
  */
@@ -1611,13 +1604,8 @@ typedef struct _sipAPIDef {
     int (*api_long_as_int)(PyObject *o);
     unsigned int (*api_long_as_unsigned_int)(PyObject *o);
     long (*api_long_as_long)(PyObject *o);
-#if defined(HAVE_LONG_LONG)
-    PY_LONG_LONG (*api_long_as_long_long)(PyObject *o);
-    unsigned PY_LONG_LONG (*api_long_as_unsigned_long_long)(PyObject *o);
-#else
-    void *api_long_as_long_long;
-    void *api_long_as_unsigned_long_long;
-#endif
+    long long (*api_long_as_long_long)(PyObject *o);
+    unsigned long long (*api_long_as_unsigned_long_long)(PyObject *o);
 
     /*
      * The following are not part of the public API.
@@ -1761,7 +1749,7 @@ typedef struct _sipQtAPI {
 
 
 /*
- * Remove in v5.1.
+ * Remove in v6.
  */
 #define sipClassName(w)     PyString_FromString(Py_TYPE(w)->tp_name)
 #define sipIsExactWrappedType(wt)   (sipTypeAsPyTypeObject((wt)->wt_td) == (PyTypeObject *)(wt))
