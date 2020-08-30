@@ -396,9 +396,6 @@ typedef struct _sipInstancesDef {
  * The information describing a type initialiser extender.
  */
 typedef struct _sipInitExtenderDef {
-    /* The API version range index. */
-    int ie_api_range;
-
     /* The extender function. */
     sipInitFunc ie_extender;
 
@@ -681,12 +678,6 @@ typedef struct _sipVariableDef {
  * namespace, a mapped type or a named enum.
  */
 struct _sipTypeDef {
-    /* The version range index, -1 if the type isn't versioned. */
-    int td_version;
-
-    /* The next version of this type. */
-    struct _sipTypeDef *td_next_version;
-
     /*
      * The module, 0 if the type hasn't been initialised.
      */
@@ -1071,18 +1062,6 @@ typedef struct _sipExportedModuleDef {
 
     /* The list of delayed dtors. */
     sipDelayedDtor *em_ddlist;
-
-    /*
-     * The array of API version definitions.  Each definition takes up 3
-     * elements.  If the third element of a 3-tuple is negative then the first
-     * two elements define an API and its default version.  All such
-     * definitions will appear at the end of the array.  If the first element
-     * of a 3-tuple is negative then that is the last element of the array.
-     */
-    int *em_versions;
-
-    /* The optional table of versioned functions. */
-    sipVersionedFunctionDef *em_versioned_functions;
 } sipExportedModuleDef;
 
 
@@ -1313,7 +1292,6 @@ typedef struct _sipAPIDef {
     const char *(*api_resolve_typedef)(const char *name);
     int (*api_register_attribute_getter)(const sipTypeDef *td,
             sipAttrGetterFunc getter);
-    int (*api_is_api_enabled)(const char *name, int from, int to);
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
     void *(*api_get_address)(struct _sipSimpleWrapper *w);
     void (*api_set_destroy_on_exit)(int);

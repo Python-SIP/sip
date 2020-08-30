@@ -456,7 +456,6 @@ static const sipAPIDef sip_api = {
     sip_api_type_scope,
     sip_api_resolve_typedef,
     sip_api_register_attribute_getter,
-    sip_api_is_api_enabled,
     sip_api_bad_callable_arg,
     sip_api_get_address,
     sip_api_set_destroy_on_exit,
@@ -880,11 +879,9 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_O, NULL},
         {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
-        {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
         {"ispyowned", isPyOwned, METH_VARARGS, NULL},
-        {"setapi", sipSetAPI, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
         {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
@@ -1655,10 +1652,6 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     sipEnumMemberDef *emd;
     int i;
 
-    /* Handle any API. */
-    if (sipInitAPI(client, mod_dict) < 0)
-        return -1;
-
     /* Create the module's types. */
     for (i = 0; i < client->em_nrtypes; ++i)
     {
@@ -1679,13 +1672,13 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             continue;
         }
 
+        /* TODO */
         if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
-            if (td->td_version < 0 || sipIsRangeEnabled(client, td->td_version))
-                if (createEnum(client, etd, i, mod_dict) < 0)
-                    return -1;
+            if (createEnum(client, etd, i, mod_dict) < 0)
+                return -1;
         }
         else if (sipTypeIsMapped(td))
         {
@@ -1744,20 +1737,10 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         while (ie->ie_extender != NULL)
         {
             sipTypeDef *td = getGeneratedType(&ie->ie_class, client);
-            int enabled;
+            sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
 
-            if (ie->ie_api_range < 0)
-                enabled = TRUE;
-            else
-                enabled = sipIsRangeEnabled(td->td_module, ie->ie_api_range);
-
-            if (enabled)
-            {
-                sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
-
-                ie->ie_next = wt->wt_iextend;
-                wt->wt_iextend = ie;
-            }
+            ie->ie_next = wt->wt_iextend;
+            wt->wt_iextend = ie;
 
             ++ie;
         }

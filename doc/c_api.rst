@@ -86,36 +86,11 @@ it.
         an opaque value provided to the handwritten code by SIP.
 
 
-.. c:macro:: SIP_SSIZE_T
-
-    .. deprecated:: 5.0
-        This will be removed in v6, use ``Py_ssize_t`` instead.
-
-    This is a C preprocessor macro that is defined as ``Py_ssize_t``.
-
-
-.. c:macro:: SIP_SSIZE_T_FORMAT
-
-    .. deprecated:: 5.0
-        This will be removed in v6, use ``%zd`` instead.
-
-    This is a C preprocessor macro that is defined as ``%zd``.
-
-
 .. c:macro:: SIP_UNBLOCK_THREADS
 
     This is a C preprocessor macro that will restore the Python Global
     Interpreter Lock (GIL) to the state it was prior to the corresponding
     :c:macro:`SIP_BLOCK_THREADS`.
-
-
-.. c:macro:: SIP_USE_PYCAPSULE
-
-    .. deprecated:: 5.0
-        This will be removed in v6.  It will always be defined.
-
-    This is a C preprocessor symbol that is defined when ``PyCapsule`` objects
-    are being used rather than the (now deprecated) ``PyCObject`` objects.
 
 
 .. c:macro:: SIP_VERSION
@@ -769,21 +744,6 @@ it.
         later on.  ``-1`` is returned if there was an error.
 
 
-.. c:function:: int sipEnableOverflowChecking(int enable)
-
-    This enables or disables the checking for overflows when converting Python
-    integer objects to C/C++ integer types.  When it is enabled an exception is
-    raised when the value of a Python integer object is too large to fit in the
-    corresponding C/C++ type.  By default it is disabled.
-
-    :param enable:
-        is greater than ``0`` if overflow checking should be enabled.
-    :return:
-        ``1`` or ``0`` depending on whether or not overflow chacking was
-        previously enabled.  This allows the previous state to be restored
-        later on.
-
-
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
 
     Python does not allow extension modules to directly access symbols in
@@ -1093,28 +1053,6 @@ it.
         the Python object that wraps the destroyed instance.
 
 
-.. c:function:: int sipIsAPIEnabled(const char *name, int from, int to)
-
-    .. deprecated:: 5.0
-        This will be removed in v6.
-
-    This checks to see if the current version number of an API falls within a
-    given range.  See :ref:`ref-incompat-apis` for more detail.
-
-    :param name:
-        the name of the API.
-    :param from:
-        the lower bound of the range.  For the API to be enabled its version
-        number must be greater than or equal to *from*.  If *from* is 0 then
-        this check isn't made.
-    :param to:
-        the upper bound of the range.  For the API to be enabled its version
-        number must be less than *to*.  If *to* is 0 then this check isn't
-        made.
-    :return:
-        a non-zero value if the API is enabled.
-
-
 .. c:function:: int sipIsOwnedByPython(sipSimpleWrapper *obj)
 
     This determines if a wrapped object is currently owned by Python.
@@ -1139,7 +1077,7 @@ it.
 .. c:function:: char sipLong_AsChar(PyObject *obj)
 
     This converts a Python object to a C/C++ char.  If the value is too large
-    then an exception is raised if overflow checking is enabled.
+    then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1150,7 +1088,7 @@ it.
 .. c:function:: signed char sipLong_AsSignedChar(PyObject *obj)
 
     This converts a Python object to a C/C++ signed char.  If the value is too
-    large then an exception is raised if overflow checking is enabled.
+    large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1161,7 +1099,7 @@ it.
 .. c:function:: unsigned char sipLong_AsUnsignedChar(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned char.  If the value is
-    too large then an exception is raised if overflow checking is enabled.
+    too large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1172,7 +1110,7 @@ it.
 .. c:function:: short sipLong_AsShort(PyObject *obj)
 
     This converts a Python object to a C/C++ short.  If the value is too large
-    then an exception is raised if overflow checking is enabled.
+    then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1183,7 +1121,7 @@ it.
 .. c:function:: unsigned short sipLong_AsUnsignedShort(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned short.  If the value is
-    too large then an exception is raised if overflow checking is enabled.
+    too large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1194,7 +1132,7 @@ it.
 .. c:function:: int sipLong_AsInt(PyObject *obj)
 
     This converts a Python object to a C/C++ int.  If the value is too large
-    then an exception is raised if overflow checking is enabled.
+    then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1205,7 +1143,7 @@ it.
 .. c:function:: unsigned int sipLong_AsUnsignedInt(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned int.  If the value is too
-    large then an exception is raised if overflow checking is enabled.
+    large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1216,7 +1154,7 @@ it.
 .. c:function:: size_t sipLong_AsSizeT(PyObject *obj)
 
     This converts a Python object to a C/C++ size_t.  If the value is too large
-    then an exception is raised if overflow checking is enabled.
+    then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1227,7 +1165,7 @@ it.
 .. c:function:: long sipLong_AsLong(PyObject *obj)
 
     This converts a Python object to a C/C++ long.  If the value is too large
-    then an exception is raised if overflow checking is enabled.
+    then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1238,7 +1176,7 @@ it.
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned long.  If the value is
-    too large then an exception is raised if overflow checking is enabled.
+    too large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1249,7 +1187,7 @@ it.
 .. c:function:: long long sipLong_AsLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ long long.  If the value is too
-    large then an exception is raised if overflow checking is enabled.
+    large then an exception is raised.
 
     :param obj:
         the Python object.
@@ -1260,7 +1198,7 @@ it.
 .. c:function:: unsigned long long sipLong_AsUnsignedLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned long long.  If the value
-    is too large then an exception is raised if overflow checking is enabled.
+    is too large then an exception is raised.
 
     :param obj:
         the Python object.

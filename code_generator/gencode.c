@@ -265,7 +265,6 @@ static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argDef *ad);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
-static void generateTypeDefLink(ifaceFileDef *iff, FILE *fp);
 static int overloadHasAutoDocstring(sipSpec *pt, overDef *od);
 static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         ifaceFileDef *scope);
@@ -638,7 +637,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTypeScope                sipAPI_%s->api_type_scope\n"
 "#define sipResolveTypedef           sipAPI_%s->api_resolve_typedef\n"
 "#define sipRegisterAttributeGetter  sipAPI_%s->api_register_attribute_getter\n"
-"#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableAutoconversion     sipAPI_%s->api_enable_autoconversion\n"
 "#define sipInitMixin                sipAPI_%s->api_init_mixin\n"
@@ -821,7 +819,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
@@ -834,6 +831,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         /* ABI v12.8 and earlier. */
         prcode(fp,
 "#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
+"#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
 "#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
 "#define sipConvertRx                sipAPI_%s->api_convert_rx\n"
@@ -844,6 +842,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
+            , mname
             , mname
             , mname
             , mname
@@ -1110,8 +1109,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     int nrSccs = 0, files_in_part, max_per_part, this_part, enum_idx;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
-    int is_inst_ulonglong, is_inst_double, nr_enummembers, is_api_versions;
-    int is_versioned_functions;
+    int is_inst_ulonglong, is_inst_double, nr_enummembers;
     int hasexternal = FALSE, slot_extenders = FALSE, ctor_extenders = FALSE;
     int hasvirterrorhandlers = FALSE;
     FILE *fp;
@@ -1270,8 +1268,12 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
             if (cd->ctors != NULL)
             {
-                prcode(fp,
-"    {%P, init_type_%L, ", cd->iff->api_range, cd->iff);
+                if (abiVersion >= 0x0d00)
+                    prcode(fp,
+"    {init_type_%L, ", cd->iff);
+                else
+                    prcode(fp,
+"    {-1, init_type_%L, ", cd->iff);
 
                 generateEncodedType(mod, cd, 0, fp);
 
@@ -1279,10 +1281,16 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                     );
             }
 
-        prcode(fp,
+        if (abiVersion >= 0x0d00)
+            prcode(fp,
+"    {SIP_NULLPTR, {0, 0, 0}, SIP_NULLPTR}\n"
+"};\n"
+                );
+        else
+            prcode(fp,
 "    {-1, SIP_NULLPTR, {0, 0, 0}, SIP_NULLPTR}\n"
 "};\n"
-            );
+                );
     }
 
     /* Generate any slot extender table. */
@@ -1411,7 +1419,6 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         int type_nr = -1;
-        apiVersionRangeDef *avr = NULL;
 
         if (ed->module != mod || ed->fqcname == NULL)
             continue;
@@ -1422,12 +1429,10 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 continue;
 
             type_nr = ed->ecd->iff->first_alt->ifacenr;
-            avr = ed->ecd->iff->api_range;
         }
         else if (ed->emtd != NULL)
         {
             type_nr = ed->emtd->iff->first_alt->ifacenr;
-            avr = ed->emtd->iff->api_range;
         }
 
         if (enum_idx == 0)
@@ -1439,15 +1444,14 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
         ed->enum_idx = enum_idx++;
 
-        prcode(fp,
-"    {{%P, ", avr);
-
-        if (ed->next_alt != NULL)
-            prcode(fp, "&enumTypes[%d].etd_base", ed->next_alt->enum_idx);
+        if (abiVersion >= 0x0d00)
+            prcode(fp,
+"    {{");
         else
-            prcode(fp, "0");
+            prcode(fp,
+"    {{-1, SIP_NULLPTR. ");
 
-        prcode(fp, ", 0, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
+        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
         if (ed->slots != NULL)
             prcode(fp, "slots_%C", ed->fqcname);
@@ -1791,89 +1795,6 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "PyObject *sipExportedExceptions_%s[%d];\n"
             , mname, mod->nrexceptions + 1);
 
-    /* Generate any API versions table. */
-    if (mod->api_ranges != NULL || mod->api_versions != NULL)
-    {
-        apiVersionRangeDef *avr;
-
-        is_api_versions = TRUE;
-
-        prcode(fp,
-"\n"
-"\n"
-"/* This defines the API versions and ranges in use. */\n"
-"static int apiVersions[] = {");
-        
-        for (avr = mod->api_ranges; avr != NULL; avr = avr->next)
-            prcode(fp, "%n, %d, %d, ", avr->api_name, avr->from, avr->to);
-
-        for (avr = mod->api_versions; avr != NULL; avr = avr->next)
-            prcode(fp, "%n, %d, -1, ", avr->api_name, avr->from);
-
-        prcode(fp, "-1};\n"
-            );
-    }
-    else
-        is_api_versions = FALSE;
-
-    /* Generate any versioned global functions. */
-    is_versioned_functions = FALSE;
-
-    for (md = mod->othfuncs; md != NULL; md = md->next)
-        if (md->slot == no_slot)
-        {
-            overDef *od;
-            int has_docstring;
-
-            if (notVersioned(md))
-                continue;
-
-            if (!is_versioned_functions)
-            {
-                prcode(fp,
-"\n"
-"\n"
-"/* This defines the global functions where all overloads are versioned. */\n"
-"static sipVersionedFunctionDef versionedFunctions[] = {\n"
-                    );
-
-                is_versioned_functions = TRUE;
-            }
-
-            has_docstring = hasMemberDocstring(pt, mod->overs, md, NULL);
-
-            /*
-             * Every overload has an entry to capture all the version ranges.
-             */
-            for (od = mod->overs; od != NULL; od = od->next)
-            {
-                if (od->common != md)
-                    continue;
-
-                prcode(fp,
-"    {%n, ", md->pyname);
-
-                if (noArgParser(md) || useKeywordArgs(md))
-                    prcode(fp, "(PyCFunction)func_%s, METH_VARARGS|METH_KEYWORDS", md->pyname->text);
-                else
-                    prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
-
-                if (has_docstring)
-                    prcode(fp, ", doc_%s", md->pyname->text);
-                else
-                    prcode(fp, ", SIP_NULLPTR");
-
-                prcode(fp, ", %P},\n"
-                        , od->api_range);
-            }
-        }
-
-    if (is_versioned_functions)
-        prcode(fp,
-"    {-1, 0, 0, 0, -1}\n"
-"};\n"
-            );
-
     /* Generate any Qt support API. */
     if (abiVersion < 0x0d00 && moduleSupportsQt(pt, mod))
         prcode(fp,
@@ -1975,14 +1896,22 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    %s,\n"
 "    %s,\n"
 "    SIP_NULLPTR,\n"
-"    %s,\n"
-"    %s\n"
-"};\n"
         , slot_extenders ? "slotExtenders" : "SIP_NULLPTR"
         , ctor_extenders ? "initExtenders" : "SIP_NULLPTR"
-        , hasDelayedDtors(mod) ? "sipDelayedDtors" : "SIP_NULLPTR"
-        , is_api_versions ? "apiVersions" : "SIP_NULLPTR"
-        , is_versioned_functions ? "versionedFunctions" : "SIP_NULLPTR");
+        , hasDelayedDtors(mod) ? "sipDelayedDtors" : "SIP_NULLPTR");
+
+    if (abiVersion < 0x0d00)
+    {
+        /* The unused version support. */
+        prcode(fp,
+"    SIP_NULLPTR,\n"
+"    SIP_NULLPTR,\n"
+            );
+    }
+
+    prcode(fp,
+"};\n"
+        );
 
     generateModDocstring(mod, fp);
 
@@ -3847,18 +3776,20 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     prcode(fp, " = {\n"
 "    {\n"
-"        %P,\n"
-"        "
-        , mtd->iff->api_range);
+        );
 
-    generateTypeDefLink(mtd->iff, fp);
+    if (abiVersion < 0x0d00)
+        prcode(fp,
+"        -1,\n"
+"        SIP_NULLPTR,\n"
+            );
 
-    prcode(fp, ",\n"
-"        0,\n"
+    prcode(fp,
+"        SIP_NULLPTR,\n"
 "        %sSIP_TYPE_MAPPED,\n"
 "        %n,     /* %s */\n"
 "        SIP_NULLPTR,\n"
-"        0\n"
+"        SIP_NULLPTR,\n"
 "    },\n"
 "    {\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
@@ -3937,26 +3868,6 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp)
 {
     prcode(fp, "sipTypeDef_%s_%L", iff->module->name, iff);
-}
-
-
-/*
- * Generate the link to a type structure implementing an alternate API.
- */
-static void generateTypeDefLink(ifaceFileDef *iff, FILE *fp)
-{
-    if (iff->next_alt != NULL)
-    {
-        prcode(fp, "&");
-        generateTypeDefName(iff->next_alt, fp);
-
-        if (iff->next_alt->type == mappedtype_iface)
-            prcode(fp, ".mtd_base");
-        else
-            prcode(fp, ".ctd_base");
-    }
-    else
-        prcode(fp, "SIP_NULLPTR");
 }
 
 
@@ -6769,6 +6680,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
         do
         {
+            /* TODO */
             prcode(fp,
 "\n"
 "    if (sipIsAPIEnabled(%N, %d, %d))\n"
@@ -9471,13 +9383,15 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     prcode(fp, " = {\n"
 "    {\n"
-"        %P,\n"
-"        "
-        , cd->iff->api_range);
+        );
 
-    generateTypeDefLink(cd->iff, fp);
+    if (abiVersion < 0x0d00)
+        prcode(fp,
+"        -1,\n"
+"        SIP_NULLPTR\n"
+            );
 
-    prcode(fp, ",\n"
+    prcode(fp,
 "        SIP_NULLPTR,\n"
 "        ");
 
@@ -10439,6 +10353,7 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 "\n"
             );
 
+        /* TODO */
         if (avr != NULL)
             prcode(fp,
 "    if (sipIsAPIEnabled(%N, %d, %d))\n"
@@ -11096,6 +11011,7 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     else
         avr = NULL;
 
+    /* TODO */
     if (avr != NULL)
         prcode(fp,
 "\n"
@@ -13632,15 +13548,6 @@ void prcode(FILE *fp, const char *fmt, ...)
             case 'O':
                 prOverloadName(fp, va_arg(ap, overDef *));
                 break;
-
-            case 'P':
-                {
-                    apiVersionRangeDef *avr = va_arg(ap, apiVersionRangeDef *);
-
-                    fprintf(fp, "%d", (avr != NULL ? avr->index : -1));
-
-                    break;
-                }
 
             case 's':
                 {
