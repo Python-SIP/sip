@@ -1619,7 +1619,7 @@ static PyObject *unwrapInstance(PyObject *self, PyObject *args)
  */
 static PyObject *wrapInstance(PyObject *self, PyObject *args)
 {
-    unsigned PY_LONG_LONG addr;
+    unsigned long long addr;
     sipWrapperType *wt;
 
     (void)self;
@@ -2495,19 +2495,11 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             break;
 
         case 'n':
-#if defined(HAVE_LONG_LONG)
-            el = PyLong_FromLongLong(va_arg(va, PY_LONG_LONG));
-#else
-            el = PyLong_FromLong(va_arg(va, long));
-#endif
+            el = PyLong_FromLongLong(va_arg(va, long long));
             break;
 
         case 'o':
-#if defined(HAVE_LONG_LONG)
-            el = PyLong_FromUnsignedLongLong(va_arg(va, unsigned PY_LONG_LONG));
-#else
-            el = PyLong_FromUnsignedLong(va_arg(va, unsigned long));
-#endif
+            el = PyLong_FromUnsignedLongLong(va_arg(va, unsigned long long));
             break;
 
         case 's':
@@ -3119,13 +3111,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'n':
                 {
-#if defined(HAVE_LONG_LONG)
-                    PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
-                    PY_LONG_LONG v = sip_api_long_as_long_long(arg);
-#else
-                    long *p = va_arg(va, long *);
-                    long v = sip_api_long_as_long(arg);
-#endif
+                    long long *p = va_arg(va, long long *);
+                    long long v = sip_api_long_as_long_long(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -3137,13 +3124,8 @@ static int parseResult(PyObject *method, PyObject *res,
 
             case 'o':
                 {
-#if defined(HAVE_LONG_LONG)
-                    unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
-                    unsigned PY_LONG_LONG v = sip_api_long_as_unsigned_long_long(arg);
-#else
-                    unsigned long *p = va_arg(va, unsigned long *);
-                    unsigned long v = sip_api_long_as_unsigned_long(arg);
-#endif
+                    unsigned long long *p = va_arg(va, unsigned long long *);
+                    unsigned long long v = sip_api_long_as_unsigned_long_long(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -4983,19 +4965,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Long long integer. */
 
-#if defined(HAVE_LONG_LONG)
-                PY_LONG_LONG *p = va_arg(va, PY_LONG_LONG *);
-#else
-                long *p = va_arg(va, long *);
-#endif
+                long long *p = va_arg(va, long long *);
 
                 if (arg != NULL)
                 {
-#if defined(HAVE_LONG_LONG)
-                    PY_LONG_LONG v = sip_api_long_as_long_long(arg);
-#else
-                    long v = sip_api_long_as_long(arg);
-#endif
+                    long long v = sip_api_long_as_long_long(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);
@@ -5010,19 +4984,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             {
                 /* Unsigned long long integer. */
 
-#if defined(HAVE_LONG_LONG)
-                unsigned PY_LONG_LONG *p = va_arg(va, unsigned PY_LONG_LONG *);
-#else
-                unsigned long *p = va_arg(va, unsigned long *);
-#endif
+                unsigned long long *p = va_arg(va, unsigned long long *);
 
                 if (arg != NULL)
                 {
-#if defined(HAVE_LONG_LONG)
-                    unsigned PY_LONG_LONG v = sip_api_long_as_unsigned_long_long(arg);
-#else
-                    unsigned long v = sip_api_long_as_unsigned_long(arg);
-#endif
+                    unsigned long long v = sip_api_long_as_unsigned_long_long(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);
@@ -8185,13 +8151,7 @@ static int addLongLongInstances(PyObject *dict, sipLongLongInstanceDef *lli)
 {
     while (lli->lli_name != NULL)
     {
-        PyObject *w;
-
-#if defined(HAVE_LONG_LONG)
-        w = PyLong_FromLongLong(lli->lli_val);
-#else
-        w = PyLong_FromLong(lli->lli_val);
-#endif
+        PyObject *w = PyLong_FromLongLong(lli->lli_val);
 
         if (dict_set_and_discard(dict, lli->lli_name, w) < 0)
             return -1;
@@ -8206,17 +8166,12 @@ static int addLongLongInstances(PyObject *dict, sipLongLongInstanceDef *lli)
 /*
  * Add the unsigned long long instances to a dictionary.
  */
-static int addUnsignedLongLongInstances(PyObject *dict, sipUnsignedLongLongInstanceDef *ulli)
+static int addUnsignedLongLongInstances(PyObject *dict,
+        sipUnsignedLongLongInstanceDef *ulli)
 {
     while (ulli->ulli_name != NULL)
     {
-        PyObject *w;
-
-#if defined(HAVE_LONG_LONG)
-        w = PyLong_FromUnsignedLongLong(ulli->ulli_val);
-#else
-        w = PyLong_FromUnsignedLong(ulli->ulli_val);
-#endif
+        PyObject *w = PyLong_FromUnsignedLongLong(ulli->ulli_val);
 
         if (dict_set_and_discard(dict, ulli->ulli_name, w) < 0)
             return -1;
