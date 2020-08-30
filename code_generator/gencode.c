@@ -651,7 +651,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableAutoconversion     sipAPI_%s->api_enable_autoconversion\n"
-"#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
 "#define sipInitMixin                sipAPI_%s->api_init_mixin\n"
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
 "#define sipInitModule               sipAPI_%s->api_init_module\n"
@@ -843,10 +842,21 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
+    if (abiVersion >= 0x0d00)
+    {
+        /* ABI v13.0 and earlier. */
+    }
+    else
+    {
+        /* ABI v12.8 and earlier. */
+        prcode(fp,
+"#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
+            , mname);
+    }
+
     if (abiVersion >= 0x0c08)
     {
         /* ABI v12.8 and later. */

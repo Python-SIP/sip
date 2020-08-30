@@ -99,8 +99,6 @@ PyObject *sip_api_convert_from_const_void_ptr_and_size(const void *val,
 /*
  * Support for int convertors.
  */
-PyObject *sipEnableOverflowChecking(PyObject *self, PyObject *args);
-int sip_api_enable_overflow_checking(int enable);
 int sip_api_convert_to_bool(PyObject *o);
 char sip_api_long_as_char(PyObject *o);
 signed char sip_api_long_as_signed_char(PyObject *o);
@@ -111,10 +109,8 @@ int sip_api_long_as_int(PyObject *o);
 unsigned int sip_api_long_as_unsigned_int(PyObject *o);
 long sip_api_long_as_long(PyObject *o);
 unsigned long sip_api_long_as_unsigned_long(PyObject *o);
-#if defined(HAVE_LONG_LONG)
-PY_LONG_LONG sip_api_long_as_long_long(PyObject *o);
-unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o);
-#endif
+long long sip_api_long_as_long_long(PyObject *o);
+unsigned long long sip_api_long_as_unsigned_long_long(PyObject *o);
 size_t sip_api_long_as_size_t(PyObject *o);
 
 

@@ -78,21 +78,6 @@ some functionality that can be used by applications.
         restored later on.
 
 
-.. py:function:: enableoverflowchecking(enable)
-
-    This enables or disables the checking for overflows when converting Python
-    integer objects to C/C++ integer types.  When it is enabled an exception is
-    raised when the value of a Python integer object is too large to fit in the
-    corresponding C/C++ type.  By default it is disabled.
-
-    :param bool enable:
-        is ``True`` if overflow checking should be enabled.
-    :return:
-        ``True`` or ``False`` depending on whether or not overflow checking was
-        previously enabled.  This allows the previous state to be restored
-        later on.
-
-
 .. py:function:: isdeleted(obj)
 
     This checks if the C++ instance or C structure has been deleted and

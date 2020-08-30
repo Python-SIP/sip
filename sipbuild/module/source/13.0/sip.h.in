@@ -1403,7 +1403,6 @@ typedef struct _sipAPIDef {
             void *handler);
     int (*api_convert_to_enum)(PyObject *obj, const sipTypeDef *td);
     int (*api_convert_to_bool)(PyObject *obj);
-    int (*api_enable_overflow_checking)(int enable);
     char (*api_long_as_char)(PyObject *o);
     signed char (*api_long_as_signed_char)(PyObject *o);
     unsigned char (*api_long_as_unsigned_char)(PyObject *o);

@@ -502,7 +502,6 @@ static const sipAPIDef sip_api = {
     sip_api_register_event_handler,
     sip_api_convert_to_enum,
     sip_api_convert_to_bool,
-    sip_api_enable_overflow_checking,
     sip_api_long_as_char,
     sip_api_long_as_signed_char,
     sip_api_long_as_unsigned_char,
@@ -962,7 +961,6 @@ static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
 static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int);
 static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
-static int long_as_nonoverflow_int(PyObject *val_obj);
 static int dict_set_and_discard(PyObject *dict, const char *name,
         PyObject *obj);
 
@@ -982,7 +980,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         {"delete", callDtor, METH_VARARGS, NULL},
         {"dump", dumpWrapper, METH_O, NULL},
         {"enableautoconversion", enableAutoconversion, METH_VARARGS, NULL},
-        {"enableoverflowchecking", sipEnableOverflowChecking, METH_VARARGS, NULL},
         {"getapi", sipGetAPI, METH_VARARGS, NULL},
         {"isdeleted", isDeleted, METH_VARARGS, NULL},
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
@@ -3034,7 +3031,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'e':
                 {
                     int *p = va_arg(va, int *);
-                    int v = long_as_nonoverflow_int(arg);
+                    int v = sip_api_long_as_int(arg);
 
                     if (PyErr_Occurred())
                         invalid = TRUE;
@@ -4779,7 +4776,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (arg != NULL)
                 {
-                    int v = long_as_nonoverflow_int(arg);
+                    int v = sip_api_long_as_int(arg);
 
                     if (PyErr_Occurred())
                         handle_failed_int_conversion(&failure, arg);
@@ -7251,7 +7248,7 @@ static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int)
             return -1;
 
         /* This will never overflow. */
-        val = long_as_nonoverflow_int(val_obj);
+        val = sip_api_long_as_int(val_obj);
 
         Py_DECREF(val_obj);
     }
@@ -7266,11 +7263,11 @@ static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int)
             }
 
             /* This will never overflow. */
-            val = long_as_nonoverflow_int(obj);
+            val = sip_api_long_as_int(obj);
         }
         else if (allow_int && PyLong_Check(obj))
         {
-            val = long_as_nonoverflow_int(obj);
+            val = sip_api_long_as_int(obj);
         }
         else
         {
@@ -7290,19 +7287,6 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td)
 {
     PyErr_Format(PyExc_TypeError, "a member of enum '%s' is expected not '%s'",
             sipPyNameOfEnum((sipEnumTypeDef *)td), Py_TYPE(obj)->tp_name);
-}
-
-
-/* Convert to a C/C++ int while checking for overflow. */
-static int long_as_nonoverflow_int(PyObject *val_obj)
-{
-    int old_overflow, val;
-
-    old_overflow = sip_api_enable_overflow_checking(TRUE);
-    val = sip_api_long_as_int(val_obj);
-    sip_api_enable_overflow_checking(old_overflow);
-
-    return val;
 }
 
 

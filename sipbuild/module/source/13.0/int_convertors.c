@@ -1,7 +1,7 @@
 /*
  * The implementation of the Python object to C/C++ integer convertors.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,24 +17,6 @@
  */
 
 
-/*
- * NOTES
- *
- * The legacy integer conversions (ie. without support for overflow checking)
- * are flawed and inconsistent.  Large Python signed values were converted to
- * -1 whereas small values were truncated.  When converting function arguments
- * all overlows were ignored, however when converting the results returned by
- * Python re-implementations then large Python values raised an exception
- * whereas small values were truncated.
- *
- * With the new integer conversions large Python signed values will always
- * raise an overflow exception (even if overflow checking is disabled).  This
- * is because a truncated value is not available - it would have to be
- * computed.  This may cause new exceptions to be raised but is justified in
- * that the value that was being used bore no relation to the original value.
- */
-
-
 #include <Python.h>
 
 #include <limits.h>
@@ -42,63 +24,10 @@
 #include "sipint.h"
 
 
-/* Wrappers to deal with lack of long long support. */
-#if defined(HAVE_LONG_LONG)
-#define SIPLong_AsLongLong              PyLong_AsLongLong
-#define SIP_LONG_LONG                   PY_LONG_LONG
-#define SIP_LONG_LONG_FORMAT            "%lld"
-#define SIP_UNSIGNED_LONG_LONG_FORMAT   "%llu"
-#else
-#define SIPLong_AsLongLong              PyLong_AsLong
-#define SIP_LONG_LONG                   long
-#define SIP_LONG_LONG_FORMAT            "%ld"
-#define SIP_UNSIGNED_LONG_LONG_FORMAT   "%lu"
-#endif
-
-
-static int overflow_checking = FALSE;   /* Check for overflows. */
-
-static SIP_LONG_LONG long_as_long_long(PyObject *o, SIP_LONG_LONG min,
-        SIP_LONG_LONG max);
+static long long long_as_long_long(PyObject *o, long long min, long long max);
 static unsigned long long_as_unsigned_long(PyObject *o, unsigned long max);
-static void raise_signed_overflow(SIP_LONG_LONG min, SIP_LONG_LONG max);
-static void raise_unsigned_overflow(unsigned SIP_LONG_LONG max);
-
-
-/*
- * Enable or disable overflow checking (Python API).
- */
-PyObject *sipEnableOverflowChecking(PyObject *self, PyObject *args)
-{
-    int enable;
-
-    (void)self;
-
-    if (PyArg_ParseTuple(args, "i:enableoverflowchecking", &enable))
-    {
-        PyObject *res;
-
-        res = (sip_api_enable_overflow_checking(enable) ? Py_True : Py_False);
-
-        Py_INCREF(res);
-        return res;
-    }
-
-    return NULL;
-}
-
-
-/*
- * Enable or disable overflow checking (C API).
- */
-int sip_api_enable_overflow_checking(int enable)
-{
-    int was_enabled = overflow_checking;
-
-    overflow_checking = enable;
-
-    return was_enabled;
-}
+static void raise_signed_overflow(long long min, long long max);
+static void raise_unsigned_overflow(unsigned long long max);
 
 
 /*
@@ -106,12 +35,10 @@ int sip_api_enable_overflow_checking(int enable)
  */
 int sip_api_convert_to_bool(PyObject *o)
 {
-    int was_enabled, v;
+    int v;
 
     /* Convert the object to an int while checking for overflow. */
-    was_enabled = sip_api_enable_overflow_checking(TRUE);
     v = sip_api_long_as_int(o);
-    sip_api_enable_overflow_checking(was_enabled);
 
     if (PyErr_Occurred())
     {
@@ -229,11 +156,10 @@ unsigned long sip_api_long_as_unsigned_long(PyObject *o)
 }
 
 
-#if defined(HAVE_LONG_LONG)
 /*
  * Convert a Python object to a C long long.
  */
-PY_LONG_LONG sip_api_long_as_long_long(PyObject *o)
+long long sip_api_long_as_long_long(PyObject *o)
 {
     return long_as_long_long(o, LLONG_MIN, LLONG_MAX);
 }
@@ -242,50 +168,36 @@ PY_LONG_LONG sip_api_long_as_long_long(PyObject *o)
 /*
  * Convert a Python object to a C unsigned long long.
  */
-unsigned PY_LONG_LONG sip_api_long_as_unsigned_long_long(PyObject *o)
+unsigned long long sip_api_long_as_unsigned_long_long(PyObject *o)
 {
-    unsigned PY_LONG_LONG value;
-
-    /*
-     * Note that this doesn't handle Python v2 int objects, but the old
-     * convertors didn't either.
-     */
+    unsigned long long value;
 
     PyErr_Clear();
 
-    if (overflow_checking)
-    {
-        value = PyLong_AsUnsignedLongLong(o);
+    value = PyLong_AsUnsignedLongLong(o);
 
-        if (PyErr_Occurred())
-        {
-            /* Provide a better exception message. */
-            if (PyErr_ExceptionMatches(PyExc_OverflowError))
-                raise_unsigned_overflow(ULLONG_MAX);
-        }
-    }
-    else
+    if (PyErr_Occurred())
     {
-        value = PyLong_AsUnsignedLongLongMask(o);
+        /* Provide a better exception message. */
+        if (PyErr_ExceptionMatches(PyExc_OverflowError))
+            raise_unsigned_overflow(ULLONG_MAX);
     }
 
     return value;
 }
-#endif
 
 
 /*
  * Convert a Python object to a long long checking that the value is within a
  * range if overflow checking is enabled.
  */
-static SIP_LONG_LONG long_as_long_long(PyObject *o, SIP_LONG_LONG min,
-        SIP_LONG_LONG max)
+static long long long_as_long_long(PyObject *o, long long min, long long max)
 {
-    SIP_LONG_LONG value;
+    long long value;
 
     PyErr_Clear();
 
-    value = SIPLong_AsLongLong(o);
+    value = PyLong_AsLongLong(o);
 
     if (PyErr_Occurred())
     {
@@ -293,7 +205,7 @@ static SIP_LONG_LONG long_as_long_long(PyObject *o, SIP_LONG_LONG min,
         if (PyErr_ExceptionMatches(PyExc_OverflowError))
             raise_signed_overflow(min, max);
     }
-    else if (overflow_checking && (value < min || value > max))
+    else if (value < min || value > max)
     {
         raise_signed_overflow(min, max);
     }
@@ -312,24 +224,17 @@ static unsigned long long_as_unsigned_long(PyObject *o, unsigned long max)
 
     PyErr_Clear();
 
-    if (overflow_checking)
-    {
-        value = PyLong_AsUnsignedLong(o);
+    value = PyLong_AsUnsignedLong(o);
 
-        if (PyErr_Occurred())
-        {
-            /* Provide a better exception message. */
-            if (PyErr_ExceptionMatches(PyExc_OverflowError))
-                raise_unsigned_overflow(max);
-        }
-        else if (value > max)
-        {
-            raise_unsigned_overflow(max);
-        }
-    }
-    else
+    if (PyErr_Occurred())
     {
-        value = PyLong_AsUnsignedLongMask(o);
+        /* Provide a better exception message. */
+        if (PyErr_ExceptionMatches(PyExc_OverflowError))
+            raise_unsigned_overflow(max);
+    }
+    else if (value > max)
+    {
+        raise_unsigned_overflow(max);
     }
 
     return value;
@@ -339,20 +244,18 @@ static unsigned long long_as_unsigned_long(PyObject *o, unsigned long max)
 /*
  * Raise an overflow exception if a signed value is out of range.
  */
-static void raise_signed_overflow(SIP_LONG_LONG min, SIP_LONG_LONG max)
+static void raise_signed_overflow(long long min, long long max)
 {
     PyErr_Format(PyExc_OverflowError,
-            "value must be in the range " SIP_LONG_LONG_FORMAT  " to " SIP_LONG_LONG_FORMAT,
-            min, max);
+            "value must be in the range %lld to %lld", min, max);
 }
 
 
 /*
  * Raise an overflow exception if an unsigned value is out of range.
  */
-static void raise_unsigned_overflow(unsigned SIP_LONG_LONG max)
+static void raise_unsigned_overflow(unsigned long long max)
 {
-    PyErr_Format(PyExc_OverflowError,
-            "value must be in the range 0 to " SIP_UNSIGNED_LONG_LONG_FORMAT,
+    PyErr_Format(PyExc_OverflowError, "value must be in the range 0 to %llu",
             max);
 }
