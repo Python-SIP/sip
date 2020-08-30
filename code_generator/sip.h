@@ -1364,8 +1364,7 @@ typedef struct _parserContext {
 
 extern unsigned sipVersion;             /* The version of SIP. */
 extern const char *sipVersionStr;       /* The version of SIP as a string. */
-extern unsigned abiMajor;               /* The ABI major version number. */
-extern unsigned abiMinor;               /* The ABI minor version number. */
+extern unsigned abiVersion;             /* The encoded ABI version number. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 

@@ -65,7 +65,7 @@ def get_sip_module_version(abi_version):
 
 
 def resolve_abi_version(abi_version):
-    """ Return a valided ABI version or the latest if none was given. """
+    """ Return a valid ABI version or the latest if none was given. """
 
     if abi_version:
         if not os.path.isdir(get_module_source_dir(abi_version)):

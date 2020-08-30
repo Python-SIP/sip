@@ -25,10 +25,10 @@ import os
 import toml
 
 from .exceptions import UserFileException, UserParseException
+from .module import resolve_abi_version
 
 
-def get_bindings_configuration(abi_major, abi_minor, sip_file,
-        sip_include_dirs):
+def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
     """ Get the configuration of a set of bindings. """
 
     # See if there is a .toml file.
@@ -51,18 +51,18 @@ def get_bindings_configuration(abi_major, abi_minor, sip_file,
         raise UserParseException(toml_file, detail=str(e))
 
     # Check the ABI version is compatible.
-    abi_version = '{}.{}'.format(abi_major, abi_minor)
-
     cfg_abi_version = cfg.get('sip-abi-version')
     if cfg_abi_version is None or not isinstance(cfg_abi_version, str):
         raise UserFileException(toml_file,
                 "'sip-abi-version' must be specified as a string")
 
-    if cfg_abi_version != abi_version:
+    cfg_abi_major = int(resolve_abi_version(cfg_abi_version).split('.')[0])
+
+    if cfg_abi_major != abi_major:
         raise UserFileException(toml_file,
                 "'{0}' was built against ABI v{1} but this module is being "
                         "built against ABI v{2}".format(bindings_name,
-                                cfg_abi_version, abi_version))
+                                cfg_abi_major, abi_major))
 
     # Return the tags and disabled features.
     return (_get_string_list(toml_file, cfg, 'module-tags'),

@@ -31,8 +31,7 @@
 /* Globals - see sip.h for their meanings. */
 unsigned sipVersion;
 const char *sipVersionStr;
-unsigned abiMajor;
-unsigned abiMinor;
+unsigned abiVersion;
 stringList *includeDirList;
 
 /* Support for fatal error handling. */
@@ -99,14 +98,18 @@ PyMODINIT_FUNC PyInit_code_generator(void)
  */
 static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
+    unsigned abi_major, abi_minor;
+
     if (!PyArg_ParseTuple(args, "IsIIOO&",
             &sipVersion,
             &sipVersionStr,
-            &abiMajor,
-            &abiMinor,
+            &abi_major,
+            &abi_minor,
             &exception_type,
             stringList_convertor, &includeDirList))
         return NULL;
+
+    abiVersion = (abi_major << 8) | abi_minor;
 
     Py_INCREF(exception_type);
 
@@ -551,8 +554,9 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     }
 
     /* Call the helper. */
-    res = PyObject_CallFunction(get_bindings_configuration, "IIsN", abiMajor,
-            abiMinor, sip_file, stringList_convert_from(includeDirList));
+    res = PyObject_CallFunction(get_bindings_configuration, "IsN",
+            abiVersion >> 8, sip_file,
+            stringList_convert_from(includeDirList));
 
     if (res == NULL)
         exception_set();
