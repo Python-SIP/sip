@@ -1027,9 +1027,6 @@ typedef struct _sipExportedModuleDef {
     /* The imported modules. */
     sipImportedModuleDef *em_imports;
 
-    /* The optional Qt support API. */
-    struct _sipQtAPI *em_qt_api;
-
     /* The number of types. */
     int em_nrtypes;
 
@@ -1252,37 +1249,6 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
- * A Python method's component parts.  This allows us to re-create the method
- * without changing the reference counts of the components.
- */
-typedef struct _sipPyMethod {
-    /* The function. */
-    PyObject *mfunc;
-
-    /* Self if it is a bound method. */
-    PyObject *mself;
-} sipPyMethod;
-
-
-/*
- * A slot (in the Qt, rather than Python, sense).
- */
-typedef struct _sipSlot {
-    /* Name if a Qt or Python signal. */
-    char *name;
-
-    /* Signal or Qt slot object. */
-    PyObject *pyobj;
-
-    /* Python slot method, pyobj is NULL. */
-    sipPyMethod meth;
-
-    /* A weak reference to the slot, Py_True if pyobj has an extra reference. */
-    PyObject *weakSlot;
-} sipSlot;
-
-
-/*
  * The API exported by the SIP module, ie. pointers to all the data and
  * functions that can be used by generated code.
  */
@@ -1309,8 +1275,6 @@ typedef struct _sipAPIDef {
             ...);
     void (*api_call_procedure_method)(sip_gilstate_t, sipVirtErrorHandlerFunc,
             sipSimpleWrapper *, PyObject *, const char *, ...);
-    PyObject *(*api_connect_rx)(PyObject *txObj, const char *sig,
-            PyObject *rxObj, const char *slot, int type);
     Py_ssize_t (*api_convert_from_sequence_index)(Py_ssize_t idx,
             Py_ssize_t len);
     int (*api_can_convert_to_type)(PyObject *pyObj, const sipTypeDef *td,
@@ -1326,8 +1290,6 @@ typedef struct _sipAPIDef {
             PyObject *transferObj);
     PyObject *(*api_convert_from_enum)(int eval, const sipTypeDef *td);
     int (*api_get_state)(PyObject *transferObj);
-    PyObject *(*api_disconnect_rx)(PyObject *txObj, const char *sig,
-            PyObject *rxObj, const char *slot);
     void (*api_free)(void *mem);
     PyObject *(*api_get_pyobject)(void *cppPtr, const sipTypeDef *td);
     void *(*api_malloc)(size_t nbytes);
@@ -1492,49 +1454,9 @@ typedef struct _sipAPIDef {
     void (*)();
     void (*)();
     void (*)();
-
-    /*
-     * The following may be used by Qt support code but no other handwritten
-     * code.
-     */
-    void (*api_free_sipslot)(sipSlot *slot);
-    int (*api_same_slot)(const sipSlot *sp, PyObject *rxObj, const char *slot);
-    void *(*api_convert_rx)(sipWrapper *txSelf, const char *sigargs,
-            PyObject *rxObj, const char *slot, const char **memberp,
-            int flags);
-    PyObject *(*api_invoke_slot)(const sipSlot *slot, PyObject *sigargs);
-    PyObject *(*api_invoke_slot_ex)(const sipSlot *slot, PyObject *sigargs,
-            int check_receiver);
-    int (*api_save_slot)(sipSlot *sp, PyObject *rxObj, const char *slot);
-    void (*api_clear_any_slot_reference)(sipSlot *slot);
-    int (*api_visit_slot)(sipSlot *slot, visitproc visit, void *arg);
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);
-
-
-/*
- * The API implementing the optional Qt support.
- */
-typedef struct _sipQtAPI {
-    sipTypeDef **qt_qobject;
-    void *(*qt_create_universal_signal)(void *, const char **);
-    void *(*qt_find_universal_signal)(void *, const char **);
-    void *(*qt_create_universal_slot)(struct _sipWrapper *, const char *,
-            PyObject *, const char *, const char **, int);
-    void (*qt_destroy_universal_slot)(void *);
-    void *(*qt_find_slot)(void *, const char *, PyObject *, const char *,
-            const char **);
-    int (*qt_connect)(void *, const char *, void *, const char *, int);
-    int (*qt_disconnect)(void *, const char *, void *, const char *);
-    int (*qt_same_name)(const char *, const char *);
-    sipSlot *(*qt_find_sipslot)(void *, void **);
-    int (*qt_emit_signal)(PyObject *, const char *, PyObject *);
-    int (*qt_connect_py_signal)(PyObject *, const char *, PyObject *,
-            const char *);
-    void (*qt_disconnect_py_signal)(PyObject *, const char *, PyObject *,
-            const char *);
-} sipQtAPI;
 
 
 /*

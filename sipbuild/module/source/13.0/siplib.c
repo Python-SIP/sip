@@ -351,8 +351,6 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 static const char *sip_api_resolve_typedef(const char *name);
 static int sip_api_register_attribute_getter(const sipTypeDef *td,
         sipAttrGetterFunc getter);
-static void sip_api_clear_any_slot_reference(sipSlot *slot);
-static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg);
 static void sip_api_keep_reference(PyObject *self, int key, PyObject *obj);
 static PyObject *sip_api_get_reference(PyObject *self, int key);
 static int sip_api_is_owned_by_python(sipSimpleWrapper *sw);
@@ -427,7 +425,6 @@ static const sipAPIDef sip_api = {
     sip_api_build_result,
     sip_api_call_method,
     sip_api_call_procedure_method,
-    sip_api_connect_rx,
     sip_api_convert_from_sequence_index,
     sip_api_can_convert_to_type,
     sip_api_convert_to_type,
@@ -437,7 +434,6 @@ static const sipAPIDef sip_api = {
     sip_api_convert_from_new_type,
     sip_api_convert_from_enum,
     sip_api_get_state,
-    sip_api_disconnect_rx,
     sip_api_free,
     sip_api_get_pyobject,
     sip_api_malloc,
@@ -568,18 +564,6 @@ static const sipAPIDef sip_api = {
     NULL,
     NULL,
     NULL,
-    /*
-     * The following may be used by Qt support code but by no other handwritten
-     * code.
-     */
-    sip_api_free_sipslot,
-    sip_api_same_slot,
-    sip_api_convert_rx,
-    sip_api_invoke_slot,
-    sip_api_invoke_slot_ex,
-    sip_api_save_slot,
-    sip_api_clear_any_slot_reference,
-    sip_api_visit_slot,
 };
 
 
@@ -747,12 +731,6 @@ static PyTypeObject sipEnumType_Type = {
 };
 
 
-/*
- * Remove these in SIP v5.
- */
-sipQtAPI *sipQtSupport = NULL;
-sipTypeDef *sipQObjectType;
-
 static int got_kw_handler = FALSE;
 static int (*kw_handler)(PyObject *, void *, PyObject *);
 
@@ -809,7 +787,6 @@ static int parseResult(PyObject *method, PyObject *res,
         sipSimpleWrapper *py_self, const char *fmt, va_list va);
 static PyObject *signature_FromDocstring(const char *doc, Py_ssize_t line);
 static PyObject *detail_FromFailure(PyObject *failure_obj);
-static int isQObject(PyObject *obj);
 static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td);
 static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
         void **array, Py_ssize_t *nr_elem);
@@ -1869,13 +1846,6 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             else if (createClassType(client, ctd, mod_dict) < 0)
                 return -1;
         }
-    }
-
-    /* Set any Qt support API. */
-    if (client->em_qt_api != NULL)
-    {
-        sipQtSupport = client->em_qt_api;
-        sipQObjectType = *sipQtSupport->qt_qobject;
     }
 
     /* Append any initialiser extenders to the relevant classes. */
@@ -4232,116 +4202,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             break;
 #endif
 
-        case 'U':
-            {
-                /* Slot name or callable, return the name or callable. */
-
-                char **sname = va_arg(va, char **);
-                PyObject **scall = va_arg(va, PyObject **);
-
-                if (arg != NULL)
-                {
-                    *sname = NULL;
-                    *scall = NULL;
-
-                    if (PyBytes_Check(arg))
-                    {
-                        char *s = PyBytes_AS_STRING(arg);
-
-                        if (*s == '1' || *s == '2' || *s == '9')
-                        {
-                            *sname = s;
-                        }
-                        else
-                        {
-                            failure.reason = WrongType;
-                            failure.detail_obj = arg;
-                            Py_INCREF(arg);
-                        }
-                    }
-                    else if (PyCallable_Check(arg))
-                    {
-                         *scall = arg;
-                    }
-                    else if (arg != Py_None)
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
-                }
-
-                break;
-            }
-
-        case 'S':
-            {
-                /* Slot name, return the name. */
-
-                char **p = va_arg(va, char **);
-
-                if (arg != NULL)
-                {
-                    if (PyBytes_Check(arg))
-                    {
-                        char *s = PyBytes_AS_STRING(arg);
-
-                        if (*s == '1' || *s == '2' || *s == '9')
-                        {
-                            *p = s;
-                        }
-                        else
-                        {
-                            failure.reason = WrongType;
-                            failure.detail_obj = arg;
-                            Py_INCREF(arg);
-                        }
-                    }
-                    else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
-                }
-
-                break;
-            }
-
-        case 'G':
-            {
-                /* Signal name, return the name. */
-
-                char **p = va_arg(va, char **);
-
-                if (arg != NULL)
-                {
-                    if (PyBytes_Check(arg))
-                    {
-                        char *s = PyBytes_AS_STRING(arg);
-
-                        if (*s == '2' || *s == '9')
-                        {
-                            *p = s;
-                        }
-                        else
-                        {
-                            failure.reason = WrongType;
-                            failure.detail_obj = arg;
-                            Py_INCREF(arg);
-                        }
-                    }
-                    else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
-                }
-
-                break;
-            }
-
         case 'r':
             {
                 /* Sequence of class or mapped type instances. */
@@ -4455,29 +4315,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 break;
             }
 
-        case 'R':
-            {
-                /* Sub-class of QObject. */
-
-                PyObject **p = va_arg(va, PyObject **);
-
-                if (arg != NULL)
-                {
-                    if (isQObject(arg))
-                    {
-                        *p = arg;
-                    }
-                    else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
-                }
-
-                break;
-            }
-
         case 'F':
             {
                 /* Python callable object. */
@@ -4569,79 +4406,6 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     }
                 }
  
-                break;
-            }
-
-        case 'q':
-            {
-                /* Qt receiver to connect. */
-
-                va_arg(va, char *);
-                va_arg(va, void **);
-                va_arg(va, const char **);
-
-                if (arg != NULL && !isQObject(arg))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
-
-                break;
-            }
-
-        case 'Q':
-            {
-                /* Qt receiver to disconnect. */
-
-                va_arg(va, char *);
-                va_arg(va, void **);
-                va_arg(va, const char **);
-
-                if (arg != NULL && !isQObject(arg))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
-
-                break;
-            }
-
-        case 'g':
-        case 'y':
-            {
-                /* Python slot to connect. */
-
-                va_arg(va, char *);
-                va_arg(va, void **);
-                va_arg(va, const char **);
-
-                if (arg != NULL && (sipQtSupport == NULL || !PyCallable_Check(arg)))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
-
-                break;
-            }
-
-        case 'Y':
-            {
-                /* Python slot to disconnect. */
-
-                va_arg(va, char *);
-                va_arg(va, void **);
-                va_arg(va, const char **);
-
-                if (arg != NULL && (sipQtSupport == NULL || !PyCallable_Check(arg)))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
-
                 break;
             }
 
@@ -5404,94 +5168,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
             break;
 
-        case 'q':
-            {
-                /* Qt receiver to connect. */
-
-                char *sig = va_arg(va, char *);
-                void **rx = va_arg(va, void **);
-                const char **slot = va_arg(va, const char **);
-
-                if (arg != NULL)
-                {
-                    *rx = sip_api_convert_rx((sipWrapper *)self, sig, arg,
-                            *slot, slot, 0);
-
-                    if (*rx == NULL)
-                        return FALSE;
-                }
-
-                break;
-            }
-
-        case 'Q':
-            {
-                /* Qt receiver to disconnect. */
-
-                char *sig = va_arg(va, char *);
-                void **rx = va_arg(va, void **);
-                const char **slot = va_arg(va, const char **);
-
-                if (arg != NULL)
-                    *rx = sipGetRx(self, sig, arg, *slot, slot);
-
-                break;
-            }
-
-        case 'g':
-            {
-                /* Python single shot slot to connect. */
-
-                char *sig = va_arg(va, char *);
-                void **rx = va_arg(va, void **);
-                const char **slot = va_arg(va, const char **);
-
-                if (arg != NULL)
-                {
-                    *rx = sip_api_convert_rx((sipWrapper *)self, sig, arg,
-                            NULL, slot, SIP_SINGLE_SHOT);
-
-                    if (*rx == NULL)
-                        return FALSE;
-                }
-
-                break;
-            }
-
-        case 'y':
-            {
-                /* Python slot to connect. */
-
-                char *sig = va_arg(va, char *);
-                void **rx = va_arg(va, void **);
-                const char **slot = va_arg(va, const char **);
-
-                if (arg != NULL)
-                {
-                    *rx = sip_api_convert_rx((sipWrapper *)self, sig, arg,
-                            NULL, slot, 0);
-
-                    if (*rx == NULL)
-                        return FALSE;
-                }
-
-                break;
-            }
-
-        case 'Y':
-            {
-                /* Python slot to disconnect. */
-
-                char *sig = va_arg(va, char *);
-                void **rx = va_arg(va, void **);
-                const char **slot = va_arg(va, const char **);
-
-                if (arg != NULL)
-                    *rx = sipGetRx(self, sig, arg, NULL, slot);
-
-                break;
-            }
-
         case 'r':
             {
                 /* Sequence of class or mapped type instances. */
@@ -5715,15 +5391,6 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
     }
 
     return TRUE;
-}
-
-
-/*
- * Return TRUE if an object is a QObject.
- */
-static int isQObject(PyObject *obj)
-{
-    return (sipQtSupport != NULL && PyObject_TypeCheck(obj, sipTypeAsPyTypeObject(sipQObjectType)));
 }
 
 
@@ -9108,16 +8775,6 @@ static const sipTypeDef *sip_api_find_type(const char *type)
 
 
 /*
- * Save the components of a Python method.
- */
-void sipSaveMethod(sipPyMethod *pm, PyObject *meth)
-{
-    pm->mfunc = PyMethod_GET_FUNCTION(meth);
-    pm->mself = PyMethod_GET_SELF(meth);
-}
-
-
-/*
  * Call a hook.
  */
 static void sip_api_call_hook(const char *hookname)
@@ -10725,28 +10382,6 @@ static int sipWrapper_clear(sipWrapper *self)
 
     vret = sipSimpleWrapper_clear(sw);
 
-    /* Remove any slots connected via a proxy. */
-    if (sipQtSupport != NULL && sipPossibleProxy(sw) && !sipNotInMap(sw))
-    {
-        void *tx = sip_api_get_address(sw);
-
-        if (tx != NULL)
-        {
-            sipSlot *slot;
-            void *context = NULL;
-
-            assert (sipQtSupport->qt_find_sipslot);
-
-            while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
-            {
-                sip_api_clear_any_slot_reference(slot);
-
-                if (context == NULL)
-                    break;
-            }
-        }
-    }
-
     /* Detach any children (which will be owned by C/C++). */
     detachChildren(self);
 
@@ -10791,32 +10426,6 @@ static int sipWrapper_traverse(sipWrapper *self, visitproc visit, void *arg)
 
     if ((vret = sipSimpleWrapper_traverse(sw, visit, arg)) != 0)
         return vret;
-
-    /*
-     * This should be handwritten code in PyQt.  The map check is a bit of a
-     * hack to work around PyQt4 problems with qApp and a user created
-     * instance.  qt_find_sipslot() will return the same slot information for
-     * both causing the gc module to trigger assert() failures.
-     */
-    if (sipQtSupport != NULL && sipQtSupport->qt_find_sipslot && !sipNotInMap(sw))
-    {
-        void *tx = sip_api_get_address(sw);
-
-        if (tx != NULL)
-        {
-            sipSlot *slot;
-            void *context = NULL;
-
-            while ((slot = sipQtSupport->qt_find_sipslot(tx, &context)) != NULL)
-            {
-                if ((vret = sip_api_visit_slot(slot, visit, arg)) != 0)
-                    return vret;
-
-                if (context == NULL)
-                    break;
-            }
-        }
-    }
 
     for (w = self->first_child; w != NULL; w = w->sibling_next)
     {
@@ -11254,42 +10863,6 @@ static void *sip_api_import_symbol(const char *name)
             return ss->symbol;
 
     return NULL;
-}
-
-
-/*
- * Visit a slot connected to an object for the cyclic garbage collector.  This
- * would only be called externally by PyQt3.
- */
-static int sip_api_visit_slot(sipSlot *slot, visitproc visit, void *arg)
-{
-    /* See if the slot has an extra reference. */
-    if (slot->weakSlot == Py_True && slot->pyobj != Py_None)
-        return visit(slot->pyobj, arg);
-
-    return 0;
-}
-
-
-/*
- * Clear a slot if it has an extra reference to keep it alive.  This would only
- * be called externally by PyQt3.
- */
-static void sip_api_clear_any_slot_reference(sipSlot *slot)
-{
-    if (slot->weakSlot == Py_True)
-    {
-        PyObject *xref = slot->pyobj;
-
-        /*
-         * Replace the slot with None.  We don't use NULL as this has another
-         * meaning.
-         */
-        Py_INCREF(Py_None);
-        slot->pyobj = Py_None;
-
-        Py_DECREF(xref);
-    }
 }
 
 

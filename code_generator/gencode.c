@@ -595,16 +595,11 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetComplexCppPtr         sipAPI_%s->api_get_complex_cpp_ptr\n"
 "#define sipCallHook                 sipAPI_%s->api_call_hook\n"
 "#define sipEndThread                sipAPI_%s->api_end_thread\n"
-"#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
-"#define sipDisconnectRx             sipAPI_%s->api_disconnect_rx\n"
 "#define sipRaiseUnknownException    sipAPI_%s->api_raise_unknown_exception\n"
 "#define sipRaiseTypeException       sipAPI_%s->api_raise_type_exception\n"
 "#define sipBadLengthForSlice        sipAPI_%s->api_bad_length_for_slice\n"
 "#define sipAddTypeInstance          sipAPI_%s->api_add_type_instance\n"
-"#define sipFreeSipslot              sipAPI_%s->api_free_sipslot\n"
-"#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipPySlotExtend             sipAPI_%s->api_pyslot_extend\n"
-"#define sipConvertRx                sipAPI_%s->api_convert_rx\n"
 "#define sipAddDelayedDtor           sipAPI_%s->api_add_delayed_dtor\n"
 "#define sipCanConvertToType         sipAPI_%s->api_can_convert_to_type\n"
 "#define sipConvertToType            sipAPI_%s->api_convert_to_type\n"
@@ -633,11 +628,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipConvertFromConstVoidPtr  sipAPI_%s->api_convert_from_const_void_ptr\n"
 "#define sipConvertFromVoidPtrAndSize    sipAPI_%s->api_convert_from_void_ptr_and_size\n"
 "#define sipConvertFromConstVoidPtrAndSize   sipAPI_%s->api_convert_from_const_void_ptr_and_size\n"
-"#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
-"#define sipInvokeSlotEx             sipAPI_%s->api_invoke_slot_ex\n"
-"#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
-"#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
-"#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
 "#define sipWrappedTypeName(wt)      ((wt)->wt_td->td_cname)\n"
 "#define sipDeprecated               sipAPI_%s->api_deprecated\n"
 "#define sipGetReference             sipAPI_%s->api_get_reference\n"
@@ -832,16 +822,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
@@ -854,6 +834,26 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         /* ABI v12.8 and earlier. */
         prcode(fp,
 "#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
+"#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
+"#define sipConnectRx                sipAPI_%s->api_connect_rx\n"
+"#define sipConvertRx                sipAPI_%s->api_convert_rx\n"
+"#define sipDisconnectRx             sipAPI_%s->api_disconnect_rx\n"
+"#define sipFreeSipslot              sipAPI_%s->api_free_sipslot\n"
+"#define sipInvokeSlot               sipAPI_%s->api_invoke_slot\n"
+"#define sipInvokeSlotEx             sipAPI_%s->api_invoke_slot_ex\n"
+"#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
+"#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
+"#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
+            , mname
             , mname);
     }
 
@@ -1162,7 +1162,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
      * optional parts.  These should be undefined in %ModuleCode if a C++
      * implementation is provided.
      */
-    if (moduleSupportsQt(pt, mod))
+    if (abiVersion < 0x0d00 && moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
@@ -1875,7 +1875,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             );
 
     /* Generate any Qt support API. */
-    if (moduleSupportsQt(pt, mod))
+    if (abiVersion < 0x0d00 && moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "\n"
@@ -1909,13 +1909,18 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    0,\n"
 "    sipStrings_%s,\n"
 "    %s,\n"
-"    %s,\n"
-"    %d,\n"
         , mname
         , mod->fullname
         , pt->module->name
-        , mod->allimports != NULL ? "importsTable" : "SIP_NULLPTR"
-        , moduleSupportsQt(pt, mod) ? "&qtAPI" : "SIP_NULLPTR"
+        , mod->allimports != NULL ? "importsTable" : "SIP_NULLPTR");
+
+    if (abiVersion < 0x0d00)
+        prcode(fp,
+"    %s,\n"
+            , moduleSupportsQt(pt, mod) ? "&qtAPI" : "SIP_NULLPTR");
+
+    prcode(fp,
+"    %d,\n"
         , mod->nr_needed_types);
 
     if (mod->nr_needed_types > 0)
