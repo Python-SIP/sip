@@ -819,9 +819,9 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname);
 
     /* These are dependent on the specific ABI version. */
-    if (abiVersion >= 0x0d00)
+    if (abiVersion >= ABI_13_0)
     {
-        /* ABI v13.0 and earlier. */
+        /* ABI v13.0 and later. */
     }
     else
     {
@@ -853,7 +853,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             , mname);
     }
 
-    if (abiVersion >= 0x0c08)
+    if (abiVersion >= ABI_12_8)
     {
         /* ABI v12.8 and later. */
         prcode(fp,
@@ -1157,7 +1157,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
      * optional parts.  These should be undefined in %ModuleCode if a C++
      * implementation is provided.
      */
-    if (abiVersion < 0x0d00 && moduleSupportsQt(pt, mod))
+    if (abiVersion < ABI_13_0 && moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "#define sipQtCreateUniversalSignal          0\n"
@@ -1265,7 +1265,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         for (cd = mod->proxies; cd != NULL; cd = cd->next)
             if (cd->ctors != NULL)
             {
-                if (abiVersion >= 0x0d00)
+                if (abiVersion >= ABI_13_0)
                     prcode(fp,
 "    {init_type_%L, ", cd->iff);
                 else
@@ -1278,7 +1278,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                     );
             }
 
-        if (abiVersion >= 0x0d00)
+        if (abiVersion >= ABI_13_0)
             prcode(fp,
 "    {SIP_NULLPTR, {0, 0, 0}, SIP_NULLPTR}\n"
 "};\n"
@@ -1441,7 +1441,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
         ed->enum_idx = enum_idx++;
 
-        if (abiVersion >= 0x0d00)
+        if (abiVersion >= ABI_13_0)
             prcode(fp,
 "    {{");
         else
@@ -1793,7 +1793,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             , mname, mod->nrexceptions + 1);
 
     /* Generate any Qt support API. */
-    if (abiVersion < 0x0d00 && moduleSupportsQt(pt, mod))
+    if (abiVersion < ABI_13_0 && moduleSupportsQt(pt, mod))
         prcode(fp,
 "\n"
 "\n"
@@ -1832,7 +1832,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "SIP_NULLPTR");
 
-    if (abiVersion < 0x0d00)
+    if (abiVersion < ABI_13_0)
         prcode(fp,
 "    %s,\n"
             , moduleSupportsQt(pt, mod) ? "&qtAPI" : "SIP_NULLPTR");
@@ -1897,7 +1897,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         , ctor_extenders ? "initExtenders" : "SIP_NULLPTR"
         , hasDelayedDtors(mod) ? "sipDelayedDtors" : "SIP_NULLPTR");
 
-    if (abiVersion < 0x0d00)
+    if (abiVersion < ABI_13_0)
     {
         /* The unused version support. */
         prcode(fp,
@@ -3767,7 +3767,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    {\n"
         );
 
-    if (abiVersion < 0x0d00)
+    if (abiVersion < ABI_13_0)
         prcode(fp,
 "        -1,\n"
 "        SIP_NULLPTR,\n"
@@ -6517,7 +6517,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 "\n"
         );
 
-    if (abiVersion >= 0x0c08)
+    if (abiVersion >= ABI_12_8)
     {
         /* For ABI v12.8 and later. */
         prcode(fp,
@@ -9288,7 +9288,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 "    {\n"
         );
 
-    if (abiVersion < 0x0d00)
+    if (abiVersion < ABI_13_0)
         prcode(fp,
 "        -1,\n"
 "        SIP_NULLPTR\n"
