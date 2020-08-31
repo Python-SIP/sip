@@ -80,27 +80,6 @@ For example::
 .. seealso:: :directive:`%GetCode`, :directive:`%SetCode`
 
 
-.. directive:: %API
-
-:directive:`%API`
------------------
-
-.. deprecated:: 5.0
-    This will be removed in v6.
-
-.. parsed-literal::
-    %API(name = *name*, version = *integer*)
-
-This directive is used to define an API and set its default version number.  A
-version number must be greater than or equal to 1.
-
-See :ref:`ref-incompat-apis` for more detail.
-
-For example::
-
-    %API(name=PyQt4, version=1)
-
-
 .. directive:: %AutoPyName
 
 :directive:`%AutoPyName`

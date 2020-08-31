@@ -365,23 +365,6 @@ Class Annotations
     does not have any :directive:`%ConvertToTypeCode`.
 
 
-.. class-annotation:: API
-
-    .. deprecated:: 5.0
-        This will be removed in v5.1.
-
-    This API range annotation is used to specify an API and corresponding
-    range of version numbers that the class is enabled for.
-
-    If a class or mapped type has different implementations enabled for
-    different ranges of version numbers then those ranges must not overlap.
-
-    Note that sub-classing from a class that has different implementations is
-    not currently supported.
-
-    See :ref:`ref-incompat-apis` for more detail.
-
-
 .. class-annotation:: DelayDtor
 
     This boolean annotation is used to specify that the class's destructor
@@ -583,22 +566,6 @@ Mapped Type Annotations
     :directive:`%ConvertToTypeCode`.
 
 
-.. mapped-type-annotation:: API
-
-    .. deprecated:: 5.0
-        This will be removed in v5.1.
-
-    This API range annotation is used to specify an API and corresponding
-    range of version numbers that the mapped type is enabled for.
-
-    If a class or mapped type has different implementations enabled for
-    different ranges of version numbers then those ranges must not overlap.
-
-    It should not be used with mapped type templates.
-
-    See :ref:`ref-incompat-apis` for more detail.
-
-
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not
@@ -719,17 +686,6 @@ Function Annotations
     :stype:`SIP_PYCALLABLE`, :stype:`SIP_PYDICT`, :stype:`SIP_PYLIST`,
     :stype:`SIP_PYSLICE`, :stype:`SIP_PYTUPLE` or :stype:`SIP_PYTYPE`) may be
     ``None``.
-
-
-.. function-annotation:: API
-
-    .. deprecated:: 5.0
-        This will be removed in v5.1.
-
-    This API range annotation is used to specify an API and corresponding
-    range of version numbers that the function is enabled for.
-
-    See :ref:`ref-incompat-apis` for more detail.
 
 
 .. function-annotation:: AutoGen

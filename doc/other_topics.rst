@@ -135,21 +135,6 @@ types by allowing you to register an attribute getter handler (using
 type's dictionary is accessed for the first time.
 
 
-Overflow Checking
------------------
-
-By default SIP does not check for overflow when converting Python number
-objects to C/C++ types.  Overflowed values are undefined - it cannot be assumed
-that upper bits are simply discarded.
-
-SIP allows overflow checking to be enabled and disabled by the bindings author
-(using :c:func:`sipEnableOverflowChecking()`) or by the application developer
-(using :py:func:`sip.enableoverflowchecking()`).
-
-It is recommended that bindings authors should always enable overflow checking
-by default.
-
-
 Support for Python's Buffer Interface
 -------------------------------------
 
@@ -322,70 +307,3 @@ type ``F``.  The following steps are taken:
   ``C`` convertor switches to the ``B`` convertor.  It does this by casting the
   pointer it is trying to convert to ``B`` and returns ``B``'s
   :ref:`generated type structure <ref-type-structures>`.
-
-
-.. _ref-incompat-apis:
-
-Managing Incompatible APIs
---------------------------
-
-.. deprecated:: 5.0
-    This will be removed in v6.
-
-Sometimes it is necessary to change the way something is wrapped in a way that
-introduces an incompatibility.  For example a new feature of Python may
-suggest that something may be wrapped in a different way to exploit that
-feature.
-
-SIP's :directive:`%Feature` directive could be used to provide two different
-implementations.  However this would mean that the choice between the two
-implementations would have to be made when building the generated module
-potentially causing all sorts of deployment problems.  It may also require
-applications to work out which implementation was available and to change
-their behaviour accordingly.
-
-Instead SIP provides limited support for providing multiple implementations
-(of classes, mapped types and functions) that can be selected by an
-application at run-time.  It is then up to the application developer how they
-want to manage the migration from the old API to the new, incompatible API.
-
-This support is implemented in three parts.
-
-Firstly the :directive:`%API` directive is used to define the name of an API
-and its default version number.  The default version number is the one used if
-an application doesn't explicitly set the version number to use.
-
-Secondly the :canno:`API class <API>`, :manno:`mapped type <API>` or
-:fanno:`function <API>` annotation is applied accordingly to specify the API
-and range of version numbers that a particular class, mapped type or function
-implementation should be enabled for.
-
-Finally the application calls :func:`sip.setapi` to specify the version number
-of the API that should be enabled.  This call must be made before any module
-that has multiple implementations is imported for the first time.
-
-Note this mechanism is not intended as a way or providing equally valid
-alternative APIs.  For example::
-
-    %API(name=MyAPI, version=1)
-
-    class Foo
-    {
-    public:
-        void bar();
-    };
-
-    class Baz : Foo
-    {
-    public:
-        void bar() /API=MyAPI:2-/;
-    };
-
-If the following Python code is executed then an exception will be raised::
-
-    b = Baz()
-    b.bar()
-
-This is because when version 1 of the *MyAPI* API (the default) is enabled
-there is no *Baz.bar()* implementation and *Foo.bar()* will not be called
-instead as might be expected.
