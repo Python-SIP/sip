@@ -462,30 +462,6 @@ SIP_SSIZE_T                 {
     return TK_RELEASEBUFFERCODE;
 }
 
-^[ \t]*%BIGetReadBufferCode {
-    /* The start of a read buffer code block. */
-    codeIdx = 0;
-    return TK_READBUFFERCODE;
-}
-
-^[ \t]*%BIGetWriteBufferCode {
-    /* The start of a write buffer code block. */
-    codeIdx = 0;
-    return TK_WRITEBUFFERCODE;
-}
-
-^[ \t]*%BIGetSegCountCode {
-    /* The start of a segment count code block. */
-    codeIdx = 0;
-    return TK_SEGCOUNTCODE;
-}
-
-^[ \t]*%BIGetCharBufferCode {
-    /* The start of a char buffer code block. */
-    codeIdx = 0;
-    return TK_CHARBUFFERCODE;
-}
-
 ^[ \t]*%InstanceCode {
     /* The start of a create instance code block. */
     codeIdx = 0;

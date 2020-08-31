@@ -273,10 +273,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_CLEARCODE
 %token          TK_GETBUFFERCODE
 %token          TK_RELEASEBUFFERCODE
-%token          TK_READBUFFERCODE
-%token          TK_WRITEBUFFERCODE
-%token          TK_SEGCOUNTCODE
-%token          TK_CHARBUFFERCODE
 %token          TK_PICKLECODE
 %token          TK_VIRTUALCALLCODE
 %token          TK_METHODCODE
@@ -401,10 +397,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %type <codeb>           clearcode
 %type <codeb>           getbufcode
 %type <codeb>           releasebufcode
-%type <codeb>           readbufcode
-%type <codeb>           writebufcode
-%type <codeb>           segcountcode
-%type <codeb>           charbufcode
 %type <codeb>           picklecode
 %type <codeb>           finalcode
 %type <codeb>           classtypehintcode
@@ -2014,26 +2006,6 @@ releasebufcode: TK_RELEASEBUFFERCODE codeblock {
         }
     ;
 
-readbufcode:    TK_READBUFFERCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
-writebufcode:   TK_WRITEBUFFERCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
-segcountcode:   TK_SEGCOUNTCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
-charbufcode:    TK_CHARBUFFERCODE codeblock {
-            $$ = $2;
-        }
-    ;
-
 instancecode:   TK_INSTANCECODE codeblock {
             $$ = $2;
         }
@@ -2981,18 +2953,6 @@ classline:  ifstart
 
                 appendCodeBlock(&scope->releasebufcode, $1);
             }
-        }
-    |   readbufcode {
-            /* Remove in v6. */
-        }
-    |   writebufcode {
-            /* Remove in v6. */
-        }
-    |   segcountcode {
-            /* Remove in v6. */
-        }
-    |   charbufcode {
-            /* Remove in v6. */
         }
     |   instancecode {
             if (notSkipping())
