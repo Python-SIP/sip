@@ -1,7 +1,7 @@
 /*
  * The PEP 484 type hints generator for SIP.
  *
- * Copyright (c) 2018 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -79,9 +79,6 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
-static classDef *getClassImplementation(sipSpec *pt, classDef *cd);
-static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
-        mappedTypeDef *mtd);
 static void maybeAnyObject(const char *hint, int pep484, FILE *fp);
 static void strip_leading(char **startp, char *end);
 static void strip_trailing(char *start, char **endp);
@@ -194,40 +191,29 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
     {
-        classDef *impl;
-
         if (cd->iff->module != mod)
             continue;
 
         if (isExternal(cd))
             continue;
 
-        impl = getClassImplementation(pt, cd);
+        if (cd->no_typehint)
+            continue;
 
-        if (impl != NULL)
-        {
-            if (impl->no_typehint)
-                continue;
+        /* Only handle non-nested classes here. */
+        if (cd->ecd != NULL)
+            continue;
 
-            /* Only handle non-nested classes here. */
-            if (impl->ecd != NULL)
-                continue;
-
-            pyiClass(pt, mod, impl, &defined, 0, fp);
-        }
+        pyiClass(pt, mod, cd, &defined, 0, fp);
     }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
     {
-        mappedTypeDef *impl;
-
         if (mtd->iff->module != mod)
             continue;
 
-        impl = getMappedTypeImplementation(pt, mtd);
-
-        if (impl != NULL && impl->pyname != NULL)
-            pyiMappedType(pt, mod, impl, &defined, 0, fp);
+        if (mtd->pyname != NULL)
+            pyiMappedType(pt, mod, mtd, &defined, 0, fp);
     }
 
     pyiVars(pt, mod, NULL, defined, 0, fp);
@@ -327,9 +313,6 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (ct->no_typehint)
             continue;
 
-        if (!inDefaultAPI(pt, ct->api_range))
-            continue;
-
         ++nr_overloads;
     }
 
@@ -347,11 +330,8 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             if (od->no_typehint)
                 continue;
 
-            if (inDefaultAPI(pt, od->api_range))
-            {
-                no_body = FALSE;
-                break;
-            }
+            no_body = FALSE;
+            break;
         }
     }
 
@@ -414,12 +394,8 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* Handle any nested classes. */
     for (nested = pt->classes; nested != NULL; nested = nested->next)
-    {
-        classDef *impl = getClassImplementation(pt, nested);
-
-        if (impl != NULL && impl->ecd == cd && !impl->no_typehint)
-            pyiClass(pt, mod, impl, defined, indent, fp);
-    }
+        if (nested->ecd == cd && !nested->no_typehint)
+            pyiClass(pt, mod, nested, defined, indent, fp);
 
     pyiVars(pt, mod, cd, *defined, indent, fp);
 
@@ -433,9 +409,6 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
             continue;
 
         if (ct->no_typehint)
-            continue;
-
-        if (!inDefaultAPI(pt, ct->api_range))
             continue;
 
         overloaded = (nr_overloads > 1);
@@ -704,9 +677,6 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         if (od->no_typehint)
             continue;
 
-        if (!inDefaultAPI(pt, od->api_range))
-            continue;
-
         ++nr_overloads;
     }
 
@@ -722,9 +692,6 @@ static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
             continue;
 
         if (od->no_typehint)
-            continue;
-
-        if (!inDefaultAPI(pt, od->api_range))
             continue;
 
         overloaded = (nr_overloads > 1);
@@ -946,35 +913,22 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         return;
     }
 
-    /* For classes and mapped types we need the default implementation. */
-    if (ad->atype == class_type || ad->atype == mapped_type)
-    {
-        classDef *cd = ad->u.cd;
-        mappedTypeDef *mtd = ad->u.mtd;
-
-        getDefaultImplementation(pt, ad->atype, &cd, &mtd);
-
-        if (cd != NULL)
-        {
-            prClassRef(cd, mod, defined, pep484, fp);
-        }
-        else
-        {
-            /*
-             * This should never happen as it should have been picked up when
-             * generating code - but maybe we haven't been asked to generate
-             * code.
-             */
-            fprintf(fp, anyObject(pep484));
-        }
-
-        return;
-    }
-
     type_name = NULL;
 
     switch (ad->atype)
     {
+    case class_type:
+        prClassRef(ad->u.cd, mod, defined, pep484, fp);
+        break;
+
+    case mapped_type:
+        /*
+         * This should never happen as it should have been picked up when
+         * generating code - but maybe we haven't been asked to generate code.
+         */
+        fprintf(fp, anyObject(pep484));
+        break;
+
     case enum_type:
         if (ad->u.ed->pyname != NULL)
             prEnumRef(ad->u.ed, mod, defined, pep484, fp);
@@ -1859,12 +1813,7 @@ static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name)
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->pyname != NULL && strcmp(mtd->pyname->text, name) == 0)
-        {
-            mappedTypeDef *impl = getMappedTypeImplementation(pt, mtd);
-
-            if (impl != NULL)
-                return impl;
-        }
+            return mtd;
 
     return NULL;
 }
@@ -1879,135 +1828,9 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
         if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd && !isExternal(cd))
-        {
-            classDef *impl = getClassImplementation(pt, cd);
-
-            if (impl != NULL)
-                return impl;
-        }
+            return cd;
 
     return NULL;
-}
-
-
-/*
- * Get the implementation (if there is one) for a type for the default API
- * version.
- */
-void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
-        mappedTypeDef **mtdp)
-{
-    classDef *cd;
-    mappedTypeDef *mtd;
-    ifaceFileDef *iff;
-
-    if (atype == class_type)
-    {
-        cd = *cdp;
-        mtd = NULL;
-        iff = cd->iff;
-    }
-    else
-    {
-        cd = NULL;
-        mtd = *mtdp;
-        iff = mtd->iff;
-    }
-
-    /* See if there is more than one implementation. */
-    if (iff->api_range != NULL)
-    {
-        int def_api;
-
-        cd = NULL;
-        mtd = NULL;
-
-        /* Find the default implementation. */
-        def_api = findAPI(pt, iff->api_range->api_name->text)->from;
-
-        for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
-        {
-            apiVersionRangeDef *avd = iff->api_range;
-
-            if (avd->from > 0 && avd->from > def_api)
-                continue;
-
-            if (avd->to > 0 && avd->to <= def_api)
-                continue;
-
-            /* It's within range. */
-            if (iff->type == class_iface)
-            {
-                for (cd = pt->classes; cd != NULL; cd = cd->next)
-                    if (cd->iff == iff)
-                        break;
-            }
-            else
-            {
-                for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-                    if (mtd->iff == iff)
-                        break;
-            }
-
-            break;
-        }
-    }
-
-    *cdp = cd;
-    *mtdp = mtd;
-}
-
-
-/*
- * Return TRUE if a version range includes the default API.
- */
-int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range)
-{
-    int def_api;
-
-    /* Handle the trivial case. */
-    if (range == NULL)
-        return TRUE;
-
-    /* Get the default API. */
-    def_api = findAPI(pt, range->api_name->text)->from;
-
-    if (range->from > 0 && range->from > def_api)
-        return FALSE;
-
-    if (range->to > 0 && range->to <= def_api)
-        return FALSE;
-
-    return TRUE;
-}
-
-
-/*
- * Get the class implementation (if there is one) of the given class according
- * to the default version of any relevant API.
- */
-static classDef *getClassImplementation(sipSpec *pt, classDef *cd)
-{
-    mappedTypeDef *mtd;
-
-    getDefaultImplementation(pt, class_type, &cd, &mtd);
-
-    return cd;
-}
-
-
-/*
- * Get the mapped type implementation (if there is one) of the given mapped
- * type according to the default version of any relevant API.
- */
-static mappedTypeDef *getMappedTypeImplementation(sipSpec *pt,
-        mappedTypeDef *mtd)
-{
-    classDef *cd;
-
-    getDefaultImplementation(pt, mapped_type, &cd, &mtd);
-
-    return mtd;
 }
 
 

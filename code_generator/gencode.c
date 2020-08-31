@@ -265,14 +265,11 @@ static int keepPyReference(argDef *ad);
 static int isDuplicateProtected(classDef *cd, overDef *target);
 static char getEncoding(argDef *ad);
 static void generateTypeDefName(ifaceFileDef *iff, FILE *fp);
-static int overloadHasAutoDocstring(sipSpec *pt, overDef *od);
-static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
-        ifaceFileDef *scope);
+static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md);
 static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         int is_method, FILE *fp);
 static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
         int is_method, FILE *fp);
-static int ctorHasAutoDocstring(sipSpec *pt, ctorDef *ct);
 static int hasClassDocstring(sipSpec *pt, classDef *cd);
 static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
@@ -1428,11 +1425,11 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             if (isTemplateClass(ed->ecd))
                 continue;
 
-            type_nr = ed->ecd->iff->first_alt->ifacenr;
+            type_nr = ed->ecd->iff->ifacenr;
         }
         else if (ed->emtd != NULL)
         {
-            type_nr = ed->emtd->iff->first_alt->ifacenr;
+            type_nr = ed->emtd->iff->ifacenr;
         }
 
         if (enum_idx == 0)
@@ -2397,7 +2394,7 @@ static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
 {
     moduleDef *cmod = cd->iff->module;
 
-    prcode(fp, "{%u, ", cd->iff->first_alt->ifacenr);
+    prcode(fp, "{%u, ", cd->iff->ifacenr);
 
     if (cmod == mod)
         prcode(fp, "255");
@@ -2455,7 +2452,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         );
 
     /* Generate the docstrings. */
-    if (hasMemberDocstring(pt, od, md, scope))
+    if (hasMemberDocstring(pt, od, md))
     {
         if (scope != NULL)
             prcode(fp,
@@ -2696,7 +2693,7 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
             prcode(fp, "::");
         }
 
-        prcode(fp, "%s%s, %d},\n", emd->cname, (generating_c ? "" : ")"), emd->ed->first_alt->enumnr);
+        prcode(fp, "%s%s, %d},\n", emd->cname, (generating_c ? "" : ")"), emd->ed->enumnr);
     }
 
     prcode(fp,
@@ -3561,14 +3558,6 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
     for (snd = iff->fqcname; snd != NULL; snd = snd->next)
         append(&fn,snd->name);
 
-    if (iff->api_range != NULL)
-    {
-        char buf[50];
-
-        sprintf(buf, "_%d", iff->api_range->index);
-        append(&fn, buf);
-    }
-
     if (iff->file_extension != NULL)
         suffix = iff->file_extension;
 
@@ -4159,7 +4148,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
         prcode(fp,
 "    {%N, %smeth_%L_%s%s, METH_VARARGS%s, ", md->pyname, cast, iff, md->pyname->text, cast_suffix, flags);
 
-        if (hasMemberDocstring(pt, overs, md, iff))
+        if (hasMemberDocstring(pt, overs, md))
             prcode(fp, "doc_%L_%s", iff, md->pyname->text);
         else
             prcode(fp, "SIP_NULLPTR");
@@ -6488,7 +6477,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 {
     overDef *od = vod->od;
     argDef *res;
-    apiVersionRangeDef *avr;
 
     normaliseArgs(od->cppsig);
 
@@ -6660,90 +6648,11 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         }
     }
 
-    /*
-     * If this overload doesn't have an API version assume that there are none
-     * that do.
-     */
-    avr = od->api_range;
-
-    if (avr == NULL)
-    {
-        prcode(fp,
+    prcode(fp,
 "\n"
-            );
+        );
 
-        generateVirtHandlerCall(mod, cd, vod, res, "    ", fp);
-    }
-    else
-    {
-        virtOverDef *versioned_vod = vod;
-
-        do
-        {
-            /* TODO */
-            prcode(fp,
-"\n"
-"    if (sipIsAPIEnabled(%N, %d, %d))\n"
-"    {\n"
-                , avr->api_name, avr->from, avr->to);
-
-            generateVirtHandlerCall(mod, cd, versioned_vod, res, "        ", fp);
-
-            if (res == NULL)
-                prcode(fp,
-"        return;\n"
-                    );
-
-            prcode(fp,
-"    }\n"
-                );
-
-            /* Find the next overload. */
-            while ((versioned_vod = versioned_vod->next) != NULL)
-            {
-                if (strcmp(versioned_vod->od->cppname, od->cppname) == 0 && sameSignature(versioned_vod->od->cppsig, od->cppsig, TRUE))
-                {
-                    avr = versioned_vod->od->api_range;
-
-                    /* Check that it has an API specified. */
-                    if (avr == NULL)
-                    {
-                        fatalScopedName(classFQCName(cd));
-                        fatalAppend("::");
-                        prOverloadName(NULL, od);
-                        fatal(" has versioned and unversioned overloads\n");
-                    }
-
-                    break;
-                }
-            }
-        }
-        while (versioned_vod != NULL);
-
-        prcode(fp,
-"\n"
-            );
-
-        /* Generate a default result in case no API is enabled. */
-        if (isAbstract(od))
-            generateDefaultInstanceReturn(res, "", fp);
-        else
-        {
-            int a;
-
-            prcode(fp, "    %s%S::%O(", (res != NULL ? "return " : ""), classFQCName(cd), od);
- 
-            for (a = 0; a < od->cppsig->nrArgs; ++a)
-            {
-                argDef *ad = &od->cppsig->args[a];
-
-                prcode(fp, "%s%a", (a == 0 ? "" : ","), mod, ad, a);
-            }
- 
-            prcode(fp,");\n"
-                );
-        }
-    }
+    generateVirtHandlerCall(mod, cd, vod, res, "    ", fp);
 
     prcode(fp,
 "}\n"
@@ -8277,15 +8186,12 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
     type.atype = mapped_type;
     type.u.mtd = mtd;
 
-    if (mtd->iff->first_alt == mtd->iff)
-        prcode(fp,
-"\n"
-"#define sipType_%T sipExportedTypes_%s[%d]\n"
-            , &type, mtd->iff->module->name, mtd->iff->ifacenr);
-
     prcode(fp,
 "\n"
+"#define sipType_%T sipExportedTypes_%s[%d]\n"
+"\n"
 "extern sipMappedTypeDef sipTypeDef_%s_%L;\n"
+        , &type, mtd->iff->module->name, mtd->iff->ifacenr
         , mtd->iff->module->name, mtd->iff);
 
     generateEnumMacros(pt, mtd->iff->module, NULL, mtd, fp);
@@ -8332,7 +8238,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 "\n"
             );
 
-    if (cd->real == NULL && cd->iff->first_alt == cd->iff && !isHiddenNamespace(cd))
+    if (cd->real == NULL && !isHiddenNamespace(cd))
         prcode(fp,
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
             , classFQCName(cd), mname, cd->iff->ifacenr);
@@ -8366,9 +8272,6 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
         if (ed->fqcname == NULL)
-            continue;
-
-        if (ed->first_alt != ed)
             continue;
 
         if (cd != NULL)
@@ -10342,24 +10245,12 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
     for (ct = cd->ctors; ct != NULL; ct = ct->next)
     {
         int error_flag, old_error_flag;
-        apiVersionRangeDef *avr;
 
         if (isPrivateCtor(ct))
             continue;
 
-        avr = ct->api_range;
-
         prcode(fp,
 "\n"
-            );
-
-        /* TODO */
-        if (avr != NULL)
-            prcode(fp,
-"    if (sipIsAPIEnabled(%N, %d, %d))\n"
-                , avr->api_name, avr->from, avr->to);
-
-        prcode(fp,
 "    {\n"
             );
 
@@ -10867,7 +10758,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
             );
 
         /* Generate the docstrings. */
-        if (hasMemberDocstring(pt, overs, md, cd->iff))
+        if (hasMemberDocstring(pt, overs, md))
         {
             prcode(fp,
 "PyDoc_STRVAR(doc_%L_%s, \"" , cd->iff, pname);
@@ -10997,7 +10888,6 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
 {
     signatureDef saved;
     ifaceFileDef *o_scope;
-    apiVersionRangeDef *avr;
 
     if (mt_scope != NULL)
         o_scope = mt_scope->iff;
@@ -11006,23 +10896,10 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
     else
         o_scope = NULL;
 
-    if (o_scope != NULL)
-        avr = od->api_range;
-    else
-        avr = NULL;
-
-    /* TODO */
-    if (avr != NULL)
-        prcode(fp,
-"\n"
-"    if (sipIsAPIEnabled(%N, %d, %d))\n"
-"    {\n"
-            , avr->api_name, avr->from, avr->to);
-    else
-        prcode(fp,
+    prcode(fp,
 "\n"
 "    {\n"
-            );
+        );
 
     /* In case we have to fiddle with it. */
     saved = od->pysig;
@@ -13519,9 +13396,6 @@ void prcode(FILE *fp, const char *fmt, ...)
 
                     prScopedName(fp, removeGlobalScope(iff->fqcname), "_");
 
-                    if (iff->api_range != NULL)
-                        fprintf(fp, "_%d", iff->api_range->index);
-
                     break;
                 }
 
@@ -14134,24 +14008,9 @@ static char getEncoding(argDef *ad)
 
 
 /*
- * Return TRUE if a docstring can be automatically generated for a function
- * overload.
- */
-static int overloadHasAutoDocstring(sipSpec *pt, overDef *od)
-{
-    if (!docstrings)
-        return FALSE;
-
-    /* If it is versioned then make sure it is the default API. */
-    return inDefaultAPI(pt, od->api_range);
-}
-
-
-/*
  * Return TRUE if a function/method has a docstring.
  */
-static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
-        ifaceFileDef *scope)
+static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md)
 {
     int auto_docstring = FALSE;
     overDef *od;
@@ -14171,14 +14030,11 @@ static int hasMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
         if (od->docstring != NULL)
             return TRUE;
 
-        if (overloadHasAutoDocstring(pt, od))
+        if (docstrings)
             auto_docstring = TRUE;
     }
 
     if (noArgParser(md))
-        return FALSE;
-
-    if (scope != NULL && !inDefaultAPI(pt, scope->api_range))
         return FALSE;
 
     return auto_docstring;
@@ -14277,24 +14133,11 @@ static int generateMemberDocstring(sipSpec *pt, overDef *overs, memberDef *md,
 static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
         int is_method, FILE *fp)
 {
-    if (overloadHasAutoDocstring(pt, od))
+    if (docstrings)
     {
         dsOverload(pt, od, is_method, fp);
         ++currentLineNr;
     }
-}
-
-
-/*
- * Return TRUE if a docstring can be automatically generated for a ctor.
- */
-static int ctorHasAutoDocstring(sipSpec *pt, ctorDef *ct)
-{
-    if (!docstrings)
-        return FALSE;
-
-    /* If it is versioned then make sure it is the default API. */
-    return inDefaultAPI(pt, ct->api_range);
 }
 
 
@@ -14321,14 +14164,11 @@ static int hasClassDocstring(sipSpec *pt, classDef *cd)
         if (ct->docstring != NULL)
             return TRUE;
 
-        if (ctorHasAutoDocstring(pt, ct))
+        if (docstrings)
             auto_docstring = TRUE;
     }
 
     if (!canCreate(cd))
-        return FALSE;
-
-    if (!inDefaultAPI(pt, cd->iff->api_range))
         return FALSE;
 
     return auto_docstring;
@@ -14440,7 +14280,7 @@ static void generateClassDocstring(sipSpec *pt, classDef *cd, FILE *fp)
 static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
         FILE *fp)
 {
-    if (ctorHasAutoDocstring(pt, ct))
+    if (docstrings)
     {
         dsCtor(pt, cd, ct, fp);
         ++currentLineNr;
@@ -14661,7 +14501,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
 
     for (md = members; md != NULL; md = md->next)
     {
-        if (md->slot == no_slot && notVersioned(md))
+        if (md->slot == no_slot)
         {
             prcode(fp,
 "        {%N, ", md->pyname);
@@ -14671,7 +14511,7 @@ static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
             else
                 prcode(fp, "func_%s, METH_VARARGS", md->pyname->text);
 
-            if (hasMemberDocstring(pt, mod->overs, md, NULL))
+            if (hasMemberDocstring(pt, mod->overs, md))
                 prcode(fp, ", doc_%s},\n"
                     , md->pyname->text);
             else

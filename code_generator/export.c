@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -985,87 +985,21 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
 
     *scope = NULL;
 
-    /* For classes and mapped types we need the default implementation. */
-    if (ad->atype == class_type || ad->atype == mapped_type)
-    {
-        classDef *def_cd = NULL;
-        mappedTypeDef *def_mtd = NULL;
-        ifaceFileDef *iff;
-
-        if (ad->atype == class_type)
-        {
-            iff = ad->u.cd->iff;
-
-            if (iff->api_range == NULL)
-            {
-                /* There is only one implementation. */
-                def_cd = ad->u.cd;
-                iff = NULL;
-            }
-        }
-        else
-        {
-            iff = ad->u.mtd->iff;
-
-            if (iff->api_range == NULL)
-            {
-                /* There is only one implementation. */
-                def_mtd = ad->u.mtd;
-                iff = NULL;
-            }
-        }
-
-        if (iff != NULL)
-        {
-            int def_api;
-
-            /* Find the default implementation. */
-            def_api = findAPI(pt, iff->api_range->api_name->text)->from;
-
-            for (iff = iff->first_alt; iff != NULL; iff = iff->next_alt)
-            {
-                apiVersionRangeDef *avd = iff->api_range;
-
-                if (avd->from > 0 && avd->from > def_api)
-                    continue;
-
-                if (avd->to > 0 && avd->to <= def_api)
-                    continue;
-
-                /* It's within range. */
-                break;
-            }
-
-            /* Find the corresponding class or mapped type. */
-            for (def_cd = pt->classes; def_cd != NULL; def_cd = def_cd->next)
-                if (def_cd->iff == iff)
-                    break;
-
-            if (def_cd == NULL)
-                for (def_mtd = pt->mappedtypes; def_mtd != NULL; def_mtd = def_mtd->next)
-                    if (def_mtd->iff == iff)
-                        break;
-        }
-
-        /* Now handle the correct implementation. */
-        if (def_cd != NULL)
-        {
-            *scope = def_cd->ecd;
-            type_name = def_cd->pyname->text;
-        }
-        else
-        {
-            if (def_mtd != NULL && def_mtd->pyname != NULL)
-                type_name = def_mtd->pyname->text;
-            else
-                type_name = "unknown-type";
-        }
-
-        return type_name;
-    }
-
     switch (ad->atype)
     {
+    case class_type:
+        *scope = ad->u.cd->ecd;
+        type_name = ad->u.cd->pyname->text;
+        break;
+
+    case mapped_type:
+        if (ad->u.mtd->pyname != NULL)
+            type_name = ad->u.mtd->pyname->text;
+        else
+            type_name = "unknown-type";
+
+        break;
+
     case capsule_type:
         type_name = scopedNameTail(ad->u.cap);
         break;

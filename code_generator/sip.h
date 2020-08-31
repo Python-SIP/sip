@@ -271,9 +271,8 @@
 #define MEMBR_NUMERIC       0x0001      /* It is a numeric slot. */
 #define MEMBR_SEQUENCE      0x0002      /* It is a sequnce slot. */
 #define MEMBR_NO_ARG_PARSER 0x0004      /* Don't generate an argument parser. */
-#define MEMBR_NOT_VERSIONED 0x0008      /* There is an unversioned overload. */
-#define MEMBR_KEYWORD_ARGS  0x0010      /* It allows keyword arguments. */
-#define MEMBR_HAS_PROTECTED 0x0020      /* It has a protected overload. */
+#define MEMBR_KEYWORD_ARGS  0x0008      /* It allows keyword arguments. */
+#define MEMBR_HAS_PROTECTED 0x0010      /* It has a protected overload. */
 
 #define isNumeric(m)        ((m)->memberflags & MEMBR_NUMERIC)
 #define setIsNumeric(m)     ((m)->memberflags |= MEMBR_NUMERIC)
@@ -281,8 +280,6 @@
 #define setIsSequence(m)    ((m)->memberflags |= MEMBR_SEQUENCE)
 #define noArgParser(m)      ((m)->memberflags & MEMBR_NO_ARG_PARSER)
 #define setNoArgParser(m)   ((m)->memberflags |= MEMBR_NO_ARG_PARSER)
-#define notVersioned(m)     ((m)->memberflags & MEMBR_NOT_VERSIONED)
-#define setNotVersioned(m)  ((m)->memberflags |= MEMBR_NOT_VERSIONED)
 #define useKeywordArgs(m)   ((m)->memberflags & MEMBR_KEYWORD_ARGS)
 #define setUseKeywordArgs(m)    ((m)->memberflags |= MEMBR_KEYWORD_ARGS)
 #define hasProtected(m)     ((m)->memberflags & MEMBR_HAS_PROTECTED)
@@ -884,16 +881,6 @@ typedef struct _fcallDef {
 } fcallDef;
 
 
-/* An API version range definition. */
-typedef struct _apiVersionRangeDef {
-    nameDef *api_name;                  /* The API name. */
-    int from;                           /* The lower bound. */
-    int to;                             /* The upper bound. */
-    int index;                          /* The range index. */
-    struct _apiVersionRangeDef *next;   /* The next in the list. */
-} apiVersionRangeDef;
-
-
 /* A virtual error handler. */
 typedef struct _virtErrorHandler {
     const char *name;                   /* The name of the handler. */
@@ -937,8 +924,6 @@ typedef struct _moduleDef {
     nameDef *fullname;                  /* The full module name. */
     const char *name;                   /* The module base name. */
     docstringDef *docstring;            /* The docstring. */
-    apiVersionRangeDef *api_versions;   /* The defined APIs. */
-    apiVersionRangeDef *api_ranges;     /* The list of API version ranges. */
     int modflags;                       /* The module flags. */
     KwArgs kwargs;                      /* The style of keyword argument support. */
     struct _memberDef *othfuncs;        /* List of other functions. */
@@ -991,9 +976,6 @@ typedef struct _moduleListDef {
 typedef struct _ifaceFileDef {
     nameDef *name;                      /* The name. */
     int needed;                         /* The main module needs it. */
-    apiVersionRangeDef *api_range;      /* The optional API version range. */
-    struct _ifaceFileDef *first_alt;    /* The first alternate API. */
-    struct _ifaceFileDef *next_alt;     /* The next alternate API. */
     ifaceFileType type;                 /* Interface file type. */
     int ifacenr;                        /* The index into the types table. */
     scopedNameDef *fqcname;             /* The fully qualified C++ name. */
@@ -1119,7 +1101,6 @@ typedef struct _overDef {
     int pyqt_signal_hack;               /* The PyQt signal hack. */
     KwArgs kwargs;                      /* The keyword argument support. */
     struct _memberDef *common;          /* Common parts. */
-    apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature. */
     throwArgs *exceptions;              /* The exceptions. */
@@ -1141,7 +1122,6 @@ typedef struct _ctorDef {
     int ctorflags;                      /* The ctor flags. */
     int no_typehint;                    /* The type hint will be suppressed. */
     KwArgs kwargs;                      /* The keyword argument support. */
-    apiVersionRangeDef *api_range;      /* The optional API version range. */
     signatureDef pysig;                 /* The Python signature. */
     signatureDef *cppsig;               /* The C++ signature, NULL if /NoDerived/. */
     throwArgs *exceptions;              /* The exceptions. */
@@ -1172,8 +1152,6 @@ typedef struct _enumDef {
     nameDef *cname;                     /* The C/C++ name (may be NULL). */
     nameDef *pyname;                    /* The Python name (may be NULL). */
     int no_typehint;                    /* The type hint will be suppressed. */
-    struct _enumDef *first_alt;         /* The first alternate API. */
-    struct _enumDef *next_alt;          /* The next alternate API. */
     int enumnr;                         /* The enum number. */
     int enum_idx;                       /* The enum index within the module. */
     struct _classDef *ecd;              /* The enclosing class, if any. */
@@ -1431,23 +1409,18 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
         codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
-        scopedNameDef *fqname, ifaceFileType iftype,
-        apiVersionRangeDef *api_range, argDef *ad);
+        scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int pluginPyQt5(sipSpec *pt);
 SIP_NORETURN void yyerror(char *);
 void yywarning(char *);
 int yylex(void);
 nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
-apiVersionRangeDef *findAPI(sipSpec *pt, const char *name);
 memberDef *findMethod(classDef *cd, const char *name);
 typeHintDef *newTypeHint(char *raw_hint);
 int isPyKeyword(const char *word);
-void getDefaultImplementation(sipSpec *pt, argType atype, classDef **cdp,
-        mappedTypeDef **mtdp);
 char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
-int inDefaultAPI(sipSpec *pt, apiVersionRangeDef *range);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
 scopedNameDef *getFQCNameOfType(argDef *ad);
@@ -1478,7 +1451,6 @@ typedef enum {
     dotted_name_flag,
     integer_flag,
     opt_integer_flag,
-    api_range_flag
 } flagType;
 
 typedef struct {
@@ -1488,7 +1460,6 @@ typedef struct {
         char *sval;                     /* A string value. */
         struct _stringList *slval;      /* A string list value. */
         long ival;                      /* An integer value. */
-        apiVersionRangeDef *aval;       /* An API range value. */
     } fvalue;
 } optFlag;
 
@@ -1499,13 +1470,6 @@ typedef struct {
 
 
 /* These represent the configuration of different directives. */
-
-/* %API */
-typedef struct _apiCfg {
-    int token;
-    const char *name;
-    int version;
-} apiCfg;
 
 /* %AutoPyName */
 typedef struct _autoPyNameCfg {
