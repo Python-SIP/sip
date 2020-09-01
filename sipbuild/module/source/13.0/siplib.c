@@ -743,9 +743,7 @@ static PyObject *unpickle_type(PyObject *obj, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         int enum_nr, PyObject *mod_dict);
-static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, PyObject *name);
-static PyObject *createScopedEnum(sipExportedModuleDef *client,
+static PyObject *createEnumObject(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, int enum_nr, PyObject *name);
 static PyObject *createTypeDict(sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
@@ -1649,7 +1647,6 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         PyObject *mod_dict)
 {
     sipExportedModuleDef *em;
-    sipEnumMemberDef *emd;
     int i;
 
     /* Create the module's types. */
@@ -1672,8 +1669,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             continue;
         }
 
-        /* TODO */
-        if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+        if (sipTypeIsEnum(td))
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
@@ -1758,22 +1754,6 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             ++scc;
         }
     }
-
-    /* Create the module's enum members. */
-    for (emd = client->em_enummembers, i = 0; i < client->em_nrenummembers; ++i, ++emd)
-    {
-        sipTypeDef *etd = client->em_types[emd->em_enum];
-        PyObject *mo;
-
-        if (sipTypeIsScopedEnum(etd))
-            continue;
-
-        mo = sip_api_convert_from_enum(emd->em_val, etd);
-
-        if (dict_set_and_discard(mod_dict, emd->em_name, mo) < 0)
-            return -1;
-    }
-
 
     /*
      * Add any class static instances.  We need to do this once all types are
@@ -6085,11 +6065,8 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
     if ((name = PyUnicode_FromString(sipPyNameOfEnum(etd))) == NULL)
         return -1;
 
-    /* Create the enum. */
-    if (sipTypeIsEnum(&etd->etd_base))
-        enum_obj = createUnscopedEnum(client, etd, name);
-    else
-        enum_obj = createScopedEnum(client, etd, enum_nr, name);
+    /* Create the enum object. */
+    enum_obj = createEnumObject(client, etd, enum_nr, name);
 
     if (enum_obj == NULL)
     {
@@ -6109,21 +6086,9 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 
 
 /*
- * Create an unscoped enum.
+ * Create an enum object.
  */
-static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, PyObject *name)
-{
-    /* TODO: merge with createScopedEnum(). */
-
-    return NULL;
-}
-
-
-/*
- * Create a scoped enum.
- */
-static PyObject *createScopedEnum(sipExportedModuleDef *client,
+static PyObject *createEnumObject(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, int enum_nr, PyObject *name)
 {
     static PyObject *enum_type = NULL, *module_arg = NULL;
@@ -6399,28 +6364,20 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         }
     }
 
-    /* Do the unscoped enum members. */
+    /* Do the unnamed enum members. */
+    /* TODO */
     for (enm = cod->cod_enummembers, i = 0; i < cod->cod_nrenummembers; ++i, ++enm)
     {
-        PyObject *val;
-
         if (enm->em_enum < 0)
         {
+            PyObject *val;
+
             /* It's an unnamed unscoped enum. */
             val = PyLong_FromLong(enm->em_val);
+
+            if (dict_set_and_discard(dict, enm->em_name, val) < 0)
+                return -1;
         }
-        else
-        {
-            sipTypeDef *etd = td->td_module->em_types[enm->em_enum];
-
-            if (sipTypeIsScopedEnum(etd))
-                continue;
-
-            val = sip_api_convert_from_enum(enm->em_val, etd);
-        }
-
-        if (dict_set_and_discard(dict, enm->em_name, val) < 0)
-            return -1;
     }
 
     /* Do the variables. */
@@ -6594,7 +6551,7 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
  */
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 {
-    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+    if (sipTypeIsEnum(td))
     {
         const sipEnumTypeDef *etd = (const sipEnumTypeDef *)td;
 
@@ -6636,7 +6593,7 @@ static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int)
     int val;
 
     /* TODO */
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+    assert(sipTypeIsEnum(td));
 
     //if (sipTypeIsScopedEnum(td))
     {
@@ -6680,7 +6637,7 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td)
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+    assert(sipTypeIsEnum(td));
 
     return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
             eval);
@@ -7596,7 +7553,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
 {
     PyObject *obj;
 
-    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+    if (sipTypeIsEnum(td))
     {
         obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
     }

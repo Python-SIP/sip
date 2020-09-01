@@ -1374,40 +1374,43 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "};\n"
             );
 
-    /* Generate any enum slot tables. */
-    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    if (abiVersion < ABI_13_0)
     {
-        memberDef *slot;
+        /* Generate any enum slot tables. */
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+        {
+            memberDef *slot;
 
-        if (ed->module != mod || ed->fqcname == NULL)
-            continue;
+            if (ed->module != mod || ed->fqcname == NULL)
+                continue;
 
-        if (ed->slots == NULL)
-            continue;
+            if (ed->slots == NULL)
+                continue;
 
-        for (slot = ed->slots; slot != NULL; slot = slot->next)
-            generateSlot(mod, NULL, ed, slot, fp);
+            for (slot = ed->slots; slot != NULL; slot = slot->next)
+                generateSlot(mod, NULL, ed, slot, fp);
 
-        prcode(fp,
+            prcode(fp,
 "\n"
 "static sipPySlotDef slots_%C[] = {\n"
-            , ed->fqcname);
+                , ed->fqcname);
 
-        for (slot = ed->slots; slot != NULL; slot = slot->next)
-        {
-            const char *stype;
+            for (slot = ed->slots; slot != NULL; slot = slot->next)
+            {
+                const char *stype;
 
-            if ((stype = slotName(slot->slot)) != NULL)
-                prcode(fp,
+                if ((stype = slotName(slot->slot)) != NULL)
+                    prcode(fp,
 "    {(void *)slot_%C_%s, %s},\n"
-                    , ed->fqcname, slot->pyname->text, stype);
-        }
+                        , ed->fqcname, slot->pyname->text, stype);
+            }
 
-        prcode(fp,
+            prcode(fp,
 "    {0, (sipPySlotType)0}\n"
 "};\n"
 "\n"
-            );
+                );
+        }
     }
 
     /* Generate the enum type structures. */
@@ -1448,12 +1451,15 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             prcode(fp,
 "    {{-1, SIP_NULLPTR. ");
 
-        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d, ", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
+        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (abiVersion < ABI_13_0 && isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
-        if (ed->slots != NULL)
-            prcode(fp, "slots_%C", ed->fqcname);
-        else
-            prcode(fp, "SIP_NULLPTR");
+        if (abiVersion < ABI_13_0)
+        {
+            if (ed->slots != NULL)
+                prcode(fp, ", slots_%C", ed->fqcname);
+            else
+                prcode(fp, ", SIP_NULLPTR");
+        }
 
         prcode(fp, "},\n"
             );

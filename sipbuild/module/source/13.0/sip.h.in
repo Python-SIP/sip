@@ -868,9 +868,6 @@ typedef struct _sipEnumTypeDef {
 
     /* The scoping type, -1 if it is defined at the module level. */
     int etd_scope;
-
-    /* The Python slots. */
-    struct _sipPySlotDef *etd_pyslots;
 } sipEnumTypeDef;
 
 
@@ -902,29 +899,6 @@ typedef struct _sipDelayedDtor {
     /* Next in the list. */
     struct _sipDelayedDtor *dd_next;
 } sipDelayedDtor;
-
-
-/*
- * Defines an entry in the table of global functions all of whose overloads
- * are versioned (so their names can't be automatically added to the module
- * dictionary).
- */
-typedef struct _sipVersionedFunctionDef {
-    /* The name, -1 marks the end of the table. */
-    int vf_name;
-
-    /* The function itself. */
-    PyCFunction vf_function;
-
-    /* The METH_* flags. */
-    int vf_flags;
-
-    /* The docstring. */
-    const char *vf_docstring;
-
-    /* The API version range index. */
-    int vf_api_range;
-} sipVersionedFunctionDef;
 
 
 /*
@@ -1503,7 +1477,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
 #define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
 #define SIP_TYPE_ENUM       0x0003  /* If the type is a named enum. */
-#define SIP_TYPE_SCOPED_ENUM    0x0004  /* If the type is a scoped enum. */
+#define SIP_TYPE_UNUSED     0x0004  /* This value is unused. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
@@ -1520,7 +1494,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
 #define sipTypeIsEnum(td)   (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_ENUM)
-#define sipTypeIsScopedEnum(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_SCOPED_ENUM)
 #define sipTypeAsPyTypeObject(td)   ((td)->td_py_type)
 #define sipTypeName(td)     sipNameFromPool((td)->td_module, (td)->td_cname)
 #define sipTypePluginData(td)   ((td)->td_plugin_data)
