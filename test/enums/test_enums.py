@@ -21,13 +21,55 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from enum import IntEnum
+
 from utils import SIPTestCase
 
 
 class EnumsTestCase(SIPTestCase):
     """ Test the support for enums. """
 
-    def test_foo(self):
-        from .enums import fib_n
+    def test_ModuleAnon(self):
+        """ Test a module level anonymous enum. """
 
-        self.assertEqual(fib_n(6), 8)
+        from .enums import AnonMember
+
+        self.assertEqual(AnonMember, 10)
+
+    def test_ModuleNamed(self):
+        """ Test a module level named enum. """
+
+        from .enums import NamedEnum
+
+        self.assertTrue(issubclass(NamedEnum, IntEnum))
+        self.assertEqual(NamedEnum.NamedMember, 20)
+
+    def test_ModuleScoped(self):
+        """ Test a module level C++11 scoped enum. """
+
+        from .enums import ScopedEnum
+
+        self.assertTrue(issubclass(ScopedEnum, IntEnum))
+
+    def test_ClassAnon(self):
+        """ Test a class level anonymous enum. """
+
+        from .enums import EnumClass
+
+        self.assertEqual(EnumClass.ClassAnonMember, 40)
+
+    def test_ClassNamed(self):
+        """ Test a class level named enum. """
+
+        from .enums import EnumClass
+
+        self.assertTrue(issubclass(EnumClass.ClassNamedEnum, IntEnum))
+        self.assertEqual(EnumClass.ClassNamedEnum.ClassNamedMember, 50)
+
+    def test_ClassScoped(self):
+        """ Test a class level C++11 scoped enum. """
+
+        from .enums import EnumClass
+
+        self.assertTrue(issubclass(EnumClass.ClassScopedEnum, IntEnum))
+        self.assertEqual(EnumClass.ClassScopedEnum.ClassScopedMember, 60)

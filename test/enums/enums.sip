@@ -1,24 +1,62 @@
 // The bindings for testing support for enums.
 
-%Module(name=enums, language="C")
+%Module(name=enums, language="C++")
 
-int fib_n(int n);
-%MethodCode
-    if (a0 <= 0)
-    {
-        sipRes = 0;
-    }
-    else
-    {
-        int a = 0, b = 1, c, i;
+%ModuleHeaderCode
+enum {
+    AnonMember = 10
+};
 
-        for (i = 2; i <= a0; i++)
-        {
-            c = a + b;
-            a = b;
-            b = c;
-        }
+enum NamedEnum {
+    NamedMember = 20
+};
 
-        sipRes = b;
-    }
+enum class ScopedEnum {
+    ScopedMember = 30
+};
+
+
+class EnumClass {
+public:
+    enum {
+        ClassAnonMember = 40
+    };
+
+    enum ClassNamedEnum {
+        ClassNamedMember = 50
+    };
+
+    enum class ClassScopedEnum {
+        ClassScopedMember = 60
+    };
+};
 %End
+
+
+enum {
+    AnonMember
+};
+
+enum NamedEnum {
+    NamedMember
+};
+
+enum class ScopedEnum {
+    ScopedMember
+};
+
+
+class EnumClass {
+public:
+    enum {
+        ClassAnonMember
+    };
+
+    enum ClassNamedEnum {
+        ClassNamedMember
+    };
+
+    enum class ClassScopedEnum {
+        ClassScopedMember
+    };
+};
