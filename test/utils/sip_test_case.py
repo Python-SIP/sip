@@ -66,7 +66,8 @@ class SIPTestCase(unittest.TestCase):
         build_dir = os.path.join(test_dir, 'build')
 
         module_path = glob.glob(
-                os.path.join(build_dir, module_name, module_name + '.*'))
+                os.path.join(build_dir, module_name,
+                        module_name + '*.pyd' if sys.platform == 'win32' else '*.so'))
 
         if len(module_path) == 0:
             raise Exception(
