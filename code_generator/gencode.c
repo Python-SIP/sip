@@ -1451,7 +1451,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             prcode(fp,
 "    {{-1, SIP_NULLPTR. ");
 
-        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (abiVersion < ABI_13_0 && isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
+        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
         if (abiVersion < ABI_13_0)
         {
