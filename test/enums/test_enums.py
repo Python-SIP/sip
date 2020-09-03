@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from enum import IntEnum
+from enum import Enum, IntEnum
 
 from utils import SIPTestCase
 
@@ -36,14 +36,6 @@ class EnumsTestCase(SIPTestCase):
         super().setUpClass()
 
         from .enums import EnumClass
-
-        class ScopedEnumFixture(EnumClass):
-            """ A fixture for testing scoped enum values. """
-
-            def scoped_virt(self):
-                return EnumClass.ClassScopedEnum.ClassScopedMember
-
-        cls.scoped_enum_fixture = ScopedEnumFixture()
 
         class NamedEnumFixture(EnumClass):
             """ A fixture for testing named enum values. """
@@ -62,21 +54,29 @@ class EnumsTestCase(SIPTestCase):
                 EnumClass.ClassNamedEnum.ClassNamedMember)
         cls.int_fixture = NamedEnumFixture(0)
 
+        class ScopedEnumFixture(EnumClass):
+            """ A fixture for testing scoped enum values. """
+
+            def scoped_virt(self):
+                return EnumClass.ClassScopedEnum.ClassScopedMember
+
+        cls.scoped_enum_fixture = ScopedEnumFixture()
+
     @classmethod
     def tearDownClass(cls):
         """ Tear down the test case. """
 
         # Remove all references to the extension module so that the superclass
         # can unload it.
-        del cls.scoped_enum_fixture
-
         del cls.member_fixture
         del cls.int_fixture
+
+        del cls.scoped_enum_fixture
 
         super().tearDownClass()
 
     ###########################################################################
-    # The following test module level enums.
+    # The following test anonymous enums.
     ###########################################################################
 
     def test_ModuleAnon(self):
@@ -84,7 +84,20 @@ class EnumsTestCase(SIPTestCase):
 
         from .enums import AnonMember
 
+        self.assertIsInstance(AnonMember, int)
         self.assertEqual(AnonMember, 10)
+
+    def test_ClassAnon(self):
+        """ Test a class level anonymous enum. """
+
+        from .enums import EnumClass
+
+        self.assertIsInstance(EnumClass.ClassAnonMember, int)
+        self.assertEqual(EnumClass.ClassAnonMember, 40)
+
+    ###########################################################################
+    # The following test named enums.
+    ###########################################################################
 
     def test_ModuleNamed(self):
         """ Test a module level named enum. """
@@ -93,28 +106,6 @@ class EnumsTestCase(SIPTestCase):
 
         self.assertTrue(issubclass(NamedEnum, IntEnum))
         self.assertEqual(NamedEnum.NamedMember, 20)
-
-    def test_ModuleScoped(self):
-        """ Test a module level C++11 scoped enum. """
-
-        from .enums import ScopedEnum
-
-        self.assertTrue(issubclass(ScopedEnum, IntEnum))
-
-    ###########################################################################
-    # The following test anonymous enum convertors.
-    ###########################################################################
-
-    def test_ClassAnon(self):
-        """ Test a class level anonymous enum. """
-
-        from .enums import EnumClass
-
-        self.assertEqual(EnumClass.ClassAnonMember, 40)
-
-    ###########################################################################
-    # The following test named enum convertors.
-    ###########################################################################
 
     def test_ClassNamed(self):
         """ Test a class level named enum. """
@@ -129,8 +120,10 @@ class EnumsTestCase(SIPTestCase):
 
         from .enums import EnumClass
 
+        self.install_hook()
         self.assertEqual(self.member_fixture.named_get(),
                 EnumClass.ClassNamedEnum.ClassNamedMember)
+        self.uninstall_hook()
 
     def test_named_set_member(self):
         """ named enum function argument with a member value. """
@@ -154,42 +147,69 @@ class EnumsTestCase(SIPTestCase):
 
         self.member_fixture.named_overload_set(
                 EnumClass.ClassNamedEnum.ClassNamedMember)
-        self.assertIs(self.member_fixture.named_overload, True)
+        self.assertTrue(self.member_fixture.named_overload)
 
     def test_named_get_int(self):
         """ named enum virtual result with an integer value. """
 
-        self.assertEqual(self.int_fixture.named_get(), 0)
+        from .enums import EnumClass
+
+        with self.assertRaises(TypeError):
+            self.install_hook()
+            self.int_fixture.named_get()
+            self.uninstall_hook()
 
     def test_named_set_int(self):
         """ named enum function argument with an integer value. """
 
-        self.int_fixture.named_set(0)
+        with self.assertRaises(TypeError):
+            self.int_fixture.named_set(50)
 
     def test_named_var_int(self):
         """ named enum instance variable with an integer value. """
 
-        self.int_fixture.named_var = 0
+        with self.assertRaises(TypeError):
+            self.int_fixture.named_var = 50
+
+    def test_named_as_int(self):
+        """ named enum instance used as an integer. """
+
+        from .enums import EnumClass
+
+        self.assertEqual(
+                EnumClass.try_using_as_int(
+                        EnumClass.ClassNamedEnum.ClassNamedMember),
+                50)
 
     ###########################################################################
-    # The following test scoped enum convertors.
+    # The following test scoped enum.
     ###########################################################################
+
+    def test_ModuleScoped(self):
+        """ Test a module level C++11 scoped enum. """
+
+        from .enums import ScopedEnum
+
+        self.assertTrue(issubclass(ScopedEnum, Enum))
+        self.assertEqual(ScopedEnum.ScopedMember.value, 30)
 
     def test_ClassScoped(self):
         """ Test a class level C++11 scoped enum. """
 
         from .enums import EnumClass
 
-        self.assertTrue(issubclass(EnumClass.ClassScopedEnum, IntEnum))
-        self.assertEqual(EnumClass.ClassScopedEnum.ClassScopedMember, 60)
+        self.assertTrue(issubclass(EnumClass.ClassScopedEnum, Enum))
+        self.assertEqual(EnumClass.ClassScopedEnum.ClassScopedMember.value, 70)
 
     def test_scoped_get_member(self):
         """ scoped enum virtual result with a member value. """
 
         from .enums import EnumClass
 
+        self.install_hook()
         self.assertIs(self.scoped_enum_fixture.scoped_get(),
                 EnumClass.ClassScopedEnum.ClassScopedMember)
+        self.uninstall_hook()
 
     def test_scoped_set_member(self):
         """ scoped enum function argument with a member value. """
@@ -205,3 +225,12 @@ class EnumsTestCase(SIPTestCase):
         from .enums import EnumClass
 
         self.scoped_enum_fixture.scoped_var = EnumClass.ClassScopedEnum.ClassScopedMember
+
+    def test_scoped_as_int(self):
+        """ scoped enum instance used as an integer. """
+
+        from .enums import EnumClass
+
+        with self.assertRaises(TypeError):
+            EnumClass.try_using_as_int(
+                    EnumClass.ClassScopedEnum.ClassScopedMember)

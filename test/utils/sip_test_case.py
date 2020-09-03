@@ -100,6 +100,34 @@ class SIPTestCase(unittest.TestCase):
 
         os.remove(cls._module_impl)
 
+    def install_hook(self):
+        """ Install a hook that will catch any exceptions raised by a Python
+        reimplementation of a C++ virtual.
+        """
+
+        # Clear the saved exception.
+        self._exc = None
+
+        # Save the old hook and install the new one.
+        self._old_hook = sys.excepthook
+        sys.excepthook = self._hook
+
+    def uninstall_hook(self):
+        """ Restore the original exception hook and re-raise any exception
+        raised by a virtual reimplementation.
+        """
+
+        sys.excepthook = self._old_hook
+
+        if self._exc is not None:
+            raise self._exc
+
+    def _hook(self, xtype, xvalue, xtb):
+        """ The replacement exceptionhook. """
+
+        # Save the exception for later.
+        self._exc = xvalue
+
 
 # The prototype pyproject.toml file.
 _PYPROJECT_TOML = """

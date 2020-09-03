@@ -21,51 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import sys
-
 from utils import SIPTestCase
-
-
-# The exception raised by a virtual re-implementation.
-_exc = None
-
-# The saved exception hook.
-_old_hook = None
-
-
-def _hook(xtype, xvalue, xtb):
-    """ The replacement exceptionhook. """
-
-    global _exc
-
-    # Save the exception for later.
-    _exc = xvalue
-
-
-def install_hook():
-    """ Install an exception hook that will remember exceptions raised by
-    virtual re-implementations.
-    """
-
-    global _exc, _old_hook
-
-    # Clear the saved exception.
-    _exc = None
-
-    # Save the old hook and install the new one.
-    _old_hook = sys.excepthook
-    sys.excepthook = _hook
-
-
-def uninstall_hook():
-    """ Restore the original exception hook and re-raise any exception raised
-    by a virtual re-implementation.
-    """
-
-    sys.excepthook = _old_hook
-
-    if _exc is not None:
-        raise _exc
 
 
 class IntConvertorsTestCase(SIPTestCase):
@@ -619,9 +575,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ bool virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.bool_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_bool_set_invalid(self):
         """ bool function argument. """
@@ -639,9 +595,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ char virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_char_set_invalid(self):
         """ char function argument. """
@@ -659,9 +615,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ signed char virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.signed_char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_signed_char_set_invalid(self):
         """ signed char function argument. """
@@ -679,9 +635,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ short virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.short_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_short_set_invalid(self):
         """ short function argument. """
@@ -699,9 +655,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ int virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.int_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_int_set_invalid(self):
         """ int function argument. """
@@ -719,9 +675,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ long virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_set_invalid(self):
         """ long function argument. """
@@ -739,9 +695,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ long long virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.long_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_long_set_invalid(self):
         """ long long function argument. """
@@ -759,9 +715,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned char virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.unsigned_char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_char_set_invalid(self):
         """ unsigned char function argument. """
@@ -779,9 +735,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned short virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.unsigned_short_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_short_set_invalid(self):
         """ unsigned short function argument. """
@@ -799,9 +755,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned int virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.unsigned_int_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_int_set_invalid(self):
         """ unsigned int function argument. """
@@ -819,9 +775,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned long virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.unsigned_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_long_set_invalid(self):
         """ unsigned long function argument. """
@@ -839,9 +795,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned long long virtual result. """
 
         with self.assertRaises(TypeError):
-            install_hook()
+            self.install_hook()
             self.invalid_fixture.unsigned_long_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_long_long_set_invalid(self):
         """ unsigned long long function argument. """
@@ -863,17 +819,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ char virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_char_get_upper_overflow(self):
         """ char virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_char_set_lower_overflow(self):
         """ char function argument lower bound. """
@@ -903,17 +859,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ signed char virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.signed_char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_signed_char_get_upper_overflow(self):
         """ signed char virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.signed_char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_signed_char_set_lower_overflow(self):
         """ signed char function argument lower bound. """
@@ -945,17 +901,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ short virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.short_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_short_get_upper_overflow(self):
         """ short virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.short_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_short_set_lower_overflow(self):
         """ short function argument lower bound. """
@@ -985,17 +941,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ int virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.int_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_int_get_upper_overflow(self):
         """ int virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.int_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_int_set_lower_overflow(self):
         """ int function argument lower bound. """
@@ -1025,17 +981,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ long virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_get_upper_overflow(self):
         """ long virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_set_lower_overflow(self):
         """ long function argument lower bound. """
@@ -1065,17 +1021,17 @@ class IntConvertorsTestCase(SIPTestCase):
         """ long long virtual result lower bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_lower_fixture.long_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_long_get_upper_overflow(self):
         """ long long virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.long_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_long_long_set_lower_overflow(self):
         """ long long function argument lower bound. """
@@ -1105,9 +1061,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned char virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.unsigned_char_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_char_set_upper_overflow(self):
         """ unsigned char function argument upper bound. """
@@ -1126,9 +1082,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned short virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.unsigned_short_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_short_set_upper_overflow(self):
         """ unsigned short function argument upper bound. """
@@ -1147,9 +1103,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned int virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.unsigned_int_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_int_set_upper_overflow(self):
         """ unsigned int function argument upper bound. """
@@ -1168,9 +1124,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned long virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.unsigned_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_long_set_upper_overflow(self):
         """ unsigned long function argument upper bound. """
@@ -1189,9 +1145,9 @@ class IntConvertorsTestCase(SIPTestCase):
         """ unsigned long long virtual result upper bound. """
 
         with self.assertRaises(OverflowError):
-            install_hook()
+            self.install_hook()
             self.overflow_upper_fixture.unsigned_long_long_get()
-            uninstall_hook()
+            self.uninstall_hook()
 
     def test_unsigned_long_long_set_upper_overflow(self):
         """ unsigned long long function argument upper bound. """

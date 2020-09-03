@@ -20,6 +20,7 @@ enum class ScopedEnum {
 
 class EnumClass {
 public:
+    EnumClass() : named_overload(false) {}
     virtual ~EnumClass() {}
 
     enum {
@@ -59,6 +60,8 @@ public:
     }
     static void scoped_set(ClassScopedEnum) {}
     ClassScopedEnum scoped_var;
+
+    static int try_using_as_int(int i) {return i;}
 };
 
 %End
@@ -79,6 +82,7 @@ enum class ScopedEnum {
 
 class EnumClass {
 public:
+    EnumClass();
     virtual ~EnumClass();
 
     enum {
@@ -110,4 +114,6 @@ public:
     virtual ClassScopedEnum scoped_virt();
     static void scoped_set(ClassScopedEnum);
     ClassScopedEnum scoped_var;
+
+    static int try_using_as_int(int);
 };
