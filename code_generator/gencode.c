@@ -1449,7 +1449,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    {{");
         else
             prcode(fp,
-"    {{-1, SIP_NULLPTR. ");
+"    {{-1, SIP_NULLPTR, ");
 
         prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
 
@@ -9297,7 +9297,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     if (abiVersion < ABI_13_0)
         prcode(fp,
 "        -1,\n"
-"        SIP_NULLPTR\n"
+"        SIP_NULLPTR,\n"
             );
 
     prcode(fp,
