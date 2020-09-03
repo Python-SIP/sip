@@ -315,6 +315,42 @@ SIP_SSIZE_T                 {
 }
 
 
+%{
+/*
+ * Remove these in SIP v7.  They are retained (but ignored) so that PyQt5 can
+ * be built with SIP v6.
+ */
+%}
+
+^[ \t]*%BIGetReadBufferCode {
+    /* The start of a read buffer code block. */
+    codeIdx = 0;
+    return TK_READBUFFERCODE;
+}
+
+^[ \t]*%BIGetWriteBufferCode {
+    /* The start of a write buffer code block. */
+    codeIdx = 0;
+    return TK_WRITEBUFFERCODE;
+}
+
+^[ \t]*%BIGetSegCountCode {
+    /* The start of a segment count code block. */
+    codeIdx = 0;
+    return TK_SEGCOUNTCODE;
+}
+
+^[ \t]*%BIGetCharBufferCode {
+    /* The start of a char buffer code block. */
+    codeIdx = 0;
+    return TK_CHARBUFFERCODE;
+}
+
+%{
+/* End of deprecated directives. */
+%}
+
+
 ^[ \t]*%Copying {
     /* The software license. */
     codeIdx = 0;

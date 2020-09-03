@@ -239,6 +239,17 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
     int             token;
 }
 
+
+/*
+ * Remove these in SIP v7.  They are retained (but ignored) so that PyQt5 can
+ * be built with SIP v6.
+ */
+%token          TK_READBUFFERCODE
+%token          TK_WRITEBUFFERCODE
+%token          TK_SEGCOUNTCODE
+%token          TK_CHARBUFFERCODE
+
+
 %token          TK_AUTOPYNAME
 %token          TK_DEFDOCSTRFMT
 %token          TK_DEFDOCSTRSIG
@@ -2954,6 +2965,16 @@ classline:  ifstart
                 appendCodeBlock(&scope->releasebufcode, $1);
             }
         }
+
+    /*
+     * Remove these in SIP v7.  They are retained (but ignored) so that PyQt5
+     * can be built with SIP v6.
+     */
+    | TK_READBUFFERCODE codeblock {}
+    | TK_WRITEBUFFERCODE codeblock {}
+    | TK_SEGCOUNTCODE codeblock {}
+    | TK_CHARBUFFERCODE codeblock {}
+
     |   instancecode {
             if (notSkipping())
             {
