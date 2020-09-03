@@ -858,8 +858,8 @@ static int is_subtype(const sipClassTypeDef *ctd,
 static PyObject *import_module_attr(const char *module, const char *attr);
 static const sipContainerDef *get_container(const sipTypeDef *td);
 static PyObject *get_qualname(const sipTypeDef *td, PyObject *name);
-static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int);
 static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg);
+static void handle_failed_type_conversion(sipParseFailure *pf, PyObject *arg);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static int dict_set_and_discard(PyObject *dict, const char *name,
         PyObject *obj);
@@ -3958,11 +3958,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 const char **p = va_arg(va, const char **);
 
                 if (arg != NULL && parseBytes_AsString(arg, p) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -3976,11 +3972,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 fmt++;
 
                 if (arg != NULL && check_encoded_string(arg) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -3993,11 +3985,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 fmt++;
 
                 if (arg != NULL && check_encoded_string(arg) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4010,11 +3998,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 wchar_t **p = va_arg(va, wchar_t **);
 
                 if (arg != NULL && parseWCharString(arg, p) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4035,11 +4019,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 va_arg(va, Py_ssize_t *);
 
                 if (arg != NULL && !canConvertFromSequence(arg, td))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4068,11 +4048,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     va_arg(va, int *);
 
                 if (arg != NULL && !sip_api_can_convert_to_type(arg, td, iflgs))
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4087,15 +4063,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (arg == Py_None || PyObject_TypeCheck(arg,type))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
 
                 break;
@@ -4123,15 +4093,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (PyObject_TypeCheck(arg,type))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
 
                 break;
@@ -4146,15 +4110,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (PyCallable_Check(arg))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
  
                 break;
@@ -4169,15 +4127,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (arg == Py_None || PyCallable_Check(arg))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
  
                 break;
@@ -4192,15 +4144,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (PyObject_CheckBuffer(arg))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
  
                 break;
@@ -4217,15 +4163,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (arg == Py_None || PyObject_CheckBuffer(arg))
-                    {
                         *p = arg;
-                    }
                     else
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                 }
  
                 break;
@@ -4239,11 +4179,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 Py_ssize_t *szp = va_arg(va, Py_ssize_t *);
 
                 if (arg != NULL && parseBytes_AsCharArray(arg, p, szp) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4257,11 +4193,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 Py_ssize_t *szp = va_arg(va, Py_ssize_t *);
 
                 if (arg != NULL && parseWCharArray(arg, p, szp) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4278,11 +4210,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 char *p = va_arg(va, char *);
 
                 if (arg != NULL && parseBytes_AsChar(arg, p) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4295,11 +4223,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 wchar_t *p = va_arg(va, wchar_t *);
 
                 if (arg != NULL && parseWChar(arg, p) < 0)
-                {
-                    failure.reason = WrongType;
-                    failure.detail_obj = arg;
-                    Py_INCREF(arg);
-                }
+                    handle_failed_type_conversion(&failure, arg);
 
                 break;
             }
@@ -4320,15 +4244,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     int v = sip_api_convert_to_bool(arg);
 
                     if (v < 0)
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                     else
-                    {
                         sipSetBool(p, v);
-                    }
                 }
 
                 break;
@@ -4336,7 +4254,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
         case 'E':
             {
-                /* Named enum or integer. */
+                /* Named or scoped enum. */
 
                 sipTypeDef *td = va_arg(va, sipTypeDef *);
                 int *p = va_arg(va, int *);
@@ -4346,7 +4264,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     int v = sip_api_convert_to_enum(arg, td);
 
                     if (PyErr_Occurred())
-                        handle_failed_int_conversion(&failure, arg);
+                        handle_failed_type_conversion(&failure, arg);
                     else
                         *p = v;
                 }
@@ -4593,15 +4511,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     double v = PyFloat_AsDouble(arg);
 
                     if (PyErr_Occurred())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                     else
-                    {
                         *p = (float)v;
-                    }
                 }
 
                 break;
@@ -4615,17 +4527,21 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                 if (sub_fmt == 'E')
                 {
-                    /* Named enum. */
+                    /*
+                     * Named or scoped enum.  Note that in this version of the
+                     * ABI there is no difference between constrained and
+                     * unconstrained enums.
+                     */
 
                     sipTypeDef *td = va_arg(va, sipTypeDef *);
                     int *p = va_arg(va, int *);
 
                     if (arg != NULL)
                     {
-                        *p = convert_to_enum(arg, td, FALSE);
+                        *p = sip_api_convert_to_enum(arg, td)
 
                         if (PyErr_Occurred())
-                            handle_failed_int_conversion(&failure, arg);
+                            handle_failed_type_conversion(&failure, arg);
                     }
                 }
                 else
@@ -4641,15 +4557,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 /* Boolean. */
 
                                 if (PyBool_Check(arg))
-                                {
                                     sipSetBool(p, (arg == Py_True));
-                                }
                                 else
-                                {
-                                    failure.reason = WrongType;
-                                    failure.detail_obj = arg;
-                                    Py_INCREF(arg);
-                                }
+                                    handle_failed_type_conversion(&failure,
+                                            arg);
 
                                 break;
                             }
@@ -4659,15 +4570,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 /* Double float. */
 
                                 if (PyFloat_Check(arg))
-                                {
                                     *(double *)p = PyFloat_AS_DOUBLE(arg);
-                                }
                                 else
-                                {
-                                    failure.reason = WrongType;
-                                    failure.detail_obj = arg;
-                                    Py_INCREF(arg);
-                                }
+                                    handle_failed_type_conversion(&failure,
+                                            arg);
 
                                 break;
                             }
@@ -4677,15 +4583,10 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 /* Float. */
 
                                 if (PyFloat_Check(arg))
-                                {
                                     *(float *)p = (float)PyFloat_AS_DOUBLE(arg);
-                                }
                                 else
-                                {
-                                    failure.reason = WrongType;
-                                    failure.detail_obj = arg;
-                                    Py_INCREF(arg);
-                                }
+                                    handle_failed_type_conversion(&failure,
+                                            arg);
 
                                 break;
                             }
@@ -4704,9 +4605,8 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                                 }
                                 else
                                 {
-                                    failure.reason = WrongType;
-                                    failure.detail_obj = arg;
-                                    Py_INCREF(arg);
+                                        handle_failed_type_conversion(&failure,
+                                                arg);
                                 }
 
                                 break;
@@ -4729,15 +4629,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     double v = PyFloat_AsDouble(arg);
 
                     if (PyErr_Occurred())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4754,15 +4648,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     void *v = sip_api_convert_to_void_ptr(arg);
 
                     if (PyErr_Occurred())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4784,15 +4672,9 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                     void *v = PyCapsule_GetPointer(arg, name);
 
                     if (PyErr_Occurred())
-                    {
-                        failure.reason = WrongType;
-                        failure.detail_obj = arg;
-                        Py_INCREF(arg);
-                    }
+                        handle_failed_type_conversion(&failure, arg);
                     else
-                    {
                         *p = v;
-                    }
                 }
 
                 break;
@@ -4877,12 +4759,21 @@ static void handle_failed_int_conversion(sipParseFailure *pf, PyObject *arg)
     }
     else
     {
-        pf->reason = WrongType;
-        pf->detail_obj = arg;
-        Py_INCREF(arg);
+        handle_failed_type_conversion(pf, arg);
     }
 
     PyErr_Restore(xtype, xvalue, xtb);
+}
+
+
+/*
+ * Called after a failed conversion of a type.
+ */
+static void handle_failed_type_conversion(sipParseFailure *pf, PyObject *arg)
+{
+    pf->reason = WrongType;
+    pf->detail_obj = arg;
+    Py_INCREF(arg);
 }
 
 
@@ -6066,9 +5957,7 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
         return -1;
 
     /* Create the enum object. */
-    enum_obj = createEnumObject(client, etd, enum_nr, name);
-
-    if (enum_obj == NULL)
+    if ((enum_obj = createEnumObject(client, etd, enum_nr, name)) == NULL)
     {
         Py_DECREF(name);
         return -1;
@@ -6584,47 +6473,32 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 
 
 /*
- * Convert a Python object implementing a named enum to an integer value.
+ * Convert a Python object implementing an enum to an integer value.
  */
 static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
-    return convert_to_enum(obj, td, TRUE);
-}
-
-
-/*
- * Convert a Python object implementing a named enum (or, optionally, an int)
- * to an integer value.
- */
-static int convert_to_enum(PyObject *obj, const sipTypeDef *td, int allow_int)
-{
+    static PyObject *value = NULL;
+    PyObject *val_obj;
     int val;
 
-    /* TODO */
     assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
 
-    //if (sipTypeIsScopedEnum(td))
+    if (PyObject_IsInstance(obj, (PyObject *)sipTypeAsPyTypeObject(td)) <= 0)
     {
-        static PyObject *value = NULL;
-        PyObject *val_obj;
-
-        if (PyObject_IsInstance(obj, (PyObject *)sipTypeAsPyTypeObject(td)) <= 0)
-        {
-            enum_expected(obj, td);
-            return -1;
-        }
-
-        if (objectify("value", &value) < 0)
-            return -1;
-
-        if ((val_obj = PyObject_GetAttr(obj, value)) == NULL)
-            return -1;
-
-        /* This will never overflow. */
-        val = sip_api_long_as_int(val_obj);
-
-        Py_DECREF(val_obj);
+        enum_expected(obj, td);
+        return -1;
     }
+
+    if (objectify("value", &value) < 0)
+        return -1;
+
+    if ((val_obj = PyObject_GetAttr(obj, value)) == NULL)
+        return -1;
+
+    /* This will never overflow. */
+    val = sip_api_long_as_int(val_obj);
+
+    Py_DECREF(val_obj);
 
     return val;
 }
