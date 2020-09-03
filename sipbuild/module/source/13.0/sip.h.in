@@ -720,10 +720,10 @@ typedef struct _sipContainerDef {
     /* The table of lazy methods. */
     PyMethodDef *cod_methods;
 
-    /* The number of lazy enum members. */
+    /* The number of enum members. */
     int cod_nrenummembers;
 
-    /* The table of lazy enum members. */
+    /* The table of enum members. */
     sipEnumMemberDef *cod_enummembers;
 
     /* The number of variables. */

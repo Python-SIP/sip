@@ -4538,7 +4538,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
                     if (arg != NULL)
                     {
-                        *p = sip_api_convert_to_enum(arg, td)
+                        *p = sip_api_convert_to_enum(arg, td);
 
                         if (PyErr_Occurred())
                             handle_failed_type_conversion(&failure, arg);
@@ -6003,12 +6003,6 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
     if ((members = PyDict_New()) == NULL)
         goto ret_err;
 
-    /*
-     * TODO: fix this
-     * Note that the current structures for defining scoped enums are not ideal
-     * as we are re-using the ones used for unscoped enums (which are designed
-     * to support lazy implementations).
-     */
     if (etd->etd_scope < 0)
     {
         nr_members = client->em_nrenummembers;
