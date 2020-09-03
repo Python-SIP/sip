@@ -1248,7 +1248,6 @@ typedef struct _sipAPIDef {
     void (*api_trace)(unsigned mask, const char *fmt, ...);
     void (*api_transfer_back)(PyObject *self);
     void (*api_transfer_to)(PyObject *self, PyObject *owner);
-    void (*api_transfer_break)(PyObject *self);
     unsigned long (*api_long_as_unsigned_long)(PyObject *o);
     PyObject *(*api_convert_from_void_ptr)(void *val);
     PyObject *(*api_convert_from_const_void_ptr)(const void *val);

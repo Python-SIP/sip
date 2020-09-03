@@ -343,7 +343,6 @@ static wchar_t *sip_api_unicode_as_wstring(PyObject *obj);
 static int sip_api_unicode_as_wchar(PyObject *obj);
 static int *sip_api_unicode_as_wstring(PyObject *obj);
 #endif
-static void sip_api_transfer_break(PyObject *self);
 static int sip_api_register_py_type(PyTypeObject *supertype);
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td);
 static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type);
@@ -441,7 +440,6 @@ static const sipAPIDef sip_api = {
     sip_api_trace,
     sip_api_transfer_back,
     sip_api_transfer_to,
-    sip_api_transfer_break,
     sip_api_long_as_unsigned_long,
     sip_api_convert_from_void_ptr,
     sip_api_convert_from_const_void_ptr,
@@ -896,15 +894,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 
     PyObject *obj;
     PyMethodDef *md;
-
-    /*
-     * Remind ourselves to add support for capsule variables when we have
-     * another reason to move to the next major version number.
-     */
-    /* TODO */
-#if SIP_ABI_MAJOR_VERSION > 13
-#error "Add support for capsule variables"
-#endif
 
 #if PY_VERSION_HEX < 0x03070000 && defined(WITH_THREAD)
     PyEval_InitThreads();
@@ -2371,19 +2360,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             el = PyLong_FromUnsignedLong(va_arg(va, size_t));
             break;
 
-        case 'B':
-            {
-                /* Remove in v6. */
-
-                void *p = va_arg(va,void *);
-                sipWrapperType *wt = va_arg(va, sipWrapperType *);
-                PyObject *xfer = va_arg(va, PyObject *);
-
-                el = sip_api_convert_from_new_type(p, wt->wt_td, xfer);
-            }
-
-            break;
-
         case 'N':
             {
                 void *p = va_arg(va, void *);
@@ -2391,19 +2367,6 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
                 PyObject *xfer = va_arg(va, PyObject *);
 
                 el = sip_api_convert_from_new_type(p, td, xfer);
-            }
-
-            break;
-
-        case 'C':
-            {
-                /* Remove in v6. */
-
-                void *p = va_arg(va,void *);
-                sipWrapperType *wt = va_arg(va, sipWrapperType *);
-                PyObject *xfer = va_arg(va, PyObject *);
-
-                el = sip_api_convert_from_type(p, wt->wt_td, xfer);
             }
 
             break;
@@ -2924,18 +2887,6 @@ static int parseResult(PyObject *method, PyObject *res,
 
                 break;
 
-            case 's':
-                {
-                    /* Remove in v6. */
-
-                    const char **p = va_arg(va, const char **);
-
-                    if (parseBytes_AsString(arg, p) < 0)
-                        invalid = TRUE;
-                }
-
-                break;
-
             case 'A':
                 {
                     int key = va_arg(va, int);
@@ -2993,74 +2944,6 @@ static int parseResult(PyObject *method, PyObject *res,
                 raiseNoWChar();
                 invalid = TRUE;
 #endif
-
-                break;
-
-            case 'C':
-                {
-                    /* Remove in v6. */
-
-                    if (*fmt == '\0')
-                    {
-                        invalid = TRUE;
-                    }
-                    else
-                    {
-                        int flags = *fmt++ - '0';
-                        int iserr = FALSE;
-                        sipWrapperType *type;
-                        void **cpp;
-                        int *state;
-
-                        type = va_arg(va, sipWrapperType *);
-
-                        if (flags & FMT_RP_NO_STATE_DEPR)
-                            state = NULL;
-                        else
-                            state = va_arg(va, int *);
-
-                        cpp = va_arg(va, void **);
-
-                        *cpp = sip_api_force_convert_to_type(arg, type->wt_td, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
-
-                        if (iserr)
-                            invalid = TRUE;
-                    }
-                }
-
-                break;
-
-            case 'D':
-                {
-                    /* Remove in v6. */
-
-                    if (*fmt == '\0')
-                    {
-                        invalid = TRUE;
-                    }
-                    else
-                    {
-                        int flags = *fmt++ - '0';
-                        int iserr = FALSE;
-                        const sipTypeDef *td;
-                        void **cpp;
-                        int *state;
-
-                        td = va_arg(va, const sipTypeDef *);
-
-                        if (flags & FMT_RP_NO_STATE_DEPR)
-                            state = NULL;
-                        else
-                            state = va_arg(va, int *);
-
-                        cpp = va_arg(va, void **);
-
-                        *cpp = sip_api_force_convert_to_type(arg, td, (flags & FMT_RP_FACTORY ? arg : NULL), (flags & FMT_RP_DEREF ? SIP_NOT_NONE : 0), state, &iserr);
-
-                        if (iserr)
-                            invalid = TRUE;
-                    }
-                }
 
                 break;
 
@@ -6255,8 +6138,7 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         }
     }
 
-    /* Do the unnamed enum members. */
-    /* TODO */
+    /* Do the anonymous enum members. */
     for (enm = cod->cod_enummembers, i = 0; i < cod->cod_nrenummembers; ++i, ++enm)
     {
         if (enm->em_enum < 0)
@@ -6971,31 +6853,6 @@ static void sip_api_transfer_back(PyObject *self)
         }
 
         sipSetPyOwned(sw);
-    }
-}
-
-
-/*
- * Break the association of a C++ owned Python object with any parent.  This is
- * deprecated because it is the equivalent of sip_api_transfer_to(self, NULL).
- */
-static void sip_api_transfer_break(PyObject *self)
-{
-    /* Remove in v6. */
-
-    if (self != NULL && PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
-    {
-        sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
-
-        if (sipCppHasRef(sw))
-        {
-            sipResetCppHasRef(sw);
-            Py_DECREF(sw);
-        }
-        else
-        {
-            removeFromParent((sipWrapper *)sw);
-        }
     }
 }
 
