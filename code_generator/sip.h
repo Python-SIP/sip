@@ -1418,6 +1418,7 @@ codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
         scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int pluginPyQt5(sipSpec *pt);
+int pluginPyQt6(sipSpec *pt);
 SIP_NORETURN void yyerror(char *);
 void yywarning(char *);
 int yylex(void);

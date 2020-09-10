@@ -1267,7 +1267,6 @@ typedef struct _sipAPIDef {
             sipAttrGetterFunc getter);
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
     void *(*api_get_address)(struct _sipSimpleWrapper *w);
-    void (*api_set_destroy_on_exit)(int);
     int (*api_enable_autoconversion)(const sipTypeDef *td, int enable);
     void *(*api_get_mixin_address)(struct _sipSimpleWrapper *w,
             const sipTypeDef *td);
@@ -1521,8 +1520,8 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 
 
 /*
- * The following are PyQt5-specific extensions.  In a future version they will
- * be pushed out to a plugin supplied by PyQt5.
+ * The following are PyQt-specific extensions.  These may be removed in SIP v7.
+ * Note that, at the moment, the PyQt5 and PyQt6 extensions are identical.
  */
 
 /*
@@ -1573,6 +1572,56 @@ typedef struct _pyqt5ClassPluginDef {
     /* The name of the interface that the class defines. */
     const char *qt_interface;
 } pyqt5ClassPluginDef;
+
+
+/*
+ * The description of a Qt signal for PyQt6.
+ */
+typedef int (*pyqt6EmitFunc)(void *, PyObject *);
+
+typedef struct _pyqt6QtSignal {
+    /* The normalised C++ name and signature of the signal. */
+    const char *signature;
+
+    /* The optional docstring. */
+    const char *docstring;
+
+    /*
+     * If the signal is an overload of regular methods then this points to the
+     * code that implements those methods.
+     */
+    PyMethodDef *non_signals;
+
+    /*
+     * If the signal has optional arguments then this function will implement
+     * emit() for the signal.
+     */
+    pyqt6EmitFunc emitter;
+} pyqt6QtSignal;
+
+
+/*
+ * This is the PyQt6-specific extension to the generated class type structure.
+ */
+typedef struct _pyqt6ClassPluginDef {
+    /* A pointer to the QObject sub-class's staticMetaObject class variable. */
+    const void *static_metaobject;
+
+    /*
+     * A set of flags.  At the moment only bit 0 is used to say if the type is
+     * derived from QFlags.
+     */
+    unsigned flags;
+
+    /*
+     * The table of signals emitted by the type.  These are grouped by signal
+     * name.
+     */
+    const pyqt6QtSignal *qt_signals;
+
+    /* The name of the interface that the class defines. */
+    const char *qt_interface;
+} pyqt6ClassPluginDef;
 
 
 #ifdef __cplusplus

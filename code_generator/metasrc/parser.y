@@ -724,8 +724,8 @@ defencoding_arg:    TK_NAME '=' TK_STRING_VALUE {
 
 plugin:     TK_PLUGIN plugin_args {
             /*
-             * Note that %Plugin is internal in SIP v4.  The current thinking
-             * is that it won't be needed for SIP v5.
+             * Note that %Plugin is PyQt-specific.  It should be removed in SIP
+             * v7.
              */
 
             if (notSkipping())
@@ -8398,6 +8398,15 @@ static int getNoTypeHint(optFlags *optflgs)
 int pluginPyQt5(sipSpec *pt)
 {
     return stringFind(pt->plugins, "PyQt5");
+}
+
+
+/*
+ * Return TRUE if the PyQt6 plugin was specified.
+ */
+int pluginPyQt6(sipSpec *pt)
+{
+    return stringFind(pt->plugins, "PyQt6");
 }
 
 
