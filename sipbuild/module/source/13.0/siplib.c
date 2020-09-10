@@ -355,7 +355,6 @@ static PyObject *sip_api_get_reference(PyObject *self, int key);
 static int sip_api_is_owned_by_python(sipSimpleWrapper *sw);
 static int sip_api_is_derived_class(sipSimpleWrapper *sw);
 static void sip_api_add_exception(sipErrorState es, PyObject **parseErrp);
-static void sip_api_set_destroy_on_exit(int value);
 static int sip_api_enable_autoconversion(const sipTypeDef *td, int enable);
 static int sip_api_init_mixin(PyObject *self, PyObject *args, PyObject *kwds,
         const sipClassTypeDef *ctd);
@@ -456,7 +455,6 @@ static const sipAPIDef sip_api = {
     sip_api_register_attribute_getter,
     sip_api_bad_callable_arg,
     sip_api_get_address,
-    sip_api_set_destroy_on_exit,
     sip_api_enable_autoconversion,
     sip_api_get_mixin_address,
     sip_api_convert_from_new_pytype,
@@ -686,7 +684,6 @@ static sipProxyResolver *proxyResolvers = NULL; /* The list of proxy resolvers. 
 static sipPyObject *sipRegisteredPyTypes = NULL;    /* Registered Python types. */
 static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose auto-conversion is disabled. */
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
-static int destroy_on_exit = TRUE;      /* Destroy owned objects on exit. */
 static sipEventHandler *event_handlers[sipEventNrEvents];   /* The event handler lists. */
 
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
@@ -780,7 +777,6 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args);
 static PyObject *unwrapInstance(PyObject *self, PyObject *args);
 static PyObject *transferBack(PyObject *self, PyObject *args);
 static PyObject *transferTo(PyObject *self, PyObject *args);
-static PyObject *setDestroyOnExit(PyObject *self, PyObject *args);
 static void clear_wrapper(sipSimpleWrapper *sw);
 static void print_object(const char *label, PyObject *obj);
 static void addToParent(sipWrapper *self, sipWrapper *owner);
@@ -879,7 +875,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         {"ispycreated", isPyCreated, METH_VARARGS, NULL},
         {"ispyowned", isPyOwned, METH_VARARGS, NULL},
         {"setdeleted", setDeleted, METH_VARARGS, NULL},
-        {"setdestroyonexit", setDestroyOnExit, METH_VARARGS, NULL},
         {"settracemask", setTraceMask, METH_VARARGS, NULL},
         {"transferback", transferBack, METH_VARARGS, NULL},
         {"transferto", transferTo, METH_VARARGS, NULL},
@@ -1505,32 +1500,6 @@ static PyObject *wrapInstance(PyObject *self, PyObject *args)
         return sip_api_convert_from_type((void *)addr, wt->wt_td, NULL);
 
     return NULL;
-}
-
-
-/*
- * Set the destroy on exit flag from Python code.
- */
-static PyObject *setDestroyOnExit(PyObject *self, PyObject *args)
-{
-    (void)self;
-
-    if (PyArg_ParseTuple(args, "i:setdestroyonexit", &destroy_on_exit))
-    {
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-
-    return NULL;
-}
-
-
-/*
- * Set the destroy on exit flag from C++ code.
- */
-static void sip_api_set_destroy_on_exit(int value)
-{
-    destroy_on_exit = value;
 }
 
 
@@ -10132,7 +10101,7 @@ static void forgetObject(sipSimpleWrapper *sw)
      */
     sipOMRemoveObject(&cppPyMap, sw);
 
-    if (sipInterpreter != NULL || destroy_on_exit)
+    if (sipInterpreter != NULL)
     {
         const sipClassTypeDef *ctd;
 

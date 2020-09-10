@@ -634,7 +634,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipTypeScope                sipAPI_%s->api_type_scope\n"
 "#define sipResolveTypedef           sipAPI_%s->api_resolve_typedef\n"
 "#define sipRegisterAttributeGetter  sipAPI_%s->api_register_attribute_getter\n"
-"#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableAutoconversion     sipAPI_%s->api_enable_autoconversion\n"
 "#define sipInitMixin                sipAPI_%s->api_init_mixin\n"
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
@@ -815,7 +814,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
@@ -827,6 +825,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     {
         /* ABI v12.8 and earlier. */
         prcode(fp,
+"#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
 "#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
 "#define sipClearAnySlotReference    sipAPI_%s->api_clear_any_slot_reference\n"
@@ -839,6 +838,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
+            , mname
             , mname
             , mname
             , mname
