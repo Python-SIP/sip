@@ -677,7 +677,6 @@ static PyObject **unused_backdoor = NULL;   /* For passing dict of unused argume
 static PyObject *init_name = NULL;      /* '__init__'. */
 static PyObject *empty_tuple;           /* The empty tuple. */
 static PyObject *type_unpickler;        /* The type unpickler function. */
-static PyObject *enum_unpickler;        /* The enum unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
 static sipProxyResolver *proxyResolvers = NULL; /* The list of proxy resolvers. */
@@ -865,6 +864,7 @@ static int dict_set_and_discard(PyObject *dict, const char *name,
 const sipAPIDef *sip_init_library(PyObject *mod_dict)
 {
     static PyMethodDef methods[] = {
+        /* The type unpickler must be first. */
         {"_unpickle_type", unpickle_type, METH_VARARGS, NULL},
         {"assign", assign, METH_VARARGS, NULL},
         {"cast", cast, METH_VARARGS, NULL},
@@ -914,11 +914,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
             return NULL;
 
         if (md == &methods[0])
-        {
-            Py_INCREF(meth);
-            enum_unpickler = meth;
-        }
-        else if (md == &methods[1])
         {
             Py_INCREF(meth);
             type_unpickler = meth;
