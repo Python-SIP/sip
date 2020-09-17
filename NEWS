@@ -1,3 +1,6 @@
+v5.5.0 ??? ??? 2020
+  - Added the 'exceptions' attribute to the 'Buildable' class.
+
 v5.4.0 29th August 2020
   - The latest version of the module ABI is v12.8.1.
   - Python v3.9 is supported.

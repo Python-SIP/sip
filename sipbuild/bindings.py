@@ -158,6 +158,7 @@ class Bindings(Configurable):
 
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
+        buildable.exceptions = self.exceptions
         buildable.static = self.static
 
         # Generate any API file.

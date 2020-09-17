@@ -335,6 +335,10 @@ build systems.
     :param bool uses_limited_api: is ``True`` if the source code uses only the
         limited Python API.
 
+    .. py:attribute:: exceptions
+
+        ``True`` if the module should be built with support for C++ exceptions.
+
     .. py:attribute:: fq_name
 
         The fully qualified name of the module.

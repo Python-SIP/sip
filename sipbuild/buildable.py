@@ -129,6 +129,8 @@ class BuildableModule(BuildableFromSources):
                 uses_limited_api=uses_limited_api)
 
         self.fq_name = fq_name
+
+        self.exceptions = False
         self.static = False
 
     def get_install_subdir(self):
