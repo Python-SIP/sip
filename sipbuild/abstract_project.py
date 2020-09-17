@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,6 +23,7 @@
 
 from abc import ABC, abstractmethod
 import importlib
+import importlib.util
 import os
 
 from .exceptions import UserException

@@ -1,3 +1,9 @@
+v5.5.0 ??? ??? 2020
+  - Added the 'exceptions' attribute to the 'Buildable' class.
+  - The 'abi-version' project option and the '--abi-version' of sip-module can
+    now specify a major version only (as opposed to a major.minor version) to
+    select the latest ABI with that major version number.
+
 v5.4.0 29th August 2020
   - The latest version of the module ABI is v12.8.1.
   - Python v3.9 is supported.
