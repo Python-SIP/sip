@@ -34,7 +34,7 @@ def main():
     parser = ArgumentParser("Generate a sip extension module.")
 
     parser.add_argument('--abi-version', help="the ABI version",
-            metavar="VERSION")
+            metavar="MAJOR[.MINOR]")
 
     parser.add_argument('--project', help="the PyPI project name",
             metavar="NAME")

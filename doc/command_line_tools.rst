@@ -316,10 +316,12 @@ The full set of command line options is:
 
     Display the SIP version number.
 
-.. option:: --abi-version VERSION
+.. option:: --abi-version MAJOR[.MINOR]
 
-    The version of the ABI implemented by the :mod:`sip` module is ``VERSION``.
-    By the default the latest version is used.
+    The version number of the ABI implemented by the :mod:`sip` module is
+    ``MAJOR.MINOR``.  If only the major version number is specified then the
+    latest minor version with that major version is used.  By the default the
+    very latest version is used.
 
 .. option:: --project NAME
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -65,12 +65,29 @@ def get_sip_module_version(abi_version):
 
 
 def resolve_abi_version(abi_version):
-    """ Return a valided ABI version or the latest if none was given. """
+    """ Return a valid ABI version or the latest if none was given. """
 
     if abi_version:
-        if not os.path.isdir(get_module_source_dir(abi_version)):
-            raise UserException(
-                    "'{0}' is not a supported ABI version".format(abi_version))
+        # See if a complete version number was given.
+        if '.' in abi_version:
+            if not os.path.isdir(get_module_source_dir(abi_version)):
+                raise UserException(
+                        "'{0}' is not a supported ABI version".format(
+                                abi_version))
+        else:
+            # Only the major version was given.
+            major = abi_version + '.'
+            versions = sorted(os.listdir(_module_source_dir), key=parse,
+                    reverse=True)
+
+            for version in versions:
+                if version.startswith(major):
+                    abi_version = version
+                    break
+            else:
+                raise UserException(
+                        "'{0}' is not a supported ABI major version".format(
+                                abi_version))
     else:
         abi_version = sorted(os.listdir(_module_source_dir), key=parse)[-1]
 

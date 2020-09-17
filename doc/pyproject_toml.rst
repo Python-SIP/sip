@@ -84,8 +84,10 @@ list options may contain environment markers as defined in `PEP 508
 <https://www.python.org/dev/peps/pep-0508/>`__.
 
 **abi-version**
-    The value is the version number of the ABI of the :mod:`sip` module being
-    used.  By default the latest version is used.
+    The version number of the ABI of the :mod:`sip` module being used.  If only
+    the major version number is specified then the latest minor version with
+    that major version is used.  By the default the very latest version is
+    used.
 
 **api-dir**
     The value is the name of a the directory in which a QScintilla :file:`.api`
