@@ -582,7 +582,7 @@ class Project(AbstractProject, Configurable):
         self.abi_version = resolve_abi_version(self.abi_version)
 
         # Checks for standalone projects.
-        if not self.sip_module:
+        if tool in Option.BUILD_TOOLS and not self.sip_module:
             # Check there is only one set of bindings.
             if len(self.bindings) > 1:
                 raise PyProjectOptionException('sip-module',
