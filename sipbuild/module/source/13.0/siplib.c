@@ -685,6 +685,9 @@ static sipPyObject *sipDisabledAutoconversions = NULL;  /* Python types whose au
 static PyInterpreterState *sipInterpreter = NULL;   /* The interpreter. */
 static sipEventHandler *event_handlers[sipEventNrEvents];   /* The event handler lists. */
 
+static PyObject *enum_type = NULL;      /* The enum.Enum type. */
+static PyObject *int_enum_type = NULL;  /* The enum.IntEnum type. */
+
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
 static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
 static void *findSlot(PyObject *self, sipPySlotType st);
@@ -893,6 +896,13 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 #if PY_VERSION_HEX < 0x03070000 && defined(WITH_THREAD)
     PyEval_InitThreads();
 #endif
+
+    /* Get the enum types. */
+    if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
+        return NULL;
+
+    if ((int_enum_type = import_module_attr("enum", "IntEnum")) == NULL)
+        return NULL;
 
     /* Add the SIP version number. */
     obj = PyLong_FromLong(SIP_VERSION);
@@ -1521,7 +1531,7 @@ static int sip_api_export_module(sipExportedModuleDef *client,
                 SIP_ABI_MINOR_VERSION, full_name, abi_major, abi_minor);
 #else
         PyErr_Format(PyExc_RuntimeError,
-                "the sip module implements API v%d.0 but the %s module requires API v%d.%d",
+                "the sip module implements ABI v%d.0 but the %s module requires ABI v%d.%d",
                 SIP_ABI_MAJOR_VERSION, full_name, abi_major, abi_minor);
 #endif
 
@@ -5827,24 +5837,10 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 static PyObject *createEnumObject(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, int enum_nr, PyObject *name)
 {
-    static PyObject *enum_type = NULL, *int_enum_type = NULL;
     static PyObject *module_arg = NULL, *qualname_arg = NULL;
     int i, nr_members;
     sipEnumMemberDef *enm;
-    PyObject *members, *enum_factory, *enum_obj, *args, *kw_args;
-
-    /* Get the enum types if we haven't done so already. */
-    if (enum_type == NULL)
-    {
-        if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
-            goto ret_err;
-    }
-
-    if (int_enum_type == NULL)
-    {
-        if ((int_enum_type = import_module_attr("enum", "IntEnum")) == NULL)
-            goto ret_err;
-    }
+    PyObject *members, *enum_factory, *enum_obj, *args, *kw_args, *etd_cap;
 
     /* Create a dict of the members. */
     if ((members = PyDict_New()) == NULL)
@@ -5910,6 +5906,10 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
             goto rel_kw_args;
     }
 
+    /* Wrap the type definition in a capsule. */
+    if ((etd_cap = PyCapsule_New(etd, NULL, NULL)) == NULL)
+        goto rel_kw_args;
+
     enum_factory = (sipTypeIsEnum(&etd->etd_base) ? int_enum_type : enum_type);
 
     if ((enum_obj = PyObject_Call(enum_factory, args, kw_args)) == NULL)
@@ -5921,6 +5921,15 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
 
     /* Note that it isn't actually a PyTypeObject. */
     etd->etd_base.td_py_type = (PyTypeObject *)enum_obj;
+
+    if (PyObject_SetAttrString(enum_obj, "__sip__", etd_cap) < 0)
+    {
+        Py_DECREF(etd_cap);
+        Py_DECREF(enum_obj);
+        return NULL;
+    }
+
+    Py_DECREF(etd_cap);
 
     return enum_obj;
 
@@ -6277,6 +6286,20 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 {
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
         return ((sipWrapperType *)py_type)->wt_td;
+
+    if (PyObject_IsSubclass((PyObject *)py_type, enum_type) == 1)
+    {
+        PyObject *etd_cap;
+
+        if ((etd_cap = PyObject_GetAttrString((PyObject *)py_type, "__sip__")) != NULL)
+        {
+            sipTypeDef *td = (sipTypeDef *)PyCapsule_GetPointer(etd_cap, NULL);
+
+            Py_DECREF(etd_cap);
+
+            return td;
+        }
+    }
 
     return NULL;
 }
