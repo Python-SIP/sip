@@ -76,7 +76,7 @@ static void finishClass(sipSpec *, moduleDef *, classDef *, optFlags *);
 static exceptionDef *findException(sipSpec *pt, scopedNameDef *fqname, int new);
 static mappedTypeDef *newMappedType(sipSpec *,argDef *, optFlags *);
 static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
-        char *name, optFlags *of, int flags, int isscoped);
+        char *name, optFlags *optflgs, int flags, int isscoped);
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
         classDef *scope, scopedNameDef *fqname, classTmplDef *tcd,
         templateDef *td, const char *pyname, int use_template_name,
@@ -2317,6 +2317,7 @@ enum:       TK_ENUM optenumkey optname optflags {
             if (notSkipping())
             {
                 const char *annos[] = {
+                    "BaseType",
                     "NoScope",
                     "NoTypeHint",
                     "PyName",
@@ -5070,11 +5071,12 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
  * Create a new enum.
  */
 static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
-        char *name, optFlags *of, int flags, int isscoped)
+        char *name, optFlags *optflgs, int flags, int isscoped)
 {
     enumDef *ed;
     classDef *c_scope;
     ifaceFileDef *scope;
+    optFlag *of;
 
     if (mt_scope != NULL)
     {
@@ -5093,7 +5095,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
 
     if (name != NULL)
     {
-        ed->pyname = cacheName(pt, getPythonName(mod, of, name));
+        ed->pyname = cacheName(pt, getPythonName(mod, optflgs, name));
         checkAttributes(pt, mod, c_scope, mt_scope, ed->pyname->text, FALSE);
 
         ed->fqcname = text2scopedName(scope, name);
@@ -5126,7 +5128,7 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     }
 
     ed->enumflags = flags;
-    ed->no_typehint = getNoTypeHint(of);
+    ed->no_typehint = getNoTypeHint(optflgs);
     ed->enumnr = -1;
     ed->ecd = c_scope;
     ed->emtd = mt_scope;
@@ -5139,11 +5141,32 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
 
     pt->enums = ed;
 
-    if (getOptFlag(of, "NoScope", bool_flag) != NULL)
+    if (getOptFlag(optflgs, "NoScope", bool_flag) != NULL)
         setIsNoScope(ed);
 
     if (isscoped)
         setIsScopedEnum(ed);
+
+    if ((of = getOptFlag(optflgs, "BaseType", name_flag)) != NULL)
+    {
+        const char *base_type;
+
+        if (abiVersion < ABI_13_0)
+            yyerror("/BaseType/ is only supported for ABI v13 and later");
+
+        base_type = of->fvalue.sval;
+
+        if (strcmp(base_type, "Enum") == 0)
+            setIsEnumEnum(ed);
+        else if (strcmp(base_type, "Flag") == 0)
+            setIsEnumFlag(ed);
+        else if (strcmp(base_type, "IntEnum") == 0)
+            setIsEnumIntEnum(ed);
+        else if (strcmp(base_type, "IntFlag") == 0)
+            setIsEnumIntFlag(ed);
+        else
+            yyerror("Invalid /BaseType/");
+    }
 
     return ed;
 }

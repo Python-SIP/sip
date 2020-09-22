@@ -1470,12 +1470,12 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define sipWasCreated(sw)   ((sw)->sw_flags & SIP_CREATED)
 #endif
 
-#define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */
+#define SIP_TYPE_TYPE_MASK  0x0003  /* The type type mask. */
 #define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
 #define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
-#define SIP_TYPE_ENUM       0x0003  /* If the type is a named enum. */
-#define SIP_TYPE_SCOPED_ENUM    0x0004  /* If the type is a scoped enum. */
+#define SIP_TYPE_ENUM       0x0003  /* If the type is an enum. */
+#define SIP_TYPE_UNUSED     0x0004  /* Currently unused. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
@@ -1483,6 +1483,11 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define SIP_TYPE_NONLAZY    0x0080  /* If the type has a non-lazy method. */
 #define SIP_TYPE_SUPER_INIT 0x0100  /* If the instance's super init should be called. */
 #define SIP_TYPE_LIMITED_API    0x0200  /* Use the limited API.  If this is more generally required it may need to be moved to the module definition. */
+#define SIP_ENUM_MASK       0x0c00  /* The enum base type mask. */
+#define SIP_ENUM_ENUM       0x0000  /* The base type is Enum. */
+#define SIP_ENUM_FLAG       0x0400  /* The base type is Flag. */
+#define SIP_ENUM_INT_ENUM   0x0800  /* The base type is IntEnum. */
+#define SIP_ENUM_INT_FLAG   0x0c00  /* The base type is IntFlag. */
 
 
 /*
@@ -1492,7 +1497,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define sipTypeIsNamespace(td)  (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_NAMESPACE)
 #define sipTypeIsMapped(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_MAPPED)
 #define sipTypeIsEnum(td)   (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_ENUM)
-#define sipTypeIsScopedEnum(td) (((td)->td_flags & SIP_TYPE_TYPE_MASK) == SIP_TYPE_SCOPED_ENUM)
 #define sipTypeAsPyTypeObject(td)   ((td)->td_py_type)
 #define sipTypeName(td)     sipNameFromPool((td)->td_module, (td)->td_cname)
 #define sipTypePluginData(td)   ((td)->td_plugin_data)
@@ -1509,6 +1513,11 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define sipTypeHasNonlazyMethod(td) ((td)->td_flags & SIP_TYPE_NONLAZY)
 #define sipTypeCallSuperInit(td)    ((td)->td_flags & SIP_TYPE_SUPER_INIT)
 #define sipTypeUseLimitedAPI(td)    ((td)->td_flags & SIP_TYPE_LIMITED_API)
+#define sipEnumIsEnum(td)   (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_ENUM)
+#define sipEnumIsFlag(td)   (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_FLAG)
+#define sipEnumIsIntEnum(td)    (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_INT_ENUM)
+#define sipEnumIsIntFlag(td)    (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_INT_FLAG)
+
 
 /*
  * Get various names from the string pool for various data types.

@@ -154,11 +154,8 @@ Argument Annotations
     The default encoding is specified by the :directive:`%DefaultEncoding`
     directive.  If the directive is not specified then ``None`` is used.
 
-    Python v3 will use the ``bytes`` type to represent the argument if the
-    encoding is ``"None"`` and the ``str`` type otherwise.
-
-    Python v2 will use the ``str`` type to represent the argument if the
-    encoding is ``"None"`` and the ``unicode`` type otherwise.
+    The ``bytes`` type is used to represent the argument if the encoding is
+    ``"None"`` and the ``str`` type otherwise.
 
 
 .. argument-annotation:: GetWrapper
@@ -617,6 +614,15 @@ Mapped Type Annotations
 
 Enum Annotations
 ----------------
+
+.. enum-annotation:: BaseType
+
+    This name annotation specifies the type from the :mod:`enum` module
+    that will be used as the base type of the enum.  The possible values are
+    :class:`~enum.Enum`, :class:`~enum.Flag`, :class:`~enum.IntEnum` and
+    :class:`~enum.IntFlag`.  The default value is :class:`~enum.Enum`.
+
+    This annotation is only available when ABI v13 or later is specified.
 
 .. enum-annotation:: NoScope
 

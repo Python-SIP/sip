@@ -687,6 +687,8 @@ static sipEventHandler *event_handlers[sipEventNrEvents];   /* The event handler
 
 static PyObject *enum_type = NULL;      /* The enum.Enum type. */
 static PyObject *int_enum_type = NULL;  /* The enum.IntEnum type. */
+static PyObject *flag_type = NULL;      /* The enum.Flag type. */
+static PyObject *int_flag_type = NULL;  /* The enum.IntFlag type. */
 
 static void addClassSlots(sipWrapperType *wt, const sipClassTypeDef *ctd);
 static void addTypeSlots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
@@ -898,10 +900,17 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 #endif
 
     /* Get the enum types. */
+    /* TODO: only import the module once. */
     if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
         return NULL;
 
     if ((int_enum_type = import_module_attr("enum", "IntEnum")) == NULL)
+        return NULL;
+
+    if ((flag_type = import_module_attr("enum", "Flag")) == NULL)
+        return NULL;
+
+    if ((int_flag_type = import_module_attr("enum", "IntFlag")) == NULL)
         return NULL;
 
     /* Add the SIP version number. */
@@ -1632,7 +1641,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
             continue;
         }
 
-        if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+        if (sipTypeIsEnum(td))
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
@@ -5910,7 +5919,14 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
     if ((etd_cap = PyCapsule_New(etd, NULL, NULL)) == NULL)
         goto rel_kw_args;
 
-    enum_factory = (sipTypeIsEnum(&etd->etd_base) ? int_enum_type : enum_type);
+    if (sipEnumIsIntFlag(&etd->etd_base))
+        enum_factory = int_flag_type;
+    else if (sipEnumIsFlag(&etd->etd_base))
+        enum_factory = flag_type;
+    else if (sipEnumIsIntEnum(&etd->etd_base))
+        enum_factory = int_enum_type;
+    else
+        enum_factory = enum_type;
 
     if ((enum_obj = PyObject_Call(enum_factory, args, kw_args)) == NULL)
         goto rel_kw_args;
@@ -6311,7 +6327,7 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
  */
 static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 {
-    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+    if (sipTypeIsEnum(td))
     {
         const sipEnumTypeDef *etd = (const sipEnumTypeDef *)td;
 
@@ -6344,7 +6360,7 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     PyObject *val_obj;
     int val;
 
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+    assert(sipTypeIsEnum(td));
 
     if (PyObject_IsInstance(obj, (PyObject *)sipTypeAsPyTypeObject(td)) <= 0)
     {
@@ -6382,7 +6398,7 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td)
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    assert(sipTypeIsEnum(td) || sipTypeIsScopedEnum(td));
+    assert(sipTypeIsEnum(td));
 
     return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
             eval);
@@ -7273,7 +7289,7 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
 {
     PyObject *obj;
 
-    if (sipTypeIsEnum(td) || sipTypeIsScopedEnum(td))
+    if (sipTypeIsEnum(td))
     {
         obj = sip_api_convert_from_enum(*(int *)cppPtr, td);
     }
@@ -8551,7 +8567,7 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, Py_ssize_t nitems)
      */
     if (currentType != NULL)
     {
-        assert(!sipTypeIsEnum(currentType) && !sipTypeIsScopedEnum(currentType));
+        assert(!sipTypeIsEnum(currentType));
 
         ((sipWrapperType *)o)->wt_td = currentType;
 

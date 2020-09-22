@@ -1435,16 +1435,26 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         ed->enum_idx = enum_idx++;
 
         if (abiVersion >= ABI_13_0)
-            prcode(fp,
-"    {{");
-        else
-            prcode(fp,
-"    {{-1, SIP_NULLPTR, ");
-
-        prcode(fp, "SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
-
-        if (abiVersion < ABI_13_0)
         {
+            const char *base_type;
+
+            if (isEnumIntFlag(ed))
+                base_type = "|SIP_ENUM_INT_FLAG";
+            else if (isEnumFlag(ed))
+                base_type = "|SIP_ENUM_FLAG";
+            else if (isEnumIntEnum(ed))
+                base_type = "|SIP_ENUM_INT_ENUM";
+            else
+                base_type = "";
+
+            prcode(fp,
+"    {{SIP_NULLPTR, SIP_TYPE_ENUM%s, %n, SIP_NULLPTR, 0}, %n, %d", base_type, ed->cname, ed->pyname, type_nr);
+        }
+        else
+        {
+            prcode(fp,
+"    {{-1, SIP_NULLPTR, SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
+
             if (ed->slots != NULL)
                 prcode(fp, ", slots_%C", ed->fqcname);
             else
