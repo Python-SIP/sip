@@ -863,6 +863,9 @@ typedef struct _sipEnumTypeDef {
     /* The base type information. */
     sipTypeDef etd_base;
 
+    /* The Python base type. */
+    int etd_base_type;
+
     /* The Python name of the enum. */
     int etd_name;
 
@@ -1483,11 +1486,13 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define SIP_TYPE_NONLAZY    0x0080  /* If the type has a non-lazy method. */
 #define SIP_TYPE_SUPER_INIT 0x0100  /* If the instance's super init should be called. */
 #define SIP_TYPE_LIMITED_API    0x0200  /* Use the limited API.  If this is more generally required it may need to be moved to the module definition. */
-#define SIP_ENUM_MASK       0x0c00  /* The enum base type mask. */
-#define SIP_ENUM_ENUM       0x0000  /* The base type is Enum. */
-#define SIP_ENUM_FLAG       0x0400  /* The base type is Flag. */
-#define SIP_ENUM_INT_ENUM   0x0800  /* The base type is IntEnum. */
-#define SIP_ENUM_INT_FLAG   0x0c00  /* The base type is IntFlag. */
+
+
+/* The Python base types of enums. */
+#define SIP_ENUM_ENUM       0       /* The base type is Enum. */
+#define SIP_ENUM_FLAG       1       /* The base type is Flag. */
+#define SIP_ENUM_INT_ENUM   2       /* The base type is IntEnum. */
+#define SIP_ENUM_INT_FLAG   3       /* The base type is IntFlag. */
 
 
 /*
@@ -1513,10 +1518,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define sipTypeHasNonlazyMethod(td) ((td)->td_flags & SIP_TYPE_NONLAZY)
 #define sipTypeCallSuperInit(td)    ((td)->td_flags & SIP_TYPE_SUPER_INIT)
 #define sipTypeUseLimitedAPI(td)    ((td)->td_flags & SIP_TYPE_LIMITED_API)
-#define sipEnumIsEnum(td)   (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_ENUM)
-#define sipEnumIsFlag(td)   (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_FLAG)
-#define sipEnumIsIntEnum(td)    (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_INT_ENUM)
-#define sipEnumIsIntFlag(td)    (((td)->td_flags & SIP_ENUM_MASK) == SIP_ENUM_INT_FLAG)
 
 
 /*
@@ -1617,12 +1618,6 @@ typedef struct _pyqt6ClassPluginDef {
     const void *static_metaobject;
 
     /*
-     * A set of flags.  At the moment only bit 0 is used to say if the type is
-     * derived from QFlags.
-     */
-    unsigned flags;
-
-    /*
      * The table of signals emitted by the type.  These are grouped by signal
      * name.
      */
@@ -1631,6 +1626,18 @@ typedef struct _pyqt6ClassPluginDef {
     /* The name of the interface that the class defines. */
     const char *qt_interface;
 } pyqt6ClassPluginDef;
+
+
+/*
+ * This is the PyQt6-specific extension to the generated mapped type structure.
+ */
+typedef struct _pyqt6MappedTypePluginDef {
+    /*
+     * A set of flags.  At the moment only bit 0 is used to say if the type is
+     * mapped to/from QFlags.
+     */
+    unsigned flags;
+} pyqt6MappedTypePluginDef;
 
 
 #ifdef __cplusplus

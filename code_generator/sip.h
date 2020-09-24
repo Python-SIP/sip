@@ -1026,6 +1026,7 @@ typedef struct _mappedTypeDef {
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
     typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */
+    int pyqt_flags;                     /* The PyQt specific flags. */
     ifaceFileDef *iff;                  /* The interface file. */
     struct _memberDef *members;         /* The static member functions. */
     struct _overDef *overs;             /* The static overloads. */

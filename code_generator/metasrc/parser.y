@@ -188,7 +188,8 @@ static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
 static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
-static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs);
+static void mappedTypeAnnos(sipSpec *pt, mappedTypeDef *mtd,
+        optFlags *optflgs);
 static void add_new_deref(argDef *new, argDef *orig, int isconst);
 static void add_derefs(argDef *dst, argDef *src);
 static int isBackstop(qualDef *qd);
@@ -1042,6 +1043,7 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
                     "API",
                     "NoRelease",
                     "PyName",
+                    "PyQtFlags",
                     "TypeHint",
                     "TypeHintIn",
                     "TypeHintOut",
@@ -1062,6 +1064,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 static const char *annos[] = {
                     "AllowNone",
                     "NoRelease",
+                    "PyQtFlags",
                     "TypeHint",
                     "TypeHintIn",
                     "TypeHintOut",
@@ -1107,7 +1110,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
 
                 mtt->sig = $1;
                 mtt->mt = allocMappedType(currentSpec, &$3);
-                mappedTypeAnnos(mtt->mt, &$4);
+                mappedTypeAnnos(currentSpec, mtt->mt, &$4);
                 mtt->next = currentSpec->mappedtypetemplates;
 
                 currentSpec->mappedtypetemplates = mtt;
@@ -4734,13 +4737,21 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     if ((flg = getOptFlag(of, "PyQtFlagsEnums", string_list_flag)) != NULL)
     {
+        if (!pluginPyQt5(pt))
+            yyerror("/PyQtFlagsEnums/ is only supported for PyQt5");
+
         cd->pyqt_flags_enums = flg->fvalue.slval;
         cd->pyqt_flags = 1;
     }
 
-    /* This is deprecated and only used by versions before v5.12. */
     if ((flg = getOptFlag(of, "PyQtFlags", integer_flag)) != NULL)
+    {
+        /* This is only used by versions before v5.12. */
+        if (!pluginPyQt5(pt))
+            yyerror("/PyQtFlags/ is only supported for PyQt5");
+
         cd->pyqt_flags = flg->fvalue.ival;
+    }
 
     if (getOptFlag(of, "PyQtNoQMetaObject", bool_flag) != NULL)
         setPyQtNoQMetaObject(cd);
@@ -5026,7 +5037,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
 
-    mappedTypeAnnos(mtd, of);
+    mappedTypeAnnos(pt, mtd, of);
 
     mtd->iff = iff;
     mtd->next = pt->mappedtypes;
@@ -8927,8 +8938,10 @@ static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod)
  * Configure the mapped type annotations that are also valid with mapped type
  * templates.
  */
-static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
+static void mappedTypeAnnos(sipSpec *pt, mappedTypeDef *mtd, optFlags *optflgs)
 {
+    optFlag *of;
+
     if (getOptFlag(optflgs, "NoRelease", bool_flag) != NULL)
         setNoRelease(mtd);
 
@@ -8937,6 +8950,14 @@ static void mappedTypeAnnos(mappedTypeDef *mtd, optFlags *optflgs)
 
     getTypeHints(optflgs, &mtd->typehint_in, &mtd->typehint_out);
     mtd->typehint_value = getTypeHintValue(optflgs);
+
+    if ((of = getOptFlag(optflgs, "PyQtFlags", integer_flag)) != NULL)
+    {
+        if (!pluginPyQt6(pt))
+            yyerror("/PyQtFlags/ is only supported for PyQt6");
+
+        mtd->pyqt_flags = of->fvalue.ival;
+    }
 }
 
 

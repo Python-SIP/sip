@@ -281,6 +281,8 @@ static int hasOptionalArgs(overDef *od);
 static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff);
 static void declareLimitedAPI(int py_debug, moduleDef *mod, FILE *fp);
 static int generatePluginSignalsTable(sipSpec *pt, classDef *cd, FILE *fp);
+static int generatePyQt6MappedTypePlugin(sipSpec *pt, mappedTypeDef *mtd,
+        FILE *fp);
 static int generatePyQtClassPlugin(sipSpec *pt, classDef *cd, FILE *fp);
 static void generateGlobalFunctionTableEntries(sipSpec *pt, moduleDef *mod,
         memberDef *members, FILE *fp);
@@ -1439,16 +1441,16 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             const char *base_type;
 
             if (isEnumIntFlag(ed))
-                base_type = "|SIP_ENUM_INT_FLAG";
+                base_type = "SIP_ENUM_INT_FLAG";
             else if (isEnumFlag(ed))
-                base_type = "|SIP_ENUM_FLAG";
+                base_type = "SIP_ENUM_FLAG";
             else if (isEnumIntEnum(ed))
-                base_type = "|SIP_ENUM_INT_ENUM";
+                base_type = "SIP_ENUM_INT_ENUM";
             else
-                base_type = "";
+                base_type = "SIP_ENUM_ENUM";
 
             prcode(fp,
-"    {{SIP_NULLPTR, SIP_TYPE_ENUM%s, %n, SIP_NULLPTR, 0}, %n, %d", base_type, ed->cname, ed->pyname, type_nr);
+"    {{SIP_NULLPTR, SIP_TYPE_ENUM, %n, SIP_NULLPTR, 0}, %s, %n, %d", ed->cname, base_type, ed->pyname, type_nr);
         }
         else
         {
@@ -3578,7 +3580,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, nr_methods, nr_enums;
+    int need_xfer, nr_methods, nr_enums, plugin;
     memberDef *md;
 
     generateCppCodeBlock(mtd->typecode, fp);
@@ -3762,6 +3764,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
 
+    if (pluginPyQt6(pt))
+        plugin = generatePyQt6MappedTypePlugin(pt, mtd, fp);
+    else
+        plugin = FALSE;
+
     prcode(fp,
 "\n"
 "\n"
@@ -3784,11 +3791,22 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        %sSIP_TYPE_MAPPED,\n"
 "        %n,     /* %s */\n"
 "        SIP_NULLPTR,\n"
-"        SIP_NULLPTR,\n"
-"    },\n"
-"    {\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
         , mtd->cname, mtd->cname->text);
+
+    if (plugin)
+        prcode(fp,
+"        &plugin_%L\n"
+            , mtd->iff);
+    else
+        prcode(fp,
+"        SIP_NULLPTR\n"
+            );
+
+    prcode(fp,
+"    },\n"
+"    {\n"
+            );
 
     if (nr_enums == 0)
         prcode(fp,
@@ -14424,12 +14442,47 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd, FILE *fp)
 
 
 /*
+ * Generate any extended mapped type definition data for PyQt6.  Return TRUE if
+ * there was something generated.
+ */
+static int generatePyQt6MappedTypePlugin(sipSpec *pt, mappedTypeDef *mtd,
+        FILE *fp)
+{
+    if (mtd->pyqt_flags == 0)
+        return FALSE;
+
+    prcode(fp,
+"\n"
+"\n"
+"static pyqt6MappedTypePluginDef plugin_%L = {%u};\n"
+        , mtd->iff , mtd->pyqt_flags);
+
+    return TRUE;
+}
+
+
+/*
  * Generate any extended class definition data for PyQt.  Return TRUE if there
  * was something generated.
  */
 static int generatePyQtClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 {
     int is_signals = generatePluginSignalsTable(pt, cd, fp);
+
+    /* The PyQt6 support code doesn't assume the structure is generated. */
+    if (pluginPyQt6(pt))
+    {
+        int generated = is_signals;
+
+        if (isQObjectSubClass(cd) && !noPyQtQMetaObject(cd))
+            generated = TRUE;
+
+        if (cd->pyqt_interface != NULL)
+            generated = TRUE;
+
+        if (!generated)
+            return FALSE;
+    }
 
     prcode(fp,
 "\n"
@@ -14446,9 +14499,10 @@ static int generatePyQtClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 "    SIP_NULLPTR,\n"
             );
 
-    prcode(fp,
+    if (pluginPyQt5(pt))
+        prcode(fp,
 "    %u,\n"
-        , cd->pyqt_flags);
+            , cd->pyqt_flags);
 
     if (is_signals)
         prcode(fp,

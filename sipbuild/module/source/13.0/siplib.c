@@ -5919,11 +5919,11 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
     if ((etd_cap = PyCapsule_New(etd, NULL, NULL)) == NULL)
         goto rel_kw_args;
 
-    if (sipEnumIsIntFlag(&etd->etd_base))
+    if (etd->etd_base_type == SIP_ENUM_INT_FLAG)
         enum_factory = int_flag_type;
-    else if (sipEnumIsFlag(&etd->etd_base))
+    else if (etd->etd_base_type == SIP_ENUM_FLAG)
         enum_factory = flag_type;
-    else if (sipEnumIsIntEnum(&etd->etd_base))
+    else if (etd->etd_base_type == SIP_ENUM_INT_ENUM)
         enum_factory = int_enum_type;
     else
         enum_factory = enum_type;
@@ -11392,7 +11392,7 @@ static int sip_api_check_plugin_for_type(const sipTypeDef *td,
         const char *name)
 {
     /*
-     * The current thinking on plugins is that SIP v5 will look for a plugin
+     * The current thinking on plugins is that SIP v7 will look for a plugin
      * with a name derived from the name as the current module in the same
      * directory as the .sip defining the module (ie. no %Plugin directive).  A
      * module hierachy may have multiple plugins but they must co-operate.  If
