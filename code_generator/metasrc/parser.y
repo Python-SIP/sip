@@ -7181,7 +7181,15 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
         const char *cname)
 {
-    const char *pname;
+    static const char *keywords[] = {
+        "False", "None", "True", "and", "as", "assert", "async", "await",
+        "break", "class", "continue", "def", "del", "elif", "else", "except",
+        "finally", "for", "from", "global", "if", "import", "in", "is",
+        "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+        "while", "with", "yield", NULL
+    };
+
+    const char *pname, **kw;
     optFlag *of;
     autoPyNameDef *apnd;
 
@@ -7199,6 +7207,11 @@ static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
         if (strncmp(pname, apnd->remove_leading, len) == 0)
             pname += len;
     }
+
+    /* Fix any Python keywords. */
+    for (kw = keywords; *kw != NULL; ++kw)
+        if (strcmp(pname, *kw) == 0)
+            return concat(pname, "_", NULL);
 
     return pname;
 }

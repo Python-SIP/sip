@@ -41,27 +41,9 @@ Annotations can have one of the following types:
 *string*
     The value is a double quoted string.
 
-*API range*
-    The value is the name of an API (defined using the :directive:`%API`
-    directive) separated by a range of version numbers with a colon.
-
-    The range of version numbers is a pair of numbers separated by a hyphen
-    specifying the lower and upper bounds of the range.  A version number is
-    within the range if it is greater or equal to the lower bound and less
-    than the upper bound.  Each bound can be omitted meaning that the range is
-    unbounded in that direction.
-
-    For example::
-
-        # This is part of the PyQt4 API up to but excluding v2.
-        void hex() /API=PyQt4:-2/
-
-        # This is part of the PyQt4 API starting from v2.
-        void hex() /PyName=hex_, API=PyQt4:2-/
-
 The following example shows argument and function annotations::
 
-    void exec(QWidget * /Transfer/) /ReleaseGIL, PyName=call_exec/;
+    void exec(QWidget * /Transfer/) /ReleaseGIL/;
 
 
 .. _ref-arg-annos:
@@ -488,10 +470,7 @@ Class Annotations
 .. class-annotation:: PyName
 
     This name annotation specifies an alternative name for the class being
-    wrapped which is used when it is referred to from Python.  It is required
-    when a class name is the same as a Python keyword.  It may also be used to
-    avoid name clashes with other objects (e.g. enums, exceptions, functions)
-    that have the same name in the same C++ scope.
+    wrapped which is used when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
@@ -642,11 +621,7 @@ Enum Annotations
 .. enum-annotation:: PyName
 
     This name annotation specifies an alternative name for the enum or enum
-    member being wrapped which is used when it is referred to from Python.  It
-    is required when an enum or enum member name is the same as a Python
-    keyword.  It may also be used to avoid name clashes with other objects
-    (e.g. classes, exceptions, functions) that have the same name in the same
-    C++ scope.
+    member being wrapped which is used when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
@@ -665,10 +640,7 @@ Exception Annotations
 .. exception-annotation:: PyName
 
     This name annotation specifies an alternative name for the exception being
-    defined which is used when it is referred to from Python.  It is required
-    when an exception name is the same as a Python keyword.  It may also be
-    used to avoid name clashes with other objects (e.g. classes, enums,
-    functions) that have the same name.
+    defined which is used when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
@@ -897,10 +869,7 @@ Function Annotations
 .. function-annotation:: PyName
 
     This name annotation specifies an alternative name for the function being
-    wrapped which is used when it is referred to from Python.  It is required
-    when a function or method name is the same as a Python keyword.  It may
-    also be used to avoid name clashes with other objects (e.g. classes, enums,
-    exceptions) that have the same name in the same C++ scope.
+    wrapped which is used when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
@@ -1050,10 +1019,7 @@ Typedef Annotations
 
     This name annotation only applies when the typedef is being used to create
     the wrapping for a class defined using a template and specifies an
-    alternative name for the class when it is referred to from Python.  It is
-    required when a class name is the same as a Python keyword.  It may also
-    be used to avoid name clashes with other objects (e.g. enums, exceptions,
-    functions) that have the same name in the same C++ scope.
+    alternative name for the class when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
@@ -1116,10 +1082,7 @@ Variable Annotations
 .. variable-annotation:: PyName
 
     This name annotation specifies an alternative name for the variable being
-    wrapped which is used when it is referred to from Python.  It is required
-    when a variable name is the same as a Python keyword.  It may also be used
-    to avoid name clashes with other objects (e.g. classes, functions) that
-    have the same name in the same C++ scope.
+    wrapped which is used when it is referred to from Python.
 
     .. seealso:: :directive:`%AutoPyName`
 
