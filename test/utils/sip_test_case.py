@@ -33,6 +33,9 @@ import unittest
 class SIPTestCase(unittest.TestCase):
     """ Encapsulate a test case that tests a set of standalone bindings. """
 
+    # The ABI version to use.  None implies the latest version.
+    abi_version = None
+
     @classmethod
     def setUpClass(cls):
         """ Build a test extension module. """
@@ -56,6 +59,9 @@ class SIPTestCase(unittest.TestCase):
 
         with open(pyproject_toml, 'w') as f:
             f.write(_PYPROJECT_TOML.format(module_name=module_name))
+
+            if cls.abi_version is not None:
+                f.write(_ABI_VERSION.format(abi_version=cls.abi_version))
 
         # Build the extension module.
         cwd = os.getcwd()
@@ -137,4 +143,9 @@ build-backend = "sipbuild.api"
 
 [tool.sip.metadata]
 name = "{module_name}"
+"""
+
+_ABI_VERSION = """
+[tool.sip.project]
+abi-version = "{abi_version}"
 """
