@@ -18,6 +18,23 @@ enum class ScopedEnum {
 };
 
 
+enum EnumBase {
+    EnumBaseMember = 100
+};
+
+enum FlagBase {
+    FlagBaseMember = 110
+};
+
+enum IntEnumBase {
+    IntEnumBaseMember = 120
+};
+
+enum IntFlagBase {
+    IntFlagBaseMember = 130
+};
+
+
 class EnumClass {
 public:
     EnumClass() : named_overload(false) {}
@@ -60,8 +77,6 @@ public:
     }
     static void scoped_set(ClassScopedEnum) {}
     ClassScopedEnum scoped_var;
-
-    static int try_using_as_int(int i) {return i;}
 };
 
 %End
@@ -77,6 +92,23 @@ enum NamedEnum {
 
 enum class ScopedEnum {
     ScopedMember
+};
+
+
+enum EnumBase /BaseType=Enum/ {
+    EnumBaseMember
+};
+
+enum FlagBase /BaseType=Flag/ {
+    FlagBaseMember
+};
+
+enum IntEnumBase /BaseType=IntEnum/ {
+    IntEnumBaseMember
+};
+
+enum IntFlagBase /BaseType=IntFlag/ {
+    IntFlagBaseMember
 };
 
 
@@ -114,6 +146,4 @@ public:
     virtual ClassScopedEnum scoped_virt();
     static void scoped_set(ClassScopedEnum);
     ClassScopedEnum scoped_var;
-
-    static int try_using_as_int(int);
 };

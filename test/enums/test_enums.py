@@ -21,13 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from enum import Enum, IntEnum
+from enum import Enum, Flag, IntEnum, IntFlag
 
 from utils import SIPTestCase
 
 
 class EnumsTestCase(SIPTestCase):
-    """ Test the support for enums. """
+    """ Test the support for enums in ABI v13 and later. """
 
     @classmethod
     def setUpClass(cls):
@@ -96,6 +96,46 @@ class EnumsTestCase(SIPTestCase):
         self.assertEqual(EnumClass.ClassAnonMember, 40)
 
     ###########################################################################
+    # The following test the /BaseType/ annotation.
+    ###########################################################################
+
+    def test_Enum_BaseType(self):
+        """ Test /BaseType=Enum/. """
+
+        from .enums import EnumBase
+
+        self.assertTrue(issubclass(EnumBase, Enum))
+        self.assertFalse(issubclass(EnumBase, Flag))
+        self.assertFalse(issubclass(EnumBase, IntEnum))
+        self.assertFalse(issubclass(EnumBase, IntFlag))
+
+    def test_Flag_BaseType(self):
+        """ Test /BaseType=Flag/. """
+
+        from .enums import FlagBase
+
+        self.assertTrue(issubclass(FlagBase, Flag))
+        self.assertFalse(issubclass(FlagBase, IntEnum))
+        self.assertFalse(issubclass(FlagBase, IntFlag))
+
+    def test_IntEnum_BaseType(self):
+        """ Test /BaseType=IntEnum/. """
+
+        from .enums import IntEnumBase
+
+        self.assertFalse(issubclass(IntEnumBase, Flag))
+        self.assertTrue(issubclass(IntEnumBase, IntEnum))
+        self.assertFalse(issubclass(IntEnumBase, IntFlag))
+
+    def test_IntFlag_BaseType(self):
+        """ Test /BaseType=IntFlag/. """
+
+        from .enums import IntFlagBase
+
+        self.assertFalse(issubclass(IntFlagBase, IntEnum))
+        self.assertTrue(issubclass(IntFlagBase, IntFlag))
+
+    ###########################################################################
     # The following test named enums.
     ###########################################################################
 
@@ -104,16 +144,16 @@ class EnumsTestCase(SIPTestCase):
 
         from .enums import NamedEnum
 
-        self.assertTrue(issubclass(NamedEnum, IntEnum))
-        self.assertEqual(NamedEnum.NamedMember, 20)
+        self.assertTrue(issubclass(NamedEnum, Enum))
+        self.assertEqual(NamedEnum.NamedMember.value, 20)
 
     def test_ClassNamed(self):
         """ Test a class level named enum. """
 
         from .enums import EnumClass
 
-        self.assertTrue(issubclass(EnumClass.ClassNamedEnum, IntEnum))
-        self.assertEqual(EnumClass.ClassNamedEnum.ClassNamedMember, 50)
+        self.assertTrue(issubclass(EnumClass.ClassNamedEnum, Enum))
+        self.assertEqual(EnumClass.ClassNamedEnum.ClassNamedMember.value, 50)
 
     def test_named_get_member(self):
         """ named enum virtual result with a member value. """
@@ -171,18 +211,8 @@ class EnumsTestCase(SIPTestCase):
         with self.assertRaises(TypeError):
             self.int_fixture.named_var = 50
 
-    def test_named_as_int(self):
-        """ named enum instance used as an integer. """
-
-        from .enums import EnumClass
-
-        self.assertEqual(
-                EnumClass.try_using_as_int(
-                        EnumClass.ClassNamedEnum.ClassNamedMember),
-                50)
-
     ###########################################################################
-    # The following test scoped enum.
+    # The following test scoped enums.
     ###########################################################################
 
     def test_ModuleScoped(self):
@@ -225,12 +255,3 @@ class EnumsTestCase(SIPTestCase):
         from .enums import EnumClass
 
         self.scoped_enum_fixture.scoped_var = EnumClass.ClassScopedEnum.ClassScopedMember
-
-    def test_scoped_as_int(self):
-        """ scoped enum instance used as an integer. """
-
-        from .enums import EnumClass
-
-        with self.assertRaises(TypeError):
-            EnumClass.try_using_as_int(
-                    EnumClass.ClassScopedEnum.ClassScopedMember)
