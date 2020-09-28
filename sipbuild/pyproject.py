@@ -89,29 +89,37 @@ class PyProject:
         requires_python = None
 
         for md_name, md_value in self.get_section('tool.sip.metadata', required=True).items():
-            # Ignore sub-sections.
-            if self._is_section(md_value):
-                continue
-
-            if not isinstance(md_value, str):
-                raise PyProjectOptionException(md_name, "must be a string",
-                        section_name='tool.sip')
-
             md_name = md_name.lower()
-            if md_name == 'name':
-                if not md_value.replace('-', '_').isidentifier():
-                    raise PyProjectOptionException('name',
-                            "'{0}' is an invalid project name".format(
-                                    md_value),
+
+            # Extract specific string values.
+            if md_name in ('name', 'version', 'metadata-version', 'requires-python'):
+                if not isinstance(md_value, str):
+                    raise PyProjectOptionException(md_name, "must be a string",
                             section_name='tool.sip')
 
-                name = md_value
-            elif md_name == 'version':
-                version = md_value
-            elif md_name == 'metadata-version':
-                metadata_version = md_value
-            elif md_name == 'requires-python':
-                requires_python = md_value
+                if md_name == 'name':
+                    if not md_value.replace('-', '_').isidentifier():
+                        raise PyProjectOptionException('name',
+                                "'{0}' is an invalid project name".format(
+                                        md_value),
+                                section_name='tool.sip')
+
+                    name = md_value
+                elif md_name == 'version':
+                    version = md_value
+                elif md_name == 'metadata-version':
+                    metadata_version = md_value
+                elif md_name == 'requires-python':
+                    requires_python = md_value
+            else:
+                # Any other value may be a string or a list of strings.
+                value_list = md_value if isinstance(md_value, list) else [md_value]
+
+                for value in value_list:
+                    if not isinstance(value, str):
+                        raise PyProjectOptionException(md_name,
+                                "must be a string or a list of strings",
+                                section_name='tool.sip')
 
             metadata[md_name] = md_value
 
