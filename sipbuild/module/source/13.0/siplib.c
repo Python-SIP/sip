@@ -741,9 +741,9 @@ static PyObject *pickle_type(PyObject *obj, PyObject *args);
 static PyObject *unpickle_type(PyObject *obj, PyObject *args);
 static int setReduce(PyTypeObject *type, PyMethodDef *pickler);
 static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
-        int enum_nr, PyObject *mod_dict);
+        sipIntInstanceDef **next_int_p, PyObject *dict);
 static PyObject *createEnumObject(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, int enum_nr, PyObject *name);
+        sipEnumTypeDef *etd, sipIntInstanceDef **next_int_p, PyObject *name);
 static PyObject *createTypeDict(sipExportedModuleDef *em);
 static sipTypeDef *getGeneratedType(const sipEncodedTypeDef *enc,
         sipExportedModuleDef *em);
@@ -901,6 +901,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 
     /* Get the enum types. */
     /* TODO: only import the module once. */
+    /* TODO: move to createEnum() so that the import isn't done unnecessarily */
     if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
         return NULL;
 
@@ -1619,9 +1620,12 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         PyObject *mod_dict)
 {
     sipExportedModuleDef *em;
+    sipIntInstanceDef *next_int;
     int i;
 
     /* Create the module's types. */
+    next_int = client->em_instances.id_int;
+
     for (i = 0; i < client->em_nrtypes; ++i)
     {
         sipTypeDef *td = client->em_types[i];
@@ -1645,7 +1649,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
-            if (createEnum(client, etd, i, mod_dict) < 0)
+            if (etd->etd_scope < 0 && createEnum(client, etd, &next_int, mod_dict) < 0)
                 return -1;
         }
         else if (sipTypeIsMapped(td))
@@ -1697,6 +1701,11 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         }
     }
 
+    /* Add any ints that aren't name enum members. */
+    if (next_int != NULL)
+        if (addIntInstances(mod_dict, next_int) < 0)
+            return -1;
+
     /* Append any initialiser extenders to the relevant classes. */
     if (client->em_initextend != NULL)
     {
@@ -1730,6 +1739,7 @@ static int sip_api_init_module(sipExportedModuleDef *client,
     /*
      * Add any class static instances.  We need to do this once all types are
      * fully formed because of potential interdependencies.
+     * TODO: any reason not to make these lazy?
      */
     for (i = 0; i < client->em_nrtypes; ++i)
     {
@@ -5805,25 +5815,19 @@ static int setReduce(PyTypeObject *type, PyMethodDef *pickler)
  * Create an enum object.
  */
 static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
-        int enum_nr, PyObject *mod_dict)
+        sipIntInstanceDef **next_int_p, PyObject *dict)
 {
     int rc;
-    PyObject *name, *dict, *enum_obj;
+    PyObject *name, *enum_obj;
 
     etd->etd_base.td_module = client;
-
-    /* Get the dictionary into which the type will be placed. */
-    if (etd->etd_scope < 0)
-        dict = mod_dict;
-    else if ((dict = getScopeDict(client->em_types[etd->etd_scope], mod_dict, client)) == NULL)
-        return -1;
 
     /* Create an object corresponding to the type name. */
     if ((name = PyUnicode_FromString(sipPyNameOfEnum(etd))) == NULL)
         return -1;
 
     /* Create the enum object. */
-    if ((enum_obj = createEnumObject(client, etd, enum_nr, name)) == NULL)
+    if ((enum_obj = createEnumObject(client, etd, next_int_p, name)) == NULL)
     {
         Py_DECREF(name);
         return -1;
@@ -5844,42 +5848,31 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
  * Create an enum object.
  */
 static PyObject *createEnumObject(sipExportedModuleDef *client,
-        sipEnumTypeDef *etd, int enum_nr, PyObject *name)
+        sipEnumTypeDef *etd, sipIntInstanceDef **next_int_p, PyObject *name)
 {
     static PyObject *module_arg = NULL, *qualname_arg = NULL;
-    int i, nr_members;
-    sipEnumMemberDef *enm;
+    int i;
     PyObject *members, *enum_factory, *enum_obj, *args, *kw_args, *etd_cap;
+    sipIntInstanceDef *next_int;
 
     /* Create a dict of the members. */
     if ((members = PyDict_New()) == NULL)
         goto ret_err;
 
-    if (etd->etd_scope < 0)
+    next_int = *next_int_p;
+    assert(next_int != NULL);
+
+    for (i = 0; i < etd->etd_nr_members; ++i)
     {
-        nr_members = client->em_nrenummembers;
-        enm = client->em_enummembers;
-    }
-    else
-    {
-        const sipContainerDef *cod = get_container(client->em_types[etd->etd_scope]);
+        assert(next_int->ii_name != NULL);
 
-        nr_members = cod->cod_nrenummembers;
-        enm = cod->cod_enummembers;
+        if (dict_set_and_discard(members, next_int->ii_name, PyLong_FromLong(next_int->ii_val)) < 0)
+            goto rel_members;
+
+        ++next_int;
     }
 
-    for (i = 0; i < nr_members; ++i)
-    {
-        if (enm->em_enum == enum_nr)
-        {
-            PyObject *val = PyLong_FromLong(enm->em_val);
-
-            if (dict_set_and_discard(members, enm->em_name, val) < 0)
-                goto rel_members;
-        }
-
-        ++enm;
-    }
+    *next_int_p = next_int;
 
     if ((args = PyTuple_Pack(2, name, members)) == NULL)
         goto rel_members;
@@ -5895,6 +5888,8 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
 
     /*
      * If the enum has a scope then the default __qualname__ will be incorrect.
+     * TODO: check this is still the case - should be the standard enum value?
+     * TODO: it may mean we don't need to pass 'client'.
      */
      if (etd->etd_scope >= 0)
      {
@@ -6005,7 +6000,8 @@ static int objectify(const char *s, PyObject **objp)
 
 
 /*
- * Add a set of static instances to a dictionary.
+ * Add a set of static instances to a dictionary.  Note that ints are handled
+ * separately.
  */
 static int addInstances(PyObject *dict, sipInstancesDef *id)
 {
@@ -6019,9 +6015,6 @@ static int addInstances(PyObject *dict, sipInstancesDef *id)
         return -1;
 
     if (id->id_string != NULL && addStringInstances(dict,id->id_string) < 0)
-        return -1;
-
-    if (id->id_int != NULL && addIntInstances(dict, id->id_int) < 0)
         return -1;
 
     if (id->id_long != NULL && addLongInstances(dict,id->id_long) < 0)
@@ -6113,7 +6106,7 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
 {
     int i;
     PyMethodDef *pmd;
-    sipEnumMemberDef *enm;
+    sipIntInstanceDef *next_int;
     sipVariableDef *vd;
 
     /* Do the methods. */
@@ -6127,19 +6120,34 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         }
     }
 
-    /* Do the anonymous enum members. */
-    for (enm = cod->cod_enummembers, i = 0; i < cod->cod_nrenummembers; ++i, ++enm)
+    /* Do the enums. */
+    next_int = cod->cod_instances.id_int;
+
+    if (next_int != NULL)
     {
-        if (enm->em_enum < 0)
+        sipExportedModuleDef *module = td->td_module;
+
+        /*
+         * Not ideal but we have to look through all types looking for enums
+         * for which this container is the enclosing scope.
+         */
+        for (i = 0; i < module->em_nrtypes; ++i)
         {
-            PyObject *val;
+            sipTypeDef *enum_td = module->em_types[i];
 
-            /* It's an unnamed unscoped enum. */
-            val = PyLong_FromLong(enm->em_val);
+            if (enum_td != NULL && sipTypeIsEnum(enum_td))
+            {
+                sipEnumTypeDef *etd = (sipEnumTypeDef *)enum_td;
 
-            if (dict_set_and_discard(dict, enm->em_name, val) < 0)
-                return -1;
+                if (module->em_types[etd->etd_scope] == td)
+                    if (createEnum(module, etd, &next_int, dict) < 0)
+                        return -1;
+            }
         }
+
+        /* Do any remaining ints. */
+        if (addIntInstances(dict, next_int) < 0)
+            return -1;
     }
 
     /* Do the variables. */

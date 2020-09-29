@@ -182,7 +182,8 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
-static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
+static int generateInts(sipSpec *pt, moduleDef *mod, ifaceFileDef *iff,
+        FILE *fp);
 static int generateLongs(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp);
 static int generateUnsignedLongs(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -245,7 +246,7 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
         const char *srcSuffix);
 static void fakeProtectedArgs(signatureDef *sd);
 static const char *slotName(slotType st);
-static void ints_intro(classDef *cd, FILE *fp);
+static void ints_intro(ifaceFileDef *iff, FILE *fp);
 static const char *argName(const char *name, codeBlockList *cbl);
 static int usedInCode(codeBlockList *cbl, const char *str);
 static void generateDefaultValue(moduleDef *mod, argDef *ad, int argnr,
@@ -293,6 +294,11 @@ static scopedNameDef *stripScope(scopedNameDef *snd, int strip);
 static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 static void normaliseSignalArg(argDef *ad);
 static void generate_include_sip_h(FILE *fp);
+static int get_nr_members(const enumDef *ed);
+ifaceFileDef *pyScopeIface(classDef *cd);
+ifaceFileDef *pyEnumScopeIface(enumDef *ed);
+static void generateEnumMember(FILE *fp, enumMemberDef *emd,
+        mappedTypeDef *mtd);
 
 
 /*
@@ -1450,7 +1456,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 base_type = "SIP_ENUM_ENUM";
 
             prcode(fp,
-"    {{SIP_NULLPTR, SIP_TYPE_ENUM, %n, SIP_NULLPTR, 0}, %s, %n, %d", ed->cname, base_type, ed->pyname, type_nr);
+"    {{SIP_NULLPTR, SIP_TYPE_ENUM, %n, SIP_NULLPTR, 0}, %s, %n, %d, %d", ed->cname, base_type, ed->pyname, type_nr, get_nr_members(ed));
         }
         else
         {
@@ -1472,7 +1478,10 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "};\n"
             );
 
-    nr_enummembers = generateEnumMemberTable(pt, mod, NULL, NULL, fp);
+    if (abiVersion >= ABI_13_0)
+        nr_enummembers = -1;
+    else
+        nr_enummembers = generateEnumMemberTable(pt, mod, NULL, NULL, fp);
 
     /* Generate the types table. */
     if (mod->nr_needed_types > 0)
@@ -1860,17 +1869,22 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
     prcode(fp,
 "    %s,\n"
+        , hasexternal ? "externalTypesTable" : "SIP_NULLPTR");
+
+    if (nr_enummembers >= 0)
+        prcode(fp,
 "    %d,\n"
 "    %s,\n"
+            , nr_enummembers
+            , nr_enummembers > 0 ? "enummembers" : "SIP_NULLPTR");
+
+    prcode(fp,
 "    %d,\n"
 "    %s,\n"
 "    %s,\n"
 "    %s,\n"
 "    {%s, %s, %s, %s, %s, %s, %s, %s, %s, %s},\n"
 "    %s,\n"
-        , hasexternal ? "externalTypesTable" : "SIP_NULLPTR"
-        , nr_enummembers
-        , nr_enummembers > 0 ? "enummembers" : "SIP_NULLPTR"
         , mod->nrtypedefs
         , mod->nrtypedefs > 0 ? "typedefsTable" : "SIP_NULLPTR"
         , hasvirterrorhandlers ? "virtErrorHandlersTable" : "SIP_NULLPTR"
@@ -2686,22 +2700,9 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "    {%N, ", emd->pyname);
 
-        if (!generating_c)
-            prcode(fp, "static_cast<int>(");
+        generateEnumMember(fp, emd, mtd);
 
-        if (!isNoScope(emd->ed))
-        {
-            if (isScopedEnum(emd->ed))
-                prcode(fp, "::%s", emd->ed->cname->text);
-            else if (emd->ed->ecd != NULL)
-                prEnumMemberScope(emd, fp);
-            else if (mtd != NULL)
-                prcode(fp, "%S", mtd->iff->fqcname);
-
-            prcode(fp, "::");
-        }
-
-        prcode(fp, "%s%s, %d},\n", emd->cname, (generating_c ? "" : ")"), emd->ed->enumnr);
+        prcode(fp, ", %d},\n", emd->ed->enumnr);
     }
 
     prcode(fp,
@@ -3171,22 +3172,59 @@ static int generateStrings(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
 
 /*
- * Generate the code to add a set of ints to a dictionary.  Return TRUE if
- * there was at least one.
+ * Generate the code to add a set of ints.  Return TRUE if there was at least
+ * one.
  */
-static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
+static int generateInts(sipSpec *pt, moduleDef *mod, ifaceFileDef *iff,
+        FILE *fp)
 {
     int noIntro;
-    varDef *vd;
     enumDef *ed;
+    varDef *vd;
 
     noIntro = TRUE;
 
+    if (abiVersion >= ABI_13_0)
+    {
+        /*
+         * Named enum members are handled as int variables but must be placed
+         * at the start of the table.
+         */
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+        {
+            enumMemberDef *em;
+
+            if (pyEnumScopeIface(ed) != iff || ed->module != mod)
+                continue;
+
+            if (ed->fqcname == NULL)
+                continue;
+
+            for (em = ed->members; em != NULL; em = em->next)
+            {
+                if (noIntro)
+                {
+                    ints_intro(iff, fp);
+                    noIntro = FALSE;
+                }
+
+                prcode(fp,
+"    {%N, ", em->pyname);
+
+                generateEnumMember(fp, em, ed->emtd);
+
+                prcode(fp, "},\n"
+                    );
+            }
+        }
+    }
+
+    /* Handle int variables. */
     for (vd = pt->vars; vd != NULL; vd = vd->next)
     {
         argType vtype = vd->type.atype;
 
-        if (pyScope(vd->ecd) != cd || vd->module != mod)
+        if (pyScopeIface(vd->ecd) != iff || vd->module != mod)
             continue;
 
         if (!(vtype == enum_type || vtype == byte_type ||
@@ -3205,22 +3243,23 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 
         if (noIntro)
         {
-            ints_intro(cd, fp);
+            ints_intro(iff, fp);
             noIntro = FALSE;
         }
 
         prcode(fp,
 "    {%N, %S},\n"
-            , vd->pyname, (cd != NULL ? vd->fqcname : vd->fqcname->next));
+            , vd->pyname, (iff != NULL ? vd->fqcname : vd->fqcname->next));
     }
 
-    /* Now do global anonymous enums. */
-    if (cd == NULL)
+    /* Anonymous enum members are handled as int variables. */
+    if (abiVersion >= ABI_13_0 || iff == NULL)
+    {
         for (ed = pt->enums; ed != NULL; ed = ed->next)
         {
             enumMemberDef *em;
 
-            if (ed->ecd != cd || ed->module != mod)
+            if (pyEnumScopeIface(ed) != iff || ed->module != mod)
                 continue;
 
             if (ed->fqcname != NULL)
@@ -3230,15 +3269,20 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
             {
                 if (noIntro)
                 {
-                    ints_intro(cd, fp);
+                    ints_intro(iff, fp);
                     noIntro = FALSE;
                 }
 
                 prcode(fp,
-"    {%N, %s},\n"
-                    , em->pyname, em->cname);
+"    {%N, ", em->pyname);
+
+                generateEnumMember(fp, em, ed->emtd);
+
+                prcode(fp, "},\n"
+                    );
             }
         }
+    }
 
     if (!noIntro)
         prcode(fp,
@@ -3253,20 +3297,20 @@ static int generateInts(sipSpec *pt, moduleDef *mod, classDef *cd, FILE *fp)
 /*
  * Generate the intro for a table of int instances.
  */
-static void ints_intro(classDef *cd, FILE *fp)
+static void ints_intro(ifaceFileDef *iff, FILE *fp)
 {
-    if (cd != NULL)
+    if (iff != NULL)
         prcode(fp,
 "\n"
 "\n"
-"/* Define the ints to be added to this type dictionary. */\n"
-"static sipIntInstanceDef intInstances_%C[] = {\n"
-            ,classFQCName(cd));
+"/* Define the enum members and ints to be added to this type. */\n"
+"static sipIntInstanceDef intInstances_%L[] = {\n"
+            , iff);
     else
         prcode(fp,
 "\n"
 "\n"
-"/* Define the ints to be added to this module dictionary. */\n"
+"/* Define the enum members and ints to be added to this module. */\n"
 "static sipIntInstanceDef intInstances[] = {\n"
             );
 }
@@ -3580,7 +3624,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, nr_methods, nr_enums, plugin;
+    int need_xfer, nr_methods, nr_enums, has_ints, needs_namespace, plugin;
     memberDef *md;
 
     generateCppCodeBlock(mtd->typecode, fp);
@@ -3762,7 +3806,22 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     nr_methods = generateMappedTypeMethodTable(pt, mtd, fp);
 
-    nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd, fp);
+    if (abiVersion >= ABI_13_0)
+    {
+        nr_enums = -1;
+        has_ints = generateInts(pt, mtd->iff->module, mtd->iff, fp);
+        needs_namespace = FALSE;
+    }
+    else
+    {
+        nr_enums = generateEnumMemberTable(pt, mtd->iff->module, NULL, mtd,
+                fp);
+        has_ints = FALSE;
+        needs_namespace = (nr_enums > 0);
+    }
+
+    if (nr_methods > 0)
+        needs_namespace = TRUE;
 
     if (pluginPyQt6(pt))
         plugin = generatePyQt6MappedTypePlugin(pt, mtd, fp);
@@ -3808,14 +3867,14 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    {\n"
             );
 
-    if (nr_enums == 0)
-        prcode(fp,
-"        -1,\n"
-            );
-    else
+    if (needs_namespace)
         prcode(fp,
 "        %n,\n"
             , mtd->pyname);
+    else
+        prcode(fp,
+"        -1,\n"
+            );
 
     prcode(fp,
 "        {0, 0, 1},\n"
@@ -3834,14 +3893,21 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
         prcode(fp,
 "        0, 0,\n"
             );
-    else
+    else if (nr_enums > 0)
         prcode(fp,
 "        %d, enummembers_%L,\n"
             , nr_enums, mtd->iff);
 
     prcode(fp,
 "        0, 0,\n"
-"        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}\n"
+"        {0, 0, 0, 0, ");
+
+    if (has_ints)
+        prcode(fp, "intInstances_%L", mtd->iff);
+    else
+        prcode(fp, "0");
+
+    prcode(fp, ", 0, 0, 0, 0, 0}\n"
 "    },\n"
         );
 
@@ -9151,7 +9217,11 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     /* Generate the attributes tables. */
     nr_methods = generateClassMethodTable(pt, cd, fp);
-    nr_enums = generateEnumMemberTable(pt, mod, cd, NULL, fp);
+
+    if (abiVersion >= ABI_13_0)
+        nr_enums = -1;
+    else
+        nr_enums = generateEnumMemberTable(pt, mod, cd, NULL, fp);
 
     /* Generate the property and variable handlers. */
     nr_vars = 0;
@@ -9249,7 +9319,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     is_inst_voidp = generateVoidPointers(pt, mod, cd, fp);
     is_inst_char = generateChars(pt, mod, cd, fp);
     is_inst_string = generateStrings(pt, mod, cd, fp);
-    is_inst_int = generateInts(pt, mod, cd, fp);
+    is_inst_int = generateInts(pt, mod, cd->iff, fp);
     is_inst_long = generateLongs(pt, mod, cd, fp);
     is_inst_ulong = generateUnsignedLongs(pt, mod, cd, fp);
     is_inst_longlong = generateLongLongs(pt, mod, cd, fp);
@@ -9409,7 +9479,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
         prcode(fp,
 "        0, SIP_NULLPTR,\n"
             );
-    else
+    else if (nr_enums > 0)
         prcode(fp,
 "        %d, enummembers_%L,\n"
             , nr_enums, cd->iff);
@@ -14633,4 +14703,75 @@ static void generate_include_sip_h(FILE *fp)
 "\n"
 "#include \"sip.h\"\n"
         );
+}
+
+
+/*
+ * Return the number of members an enum has.
+ */
+static int get_nr_members(const enumDef *ed)
+{
+    int nr = 0;
+    const enumMemberDef *emd;
+
+    for (emd = ed->members; emd != NULL; emd = emd->next)
+        ++nr;
+
+    return nr;
+}
+
+
+/*
+ * Return the interface file of the Python scope corresponding to a C/C++
+ * scope.
+ */
+ifaceFileDef *pyScopeIface(classDef *cd)
+{
+    classDef *scope = pyScope(cd);
+
+    return (scope != NULL ? scope->iff : NULL);
+}
+
+
+/*
+ * Return the interface file of the Python scope corresponding to the C/C++
+ * scope of an enum.
+ */
+ifaceFileDef *pyEnumScopeIface(enumDef *ed)
+{
+    if (ed->ecd != NULL)
+        return pyScopeIface(ed->ecd);
+
+    if (ed->emtd != NULL)
+        return ed->emtd->iff;
+
+    return NULL;
+}
+
+
+/*
+ * Generate an enum member.
+ */
+static void generateEnumMember(FILE *fp, enumMemberDef *emd, mappedTypeDef *mtd)
+{
+    if (!generating_c)
+        prcode(fp, "static_cast<int>(");
+
+    if (!isNoScope(emd->ed))
+    {
+        if (isScopedEnum(emd->ed))
+            prcode(fp, "::%s", emd->ed->cname->text);
+        else if (emd->ed->ecd != NULL)
+            prEnumMemberScope(emd, fp);
+        else if (mtd != NULL)
+            prcode(fp, "%S", mtd->iff->fqcname);
+
+        prcode(fp, "::");
+    }
+
+    prcode(fp, "%s", emd->cname);
+
+    if (!generating_c)
+        prcode(fp, ")");
+
 }

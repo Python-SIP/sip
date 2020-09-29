@@ -342,21 +342,6 @@ typedef struct _sipEncodedTypeDef {
 
 
 /*
- * The information describing an enum member.
- */
-typedef struct _sipEnumMemberDef {
-    /* The member name. */
-    const char *em_name;
-
-    /* The member value. */
-    int em_val;
-
-    /* The member enum, -ve if anonymous. */
-    int em_enum;
-} sipEnumMemberDef;
-
-
-/*
  * The information describing static instances.
  */
 typedef struct _sipInstancesDef {
@@ -720,12 +705,6 @@ typedef struct _sipContainerDef {
     /* The table of lazy methods. */
     PyMethodDef *cod_methods;
 
-    /* The number of enum members. */
-    int cod_nrenummembers;
-
-    /* The table of enum members. */
-    sipEnumMemberDef *cod_enummembers;
-
     /* The number of variables. */
     int cod_nrvariables;
 
@@ -871,6 +850,9 @@ typedef struct _sipEnumTypeDef {
 
     /* The scoping type, -1 if it is defined at the module level. */
     int etd_scope;
+
+    /* The number of members. */
+    int etd_nr_members;
 } sipEnumTypeDef;
 
 
@@ -1000,12 +982,6 @@ typedef struct _sipExportedModuleDef {
 
     /* The table of external types. */
     sipExternalTypeDef *em_external;
-
-    /* The number of members in global enums. */
-    int em_nrenummembers;
-
-    /* The table of members in global enums. */
-    sipEnumMemberDef *em_enummembers;
 
     /* The number of typedefs. */
     int em_nrtypedefs;
