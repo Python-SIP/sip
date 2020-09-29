@@ -900,19 +900,25 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 #endif
 
     /* Get the enum types. */
-    /* TODO: only import the module once. */
-    /* TODO: move to createEnum() so that the import isn't done unnecessarily */
-    if ((enum_type = import_module_attr("enum", "Enum")) == NULL)
+    if ((obj = PyImport_ImportModule("enum")) == NULL)
         return NULL;
 
-    if ((int_enum_type = import_module_attr("enum", "IntEnum")) == NULL)
-        return NULL;
+    enum_type = PyObject_GetAttrString(obj, "Enum");
+    int_enum_type = PyObject_GetAttrString(obj, "IntEnum");
+    flag_type = PyObject_GetAttrString(obj, "Flag");
+    int_flag_type = PyObject_GetAttrString(obj, "IntFlag");
 
-    if ((flag_type = import_module_attr("enum", "Flag")) == NULL)
-        return NULL;
+    Py_DECREF(obj);
 
-    if ((int_flag_type = import_module_attr("enum", "IntFlag")) == NULL)
+    if (enum_type == NULL || int_enum_type == NULL || flag_type == NULL || int_flag_type == NULL)
+    {
+        Py_XDECREF(enum_type);
+        Py_XDECREF(int_enum_type);
+        Py_XDECREF(flag_type);
+        Py_XDECREF(int_flag_type);
+
         return NULL;
+    }
 
     /* Add the SIP version number. */
     obj = PyLong_FromLong(SIP_VERSION);
@@ -5888,8 +5894,6 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
 
     /*
      * If the enum has a scope then the default __qualname__ will be incorrect.
-     * TODO: check this is still the case - should be the standard enum value?
-     * TODO: it may mean we don't need to pass 'client'.
      */
      if (etd->etd_scope >= 0)
      {
