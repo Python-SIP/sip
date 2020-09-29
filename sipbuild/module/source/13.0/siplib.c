@@ -1742,20 +1742,6 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         }
     }
 
-    /*
-     * Add any class static instances.  We need to do this once all types are
-     * fully formed because of potential interdependencies.
-     * TODO: any reason not to make these lazy?
-     */
-    for (i = 0; i < client->em_nrtypes; ++i)
-    {
-        sipTypeDef *td = client->em_types[i];
-
-        if (td != NULL && !sipTypeIsStub(td) && sipTypeIsClass(td))
-            if (addInstances((sipTypeAsPyTypeObject(td))->tp_dict, &((sipClassTypeDef *)td)->ctd_container.cod_instances) < 0)
-                return -1;
-    }
-
     /* Add any global static instances. */
     if (addInstances(mod_dict, &client->em_instances) < 0)
         return -1;
@@ -6153,6 +6139,10 @@ static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
         if (addIntInstances(dict, next_int) < 0)
             return -1;
     }
+
+    /* Any non-int instances. */
+    if (addInstances(dict, &cod->cod_instances) < 0)
+        return -1;
 
     /* Do the variables. */
     for (vd = cod->cod_variables, i = 0; i < cod->cod_nrvariables; ++i, ++vd)
