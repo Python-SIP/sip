@@ -1655,6 +1655,13 @@ static int sip_api_init_module(sipExportedModuleDef *client,
         {
             sipEnumTypeDef *etd = (sipEnumTypeDef *)td;
 
+            /*
+             * Set this now to get access to the string pool.  Unlike other
+             * types we don't use it to determine if the type has been
+             * initialised.
+             */
+            td->td_module = client;
+
             if (etd->etd_scope < 0 && createEnum(client, etd, &next_int, mod_dict) < 0)
                 return -1;
         }
@@ -5811,8 +5818,6 @@ static int createEnum(sipExportedModuleDef *client, sipEnumTypeDef *etd,
 {
     int rc;
     PyObject *name, *enum_obj;
-
-    etd->etd_base.td_module = client;
 
     /* Create an object corresponding to the type name. */
     if ((name = PyUnicode_FromString(sipPyNameOfEnum(etd))) == NULL)
