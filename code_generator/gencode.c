@@ -1101,7 +1101,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 {
     char *cppfile;
     const char *mname = mod->name;
-    int nrSccs = 0, files_in_part, max_per_part, this_part, enum_idx;
+    int i, nrSccs = 0, files_in_part, max_per_part, this_part, enum_idx;
     int is_inst_class, is_inst_voidp, is_inst_char, is_inst_string;
     int is_inst_int, is_inst_long, is_inst_ulong, is_inst_longlong;
     int is_inst_ulonglong, is_inst_double, nr_enummembers;
@@ -1116,6 +1116,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     virtHandlerDef *vhd;
     virtErrorHandler *veh;
     exceptionDef *xd;
+    argDef *ad;
 
     /* Calculate the number of files in each part. */
     if (parts)
@@ -1411,15 +1412,20 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         }
     }
 
-    /* Generate the enum type structures. */
+    /*
+     * Generate the enum type structures.  Note that we go through the sorted
+     * table of needed types rather than the unsorted list of all enums.
+     */
     enum_idx = 0;
 
-    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    for (ad = mod->needed_types, i = 0; i < mod->nr_needed_types; ++i, ++ad)
     {
         int type_nr = -1;
 
-        if (ed->module != mod || ed->fqcname == NULL)
+        if (ad->atype != enum_type)
             continue;
+
+        ed = ad->u.ed;
 
         if (ed->ecd != NULL)
         {
@@ -3186,18 +3192,24 @@ static int generateInts(sipSpec *pt, moduleDef *mod, ifaceFileDef *iff,
 
     if (abiVersion >= ABI_13_0)
     {
+        int i;
+        argDef *ad;
+
         /*
          * Named enum members are handled as int variables but must be placed
-         * at the start of the table.
+         * at the start of the table.  Not we use the sorted table of needed
+         * types rather than the unsorted table of all enums.
          */
-        for (ed = pt->enums; ed != NULL; ed = ed->next)
+        for (ad = mod->needed_types, i = 0; i < mod->nr_needed_types; ++i, ++ad)
         {
             enumMemberDef *em;
 
-            if (pyEnumScopeIface(ed) != iff || ed->module != mod)
+            if (ad->atype != enum_type)
                 continue;
 
-            if (ed->fqcname == NULL)
+            ed = ad->u.ed;
+
+            if (pyEnumScopeIface(ed) != iff || ed->module != mod)
                 continue;
 
             for (em = ed->members; em != NULL; em = em->next)
