@@ -398,6 +398,7 @@ static void sip_api_instance_destroyed_ex(sipSimpleWrapper **sipSelfp);
 static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
         void *closure);
 static int sip_api_register_exit_notifier(PyMethodDef *md);
+static int sip_api_is_enum_flag(PyObject *o);
 
 
 /*
@@ -501,6 +502,7 @@ static const sipAPIDef sip_api = {
     sip_api_long_as_size_t,
     sip_api_visit_wrappers,
     sip_api_register_exit_notifier,
+    sip_api_is_enum_flag,
     NULL,
     NULL,
     NULL,
@@ -3122,6 +3124,46 @@ static int parseResult(PyObject *method, PyObject *res,
 
                 break;
 
+            case '&':
+                {
+                    PyObject **p = va_arg(va, PyObject **);
+
+                    if (PyObject_IsSubclass(arg, enum_type) == 1)
+                    {
+                        if (p != NULL)
+                        {
+                            Py_INCREF(arg);
+                            *p = arg;
+                        }
+                    }
+                    else
+                    {
+                        invalid = TRUE;
+                    }
+                }
+
+                break;
+
+            case '^':
+                {
+                    PyObject **p = va_arg(va, PyObject **);
+
+                    if (arg == Py_None || PyObject_IsSubclass(arg, enum_type) == 1)
+                    {
+                        if (p != NULL)
+                        {
+                            Py_INCREF(arg);
+                            *p = arg;
+                        }
+                    }
+                    else
+                    {
+                        invalid = TRUE;
+                    }
+                }
+
+                break;
+
             default:
                 PyErr_Format(PyExc_SystemError,"sipParseResult(): invalid format character '%c'",ch);
                 rc = -1;
@@ -4031,6 +4073,42 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
                 if (arg != NULL)
                 {
                     if (arg == Py_None || PyObject_CheckBuffer(arg))
+                        *p = arg;
+                    else
+                        handle_failed_type_conversion(&failure, arg);
+                }
+ 
+                break;
+            }
+
+        case '&':
+            {
+                /* Python enum.Enum object. */
+ 
+                PyObject **p = va_arg(va, PyObject **);
+
+                if (arg != NULL)
+                {
+                    if (PyObject_IsSubclass(arg, enum_type) == 1)
+                        *p = arg;
+                    else
+                        handle_failed_type_conversion(&failure, arg);
+                }
+ 
+                break;
+            }
+
+        case '^':
+            {
+                /*
+                 * Python enum.Enum object or None.
+                 */
+ 
+                PyObject **p = va_arg(va, PyObject **);
+
+                if (arg != NULL)
+                {
+                    if (arg == Py_None || PyObject_IsSubclass(arg, enum_type) == 1)
                         *p = arg;
                     else
                         handle_failed_type_conversion(&failure, arg);
@@ -5949,6 +6027,15 @@ ret_err:
 
 
 /*
+ * Return a non-zero value if an object is a sub-class of enum.Flag.
+ */
+static int sip_api_is_enum_flag(PyObject *o)
+{
+    return PyObject_IsSubclass(o, flag_type);
+}
+
+
+/*
  * Create a type dictionary for dynamic type being created in a module.
  */
 static PyObject *createTypeDict(sipExportedModuleDef *em)
@@ -6249,7 +6336,10 @@ static int add_lazy_attrs(sipTypeDef *td)
      * Get any lazy attributes from registered getters.  This must be done last
      * to allow any existing attributes to be replaced.
      */
-    /* TODO: Deprecate this mechanism in favour of an event handler. */
+    /*
+     * TODO: Deprecate this mechanism in favour of an event handler, or should
+     * be be embedded code using a new directive?
+     */
     for (ag = sipAttrGetters; ag != NULL; ag = ag->next)
         if (ag->type == NULL || PyType_IsSubtype((PyTypeObject *)wt, ag->type))
             if (ag->getter(td, dict) < 0)

@@ -824,6 +824,9 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     if (abiVersion >= ABI_13_0)
     {
         /* ABI v13.0 and later. */
+        prcode(fp,
+"#define sipIsEnumFlag               sipAPI_%s->api_is_enum_flag\n"
+            , mname);
     }
     else
     {
@@ -2795,7 +2798,8 @@ static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp)
             vd->type.atype != pycallable_type &&
             vd->type.atype != pyslice_type &&
             vd->type.atype != pytype_type &&
-            vd->type.atype != pybuffer_type)
+            vd->type.atype != pybuffer_type &&
+            vd->type.atype != pyenum_type)
             continue;
 
         if (needsHandler(vd))
@@ -4774,6 +4778,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
         prcode(fp,
 "    Py_XINCREF(sipVal);\n"
 "    return sipVal;\n"
@@ -4925,7 +4930,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     if (atype == pyobject_type || atype == pytuple_type ||
         atype == pylist_type || atype == pydict_type ||
         atype == pycallable_type || atype == pyslice_type ||
-        atype == pytype_type || atype == pybuffer_type)
+        atype == pytype_type || atype == pybuffer_type || atype == pyenum_type)
     {
         prcode(fp,
 "    Py_XDECREF(");
@@ -5237,6 +5242,7 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
         rhs = "sipPy";
         break;
 
@@ -6876,6 +6882,7 @@ static void generateCastZero(argDef *ad, FILE *fp)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
     case ellipsis_type:
         prcode(fp, "SIP_NULLPTR");
         break;
@@ -7794,6 +7801,9 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case pybuffer_type:
         return (isAllowNone(ad) ? "$" : "!");
 
+    case pyenum_type:
+        return (isAllowNone(ad) ? "^" : "&");
+
     /* Supress a compiler warning. */
     default:
         ;
@@ -8007,6 +8017,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
         case pyslice_type:
         case pytype_type:
         case pybuffer_type:
+        case pyenum_type:
             fmt = "S";
             break;
 
@@ -8942,6 +8953,7 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
         case pyslice_type:
         case pytype_type:
         case pybuffer_type:
+        case pyenum_type:
         case ellipsis_type:
             prcode(fp, "PyObject *");
             break;
@@ -11505,6 +11517,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
         prcode(fp,
 "            %s %s;\n"
             ,prefix,vname);
@@ -11640,6 +11653,7 @@ static const char *getBuildResultFormat(argDef *ad)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
         return "R";
 
     /* Supress a compiler warning. */
@@ -12879,6 +12893,10 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
 
         case pybuffer_type:
             fmt = (isAllowNone(ad) ? "$" : "!");
+            break;
+
+        case pyenum_type:
+            fmt = (isAllowNone(ad) ? "^" : "&");
             break;
 
         case ellipsis_type:

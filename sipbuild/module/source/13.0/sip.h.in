@@ -41,7 +41,7 @@ extern "C" {
 /*
  * The changes to this version of the ABI.
  *
- * Preserve any current exception in the wrapper tp_dealloc functions.
+ * This is the first minor version of this version of the ABI.
  */
 
 
@@ -1300,6 +1300,7 @@ typedef struct _sipAPIDef {
     size_t (*api_long_as_size_t)(PyObject *o);
     void (*api_visit_wrappers)(sipWrapperVisitorFunc visitor, void *closure);
     int (*api_register_exit_notifier)(PyMethodDef *md);
+    int (*api_is_enum_flag)(PyObject *o);
     void (*unused_public_1)();
     void (*unused_public_2)();
     void (*unused_public_3)();

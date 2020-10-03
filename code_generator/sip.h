@@ -704,7 +704,8 @@ typedef enum {
     ubyte_type,
     capsule_type,
     pybuffer_type,
-    size_type
+    size_type,
+    pyenum_type
 } argType;
 
 

@@ -1021,6 +1021,10 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         type_name = "sip.Buffer";
         break;
 
+    case pyenum_type:
+        type_name = "enum.Enum";
+        break;
+
     case ellipsis_type:
         type_name = "*";
         break;

@@ -1039,6 +1039,16 @@ it.
         the Python object that wraps the destroyed instance.
 
 
+.. c:function:: int sipIsEnumFlag(PyObject *obj)
+
+    This determines if an object is a sub-class of :py:class:`enum.Flag`.
+
+    :param obj:
+        the object.
+    :return:
+        a non-zero value if the object is a :py:class:`enum.Flag` sub-class.
+
+
 .. c:function:: int sipIsOwnedByPython(sipSimpleWrapper *obj)
 
     This determines if a wrapped object is currently owned by Python.

@@ -326,6 +326,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_PYSLICE
 %token          TK_PYTYPE
 %token          TK_PYBUFFER
+%token          TK_PYENUM
 %token          TK_VIRTUAL
 %token          TK_ENUM
 %token          TK_SIGNED
@@ -4111,6 +4112,13 @@ basetype:   scopedname {
     |   TK_PYBUFFER {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pybuffer_type;
+        }
+    |   TK_PYENUM {
+            if (abiVersion < ABI_13_0)
+                yyerror("SIP_PYENUM is only supported for ABI v13 and later");
+
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = pyenum_type;
         }
     |   TK_PYSSIZET {
             memset(&$$, 0, sizeof (argDef));

@@ -2105,6 +2105,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
     case capsule_type:
         /* These are supported without pointers or references. */
 
@@ -2234,6 +2235,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case pyslice_type:
     case pytype_type:
     case pybuffer_type:
+    case pyenum_type:
     case capsule_type:
         if (isReference(ad))
         {

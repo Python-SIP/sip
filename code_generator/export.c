@@ -822,6 +822,7 @@ static int hasCppSignature(signatureDef *sd)
         case pyslice_type:
         case pytype_type:
         case pybuffer_type:
+        case pyenum_type:
         case capsule_type:
             return FALSE;
 
@@ -1092,6 +1093,10 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
 
     case pybuffer_type:
         type_name = "buffer";
+        break;
+
+    case pyenum_type:
+        type_name = "enum";
         break;
 
     case ellipsis_type:
