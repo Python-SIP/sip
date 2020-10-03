@@ -1559,27 +1559,6 @@ it.
         be destroyed when the interpreter exits.  This is the default.
 
 
-.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
-
-    The allows a function to be specified that is called whenever a user
-    defined sub-class of a C/C++ type is created (i.e. one implemented in
-    Python).  It is normalled called from a module's
-    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
-    providing a meta-type when the limited Python API is enabled.
-
-    :param td:
-        the :ref:`generated type structure <ref-type-structures>` corresponding
-        to the C/C++ type.
-    :param handler:
-        the function that is called whenever a user defined sub-class of the
-        type is created.  The function takes a single argument which is the
-        :c:type:`sipWrapperType` of the user defined class.  It returns an
-        ``int`` which is 0 if there was no error.  A Python exception is raised
-        and -1 returned if there was an error.
-    :return:
-        the previously installed handler.  This allows handlers to be chained.
-
-
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)
 
     Each generated type corresponding to a wrapped C/C++ type, or a user

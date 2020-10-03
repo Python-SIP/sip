@@ -228,7 +228,6 @@ typedef int (*sipAttrGetterFunc)(const sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
 typedef int (*sipVariableSetterFunc)(void *, PyObject *, PyObject *);
 typedef void *(*sipProxyResolverFunc)(void *);
-typedef int (*sipNewUserTypeFunc)(sipWrapperType *);
 typedef void (*sipWrapperVisitorFunc)(sipSimpleWrapper *, void *);
 
 
@@ -257,9 +256,6 @@ struct _sipWrapperType {
 
     /* The list of init extenders. */
     struct _sipInitExtenderDef *wt_iextend;
-
-    /* The handler called whenever a new user type has been created. */
-    sipNewUserTypeFunc wt_new_user_type_handler;
 
     /*
      * For the user to use.  Note that any data structure will leak if the
@@ -1258,8 +1254,6 @@ typedef struct _sipAPIDef {
     int (*api_register_proxy_resolver)(const sipTypeDef *td,
             sipProxyResolverFunc resolver);
     PyInterpreterState *(*api_get_interpreter)(void);
-    sipNewUserTypeFunc (*api_set_new_user_type_handler)(const sipTypeDef *,
-            sipNewUserTypeFunc);
     void (*api_set_type_user_data)(sipWrapperType *, void *);
     void *(*api_get_type_user_data)(const sipWrapperType *);
     PyObject *(*api_py_type_dict)(const PyTypeObject *);

@@ -647,7 +647,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipExportModule             sipAPI_%s->api_export_module\n"
 "#define sipInitModule               sipAPI_%s->api_init_module\n"
 "#define sipGetInterpreter           sipAPI_%s->api_get_interpreter\n"
-"#define sipSetNewUserTypeHandler    sipAPI_%s->api_set_new_user_type_handler\n"
 "#define sipSetTypeUserData          sipAPI_%s->api_set_type_user_data\n"
 "#define sipGetTypeUserData          sipAPI_%s->api_get_type_user_data\n"
 "#define sipPyTypeDict               sipAPI_%s->api_py_type_dict\n"
@@ -819,7 +818,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
@@ -831,6 +829,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     {
         /* ABI v12.8 and earlier. */
         prcode(fp,
+"#define sipSetNewUserTypeHandler    sipAPI_%s->api_set_new_user_type_handler\n"
 "#define sipGetFrame                 sipAPI_%s->api_get_frame\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
@@ -845,6 +844,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
+            , mname
             , mname
             , mname
             , mname

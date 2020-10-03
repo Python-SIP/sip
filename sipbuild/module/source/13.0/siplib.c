@@ -252,7 +252,6 @@ static sipWrapperType sipWrapper_Type = {
     0,                      /* wt_unused */
     0,                      /* wt_td */
     0,                      /* wt_iextend */
-    0,                      /* wt_new_user_type_handler */
     0,                      /* wt_user_data */
 };
 
@@ -363,8 +362,6 @@ static void *sip_api_get_mixin_address(sipSimpleWrapper *w,
 static int sip_api_register_proxy_resolver(const sipTypeDef *td,
         sipProxyResolverFunc resolver);
 static PyInterpreterState *sip_api_get_interpreter(void);
-static sipNewUserTypeFunc sip_api_set_new_user_type_handler(
-        const sipTypeDef *td, sipNewUserTypeFunc handler);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(const sipWrapperType *wt);
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type);
@@ -461,7 +458,6 @@ static const sipAPIDef sip_api = {
     sip_api_convert_to_array,
     sip_api_register_proxy_resolver,
     sip_api_get_interpreter,
-    sip_api_set_new_user_type_handler,
     sip_api_set_type_user_data,
     sip_api_get_type_user_data,
     sip_api_py_type_dict,
@@ -834,7 +830,6 @@ static sipConvertFromFunc get_from_convertor(const sipTypeDef *td);
 static sipPyObject **autoconversion_disabled(const sipTypeDef *td);
 static void fix_slots(PyTypeObject *py_type, sipPySlotDef *psd);
 static sipFinalFunc find_finalisation(sipClassTypeDef *ctd);
-static sipNewUserTypeFunc find_new_user_type_handler(sipWrapperType *wt);
 static PyObject *next_in_mro(PyObject *self, PyObject *after);
 static int super_init(PyObject *self, PyObject *args, PyObject *kwds,
         PyObject *type);
@@ -8630,23 +8625,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
          * the generated type structure being NULL.
          */
         if (base != NULL && PyObject_TypeCheck((PyObject *)base, (PyTypeObject *)&sipWrapperType_Type))
-        {
-            /* TODO: Deprecate this mechanism in favour of an event handler. */
-            sipNewUserTypeFunc new_user_type_handler;
-
             self->wt_td = ((sipWrapperType *)base)->wt_td;
-
-            if (self->wt_td != NULL)
-            {
-                /* Call any new type handler. */
-                new_user_type_handler = find_new_user_type_handler(
-                        (sipWrapperType *)sipTypeAsPyTypeObject(self->wt_td));
-
-                if (new_user_type_handler != NULL)
-                    if (new_user_type_handler(self) < 0)
-                        return -1;
-            }
-        }
     }
     else
     {
@@ -9255,39 +9234,6 @@ static sipFinalFunc find_finalisation(sipClassTypeDef *ctd)
 
 
 /*
- * Find any new user type handler function for a class, searching its
- * super-classes if necessary.
- */
-static sipNewUserTypeFunc find_new_user_type_handler(sipWrapperType *wt)
-{
-    sipEncodedTypeDef *sup;
-    sipClassTypeDef *ctd;
-
-    if (wt->wt_new_user_type_handler != NULL)
-        return wt->wt_new_user_type_handler;
-
-    ctd = (sipClassTypeDef *)wt->wt_td;
-
-    if ((sup = ctd->ctd_supers) != NULL)
-    {
-        do
-        {
-            sipTypeDef *sup_td = getGeneratedType(sup, ctd->ctd_base.td_module);
-            sipNewUserTypeFunc func;
-
-            wt = (sipWrapperType *)sipTypeAsPyTypeObject(sup_td);
-
-            if ((func = find_new_user_type_handler(wt)) != NULL)
-                return func;
-        }
-        while (!sup++->sc_flag);
-    }
-
-    return NULL;
-}
-
-
-/*
  * The instance traverse slot.
  */
 static int sipSimpleWrapper_traverse(sipSimpleWrapper *self, visitproc visit,
@@ -9754,7 +9700,6 @@ sipWrapperType sipSimpleWrapper_Type = {
     0,                      /* wt_unused */
     0,                      /* wt_td */
     0,                      /* wt_iextend */
-    0,                      /* wt_new_user_type_handler */
     0,                      /* wt_user_data */
 };
 
@@ -11139,22 +11084,6 @@ static void clear_wrapper(sipSimpleWrapper *sw)
     sipOMRemoveObject(&cppPyMap, sw);
 
     clear_access_func(sw);
-}
-
-
-/*
- * Set the handler to invoke when a new user Python sub-class is defined and
- * return the old handler.
- */
-static sipNewUserTypeFunc sip_api_set_new_user_type_handler(
-        const sipTypeDef *td, sipNewUserTypeFunc handler)
-{
-    sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
-    sipNewUserTypeFunc old_handler = wt->wt_new_user_type_handler;;
-
-    wt->wt_new_user_type_handler = handler;
-
-    return old_handler;
 }
 
 
