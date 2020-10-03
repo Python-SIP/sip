@@ -1274,7 +1274,6 @@ typedef struct _sipAPIDef {
     int (*api_get_time)(PyObject *, sipTimeDef *);
     PyObject *(*api_from_time)(const sipTimeDef *);
     int (*api_is_user_type)(const sipWrapperType *);
-    struct _frame *(*api_get_frame)(int);
     int (*api_check_plugin_for_type)(const sipTypeDef *, const char *);
     PyObject *(*api_unicode_new)(Py_ssize_t, unsigned, int *, void **);
     void (*api_unicode_write)(int, void *, int, unsigned);

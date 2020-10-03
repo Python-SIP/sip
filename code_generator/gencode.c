@@ -662,7 +662,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipGetTime                  sipAPI_%s->api_get_time\n"
 "#define sipFromTime                 sipAPI_%s->api_from_time\n"
 "#define sipIsUserType               sipAPI_%s->api_is_user_type\n"
-"#define sipGetFrame                 sipAPI_%s->api_get_frame\n"
 "#define sipCheckPluginForType       sipAPI_%s->api_check_plugin_for_type\n"
 "#define sipUnicodeNew               sipAPI_%s->api_unicode_new\n"
 "#define sipUnicodeWrite             sipAPI_%s->api_unicode_write\n"
@@ -821,7 +820,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         ,mname
         ,mname
         ,mname
-        ,mname
         ,mname);
 
     /* These are dependent on the specific ABI version. */
@@ -833,6 +831,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     {
         /* ABI v12.8 and earlier. */
         prcode(fp,
+"#define sipGetFrame                 sipAPI_%s->api_get_frame\n"
 "#define sipSetDestroyOnExit         sipAPI_%s->api_set_destroy_on_exit\n"
 "#define sipEnableOverflowChecking   sipAPI_%s->api_enable_overflow_checking\n"
 "#define sipIsAPIEnabled             sipAPI_%s->api_is_api_enabled\n"
@@ -846,6 +845,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#define sipSameSlot                 sipAPI_%s->api_same_slot\n"
 "#define sipSaveSlot                 sipAPI_%s->api_save_slot\n"
 "#define sipVisitSlot                sipAPI_%s->api_visit_slot\n"
+            , mname
             , mname
             , mname
             , mname

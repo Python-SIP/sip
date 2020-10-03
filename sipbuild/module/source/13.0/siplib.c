@@ -381,7 +381,6 @@ static PyObject *sip_api_from_datetime(const sipDateDef *date,
 static int sip_api_get_time(PyObject *obj, sipTimeDef *time);
 static PyObject *sip_api_from_time(const sipTimeDef *time);
 static int sip_api_is_user_type(const sipWrapperType *wt);
-static struct _frame *sip_api_get_frame(int);
 static int sip_api_check_plugin_for_type(const sipTypeDef *td,
         const char *name);
 static PyObject *sip_api_unicode_new(Py_ssize_t len, unsigned maxchar,
@@ -477,7 +476,6 @@ static const sipAPIDef sip_api = {
     sip_api_get_time,
     sip_api_from_time,
     sip_api_is_user_type,
-    sip_api_get_frame,
     sip_api_check_plugin_for_type,
     sip_api_unicode_new,
     sip_api_unicode_write,
@@ -11366,28 +11364,6 @@ static PyObject *sip_api_from_time(const sipTimeDef *time)
 static int sip_api_is_user_type(const sipWrapperType *wt)
 {
     return wt->wt_user_type;
-}
-
-
-/*
- * Return a frame from the execution stack.
- */
-static struct _frame *sip_api_get_frame(int depth)
-{
-#if defined(PYPY_VERSION)
-    /* PyPy only supports a depth of 0. */
-    return NULL;
-#else
-    struct _frame *frame = PyEval_GetFrame();
-
-    while (frame != NULL && depth > 0)
-    {
-        frame = frame->f_back;
-        --depth;
-    }
-
-    return frame;
-#endif
 }
 
 
