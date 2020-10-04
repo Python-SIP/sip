@@ -157,15 +157,17 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
 
     sip_files = NULL;
 
-    parse(pt, file, filename, strict, versions, backstops, xfeatures, protHack,
-            &sip_files);
+    parse(pt, file, filename, strict, &versions, backstops, &xfeatures,
+            protHack, &sip_files);
 
     transform(pt, strict);
 
-    return Py_BuildValue("(NsiN)", PyCapsule_New(pt, NULL, NULL),
+    return Py_BuildValue("(NsiNNN)", PyCapsule_New(pt, NULL, NULL),
             pt->module->fullname->text,
             (isComposite(pt->module) || useLimitedAPI(pt->module)),
-            stringList_convert_from(sip_files));
+            stringList_convert_from(sip_files),
+            stringList_convert_from(versions),
+            stringList_convert_from(xfeatures));
 }
 
 
