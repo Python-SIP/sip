@@ -144,7 +144,7 @@ class Bindings(Configurable):
         project = self.project
 
         # Parse the input file.
-        pt, fq_name, uses_limited_api, sip_files = parse(
+        pt, fq_name, uses_limited_api, sip_files, self.tags, self.disabled_features = parse(
                 self.sip_file.replace('\\', '/'), True, self.tags, None,
                 self.disabled_features, self.protected_is_public)
 

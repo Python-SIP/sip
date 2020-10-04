@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2020, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -178,8 +178,9 @@ def sip5(specification, *, sip_module, abi_version, sources_dir, include_dirs,
             UserException, include_dirs)
 
     # Parse the input file.
-    pt, _, _, _ = parse(specification, (xml_extract is None), tags, backstops,
-            disabled_features, protected_is_public)
+    pt, _, _, _, tags, disabled_features = parse(specification,
+            (xml_extract is None), tags, backstops, disabled_features,
+            protected_is_public)
 
     # Generate the bindings.
     if sources_dir is not None:

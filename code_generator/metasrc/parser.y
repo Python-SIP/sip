@@ -4303,7 +4303,7 @@ exceptionlist:  {
  * Parse the specification.
  */
 void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
-        stringList *tsl, stringList *bsl, stringList *xfl, int protHack,
+        stringList **tsl, stringList *bsl, stringList **xfl, int protHack,
         stringList **sip_files)
 {
     classTmplDef *tcd;
@@ -4318,8 +4318,8 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
     currentSpec = spec;
     strictParse = strict;
     backstops = bsl;
-    neededQualifiers = tsl;
-    excludedQualifiers = xfl;
+    neededQualifiers = *tsl;
+    excludedQualifiers = *xfl;
     currentModule = NULL;
     currentMappedType = NULL;
     currentIsVirt = FALSE;
@@ -4369,6 +4369,10 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
                 break;
             }
     }
+
+    /* These may have been updated from imported bindings. */
+    *tsl = neededQualifiers;
+    *xfl = excludedQualifiers;
 }
 
 

@@ -1369,8 +1369,8 @@ extern unsigned abiMinor;               /* The ABI minor version number. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
-void parse(sipSpec *, FILE *, char *, int, stringList *, stringList *,
-        stringList *, int, stringList **sip_files);
+void parse(sipSpec *, FILE *, char *, int, stringList **, stringList *,
+        stringList **, int, stringList **sip_files);
 void get_bindings_configuration(const char *sip_file, stringList **tags,
         stringList **disabled);
 void parserEOF(const char *,parserContext *);
