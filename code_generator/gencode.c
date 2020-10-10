@@ -10832,7 +10832,7 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
             {
                 need_args = TRUE;
 
-                if (!isStatic(od))
+                if (abiVersion >= ABI_13_0 || !isStatic(od))
                 {
                     need_self = TRUE;
 
@@ -12514,7 +12514,11 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
     else
         scope = NULL;
 
-    handle_self = (od != NULL && od->common->slot == no_slot && !isStatic(od) && c_scope != NULL);
+    /* For ABI v13 and later static methods use self for the type object. */
+    if (abiVersion >= ABI_13_0)
+        handle_self = (od != NULL && od->common->slot == no_slot && c_scope != NULL);
+    else
+        handle_self = (od != NULL && od->common->slot == no_slot && !isStatic(od) && c_scope != NULL);
 
     /*
      * Generate the local variables that will hold the parsed arguments and
@@ -12543,7 +12547,7 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
 "        sipWrapper *sipOwner = SIP_NULLPTR;\n"
             );
 
-    if (handle_self)
+    if (handle_self && !isStatic(od))
     {
         const char *const_str = (isConst(od) ? "const " : "");
 
@@ -12665,7 +12669,18 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
         prcode(fp, "1");
 
     if (handle_self)
-        prcode(fp,"%c",(isReallyProtected(od) ? 'p' : 'B'));
+    {
+        char self_ch;
+
+        if (isStatic(od))
+            self_ch = 'C';
+        else if (isReallyProtected(od))
+            self_ch = 'p';
+        else
+            self_ch = 'B';
+
+        prcode(fp, "%c", self_ch);
+    }
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -12924,7 +12939,12 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
     /* Generate the parameters corresponding to the format string. */
 
     if (handle_self)
-        prcode(fp,", &sipSelf, sipType_%C, &sipCpp",classFQCName(c_scope));
+    {
+        prcode(fp,", &sipSelf");
+
+        if (!isStatic(od))
+            prcode(fp,", sipType_%C, &sipCpp", classFQCName(c_scope));
+    }
 
     for (a = 0; a < sd->nrArgs; ++a)
     {

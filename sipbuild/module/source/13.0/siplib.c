@@ -699,10 +699,10 @@ static PyObject *buildObject(PyObject *tup, const char *fmt, va_list va);
 static int parseKwdArgs(PyObject **parseErrp, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
         const char *fmt, va_list va_orig);
-static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
-        int *selfargp, PyObject *sipArgs, PyObject *sipKwdArgs,
-        const char **kwdlist, PyObject **unused, const char *fmt, va_list va);
-static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
+static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
+        PyObject *sipArgs, PyObject *sipKwdArgs, const char **kwdlist,
+        PyObject **unused, const char *fmt, va_list va);
+static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va);
 static int parseResult(PyObject *method, PyObject *res,
@@ -715,7 +715,7 @@ static int convertFromSequence(PyObject *seq, const sipTypeDef *td,
 static PyObject *convertToSequence(void *array, Py_ssize_t nr_elem,
         const sipTypeDef *td);
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
-        sipSimpleWrapper **selfp);
+        PyObject **selfp);
 static int compareTypedefName(const void *key, const void *el);
 static int checkPointer(void *ptr, sipSimpleWrapper *sw);
 static void *cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
@@ -3242,8 +3242,7 @@ static int parseKwdArgs(PyObject **parseErrp, PyObject *sipArgs,
         const char *fmt, va_list va_orig)
 {
     int no_tmp_tuple, ok, selfarg;
-    sipSimpleWrapper *self;
-    PyObject *single_arg;
+    PyObject *self, *single_arg;
     va_list va;
 
     /* Previous second pass errors stop subsequent parses. */
@@ -3460,8 +3459,7 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
         PyObject *sipArg1, const char *fmt, ...)
 {
     int ok, selfarg;
-    sipSimpleWrapper *self;
-    PyObject *args;
+    PyObject *self, *args;
     va_list va;
 
     /* Previous second pass errors stop subsequent parses. */
@@ -3531,9 +3529,9 @@ static int sip_api_parse_pair(PyObject **parseErrp, PyObject *sipArg0,
  * First pass of the argument parse, converting those that can be done so
  * without any side effects.  Return TRUE if the arguments matched.
  */
-static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
-        int *selfargp, PyObject *sipArgs, PyObject *sipKwdArgs,
-        const char **kwdlist, PyObject **unused, const char *fmt, va_list va)
+static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
+        PyObject *sipArgs, PyObject *sipKwdArgs, const char **kwdlist,
+        PyObject **unused, const char *fmt, va_list va)
 {
     int compulsory, argnr, nr_args;
     Py_ssize_t nr_pos_args, nr_kwd_args, nr_kwd_args_used;
@@ -3573,28 +3571,44 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
             td = va_arg(va, sipTypeDef *);
             va_arg(va, void **);
 
-            if (self == NULL)
+            if (PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
             {
-                if (!getSelfFromArgs(td, sipArgs, argnr, selfp))
-                {
-                    failure.reason = Unbound;
-                    failure.detail_str = sipPyNameOfContainer(
-                            &((sipClassTypeDef *)td)->ctd_container, td);
-                    break;
-                }
-
+                /* The call was self.method(...). */
+                *selfp = self;
+            }
+            else if (getSelfFromArgs(td, sipArgs, argnr, selfp))
+            {
+                /* The call was cls.method(self, ...). */
                 *selfargp = TRUE;
                 ++argnr;
             }
             else
-                *selfp = (sipSimpleWrapper *)self;
+            {
+                failure.reason = Unbound;
+                failure.detail_str = sipPyNameOfContainer(
+                        &((sipClassTypeDef *)td)->ctd_container, td);
+            }
 
             break;
         }
 
     case 'C':
-        *selfp = (sipSimpleWrapper *)va_arg(va,PyObject *);
-        break;
+        {
+            PyObject *self;
+
+            self = *va_arg(va, PyObject **);
+
+            /*
+             * If the call was self.method(...) rather than cls.method(...)
+             * then get cls from self.
+             */
+            if (PyObject_TypeCheck(self, (PyTypeObject *)&sipWrapper_Type))
+                self = (PyObject *)Py_TYPE(self);
+
+            *selfp = self;
+
+            break;
+        }
 
     default:
         --fmt;
@@ -4727,14 +4741,14 @@ static void handle_failed_type_conversion(sipParseFailure *pf, PyObject *arg)
  * Second pass of the argument parse, converting the remaining ones that might
  * have side effects.  Return TRUE if there was no error.
  */
-static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
+static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va)
 {
     int a, ok;
     Py_ssize_t nr_pos_args;
 
-    /* Handle the converions of "self" first. */
+    /* Handle the conversions of "self" first. */
     switch (*fmt++)
     {
     case 'B':
@@ -4747,11 +4761,11 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
             const sipTypeDef *td;
             void **p;
 
-            *va_arg(va, PyObject **) = (PyObject *)self;
+            *va_arg(va, PyObject **) = self;
             td = va_arg(va, const sipTypeDef *);
             p = va_arg(va, void **);
 
-            if ((*p = sip_api_get_cpp_ptr(self, td)) == NULL)
+            if ((*p = sip_api_get_cpp_ptr((sipSimpleWrapper *)self, td)) == NULL)
                 return FALSE;
 
             break;
@@ -4767,18 +4781,18 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
             const sipTypeDef *td;
             void **p;
 
-            *va_arg(va, PyObject **) = (PyObject *)self;
+            *va_arg(va, PyObject **) = self;
             td = va_arg(va, const sipTypeDef *);
             p = va_arg(va, void **);
 
-            if ((*p = getComplexCppPtr(self, td)) == NULL)
+            if ((*p = getComplexCppPtr((sipSimpleWrapper *)self, td)) == NULL)
                 return FALSE;
 
             break;
         }
 
     case 'C':
-        va_arg(va, PyObject *);
+        *va_arg(va, PyObject **) = self;
         break;
 
     default:
@@ -4860,7 +4874,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
                 p = va_arg(va, void **);
 
                 if (flags & FMT_AP_TRANSFER)
-                    xfer = (self ? (PyObject *)self : arg);
+                    xfer = (self ? self : arg);
                 else if (flags & FMT_AP_TRANSFER_BACK)
                     xfer = Py_None;
                 else
@@ -6116,7 +6130,7 @@ static int addInstances(PyObject *dict, sipInstancesDef *id)
  * Class.Method(self, ...) rather than self.Method(...).
  */
 static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
-        sipSimpleWrapper **selfp)
+        PyObject **selfp)
 {
     PyObject *self;
 
@@ -6130,7 +6144,7 @@ static int getSelfFromArgs(sipTypeDef *td, PyObject *args, int argnr,
     if (!PyObject_TypeCheck(self, sipTypeAsPyTypeObject(td)))
         return FALSE;
 
-    *selfp = (sipSimpleWrapper *)self;
+    *selfp = self;
 
     return TRUE;
 }

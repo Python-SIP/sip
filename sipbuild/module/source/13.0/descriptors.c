@@ -152,15 +152,32 @@ static PyObject *sipMethodDescr_descr_get(PyObject *self, PyObject *obj,
         PyObject *type)
 {
     sipMethodDescr *md = (sipMethodDescr *)self;
+    PyObject *bind, *func;
 
-    (void)type;
-
-    if (obj == Py_None)
-        obj = NULL;
+    if (obj == NULL)
+    {
+        /* The argument parser must work out that 'self' is the type object. */
+        bind = type;
+        Py_INCREF(bind);
+    }
     else if (md->mixin_name != NULL)
-        obj = PyObject_GetAttr(obj, md->mixin_name);
+    {
+        bind = PyObject_GetAttr(obj, md->mixin_name);
+    }
+    else
+    {
+        /*
+         * The argument parser must work out that 'self' is the instance
+         * object.
+         */
+        bind = obj;
+        Py_INCREF(bind);
+    }
 
-    return PyCFunction_New(md->pmd, obj);
+    func = PyCFunction_New(md->pmd, bind);
+    Py_DECREF(bind);
+
+    return func;
 }
 
 

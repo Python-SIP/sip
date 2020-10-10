@@ -1598,8 +1598,10 @@ int sipIsErr
 
 PyObject \*sipSelf
     If the directive is used in the context of a class constructor, destructor
-    or method then this is the Python object that wraps the structure or class
-    instance, i.e. ``self``.
+    or non-static method then this is the Python object that wraps the
+    structure or class instance, i.e. ``self``.  Starting with ABI v13.0, in
+    the context of a static method, this will contain the Python type object of
+    the class.
 
 bool sipSelfWasArg
     This is only made available for non-abstract, virtual methods.  It is set
