@@ -91,8 +91,8 @@ list options may contain environment markers as defined in `PEP 508
 
 **api-dir**
     The value is the name of a the directory in which a QScintilla :file:`.api`
-    file is created.  By default no :file:`.api` file is created.  This is also
-    a user option.
+    file is created.  By default no :file:`.api` file is created.  There is
+    also a corresponding command line option.
 
 **bindings-factory**
     The value is a callable that will return an object that is a sub-class
@@ -103,12 +103,12 @@ list options may contain environment markers as defined in `PEP 508
 **build-dir**
     The value is the name of a directory in which all generated files will be
     created.  The directory will not be removed after the build has been
-    completed.  The default depends on which build tool is being used.  This is
-    also a user option.
+    completed.  The default depends on which build tool is being used.  There
+    is also a corresponding command line option.
 
 **build-tag**
-    The value is the build tag to be used in the name of a wheel.  This is also
-    a user option.
+    The value is the build tag to be used in the name of a wheel.  There is
+    also a corresponding command line option.
 
 **builder-factory**
     The value is a callable that will return an object that is a sub-class
@@ -121,7 +121,7 @@ list options may contain environment markers as defined in `PEP 508
 
 **disable**
     The value is a list of the names of the bindings that are disabled and will
-    not be built.  This is also a user option.
+    not be built.  There is also a corresponding command line option.
 
 **dunder-init**
     The boolean value specifies if a :file:`__init__.py` file should be
@@ -130,14 +130,14 @@ list options may contain environment markers as defined in `PEP 508
 
 **distinfo**
     The boolean value specifies if a :file:`.dist-info` directory is to be
-    created when a project is installed.  By default it is enabled.  This is
-    also a user option.
+    created when a project is installed.  By default it is enabled.  There is
+    also a corresponding command line option.
 
 **enable**
     The value is a list of the names of the bindings that are enabled and will
     be built.  Any associated configuration tests that would normally be run to
-    determine if the bindings should be built are suppressed.  This is also a
-    user option.
+    determine if the bindings should be built are suppressed.  There is also a
+    corresponding command line option.
 
 **gui-scripts**
     The value is a list of entry points that defines one or more GUI scripts to
@@ -147,7 +147,8 @@ list options may contain environment markers as defined in `PEP 508
     The boolean value specifies if support for ``manylinux`` in the platform
     tag of a name of a wheel is enabled.  By default ``manylinux`` support is
     enabled.  It should only be disabled if support for older versions of
-    :program:`pip` is required.  This is also a user option.
+    :program:`pip` is required.  There is also a corresponding command line
+    option.
 
 **minimum-glibc-version**
     The minimum GLIBC version required by the project specified as a 2-tuple of
@@ -164,8 +165,8 @@ list options may contain environment markers as defined in `PEP 508
 
 **name**
     The value is used instead of the value of the ``name`` key in the
-    ``[tool.sip.metadata]`` section in the name of an sdist or wheel.  This is
-    also a user option.
+    ``[tool.sip.metadata]`` section in the name of an sdist or wheel.  There is
+    also a corresponding command line option.
 
 **py-debug**
     The boolean value specifies if a debug build of Python is being used.  By
@@ -192,7 +193,8 @@ list options may contain environment markers as defined in `PEP 508
 
 **quiet**
     The boolean value enables or disables the display of progress messages.  By
-    default progress messages are displayed.  This is also a user option.
+    default progress messages are displayed.  There is also a corresponding
+    command line option.
 
 **sip-files-dir**
     The value is the name of the directory containing the :file:`.sip`
@@ -217,12 +219,12 @@ list options may contain environment markers as defined in `PEP 508
 **target-dir**
     The value is the name of the directory where the project will be installed
     in.  By default it is the :file:`site-packages` directory of the Python
-    installation.  This is also a user option.
+    installation.  There is also a corresponding command line option.
 
 **verbose**
     The boolean value enables or disables the display of verbose progress
-    messages.  By default verbose progress messages are not displayed.  This is
-    also a user option.
+    messages.  By default verbose progress messages are not displayed.  There
+    is also a corresponding command line option.
 
 **wheel-includes**
     The values is a list of files and directories, specified as *glob* patterns
@@ -256,12 +258,13 @@ values of all list options may contain environment markers as defined in `PEP
     The value, interpreted as a number, specifies that the generated code is
     split into that number of source files.  By default one file is generated
     for each C structure or C++ class.  Specifying a low value can
-    significantly speed up the build of large projects.  This is also a user
-    option.
+    significantly speed up the build of large projects.  There is also a
+    corresponding command line option.
 
 **debug**
     The boolean value specifies if a build with debugging symbols is performed.
-    By default a debug build is not performed.  This is also a user option.
+    By default a debug build is not performed.  There is also a corresponding
+    command line option.
 
 **define-macros**
     The value is a list of ``#define`` names and values in the form ``"NAME"``
@@ -273,7 +276,8 @@ values of all list options may contain environment markers as defined in `PEP
 **docstrings**
     The boolean value specifies if docstrings that describe the signature of
     all functions, methods and constructors should be generated.  By default
-    docstrings are generated.  This is also a user option.
+    docstrings are generated.  There is also a corresponding command line
+    option.
 
 **exceptions**
     The boolean values specifies if support for C++ exceptions in the library
@@ -309,14 +313,15 @@ values of all list options may contain environment markers as defined in `PEP
     The boolean value specifies if a Python type hints stub file is generated.
     This file contains a description of the module's API that is compliant with
     `PEP 484 <https://www.python.org/dev/peps/pep-0484/>`__.  By default the
-    stub file is not generated.  This is also a user option.
+    stub file is not generated.  There is also a corresponding command line
+    option.
 
 **protected-is-public**
     The boolean value specifies if SIP redefines the ``protected`` keyword as
     ``public`` during compilation.  On non-Windows platforms this can result in
     a significant reduction in the size of a generated Python module.  By
-    default SIP redefines the keyword on non-Windows platforms.  This is also a
-    user option.
+    default SIP redefines the keyword on non-Windows platforms.  There is also
+    a corresponding command line option.
 
 **release-gil**
     The boolean value specifies if the Python GIL is always released when
@@ -352,4 +357,5 @@ values of all list options may contain environment markers as defined in `PEP
 **tracing**
     The boolean value specifies that debugging statements that trace the
     execution of the bindings are automatically generated.  Be default the
-    statements are not generated.  This is also a user option.
+    statements are not generated.  There is also a corresponding command line
+    option.
