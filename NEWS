@@ -1,5 +1,7 @@
 v5.5.0 ??? ??? 2020
-  - Added the 'exceptions' attribute to the 'Buildable' class.
+  - Added the 'exceptions', 'extra_compile_args', 'extra_link_args' and
+    'extra_objects' attributes to the 'Buildable' class with corresponding
+    bindings options.
   - The 'abi-version' project option and the '--abi-version' of sip-module can
     now specify a major version only (as opposed to a major.minor version) to
     select the latest ABI with that major version number.

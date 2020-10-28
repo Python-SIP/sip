@@ -73,6 +73,9 @@ class BuildableFromSources(Buildable):
         self.include_dirs = []
         self.libraries = []
         self.library_dirs = []
+        self.extra_compile_args = []
+        self.extra_link_args = []
+        self.extra_objects = []
         self.debug = False
 
         if self.uses_limited_api:
