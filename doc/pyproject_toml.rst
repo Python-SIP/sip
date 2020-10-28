@@ -283,6 +283,16 @@ values of all list options may contain environment markers as defined in `PEP
     The boolean values specifies if support for C++ exceptions in the library
     being wrapped is enabled.  By default exception support is disabled.
 
+**extra-compile-args**
+    The value is a list of extra command line arguments to pass to the
+    compiler.
+
+**extra-link-args**
+    The value is a list of extra command line arguments to pass to the linker.
+
+**extra-objects**
+    The value is a list of extra compiled object files to link.
+
 **generate-extracts**
     The value is a list of extracts (defined by the :directive:`%Extract`
     directive).  Each value is the identifier of the extract and the name of

@@ -119,6 +119,9 @@ class DistutilsBuilder(Builder):
         module_builder.extensions = [
             Extension(buildable.fq_name, buildable.sources,
                     define_macros=define_macros,
+                    extra_compile_args=buildable.extra_compile_args,
+                    extra_link_args=buildable.extra_link_args,
+                    extra_objects=buildable.extra_objects,
                     include_dirs=buildable.include_dirs,
                     libraries=buildable.libraries,
                     library_dirs=buildable.library_dirs)]

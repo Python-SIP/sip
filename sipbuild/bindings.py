@@ -51,6 +51,15 @@ class Bindings(Configurable):
         # Set if exception support is enabled.
         Option('exceptions', option_type=bool),
 
+        # The list of extra compiler arguments.
+        Option('extra_compile_args', option_type=list),
+
+        # The list of extra linker arguments.
+        Option('extra_link_args', option_type=list),
+
+        # The list of extra compiled object files to link.
+        Option('extra_objects', option_type=list),
+
         # The list of extracts to generate.
         Option('generate_extracts', option_type=list),
 
@@ -159,6 +168,9 @@ class Bindings(Configurable):
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug
         buildable.exceptions = self.exceptions
+        buildable.extra_compile_args = self.extra_compile_args
+        buildable.extra_link_args = self.extra_link_args
+        buildable.extra_objects = self.extra_objects
         buildable.static = self.static
 
         # Generate any API file.
@@ -274,6 +286,8 @@ class Bindings(Configurable):
         super().verify_configuration(tool)
 
         # Make sure relevent paths are absolute and use native separators.
+        self.extra_objects = [project.project_path(o)
+                for o in self.extra_objects]
         self.headers = [project.project_path(h) for h in self.headers]
         self.include_dirs = [project.project_path(d)
                 for d in self.include_dirs]
