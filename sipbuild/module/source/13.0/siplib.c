@@ -856,6 +856,7 @@ static void handle_failed_type_conversion(sipParseFailure *pf, PyObject *arg);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static int dict_set_and_discard(PyObject *dict, const char *name,
         PyObject *obj);
+static void raise_no_convert_from(const sipTypeDef *td);
 
 
 /*
@@ -7406,9 +7407,18 @@ static int addSingleTypeInstance(PyObject *dict, const char *name,
         cfrom = get_from_convertor(td);
 
         if (cfrom != NULL)
+        {
             obj = cfrom(cppPtr, NULL);
+        }
+        else if (sipTypeIsMapped(td))
+        {
+            raise_no_convert_from(td);
+            return -1;
+        }
         else
+        {
             obj = wrap_simple_instance(cppPtr, td, NULL, initflags);
+        }
     }
 
     return dict_set_and_discard(dict, name, obj);
@@ -7915,8 +7925,10 @@ static int sip_api_can_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
         }
         else
         {
-            cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-            ok = cto(pyObj, NULL, NULL, NULL);
+            if ((cto = ((const sipMappedTypeDef *)td)->mtd_cto) != NULL)
+                ok = cto(pyObj, NULL, NULL, NULL);
+            else
+                ok = FALSE;
         }
     }
 
@@ -7970,8 +7982,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
             }
             else
             {
-                cto = ((const sipMappedTypeDef *)td)->mtd_cto;
-                state = cto(pyObj, &cpp, iserrp, transferObj);
+                if ((cto = ((const sipMappedTypeDef *)td)->mtd_cto) != NULL)
+                    state = cto(pyObj, &cpp, iserrp, transferObj);
             }
         }
     }
@@ -8084,6 +8096,12 @@ PyObject *sip_api_convert_from_type(void *cpp, const sipTypeDef *td,
     if (cfrom != NULL)
         return cfrom(cpp, transferObj);
 
+    if (sipTypeIsMapped(td))
+    {
+        raise_no_convert_from(td);
+        return NULL;
+    }
+
     /*
      * See if we have already wrapped it.  Invoking sub-class code can be
      * expensive so we check the cache first, even though the sub-class code
@@ -8160,6 +8178,12 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
         }
 
         return res;
+    }
+
+    if (sipTypeIsMapped(td))
+    {
+        raise_no_convert_from(td);
+        return NULL;
     }
 
     /* Apply any sub-class convertor. */
@@ -11921,4 +11945,16 @@ static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
                 visitor(sw, closure);
         }
     }
+}
+
+
+/*
+ * Raise an exception when there is no mapped type converter to convert from
+ * C/C++ to Python.
+ */
+static void raise_no_convert_from(const sipTypeDef *td)
+{
+    PyErr_Format(PyExc_TypeError, "%s cannot be converted to a Python object",
+            sipPyNameOfContainer(&((sipMappedTypeDef *)td)->ctd_container,
+                    td));
 }

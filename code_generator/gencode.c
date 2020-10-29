@@ -3640,7 +3640,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
  */
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
-    int need_xfer, nr_methods, nr_enums, has_ints, needs_namespace, plugin;
+    int nr_methods, nr_enums, has_ints, needs_namespace, plugin;
     memberDef *md;
 
     generateCppCodeBlock(mtd->typecode, fp);
@@ -3787,34 +3787,37 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     generateConvertToDefinitions(mtd,NULL,fp);
 
     /* Generate the from type convertor. */
-    need_xfer = (generating_c || usedInCode(mtd->convfromcode, "sipTransferObj"));
+    if (mtd->convfromcode != NULL)
+    {
+        int need_xfer = (generating_c || usedInCode(mtd->convfromcode, "sipTransferObj"));
 
-    prcode(fp,
-"\n"
-"\n"
-        );
-
-    if (!generating_c)
         prcode(fp,
-"extern \"C\" {static PyObject *convertFrom_%L(void *, PyObject *);}\n"
-            , mtd->iff);
+"\n"
+"\n"
+            );
 
-    prcode(fp,
+        if (!generating_c)
+            prcode(fp,
+"extern \"C\" {static PyObject *convertFrom_%L(void *, PyObject *);}\n"
+                , mtd->iff);
+
+        prcode(fp,
 "static PyObject *convertFrom_%L(void *sipCppV, PyObject *%s)\n"
 "{\n"
 "   ", mtd->iff, (need_xfer ? "sipTransferObj" : ""));
 
-    generateMappedTypeFromVoid(mtd, "sipCpp", "sipCppV", fp);
+        generateMappedTypeFromVoid(mtd, "sipCpp", "sipCppV", fp);
 
-    prcode(fp, ";\n"
+        prcode(fp, ";\n"
 "\n"
-        );
+            );
 
-    generateCppCodeBlock(mtd->convfromcode,fp);
+        generateCppCodeBlock(mtd->convfromcode,fp);
 
-    prcode(fp,
+        prcode(fp,
 "}\n"
-        );
+            );
+    }
 
     /* Generate the static methods. */
     for (md = mtd->members; md != NULL; md = md->next)
@@ -3929,10 +3932,10 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     if (noRelease(mtd))
         prcode(fp,
-"    0,\n"
-"    0,\n"
-"    0,\n"
-"    0,\n"
+"    SIP_NULLPTR,\n"
+"    SIP_NULLPTR,\n"
+"    SIP_NULLPTR,\n"
+"    SIP_NULLPTR,\n"
             );
     else
         prcode(fp,
@@ -3945,11 +3948,31 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
             , mtd->iff
             , mtd->iff);
 
-    prcode(fp,
+    if (mtd->convtocode != NULL)
+    {
+        prcode(fp,
 "    convertTo_%L,\n"
+            , mtd->iff);
+    }
+    else
+    {
+        prcode(fp,
+"    SIP_NULLPTR\n"
+            );
+    }
+
+    if (mtd->convfromcode != NULL)
+    {
+        prcode(fp,
 "    convertFrom_%L\n"
-        , mtd->iff
-        , mtd->iff);
+            , mtd->iff);
+    }
+    else
+    {
+        prcode(fp,
+"    SIP_NULLPTR\n"
+            );
+    }
 
     prcode(fp,
 "};\n"
@@ -4292,7 +4315,9 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
     }
     else
     {
-        convtocode = mtd->convtocode;
+        if ((convtocode = mtd->convtocode) == NULL)
+            return;
+
         iff = mtd->iff;
 
         type.atype = mapped_type;

@@ -1129,11 +1129,14 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
 mtdefinition:   '{' mtbody '}' ';' {
             if (notSkipping())
             {
-                if (currentMappedType->convfromcode == NULL)
-                    yyerror("%MappedType must have a %ConvertFromTypeCode directive");
+                if (abiVersion < ABI_13_0)
+                {
+                    if (currentMappedType->convfromcode == NULL)
+                        yyerror("%MappedType must have a %ConvertFromTypeCode directive");
 
-                if (currentMappedType->convtocode == NULL)
-                    yyerror("%MappedType must have a %ConvertToTypeCode directive");
+                    if (currentMappedType->convtocode == NULL)
+                        yyerror("%MappedType must have a %ConvertToTypeCode directive");
+                }
 
                 currentMappedType = NULL;
             }
