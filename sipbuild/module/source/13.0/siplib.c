@@ -857,6 +857,7 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static int dict_set_and_discard(PyObject *dict, const char *name,
         PyObject *obj);
 static void raise_no_convert_from(const sipTypeDef *td);
+static void raise_no_convert_to(PyObject *py, const sipTypeDef *td);
 
 
 /*
@@ -7984,6 +7985,8 @@ static void *sip_api_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
             {
                 if ((cto = ((const sipMappedTypeDef *)td)->mtd_cto) != NULL)
                     state = cto(pyObj, &cpp, iserrp, transferObj);
+                else
+                    raise_no_convert_to(pyObj, td);
             }
         }
     }
@@ -8010,12 +8013,9 @@ void *sip_api_force_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
     if (!sip_api_can_convert_to_type(pyObj, td, flags))
     {
         if (sipTypeIsMapped(td))
-            PyErr_Format(PyExc_TypeError,
-                    "%s cannot be converted to a C/C++ %s in this context",
-                    Py_TYPE(pyObj)->tp_name, sipTypeName(td));
+            raise_no_convert_to(pyObj, td);
         else
-            PyErr_Format(PyExc_TypeError,
-                    "%s cannot be converted to %s.%s in this context",
+            PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s.%s",
                     Py_TYPE(pyObj)->tp_name, sipNameOfModule(td->td_module),
                     sipPyNameOfContainer(&((const sipClassTypeDef *)td)->ctd_container, td));
 
@@ -11955,6 +11955,16 @@ static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
 static void raise_no_convert_from(const sipTypeDef *td)
 {
     PyErr_Format(PyExc_TypeError, "%s cannot be converted to a Python object",
-            sipPyNameOfContainer(&((sipMappedTypeDef *)td)->ctd_container,
-                    td));
+            sipTypeName(td));
+}
+
+
+/*
+ * Raise an exception when there is no mapped type converter to convert to
+ * C/C++ from Python.
+ */
+static void raise_no_convert_to(PyObject *py, const sipTypeDef *td)
+{
+    PyErr_Format(PyExc_TypeError, "%s cannot be converted to %s",
+            Py_TYPE(py)->tp_name, sipTypeName(td));
 }
