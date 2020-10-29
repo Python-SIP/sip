@@ -1986,7 +1986,7 @@ static PyObject *sip_api_pyslot_extend(sipExportedModuleDef *mod,
 
 
 /*
- * Convert a new C/C++ instance to a Python instance of a specific Python type..
+ * Convert a new C/C++ instance to a Python instance of a specific Python type.
  */
 static PyObject *sip_api_convert_from_new_pytype(void *cpp,
         PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **selfp,

@@ -381,8 +381,8 @@ class hierarchy in PyQt5::
     %End
 
 This directive is used to specify the handwritten code that converts a Python
-object to a mapped type instance and to handle any ownership transfers.  It is
-used as part of the :directive:`%MappedType` directive and as part of a class
+object to a C/C++ instance and to handle any ownership transfers.  It is used
+as part of the :directive:`%MappedType` directive and as part of a class
 specification.  The code is also called to determine if the Python object is of
 the correct type prior to conversion.
 
@@ -423,13 +423,13 @@ returned.
 If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
 returned.
 
-        - :c:macro:`SIP_TEMPORARY` is set to indicate that the returned
-          instance is a temporary and should be released to avoid a memory
-          leak.
+    - :c:macro:`SIP_TEMPORARY` is set to indicate that the returned instance is
+      a temporary and should be released to avoid a memory leak.
 
-        - :c:macro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
-          returned instance is a derived class.  See
-          :ref:`ref-derived-classes`.
+    - :c:macro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
+      returned instance is a derived class.  This is ignored unless the
+      directive is part of a class specification.  See
+      :ref:`ref-derived-classes`.
 
 The following example converts a Python list of ``QPoint`` instances to a
 ``QList<QPoint>`` instance::
