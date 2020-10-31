@@ -605,6 +605,15 @@ it.
 .. c:function:: void *sipConvertToType(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, int *iserr)
 
     This converts a Python object to an instance of a C structure, C++ class or
+    mapped type similar to :c:func:`sipConvertToTypeUS()` but without support
+    for any user state.
+
+    See :c:func:`sipConvertToTypeUS()` for a full description of the arguments.
+
+
+.. c:function:: void *sipConvertToTypeUS(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, void **user_state, int *iserr)
+
+    This converts a Python object to an instance of a C structure, C++ class or
     mapped type assuming that a previous call to :c:func:`sipCanConvertToType()`
     has been successful.
 
@@ -618,6 +627,8 @@ it.
         any combination of the :c:macro:`SIP_NOT_NONE` and
         :c:macro:`SIP_NO_CONVERTORS` flags.
     :param state:
+        the state of the returned C/C++ instance is returned via this pointer.
+    :param user_state:
         the state of the returned C/C++ instance is returned via this pointer.
     :param iserr:
         the error flag is passed and updated via this pointer.
@@ -639,6 +650,11 @@ it.
     by any :directive:`%ConvertToTypeCode`.  The calling code must then release
     the value at some point to prevent a memory leak by calling
     :c:func:`sipReleaseType()`.
+
+    If *user_state* is not ``NULL`` then the location it points to may be used
+    by the type convertor for any purpose, typically to store a pointer to
+    additional state on the heap.  Any such pointer is passed to the type's
+    corresponding :c:func:`sipReleaseTypeUS()` function.
     
     If there is an error then the location *iserr* points to is set to a
     non-zero value.  If it was initially a non-zero value then the conversion
@@ -775,10 +791,20 @@ it.
 .. c:function:: void *sipForceConvertToType(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, int *iserr)
 
     This converts a Python object to an instance of a C structure, C++ class or
-    mapped type by calling :c:func:`sipCanConvertToType()` and, if it is
-    successfull, calling :c:func:`sipConvertToType()`.
+    mapped type similar to :c:func:`sipForceConvertToTypeUS()` but without
+    support for any user state.
 
-    See :c:func:`sipConvertToType()` for a full description of the arguments.
+    See :c:func:`sipForceConvertToTypeUS()` for a full description of the
+    arguments.
+
+
+.. c:function:: void *sipForceConvertToTypeUS(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, void **user_state, int *iserr)
+
+    This converts a Python object to an instance of a C structure, C++ class or
+    mapped type by calling :c:func:`sipCanConvertToType()` and, if it is
+    successfull, calling :c:func:`sipConvertToTypeUS()`.
+
+    See :c:func:`sipConvertToTypeUS()` for a full description of the arguments.
 
 
 .. c:function:: void sipFree(void *mem)
@@ -1534,8 +1560,17 @@ it.
 .. c:function:: void sipReleaseType(void *cpp, const sipTypeDef *td, int state)
 
     This destroys a wrapped C/C++ or mapped type instance if it was a temporary
-    instance.  It is called after a call to either :c:func:`sipConvertToType()`
-    or :c:func:`sipForceConvertToType()`.
+    instance similar to :c:func:`sipReleaseTypeUS()` but without support for
+    any user state.
+    
+    See :c:func:`sipReleaseTypeUS()` for a full description of the arguments.
+
+
+.. c:function:: void sipReleaseTypeUS(void *cpp, const sipTypeDef *td, int state, void *user_state)
+
+    This destroys a wrapped C/C++ or mapped type instance if it was a temporary
+    instance.  It is called after a call to either
+    :c:func:`sipConvertToTypeUS()` or :c:func:`sipForceConvertToTypeUS()`.
     
     :param cpp:
         the C/C++ instance.
@@ -1543,6 +1578,9 @@ it.
         the type's :ref:`generated type structure <ref-type-structures>`.
     :param state:
         describes the state of the C/C++ instance.
+    :param user_state:
+        the value set by the corresponding call to
+        :c:func:`sipConvertToTypeUS()` or :c:func:`sipForceConvertToTypeUS()`.
 
 
 .. c:function:: const char *sipResolveTypedef(const char *name)

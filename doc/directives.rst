@@ -413,6 +413,12 @@ PyObject \*sipTransferObj
     transferred to C/C++ and *sipPy* associated with *sipTransferObj*.  The
     code can choose to interpret these changes in any way.
 
+void \*\*sipUserStatePtr
+    This is a pointer through which the convertor can store additional state
+    information.  Any value set will be passed to the code defined by the
+    corresponding :directive:`%ReleaseCode` directive invoked by a call to
+    :c:func:`sipReleaseTypeUS()`.
+
 The handwritten code must explicitly return an ``int`` the meaning of which
 depends on the value of ``sipIsErr``.
 
@@ -424,7 +430,8 @@ If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
 returned.
 
     - :c:macro:`SIP_TEMPORARY` is set to indicate that the returned instance is
-      a temporary and should be released to avoid a memory leak.
+      a temporary and should be released, by calling
+      :c:func:`sipReleaseTypeUS()`, to avoid a memory leak.
 
     - :c:macro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
       returned instance is a derived class.  This is ignored unless the
@@ -440,20 +447,9 @@ The following example converts a Python list of ``QPoint`` instances to a
         if (!sipIsErr)
         {
             // Checking whether or not None has been passed instead of a list
-            // has already been done.
-            if (!PyList_Check(sipPy))
-                return 0;
-
-            // Check the type of each element.  We specify SIP_NOT_NONE to
-            // disallow None because it is a list of QPoint, not of a pointer
-            // to a QPoint, so None isn't appropriate.
-            for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i)
-                if (!sipCanConvertToType(PyList_GET_ITEM(sipPy, i),
-                                         sipType_QPoint, SIP_NOT_NONE))
-                    return 0;
-
-            // The type is valid.
-            return 1;
+            // has already been done.  Note that we don't check the type of the
+            // individual elements of the list.
+            return PyList_Check(sipPy);
         }
 
         // Create the instance on the heap.
@@ -467,11 +463,10 @@ The following example converts a Python list of ``QPoint`` instances to a
             // Get the address of the element's C++ instance.  Note that, in
             // this case, we don't apply any ownership changes to the list
             // elements, only to the list itself.
-            qp = reinterpret_cast<QPoint *>(sipConvertToType(
-                                                    PyList_GET_ITEM(sipPy, i),
-                                                    sipType_QPoint, 0,
-                                                    SIP_NOT_NONE,
-                                                    &state, sipIsErr));
+            qp = reinterpret_cast<QPoint *>(
+                    sipForceConvertToType(PyList_GET_ITEM(sipPy, i),
+                            sipType_QPoint, 0, SIP_NOT_NONE, &state,
+                            sipIsErr));
 
             // Deal with any errors.
             if (*sipIsErr)
@@ -509,9 +504,9 @@ would normally be automatically generated.  This means that the handwritten
 code must also handle instances of the class itself and not just the additional
 types that are being supported.  This should be done by making calls to
 :c:func:`sipCanConvertToType()` to check the object type and
-:c:func:`sipConvertToType()` to convert the object.  The
-:c:macro:`SIP_NO_CONVERTORS` flag *must* be passed to both these functions to
-prevent recursive calls to the handwritten code.
+:c:func:`sipConvertToTypeUS()` or :c:func:`sipConvertToType()` to convert the
+object.  The :c:macro:`SIP_NO_CONVERTORS` flag *must* be passed to these
+functions to prevent recursive calls to the handwritten code.
 
 
 .. directive:: %Copying
