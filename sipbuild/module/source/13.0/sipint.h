@@ -118,8 +118,9 @@ PyObject *sip_api_convert_from_type(void *cppPtr, const sipTypeDef *td,
         PyObject *transferObj);
 void sip_api_instance_destroyed(sipSimpleWrapper *sipSelf);
 void sip_api_end_thread(void);
-void *sip_api_force_convert_to_type(PyObject *pyObj, const sipTypeDef *td,
-        PyObject *transferObj, int flags, int *statep, int *iserrp);
+void *sip_api_force_convert_to_type_us(PyObject *pyObj, const sipTypeDef *td,
+        PyObject *transferObj, int flags, int *statep, void **user_statep,
+        int *iserrp);
 int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength);

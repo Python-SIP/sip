@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the array type.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -445,8 +445,8 @@ static void *get_value(sipArrayObject *array, PyObject *value)
     {
         int iserr = FALSE;
 
-        data = sip_api_force_convert_to_type(value, array->td, NULL,
-                SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &iserr);
+        data = sip_api_force_convert_to_type_us(value, array->td, NULL,
+                SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, NULL, &iserr);
     }
     else
     {

@@ -214,7 +214,8 @@ typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
 typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
 typedef void *(*sipCastFunc)(void *, const sipTypeDef *);
 typedef const sipTypeDef *(*sipSubClassConvertFunc)(void **);
-typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *);
+typedef int (*sipConvertToFunc)(PyObject *, void **, int *, PyObject *,
+        void **);
 typedef PyObject *(*sipConvertFromFunc)(void *, PyObject *);
 typedef void (*sipVirtErrorHandlerFunc)(sipSimpleWrapper *, sip_gilstate_t);
 typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
@@ -222,7 +223,7 @@ typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
 typedef void (*sipAssignFunc)(void *, Py_ssize_t, void *);
 typedef void *(*sipArrayFunc)(Py_ssize_t);
 typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
-typedef void (*sipReleaseFunc)(void *, int);
+typedef void (*sipReleaseFunc)(void *, int, void *);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
@@ -823,10 +824,10 @@ typedef struct _sipMappedTypeDef {
     /* The optional release function. */
     sipReleaseFunc mtd_release;
 
-    /* The convert to function. */
+    /* The optional convert to function. */
     sipConvertToFunc mtd_cto;
 
-    /* The convert from function. */
+    /* The optional convert from function. */
     sipConvertFromFunc mtd_cfrom;
 } sipMappedTypeDef;
 
@@ -1206,9 +1207,17 @@ typedef struct _sipAPIDef {
             int flags);
     void *(*api_convert_to_type)(PyObject *pyObj, const sipTypeDef *td,
             PyObject *transferObj, int flags, int *statep, int *iserrp);
+    void *(*api_convert_to_type_us)(PyObject *pyObj, const sipTypeDef *td,
+            PyObject *transferObj, int flags, int *statep, void **user_statep,
+            int *iserrp);
     void *(*api_force_convert_to_type)(PyObject *pyObj, const sipTypeDef *td,
             PyObject *transferObj, int flags, int *statep, int *iserrp);
+    void *(*api_force_convert_to_type_us)(PyObject *pyObj,
+            const sipTypeDef *td, PyObject *transferObj, int flags,
+            int *statep, void **user_statep, int *iserrp);
     void (*api_release_type)(void *cpp, const sipTypeDef *td, int state);
+    void (*api_release_type_us)(void *cpp, const sipTypeDef *td, int state,
+            void *user_state);
     PyObject *(*api_convert_from_type)(void *cpp, const sipTypeDef *td,
             PyObject *transferObj);
     PyObject *(*api_convert_from_new_type)(void *cpp, const sipTypeDef *td,
@@ -1448,7 +1457,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
 #define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
 #define SIP_TYPE_ENUM       0x0003  /* If the type is an enum. */
-#define SIP_TYPE_UNUSED     0x0004  /* Currently unused. */
+#define SIP_TYPE_USER_STATE 0x0004  /* If the convertors need user state. */
 #define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
 #define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
 #define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
@@ -1480,6 +1489,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 /*
  * The following are not part of the public API.
  */
+#define sipTypeNeedsUserState(td)   ((td)->td_flags & SIP_TYPE_USER_STATE)
 #define sipTypeIsAbstract(td)   ((td)->td_flags & SIP_TYPE_ABSTRACT)
 #define sipTypeHasSCC(td)   ((td)->td_flags & SIP_TYPE_SCC)
 #define sipTypeAllowNone(td)    ((td)->td_flags & SIP_TYPE_ALLOW_NONE)

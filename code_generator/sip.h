@@ -223,6 +223,7 @@
 #define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
 #define CLASS2_NEEDS_SHADOW 0x20        /* The class needs a shadow class. */
 #define CLASS2_COPY_HELPER  0x40        /* Generate a copy helper. */
+#define CLASS2_USER_STATE   0x80        /* The convertors need user state. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -239,6 +240,8 @@
 #define setNeedsShadow(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_SHADOW)
 #define copyHelper(cd)      ((cd)->classflags2 & CLASS2_COPY_HELPER)
 #define setCopyHelper(cd)   ((cd)->classflags2 |= CLASS2_COPY_HELPER)
+#define needsUserState(cd)  ((cd)->classflags2 & CLASS2_USER_STATE)
+#define setNeedsUserState(cd)   ((cd)->classflags2 |= CLASS2_USER_STATE)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -533,11 +536,14 @@
 
 #define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
 #define MT_ALLOW_NONE       0x02    /* The mapped type will handle None. */
+#define MT_USER_STATE       0x04    /* The convertors need user state. */
 
 #define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
 #define handlesNone(mt)     ((mt)->mtflags & MT_ALLOW_NONE)
 #define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
+#define mtNeedsUserState(mt)    ((mt)->mtflags & MT_USER_STATE)
+#define setMtNeedsUserState(mt) ((mt)->mtflags |= MT_USER_STATE)
 
 
 /* Handle typedef flags. */
@@ -1458,6 +1464,7 @@ void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
 void normaliseArgs(signatureDef *sd);
 void restoreArgs(signatureDef *sd);
 void initialiseLexer(void);
+int usedInCode(codeBlockList *cbl, const char *str);
 
 
 /* These are only here because bison publically references them. */

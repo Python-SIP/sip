@@ -1129,13 +1129,18 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
 mtdefinition:   '{' mtbody '}' ';' {
             if (notSkipping())
             {
-                if (abiVersion < ABI_13_0)
+                if (abiVersion >= ABI_13_0)
                 {
-                    if (currentMappedType->convfromcode == NULL)
-                        yyerror("%MappedType must have a %ConvertFromTypeCode directive");
-
+                    if (usedInCode(currentMappedType->convtocode, "sipUserState"))
+                        setMtNeedsUserState(currentMappedType);
+                }
+                else
+                {
                     if (currentMappedType->convtocode == NULL)
                         yyerror("%MappedType must have a %ConvertToTypeCode directive");
+
+                    if (currentMappedType->convfromcode == NULL)
+                        yyerror("%MappedType must have a %ConvertFromTypeCode directive");
                 }
 
                 currentMappedType = NULL;
@@ -4834,7 +4839,11 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (cd->convtocode != NULL && getAllowNone(of))
             setClassHandlesNone(cd);
 
+        if (abiVersion >= ABI_13_0 && usedInCode(cd->convtocode, "sipUserState"))
+            setNeedsUserState(cd);
+
         if (getOptFlag(of,"Abstract",bool_flag) != NULL)
+
         {
             setIsAbstractClass(cd);
             setIsIncomplete(cd);

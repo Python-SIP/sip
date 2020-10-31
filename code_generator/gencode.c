@@ -112,7 +112,7 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
         moduleDef *immod, FILE *fp);
 static void generateShadowClassDeclaration(sipSpec *, classDef *, FILE *);
-static int hasConvertToCode(argDef *ad);
+static codeBlockList *convertToCode(argDef *ad);
 static void deleteOuts(moduleDef *mod, signatureDef *sd, FILE *fp);
 static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp);
 static void gc_ellipsis(signatureDef *sd, FILE *fp);
@@ -165,7 +165,8 @@ static void generateNumberSlotCall(moduleDef *mod, overDef *od, char *op,
         FILE *fp);
 static void generateVariableGetter(ifaceFileDef *, varDef *, FILE *);
 static void generateVariableSetter(ifaceFileDef *, varDef *, FILE *);
-static int generateObjToCppConversion(argDef *, FILE *);
+static void generateObjToCppConversion(argDef *ad, int has_state,
+        int has_user_state, FILE *fp);
 static void generateVarMember(varDef *vd, FILE *fp);
 static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -248,7 +249,6 @@ static void fakeProtectedArgs(signatureDef *sd);
 static const char *slotName(slotType st);
 static void ints_intro(ifaceFileDef *iff, FILE *fp);
 static const char *argName(const char *name, codeBlockList *cbl);
-static int usedInCode(codeBlockList *cbl, const char *str);
 static void generateDefaultValue(moduleDef *mod, argDef *ad, int argnr,
         FILE *fp);
 static void generateClassFromVoid(classDef *cd, const char *cname,
@@ -299,6 +299,8 @@ ifaceFileDef *pyScopeIface(classDef *cd);
 ifaceFileDef *pyEnumScopeIface(enumDef *ed);
 static void generateEnumMember(FILE *fp, enumMemberDef *emd,
         mappedTypeDef *mtd);
+static int typeNeedsUserState(argDef *ad);
+static const char *userStateSuffix();
 
 
 /*
@@ -826,6 +828,12 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
         /* ABI v13.0 and later. */
         prcode(fp,
 "#define sipIsEnumFlag               sipAPI_%s->api_is_enum_flag\n"
+"#define sipConvertToTypeUS          sipAPI_%s->api_convert_to_type_us\n"
+"#define sipForceConvertToTypeUS     sipAPI_%s->api_force_convert_to_type_us\n"
+"#define sipReleaseTypeUS            sipAPI_%s->api_release_type_us\n"
+            , mname
+            , mname
+            , mname
             , mname);
     }
     else
@@ -3866,10 +3874,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     prcode(fp,
 "        SIP_NULLPTR,\n"
-"        %sSIP_TYPE_MAPPED,\n"
+"        %s%sSIP_TYPE_MAPPED,\n"
 "        %n,     /* %s */\n"
 "        SIP_NULLPTR,\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
+        , (mtNeedsUserState(mtd) ? "SIP_TYPE_USER_STATE|" : "")
         , mtd->cname, mtd->cname->text);
 
     if (plugin)
@@ -4328,7 +4337,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
     if (convtocode != NULL)
     {
-        int need_py, need_ptr, need_iserr, need_xfer;
+        int need_py, need_ptr, need_iserr, need_xfer, need_us_arg, need_us_val;
 
         /*
          * Sometimes type convertors are just stubs that set the error flag, so
@@ -4340,6 +4349,17 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
         need_iserr = (generating_c || usedInCode(convtocode, "sipIsErr"));
         need_xfer = (generating_c || usedInCode(convtocode, "sipTransferObj"));
 
+        if (abiVersion >= ABI_13_0)
+        {
+            need_us_arg = TRUE;
+            need_us_val = (generating_c || typeNeedsUserState(&type));
+        }
+        else
+        {
+            need_us_arg = FALSE;
+            need_us_val = FALSE;
+        }
+
         prcode(fp,
 "\n"
 "\n"
@@ -4347,13 +4367,19 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static int convertTo_%L(PyObject *, void **, int *, PyObject *);}\n"
-                , iff);
+"extern \"C\" {static int convertTo_%L(PyObject *, void **, int *, PyObject *%s);}\n"
+                , iff, (need_us_arg ? ", void **" : ""));
 
         prcode(fp,
-"static int convertTo_%L(PyObject *%s,void **%s,int *%s,PyObject *%s)\n"
-"{\n"
+"static int convertTo_%L(PyObject *%s, void **%s, int *%s, PyObject *%s"
             , iff, (need_py ? "sipPy" : ""), (need_ptr ? "sipCppPtrV" : ""), (need_iserr ? "sipIsErr" : ""), (need_xfer ? "sipTransferObj" : ""));
+
+        if (need_us_arg)
+            prcode(fp, ", void **", (need_us_val ? "sipUserStatePtr" : ""));
+
+        prcode(fp, ")\n"
+"{\n"
+            );
 
         if (need_ptr)
         {
@@ -4829,7 +4855,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     argType atype = vd->type.atype;
     const char *first_arg, *last_arg, *error_test;
     char *deref;
-    int might_be_temp, keep, need_py, need_cpp;
+    int has_state, has_user_state, keep, need_py, need_cpp;
 
     /*
      * We need to keep a reference to the original Python object if it
@@ -4914,18 +4940,46 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         return;
     }
 
-    if (vd->type.nrderefs == 0 && (atype == mapped_type || (atype == class_type && vd->type.u.cd->convtocode != NULL)))
-        prcode(fp,
-"    int sipValState;\n"
-            );
+    has_state = has_user_state = FALSE;
 
     if (atype == class_type || atype == mapped_type)
+    {
         prcode(fp,
 "    int sipIsErr = 0;\n"
-"\n"
             );
 
-    might_be_temp = generateObjToCppConversion(&vd->type, fp);
+        if (vd->type.nrderefs == 0)
+        {
+            codeBlockList *convtocode;
+
+            if (atype == class_type)
+                convtocode = vd->type.u.cd->convtocode;
+            else if (noRelease(vd->type.u.mtd))
+                convtocode = NULL;
+            else
+                convtocode = vd->type.u.mtd->convtocode;
+
+            if (convtocode != NULL)
+            {
+                has_state = TRUE;
+
+                prcode(fp,
+"    int sipValState;\n"
+                    );
+
+                if (typeNeedsUserState(&vd->type))
+                {
+                    has_user_state = TRUE;
+
+                    prcode(fp,
+"    void *sipValUserState;\n"
+                        );
+                }
+            }
+        }
+    }
+
+    generateObjToCppConversion(&vd->type, has_state, has_user_state, fp);
 
     deref = "";
 
@@ -4990,16 +5044,18 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
 
     /* Note that wchar_t * leaks here. */
 
-    if (might_be_temp)
+    if (has_state)
+    {
         prcode(fp,
 "\n"
-"    sipReleaseType(sipVal, sipType_%C, sipValState);\n"
-            , classFQCName(vd->type.u.cd));
-    else if (vd->type.atype == mapped_type && vd->type.nrderefs == 0 && !noRelease(vd->type.u.mtd))
-        prcode(fp,
-"\n"
-"    sipReleaseType(sipVal, sipType_%T, sipValState);\n"
-            , &vd->type);
+"    sipReleaseType%s(sipVal, sipType_%T, sipValState", userStateSuffix(), &vd->type);
+
+        if (has_user_state)
+            prcode(fp, ", sipValUserState");
+
+        prcode(fp, ");\n"
+            );
+    }
 
     /* Generate the code to keep the object alive while we use its data. */
     if (keep)
@@ -5048,11 +5104,11 @@ static void generateVarMember(varDef *vd, FILE *fp)
 
 /*
  * Generate the declaration of a variable that is initialised from a Python
- * object.  Return TRUE if the value might be a temporary on the heap.
+ * object.
  */
-static int generateObjToCppConversion(argDef *ad,FILE *fp)
+static void generateObjToCppConversion(argDef *ad, int has_state,
+        int has_user_state, FILE *fp)
 {
-    int might_be_temp = FALSE;
     char *rhs = NULL;
 
     prcode(fp,
@@ -5060,36 +5116,10 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
 
     switch (ad->atype)
     {
+    case class_type:
     case mapped_type:
         {
             const char *tail;
-
-            if (generating_c)
-            {
-                prcode(fp, "(%b *)", ad);
-                tail = "";
-            }
-            else
-            {
-                prcode(fp, "reinterpret_cast<%b *>(", ad);
-                tail = ")";
-            }
-
-            /* Note that we don't support /Transfer/ but could do. */
-
-            prcode(fp, "sipForceConvertToType(sipPy, sipType_%T, SIP_NULLPTR, %s, %s, &sipIsErr)", ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (ad->nrderefs ? "SIP_NULLPTR" : "&sipValState"));
-
-            prcode(fp, "%s;\n"
-                , tail);
-        }
-        break;
-
-    case class_type:
-        {
-            const char *tail;
-
-            if (ad->nrderefs == 0 && ad->u.cd->convtocode != NULL)
-                might_be_temp = TRUE;
 
             if (generating_c)
             {
@@ -5108,9 +5138,12 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
              * all types).
              */
 
-            prcode(fp, "sipForceConvertToType(sipPy, sipType_%C, SIP_NULLPTR, %s, %s, &sipIsErr)", classFQCName(ad->u.cd), (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (might_be_temp ? "&sipValState" : "SIP_NULLPTR"));
+            prcode(fp, "sipForceConvertToType%s(sipPy, sipType_%T, SIP_NULLPTR, %s, %s", userStateSuffix(), ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (has_state ? "SIP_NULLPTR" : "&sipValState"));
 
-            prcode(fp, "%s;\n"
+            if (has_user_state)
+                prcode(fp, ", &sipValUserState");
+
+            prcode(fp, ", &sipIsErr)%s;\n"
                 , tail);
         }
         break;
@@ -5279,8 +5312,6 @@ static int generateObjToCppConversion(argDef *ad,FILE *fp)
     if (rhs != NULL)
         prcode(fp, "%s;\n"
             , rhs);
-
-    return might_be_temp;
 }
 
 
@@ -9116,17 +9147,31 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
         {
         case class_type:
             if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
+            {
                 prcode(fp,
 "        int %aState = 0;\n"
                     , mod, ad, argnr);
+
+                if (typeNeedsUserState(ad))
+                    prcode(fp,
+"        void *%aUserState = SIP_NULLPTR;\n"
+                        , mod, ad, argnr);
+            }
 
             break;
 
         case mapped_type:
             if (!noRelease(ad->u.mtd) && !isConstrained(ad))
+            {
                 prcode(fp,
 "        int %aState = 0;\n"
                     , mod, ad, argnr);
+
+                if (typeNeedsUserState(ad))
+                    prcode(fp,
+"        void *%aUserState = SIP_NULLPTR;\n"
+                        , mod, ad, argnr);
+            }
 
             break;
 
@@ -9456,6 +9501,12 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     if (!py_debug && useLimitedAPI(mod))
     {
         prcode(fp, "%sSIP_TYPE_LIMITED_API", sep);
+        sep = "|";
+    }
+
+    if (needsUserState(cd))
+    {
+        prcode(fp, "%sSIP_TYPE_USER_STATE", sep);
         sep = "|";
     }
 
@@ -11849,7 +11900,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
          * the destruction of any temporary variables until after we have
          * converted the outputs.
          */
-        if (isInArg(ad) && isOutArg(ad) && hasConvertToCode(ad))
+        if (isInArg(ad) && isOutArg(ad) && convertToCode(ad) != NULL)
         {
             deltemps = FALSE;
             post_process = TRUE;
@@ -12987,18 +13038,21 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
         switch (ad->atype)
         {
         case mapped_type:
-            prcode(fp, ", sipType_%T,&%a", ad, mod, ad, a);
+            prcode(fp, ", sipType_%T, &%a", ad, mod, ad, a);
 
             if (isArray(ad))
             {
                 prcode(fp, ", &%a", mod, arraylenarg_ad, arraylenarg);
             }
-            else if (!isConstrained(ad))
+            else if (ad->u.mtd->convtocode != NULL && !isConstrained(ad))
             {
                 if (noRelease(ad->u.mtd))
-                    prcode(fp, ",SIP_NULLPTR");
+                    prcode(fp, ", SIP_NULLPTR");
                 else
                     prcode(fp, ", &%aState", mod, ad, a);
+
+                if (mtNeedsUserState(ad->u.mtd))
+                    prcode(fp, ", &%aUserState", mod, ad, a);
             }
 
             break;
@@ -13016,7 +13070,12 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
                     prcode(fp, ", %ssipOwner", (ct != NULL ? "" : "&"));
 
                 if (ad->u.cd->convtocode != NULL && !isConstrained(ad))
+                {
                     prcode(fp, ", &%aState", mod, ad, a);
+                }
+
+                if (needsUserState(ad->u.cd))
+                    prcode(fp, ", &%aUserState", mod, ad, a);
             }
 
             break;
@@ -13124,9 +13183,9 @@ static char *getSubFormatChar(char fc, argDef *ad)
 
 
 /*
- * Return TRUE if a type has %ConvertToTypeCode.
+ * Return a type's %ConvertToTypeCode.
  */
-static int hasConvertToCode(argDef *ad)
+static codeBlockList *convertToCode(argDef *ad)
 {
     codeBlockList *convtocode;
 
@@ -13137,7 +13196,7 @@ static int hasConvertToCode(argDef *ad)
     else
         convtocode = NULL;
 
-    return (convtocode != NULL);
+    return convtocode;
 }
 
 
@@ -13184,6 +13243,7 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
     for (a = 0; a < sd->nrArgs; ++a)
     {
         argDef *ad = &sd->args[a];
+        codeBlockList *convtocode;
 
         if (isArray(ad) && (ad->atype == mapped_type || ad->atype == class_type))
         {
@@ -13222,19 +13282,31 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
 "            sipFree(const_cast<wchar_t *>(%a));\n"
                     , mod, ad, a);
         }
-        else if (hasConvertToCode(ad))
+        else if ((convtocode = convertToCode(ad)) != NULL)
         {
             if (ad->atype == mapped_type && noRelease(ad->u.mtd))
                 continue;
 
+            prcode(fp,
+"            sipReleaseType%s(", userStateSuffix());
+
             if (generating_c || !isConstArg(ad))
-                prcode(fp,
-"            sipReleaseType(%a,sipType_%T,%aState);\n"
-                    , mod, ad, a, ad, mod, ad, a);
+                prcode(fp, "%a", mod, ad, a);
             else
-                prcode(fp,
-"            sipReleaseType(const_cast<%b *>(%a),sipType_%T,%aState);\n"
-                    , ad, mod, ad, a, ad, mod, ad, a);
+                prcode(fp, "const_cast<%b *>(%a)", ad, mod, ad, a);
+
+            prcode(fp, ", sipType_%T, %aState", ad, mod, ad, a);
+
+            if (abiVersion >= ABI_13_0)
+            {
+                if (typeNeedsUserState(ad))
+                    prcode(fp, ", %sUserState", mod, ad, a);
+                else
+                    prcode(fp, ", SIP_NULLPTR");
+            }
+
+            prcode(fp, ");\n"
+                );
         }
     }
 }
@@ -14063,7 +14135,7 @@ static const char *argName(const char *name, codeBlockList *cbl)
 /*
  * Returns TRUE if a string is used in code.
  */
-static int usedInCode(codeBlockList *cbl, const char *str)
+int usedInCode(codeBlockList *cbl, const char *str)
 {
     while (cbl != NULL)
     {
@@ -14849,4 +14921,26 @@ static void generateEnumMember(FILE *fp, enumMemberDef *emd, mappedTypeDef *mtd)
     if (!generating_c)
         prcode(fp, ")");
 
+}
+
+
+/*
+ * Return TRUE if a type needs user state to be provided.
+ */
+static int typeNeedsUserState(argDef *ad)
+{
+    if (ad->atype == class_type)
+        return needsUserState(ad->u.cd);
+
+    return mtNeedsUserState(ad->u.mtd);
+}
+
+
+/*
+ * Return the suffix for functions that have a variane that supports a user
+ * state.
+ */
+static const char *userStateSuffix()
+{
+    return abiVersion >= ABI_13_0 ? "US" : "";
 }
