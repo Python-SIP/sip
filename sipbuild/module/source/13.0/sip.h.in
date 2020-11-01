@@ -1415,14 +1415,16 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
  * These are the state flags returned by %ConvertToTypeCode.  Note that the
  * values share the same "flagspace" as the contents of sw_flags.
  */
-#define SIP_TEMPORARY       0x01    /* A temporary instance. */
-#define SIP_DERIVED_CLASS   0x02    /* The instance is derived. */
+#define SIP_TEMPORARY       0x0001  /* A temporary instance. */
+#define SIP_DERIVED_CLASS   0x0002  /* The instance is derived. */
+#define SIP_USER            0x0004  /* For use by the user. */
+#define SIP_RESERVED        0x0008  /* Reserved for future use by this ABI version. */
 
 
 /*
  * These flags are specific to the Qt support API.
  */
-#define SIP_SINGLE_SHOT     0x01    /* The connection is single shot. */
+#define SIP_SINGLE_SHOT     0x0001  /* The connection is single shot. */
 
 
 /*
@@ -1430,17 +1432,17 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
  */
 
 /* These are held in sw_flags. */
-#define SIP_INDIRECT        0x0004  /* If there is a level of indirection. */
-#define SIP_ACCFUNC         0x0008  /* If there is an access function. */
-#define SIP_NOT_IN_MAP      0x0010  /* If Python object is not in the map. */
+#define SIP_INDIRECT        0x0010  /* If there is a level of indirection. */
+#define SIP_ACCFUNC         0x0020  /* If there is an access function. */
+#define SIP_NOT_IN_MAP      0x0040  /* If Python object is not in the map. */
 
 #if !defined(Py_LIMITED_API)
-#define SIP_PY_OWNED        0x0020  /* If owned by Python. */
-#define SIP_SHARE_MAP       0x0040  /* If the map slot might be occupied. */
-#define SIP_CPP_HAS_REF     0x0080  /* If C/C++ has a reference. */
-#define SIP_POSSIBLE_PROXY  0x0100  /* If there might be a proxy slot. */
-#define SIP_ALIAS           0x0200  /* If it is an alias. */
-#define SIP_CREATED         0x0400  /* If the C/C++ object has been created. */
+#define SIP_PY_OWNED        0x0080  /* If owned by Python. */
+#define SIP_SHARE_MAP       0x0100  /* If the map slot might be occupied. */
+#define SIP_CPP_HAS_REF     0x0200  /* If C/C++ has a reference. */
+#define SIP_POSSIBLE_PROXY  0x0400  /* If there might be a proxy slot. */
+#define SIP_ALIAS           0x0800  /* If it is an alias. */
+#define SIP_CREATED         0x1000  /* If the C/C++ object has been created. */
 
 #define sipIsDerived(sw)    ((sw)->sw_flags & SIP_DERIVED_CLASS)
 #define sipIsIndirect(sw)   ((sw)->sw_flags & SIP_INDIRECT)
