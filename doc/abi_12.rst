@@ -1,8 +1,9 @@
-ABI v13 for Handwritten Code
+ABI v12 for Handwritten Code
 ============================
 
-In this section we describe the v13 of the ABI, provided by the :mod:`sip`
+In this section we describe the v12 of the ABI, provided by the :mod:`sip`
 module, that can be used by handwritten code in specification files.
+
 
 .. c:macro:: SIP_API_MAJOR_NR
 
@@ -79,11 +80,36 @@ module, that can be used by handwritten code in specification files.
         an opaque value provided to the handwritten code by SIP.
 
 
+.. c:macro:: SIP_SSIZE_T
+
+    .. deprecated:: 12.0
+        This will be removed in ABI v13, use ``Py_ssize_t`` instead.
+
+    This is a C preprocessor macro that is defined as ``Py_ssize_t``.
+
+
+.. c:macro:: SIP_SSIZE_T_FORMAT
+
+    .. deprecated:: 12.0
+        This will be removed in v13, use ``%zd`` instead.
+
+    This is a C preprocessor macro that is defined as ``%zd``.
+
+
 .. c:macro:: SIP_UNBLOCK_THREADS
 
     This is a C preprocessor macro that will restore the Python Global
     Interpreter Lock (GIL) to the state it was prior to the corresponding
     :c:macro:`SIP_BLOCK_THREADS`.
+
+
+.. c:macro:: SIP_USE_PYCAPSULE
+
+    .. deprecated:: 12.0
+        This will be removed in v13.  It will always be defined.
+
+    This is a C preprocessor symbol that is defined when ``PyCapsule`` objects
+    are being used rather than the (now deprecated) ``PyCObject`` objects.
 
 
 .. c:macro:: SIP_VERSION
@@ -546,8 +572,9 @@ module, that can be used by handwritten code in specification files.
     buffer protocol and so can be passed to other modules, again without the
     underlying memory being copied.
 
-    :class:`sip.array` objects are not supported by the code generator.  They
-    can only be created by handwritten code or by :func:`sip.voidptr.asarray`.
+    :class:`sip.array` objects are not supported by the :program:`sip5` code
+    generator.  They can only be created by handwritten code or by
+    :func:`sip.voidptr.asarray`.
 
     :param data:
         the address of the start of the C/C++ array.
@@ -598,31 +625,6 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: void *sipConvertToType(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, int *iserr)
 
     This converts a Python object to an instance of a C structure, C++ class or
-    mapped type similar to :c:func:`sipConvertToTypeUS()` but without support
-    for any user state.
-
-    :param obj:
-        the Python object.
-    :param td:
-        the type's :ref:`generated type structure <ref-type-structures>`.
-    :param transferObj:
-        this controls any ownership changes to *obj*.
-    :param flags:
-        any combination of the :c:macro:`SIP_NOT_NONE` and
-        :c:macro:`SIP_NO_CONVERTORS` flags.
-    :param state:
-        the state of the returned C/C++ instance is returned via this pointer.
-    :param iserr:
-        the error flag is passed and updated via this pointer.
-    :return:
-        the C/C++ instance.
-
-    See :c:func:`sipConvertToTypeUS()` for a full description of the arguments.
-
-
-.. c:function:: void *sipConvertToTypeUS(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, void **user_state, int *iserr)
-
-    This converts a Python object to an instance of a C structure, C++ class or
     mapped type assuming that a previous call to :c:func:`sipCanConvertToType()`
     has been successful.
 
@@ -637,9 +639,6 @@ module, that can be used by handwritten code in specification files.
         :c:macro:`SIP_NO_CONVERTORS` flags.
     :param state:
         the state of the returned C/C++ instance is returned via this pointer.
-    :param user_state:
-        any additional state of the returned C/C++ instance is returned via
-        this pointer.
     :param iserr:
         the error flag is passed and updated via this pointer.
     :return:
@@ -660,11 +659,6 @@ module, that can be used by handwritten code in specification files.
     by any :directive:`%ConvertToTypeCode`.  The calling code must then release
     the value at some point to prevent a memory leak by calling
     :c:func:`sipReleaseType()`.
-
-    If *user_state* is not ``NULL`` then the location it points to may be used
-    by the type convertor for any purpose, typically to store a pointer to
-    additional state on the heap.  Any such pointer is passed to the type's
-    corresponding :c:func:`sipReleaseTypeUS()` function.
     
     If there is an error then the location *iserr* points to is set to a
     non-zero value.  If it was initially a non-zero value then the conversion
@@ -684,8 +678,8 @@ module, that can be used by handwritten code in specification files.
     so can be passed to other modules, again without the underlying memory
     being copied.
 
-    :class:`sip.array` objects are not supported by the code generator.  They
-    can only be created by handwritten code.
+    :class:`sip.array` objects are not supported by the :program:`sip5` code
+    generator.  They can only be created by handwritten code.
 
     :param data:
         the address of the start of the C/C++ array.
@@ -770,6 +764,21 @@ module, that can be used by handwritten code in specification files.
         later on.  ``-1`` is returned if there was an error.
 
 
+.. c:function:: int sipEnableOverflowChecking(int enable)
+
+    This enables or disables the checking for overflows when converting Python
+    integer objects to C/C++ integer types.  When it is enabled an exception is
+    raised when the value of a Python integer object is too large to fit in the
+    corresponding C/C++ type.  By default it is disabled.
+
+    :param enable:
+        is greater than ``0`` if overflow checking should be enabled.
+    :return:
+        ``1`` or ``0`` depending on whether or not overflow chacking was
+        previously enabled.  This allows the previous state to be restored
+        later on.
+
+
 .. cpp:enum:: sipEventType
 
     This is the enum that defines the different event types.
@@ -821,20 +830,10 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: void *sipForceConvertToType(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, int *iserr)
 
     This converts a Python object to an instance of a C structure, C++ class or
-    mapped type similar to :c:func:`sipForceConvertToTypeUS()` but without
-    support for any user state.
-
-    See :c:func:`sipForceConvertToType()` for a full description of the
-    arguments.
-
-
-.. c:function:: void *sipForceConvertToTypeUS(PyObject *obj, const sipTypeDef *td, PyObject *transferObj, int flags, int *state, void **user_state, int *iserr)
-
-    This converts a Python object to an instance of a C structure, C++ class or
     mapped type by calling :c:func:`sipCanConvertToType()` and, if it is
-    successfull, calling :c:func:`sipConvertToTypeUS()`.
+    successfull, calling :c:func:`sipConvertToType()`.
 
-    See :c:func:`sipConvertToTypeUS()` for a full description of the arguments.
+    See :c:func:`sipConvertToType()` for a full description of the arguments.
 
 
 .. c:function:: void sipFree(void *mem)
@@ -966,6 +965,20 @@ module, that can be used by handwritten code in specification files.
         a non-zero value if the object is a Python datetime object.
 
 
+.. c:function:: struct _frame sipGetFrame(int depth)
+
+    This retrieves a frame object from the current execution stack.
+
+    .. note::
+        On PyPy this will always return NULL.
+
+    :param depth:
+        the depth of frame to retrieve where 0 is the current frame, 1 is the
+        previous frame etc.
+    :return:
+        the opaque frame or NULL if there wasn't one at the given depth.
+
+
 .. c:function:: PyInterpreterState *sipGetInterpreter()
 
     This returns the address of the Python interpreter.  If it is ``NULL`` then
@@ -1095,14 +1108,26 @@ module, that can be used by handwritten code in specification files.
         the Python object that wraps the destroyed instance.
 
 
-.. c:function:: int sipIsEnumFlag(PyObject *obj)
+.. c:function:: int sipIsAPIEnabled(const char *name, int from, int to)
 
-    This determines if an object is a sub-class of :py:class:`enum.Flag`.
+    .. deprecated:: 12.0
+        This will be removed in v13.
 
-    :param obj:
-        the object.
+    This checks to see if the current version number of an API falls within a
+    given range.
+
+    :param name:
+        the name of the API.
+    :param from:
+        the lower bound of the range.  For the API to be enabled its version
+        number must be greater than or equal to *from*.  If *from* is 0 then
+        this check isn't made.
+    :param to:
+        the upper bound of the range.  For the API to be enabled its version
+        number must be less than *to*.  If *to* is 0 then this check isn't
+        made.
     :return:
-        a non-zero value if the object is a :py:class:`enum.Flag` sub-class.
+        a non-zero value if the API is enabled.
 
 
 .. c:function:: int sipIsOwnedByPython(sipSimpleWrapper *obj)
@@ -1129,7 +1154,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: char sipLong_AsChar(PyObject *obj)
 
     This converts a Python object to a C/C++ char.  If the value is too large
-    then an exception is raised.
+    then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1140,7 +1165,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: signed char sipLong_AsSignedChar(PyObject *obj)
 
     This converts a Python object to a C/C++ signed char.  If the value is too
-    large then an exception is raised.
+    large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1151,7 +1176,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: unsigned char sipLong_AsUnsignedChar(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned char.  If the value is
-    too large then an exception is raised.
+    too large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1162,7 +1187,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: short sipLong_AsShort(PyObject *obj)
 
     This converts a Python object to a C/C++ short.  If the value is too large
-    then an exception is raised.
+    then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1173,7 +1198,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: unsigned short sipLong_AsUnsignedShort(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned short.  If the value is
-    too large then an exception is raised.
+    too large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1184,7 +1209,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: int sipLong_AsInt(PyObject *obj)
 
     This converts a Python object to a C/C++ int.  If the value is too large
-    then an exception is raised.
+    then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1195,7 +1220,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: unsigned int sipLong_AsUnsignedInt(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned int.  If the value is too
-    large then an exception is raised.
+    large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1206,7 +1231,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: size_t sipLong_AsSizeT(PyObject *obj)
 
     This converts a Python object to a C/C++ size_t.  If the value is too large
-    then an exception is raised.
+    then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1217,7 +1242,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: long sipLong_AsLong(PyObject *obj)
 
     This converts a Python object to a C/C++ long.  If the value is too large
-    then an exception is raised.
+    then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1228,7 +1253,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: unsigned long sipLong_AsUnsignedLong(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned long.  If the value is
-    too large then an exception is raised.
+    too large then an exception is raised if overflow checking is enabled.
 
     :param obj:
         the Python object.
@@ -1236,10 +1261,11 @@ module, that can be used by handwritten code in specification files.
         the converted C/C++ value.
 
 
-.. c:function:: long long sipLong_AsLongLong(PyObject *obj)
+.. c:function:: PY_LONG_LONG sipLong_AsLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ long long.  If the value is too
-    large then an exception is raised.
+    large then an exception is raised if overflow checking is enabled.  It is
+    not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
 
     :param obj:
         the Python object.
@@ -1247,10 +1273,11 @@ module, that can be used by handwritten code in specification files.
         the converted C/C++ value.
 
 
-.. c:function:: unsigned long long sipLong_AsUnsignedLongLong(PyObject *obj)
+.. c:function:: unsigned PY_LONG_LONG sipLong_AsUnsignedLongLong(PyObject *obj)
 
     This converts a Python object to a C/C++ unsigned long long.  If the value
-    is too large then an exception is raised.
+    is too large then an exception is raised if overflow checking is enabled.
+    It is not available if ``Python.h`` does not define ``HAVE_LONG_LONG``.
 
     :param obj:
         the Python object.
@@ -1606,9 +1633,9 @@ module, that can be used by handwritten code in specification files.
 
 .. c:function:: void sipReleaseType(void *cpp, const sipTypeDef *td, int state)
 
-    This releases a wrapped C/C++ or mapped type instance to the heap if it was
-    a temporary instance similar to :c:func:`sipReleaseTypeUS()` but without
-    support for any user state.
+    This destroys a wrapped C/C++ or mapped type instance if it was a temporary
+    instance.  It is called after a call to either :c:func:`sipConvertToType()`
+    or :c:func:`sipForceConvertToType()`.
     
     :param cpp:
         the C/C++ instance.
@@ -1616,25 +1643,6 @@ module, that can be used by handwritten code in specification files.
         the type's :ref:`generated type structure <ref-type-structures>`.
     :param state:
         describes the state of the C/C++ instance.
-    
-    See :c:func:`sipReleaseTypeUS()` for a full description of the arguments.
-
-
-.. c:function:: void sipReleaseTypeUS(void *cpp, const sipTypeDef *td, int state, void *user_state)
-
-    This releases a wrapped C/C++ or mapped type instance to the heap if it was
-    a temporary instance.  It is called after a call to either
-    :c:func:`sipConvertToTypeUS()` or :c:func:`sipForceConvertToTypeUS()`.
-    
-    :param cpp:
-        the C/C++ instance.
-    :param td:
-        the type's :ref:`generated type structure <ref-type-structures>`.
-    :param state:
-        describes the state of the C/C++ instance.
-    :param user_state:
-        the value set by the corresponding call to
-        :c:func:`sipConvertToTypeUS()` or :c:func:`sipForceConvertToTypeUS()`.
 
 
 .. c:function:: const char *sipResolveTypedef(const char *name)
@@ -1659,6 +1667,27 @@ module, that can be used by handwritten code in specification files.
     :param destroy:
         non-zero if all C++ instances and C structures owned by Python should
         be destroyed when the interpreter exits.  This is the default.
+
+
+.. c:function:: sipNewUserTypeFunc sipSetNewUserTypeHandler(const sipTypeDef *td, sipNewUserTypeFunc handler)
+
+    The allows a function to be specified that is called whenever a user
+    defined sub-class of a C/C++ type is created (i.e. one implemented in
+    Python).  It is normalled called from a module's
+    :directive:`%PostInitialisationCode`.  It is provided as an alternative to
+    providing a meta-type when the limited Python API is enabled.
+
+    :param td:
+        the :ref:`generated type structure <ref-type-structures>` corresponding
+        to the C/C++ type.
+    :param handler:
+        the function that is called whenever a user defined sub-class of the
+        type is created.  The function takes a single argument which is the
+        :c:type:`sipWrapperType` of the user defined class.  It returns an
+        ``int`` which is 0 if there was no error.  A Python exception is raised
+        and -1 returned if there was an error.
+    :return:
+        the previously installed handler.  This allows handlers to be chained.
 
 
 .. c:function:: void sipSetTypeUserData(sipWrapperType *type, void *data)

@@ -13,5 +13,6 @@ SIP Reference Guide
     other_topics
     c_api
     abi_13
+    abi_12
     pyproject_toml
     sipbuild_api
