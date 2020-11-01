@@ -370,6 +370,12 @@ SIP_SSIZE_T                 {
     return TK_TOTYPE;
 }
 
+^[ \t]*%ReleaseCode {
+    /* The start of a release code block. */
+    codeIdx = 0;
+    return TK_RELEASE;
+}
+
 ^[ \t]*%ConvertToSubClassCode {
     /* The start of a to-sub-class code block. */
     codeIdx = 0;

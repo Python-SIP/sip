@@ -165,8 +165,7 @@ static void generateNumberSlotCall(moduleDef *mod, overDef *od, char *op,
         FILE *fp);
 static void generateVariableGetter(ifaceFileDef *, varDef *, FILE *);
 static void generateVariableSetter(ifaceFileDef *, varDef *, FILE *);
-static void generateObjToCppConversion(argDef *ad, int has_state,
-        int has_user_state, FILE *fp);
+static void generateObjToCppConversion(argDef *ad, int has_state, FILE *fp);
 static void generateVarMember(varDef *vd, FILE *fp);
 static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
@@ -300,7 +299,7 @@ ifaceFileDef *pyEnumScopeIface(enumDef *ed);
 static void generateEnumMember(FILE *fp, enumMemberDef *emd,
         mappedTypeDef *mtd);
 static int typeNeedsUserState(argDef *ad);
-static const char *userStateSuffix();
+static const char *userStateSuffix(argDef *ad);
 
 
 /*
@@ -3649,6 +3648,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
     int nr_methods, nr_enums, has_ints, needs_namespace, plugin;
+    int need_state, need_user_state;
     memberDef *md;
 
     generateCppCodeBlock(mtd->typecode, fp);
@@ -3757,29 +3757,44 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "/* Call the mapped type's destructor. */\n"
             );
 
+        need_state = usedInCode(mtd->releasecode, "sipState");
+        need_user_state = usedInCode(mtd->releasecode, "sipUserState");
+
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static void release_%L(void *, int);}\n"
-                , mtd->iff);
+"extern \"C\" {static void release_%L(void *, int%s);}\n"
+                , mtd->iff, (abiVersion >= ABI_13_0 ? ", void *" : ""));
 
         prcode(fp,
-"static void release_%L(void *ptr, int%s)\n"
+"static void release_%L(void *sipCppV, int%s", mtd->iff, ((generating_c || need_state) ? " sipState" : ""));
+
+        if (abiVersion >= ABI_13_0)
+            prcode(fp, ", void *%s", (need_user_state ? "sipUserState" : ""));
+
+        prcode(fp, ")\n"
 "{\n"
-            , mtd->iff, (generating_c ? " status" : ""));
+"    ");
+
+        generateMappedTypeFromVoid(mtd, "sipCpp", "sipCppV", fp);
+
+        prcode(fp, ";\n"
+            );
 
         if (release_gil)
             prcode(fp,
 "    Py_BEGIN_ALLOW_THREADS\n"
                 );
 
-        if (generating_c)
+        if (mtd->releasecode != NULL)
+            generateCppCodeBlock(mtd->releasecode, fp);
+        else if (generating_c)
             prcode(fp,
-"    sipFree(ptr);\n"
+"    sipFree(sipCpp);\n"
                 );
         else
             prcode(fp,
-"    delete reinterpret_cast<%b *>(ptr);\n"
-                , &mtd->type);
+"    delete sipCpp);\n"
+                );
 
         if (release_gil)
             prcode(fp,
@@ -3878,7 +3893,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "        %n,     /* %s */\n"
 "        SIP_NULLPTR,\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
-        , (mtNeedsUserState(mtd) ? "SIP_TYPE_USER_STATE|" : "")
+        , (needsUserState(mtd) ? "SIP_TYPE_USER_STATE|" : "")
         , mtd->cname, mtd->cname->text);
 
     if (plugin)
@@ -4855,7 +4870,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     argType atype = vd->type.atype;
     const char *first_arg, *last_arg, *error_test;
     char *deref;
-    int has_state, has_user_state, keep, need_py, need_cpp;
+    int has_state, keep, need_py, need_cpp;
 
     /*
      * We need to keep a reference to the original Python object if it
@@ -4940,7 +4955,7 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         return;
     }
 
-    has_state = has_user_state = FALSE;
+    has_state = FALSE;
 
     if (atype == class_type || atype == mapped_type)
     {
@@ -4968,18 +4983,14 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
                     );
 
                 if (typeNeedsUserState(&vd->type))
-                {
-                    has_user_state = TRUE;
-
                     prcode(fp,
 "    void *sipValUserState;\n"
                         );
-                }
             }
         }
     }
 
-    generateObjToCppConversion(&vd->type, has_state, has_user_state, fp);
+    generateObjToCppConversion(&vd->type, has_state, fp);
 
     deref = "";
 
@@ -5048,9 +5059,9 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     {
         prcode(fp,
 "\n"
-"    sipReleaseType%s(sipVal, sipType_%T, sipValState", userStateSuffix(), &vd->type);
+"    sipReleaseType%s(sipVal, sipType_%T, sipValState", userStateSuffix(&vd->type), &vd->type);
 
-        if (has_user_state)
+        if (typeNeedsUserState(&vd->type))
             prcode(fp, ", sipValUserState");
 
         prcode(fp, ");\n"
@@ -5106,8 +5117,7 @@ static void generateVarMember(varDef *vd, FILE *fp)
  * Generate the declaration of a variable that is initialised from a Python
  * object.
  */
-static void generateObjToCppConversion(argDef *ad, int has_state,
-        int has_user_state, FILE *fp)
+static void generateObjToCppConversion(argDef *ad, int has_state, FILE *fp)
 {
     char *rhs = NULL;
 
@@ -5138,9 +5148,9 @@ static void generateObjToCppConversion(argDef *ad, int has_state,
              * all types).
              */
 
-            prcode(fp, "sipForceConvertToType%s(sipPy, sipType_%T, SIP_NULLPTR, %s, %s", userStateSuffix(), ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (has_state ? "SIP_NULLPTR" : "&sipValState"));
+            prcode(fp, "sipForceConvertToType%s(sipPy, sipType_%T, SIP_NULLPTR, %s, %s", userStateSuffix(ad), ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (has_state ? "SIP_NULLPTR" : "&sipValState"));
 
-            if (has_user_state)
+            if (typeNeedsUserState(ad))
                 prcode(fp, ", &sipValUserState");
 
             prcode(fp, ", &sipIsErr)%s;\n"
@@ -5851,9 +5861,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 , cd->iff);
 
         prcode(fp,
-"static void release_%L(void *%s, int%s)\n"
+"static void release_%L(void *%s, int%s)\n",
 "{\n"
-            , cd->iff, (need_ptr ? "sipCppV" : ""), (need_state ? " sipState" : ""));
+            , cd->iff, ((generating_c || need_ptr) ? "sipCppV" : ""), ((generating_c || need_state) ? " sipState" : ""));
 
         if (need_cast_ptr)
         {
@@ -5881,9 +5891,9 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
 
             /*
-             * If there is an explicit public dtor then assume there is some
-             * way to call it which we haven't worked out (because we don't
-             * fully understand C++).
+             * If there is an explicit public dtor then assume there is
+                 * some way to call it which we haven't worked out (because we
+                 * don't fully understand C++).
              */
 
             if (rgil)
@@ -9504,12 +9514,6 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
         sep = "|";
     }
 
-    if (needsUserState(cd))
-    {
-        prcode(fp, "%sSIP_TYPE_USER_STATE", sep);
-        sep = "|";
-    }
-
     if (cd->iff->type == namespace_iface)
     {
         prcode(fp, "%sSIP_TYPE_NAMESPACE", sep);
@@ -13051,7 +13055,7 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
                 else
                     prcode(fp, ", &%aState", mod, ad, a);
 
-                if (mtNeedsUserState(ad->u.mtd))
+                if (needsUserState(ad->u.mtd))
                     prcode(fp, ", &%aUserState", mod, ad, a);
             }
 
@@ -13073,9 +13077,6 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
                 {
                     prcode(fp, ", &%aState", mod, ad, a);
                 }
-
-                if (needsUserState(ad->u.cd))
-                    prcode(fp, ", &%aUserState", mod, ad, a);
             }
 
             break;
@@ -13288,7 +13289,7 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
                 continue;
 
             prcode(fp,
-"            sipReleaseType%s(", userStateSuffix());
+"            sipReleaseType%s(", userStateSuffix(ad));
 
             if (generating_c || !isConstArg(ad))
                 prcode(fp, "%a", mod, ad, a);
@@ -13297,13 +13298,8 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
 
             prcode(fp, ", sipType_%T, %aState", ad, mod, ad, a);
 
-            if (abiVersion >= ABI_13_0)
-            {
-                if (typeNeedsUserState(ad))
-                    prcode(fp, ", %sUserState", mod, ad, a);
-                else
-                    prcode(fp, ", SIP_NULLPTR");
-            }
+            if (typeNeedsUserState(ad))
+                prcode(fp, ", %sUserState", mod, ad, a);
 
             prcode(fp, ");\n"
                 );
@@ -14929,10 +14925,7 @@ static void generateEnumMember(FILE *fp, enumMemberDef *emd, mappedTypeDef *mtd)
  */
 static int typeNeedsUserState(argDef *ad)
 {
-    if (ad->atype == class_type)
-        return needsUserState(ad->u.cd);
-
-    return mtNeedsUserState(ad->u.mtd);
+    return (ad->atype == mapped_type && needsUserState(ad->u.mtd));
 }
 
 
@@ -14940,7 +14933,7 @@ static int typeNeedsUserState(argDef *ad)
  * Return the suffix for functions that have a variane that supports a user
  * state.
  */
-static const char *userStateSuffix()
+static const char *userStateSuffix(argDef *ad)
 {
-    return abiVersion >= ABI_13_0 ? "US" : "";
+    return (abiVersion >= ABI_13_0 && typeNeedsUserState(ad)) ? "US" : "";
 }

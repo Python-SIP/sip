@@ -84,95 +84,96 @@
      TK_INSTANCECODE = 300,
      TK_FROMTYPE = 301,
      TK_TOTYPE = 302,
-     TK_TOSUBCLASS = 303,
-     TK_INCLUDE = 304,
-     TK_IMPORT = 305,
-     TK_EXPHEADERCODE = 306,
-     TK_MODHEADERCODE = 307,
-     TK_TYPEHEADERCODE = 308,
-     TK_MODULE = 309,
-     TK_COMPOMODULE = 310,
-     TK_CLASS = 311,
-     TK_STRUCT = 312,
-     TK_PUBLIC = 313,
-     TK_PROTECTED = 314,
-     TK_PRIVATE = 315,
-     TK_SIGNALS = 316,
-     TK_SIGNAL_METHOD = 317,
-     TK_SLOTS = 318,
-     TK_SLOT_METHOD = 319,
-     TK_BOOL = 320,
-     TK_SHORT = 321,
-     TK_INT = 322,
-     TK_LONG = 323,
-     TK_FLOAT = 324,
-     TK_DOUBLE = 325,
-     TK_CHAR = 326,
-     TK_WCHAR_T = 327,
-     TK_VOID = 328,
-     TK_PYOBJECT = 329,
-     TK_PYTUPLE = 330,
-     TK_PYLIST = 331,
-     TK_PYDICT = 332,
-     TK_PYCALLABLE = 333,
-     TK_PYSLICE = 334,
-     TK_PYTYPE = 335,
-     TK_PYBUFFER = 336,
-     TK_PYENUM = 337,
-     TK_VIRTUAL = 338,
-     TK_ENUM = 339,
-     TK_SIGNED = 340,
-     TK_UNSIGNED = 341,
-     TK_SCOPE = 342,
-     TK_LOGICAL_OR = 343,
-     TK_CONST = 344,
-     TK_STATIC = 345,
-     TK_PYSSIZET = 346,
-     TK_SIZET = 347,
-     TK_NUMBER_VALUE = 348,
-     TK_REAL_VALUE = 349,
-     TK_TYPEDEF = 350,
-     TK_NAMESPACE = 351,
-     TK_TIMELINE = 352,
-     TK_PLATFORMS = 353,
-     TK_FEATURE = 354,
-     TK_LICENSE = 355,
-     TK_QCHAR_VALUE = 356,
-     TK_TRUE_VALUE = 357,
-     TK_FALSE_VALUE = 358,
-     TK_NULL_VALUE = 359,
-     TK_OPERATOR = 360,
-     TK_THROW = 361,
-     TK_EXCEPTION = 362,
-     TK_RAISECODE = 363,
-     TK_EXPLICIT = 364,
-     TK_TEMPLATE = 365,
-     TK_FINAL = 366,
-     TK_ELLIPSIS = 367,
-     TK_DEFMETATYPE = 368,
-     TK_DEFSUPERTYPE = 369,
-     TK_PROPERTY = 370,
-     TK_HIDE_NS = 371,
-     TK_FORMAT = 372,
-     TK_GET = 373,
-     TK_ID = 374,
-     TK_KWARGS = 375,
-     TK_LANGUAGE = 376,
-     TK_LICENSEE = 377,
-     TK_NAME = 378,
-     TK_OPTIONAL = 379,
-     TK_ORDER = 380,
-     TK_REMOVELEADING = 381,
-     TK_SET = 382,
-     TK_SIGNATURE = 383,
-     TK_TIMESTAMP = 384,
-     TK_TYPE = 385,
-     TK_USEARGNAMES = 386,
-     TK_USELIMITEDAPI = 387,
-     TK_ALLRAISEPYEXC = 388,
-     TK_CALLSUPERINIT = 389,
-     TK_DEFERRORHANDLER = 390,
-     TK_VERSION = 391
+     TK_RELEASE = 303,
+     TK_TOSUBCLASS = 304,
+     TK_INCLUDE = 305,
+     TK_IMPORT = 306,
+     TK_EXPHEADERCODE = 307,
+     TK_MODHEADERCODE = 308,
+     TK_TYPEHEADERCODE = 309,
+     TK_MODULE = 310,
+     TK_COMPOMODULE = 311,
+     TK_CLASS = 312,
+     TK_STRUCT = 313,
+     TK_PUBLIC = 314,
+     TK_PROTECTED = 315,
+     TK_PRIVATE = 316,
+     TK_SIGNALS = 317,
+     TK_SIGNAL_METHOD = 318,
+     TK_SLOTS = 319,
+     TK_SLOT_METHOD = 320,
+     TK_BOOL = 321,
+     TK_SHORT = 322,
+     TK_INT = 323,
+     TK_LONG = 324,
+     TK_FLOAT = 325,
+     TK_DOUBLE = 326,
+     TK_CHAR = 327,
+     TK_WCHAR_T = 328,
+     TK_VOID = 329,
+     TK_PYOBJECT = 330,
+     TK_PYTUPLE = 331,
+     TK_PYLIST = 332,
+     TK_PYDICT = 333,
+     TK_PYCALLABLE = 334,
+     TK_PYSLICE = 335,
+     TK_PYTYPE = 336,
+     TK_PYBUFFER = 337,
+     TK_PYENUM = 338,
+     TK_VIRTUAL = 339,
+     TK_ENUM = 340,
+     TK_SIGNED = 341,
+     TK_UNSIGNED = 342,
+     TK_SCOPE = 343,
+     TK_LOGICAL_OR = 344,
+     TK_CONST = 345,
+     TK_STATIC = 346,
+     TK_PYSSIZET = 347,
+     TK_SIZET = 348,
+     TK_NUMBER_VALUE = 349,
+     TK_REAL_VALUE = 350,
+     TK_TYPEDEF = 351,
+     TK_NAMESPACE = 352,
+     TK_TIMELINE = 353,
+     TK_PLATFORMS = 354,
+     TK_FEATURE = 355,
+     TK_LICENSE = 356,
+     TK_QCHAR_VALUE = 357,
+     TK_TRUE_VALUE = 358,
+     TK_FALSE_VALUE = 359,
+     TK_NULL_VALUE = 360,
+     TK_OPERATOR = 361,
+     TK_THROW = 362,
+     TK_EXCEPTION = 363,
+     TK_RAISECODE = 364,
+     TK_EXPLICIT = 365,
+     TK_TEMPLATE = 366,
+     TK_FINAL = 367,
+     TK_ELLIPSIS = 368,
+     TK_DEFMETATYPE = 369,
+     TK_DEFSUPERTYPE = 370,
+     TK_PROPERTY = 371,
+     TK_HIDE_NS = 372,
+     TK_FORMAT = 373,
+     TK_GET = 374,
+     TK_ID = 375,
+     TK_KWARGS = 376,
+     TK_LANGUAGE = 377,
+     TK_LICENSEE = 378,
+     TK_NAME = 379,
+     TK_OPTIONAL = 380,
+     TK_ORDER = 381,
+     TK_REMOVELEADING = 382,
+     TK_SET = 383,
+     TK_SIGNATURE = 384,
+     TK_TIMESTAMP = 385,
+     TK_TYPE = 386,
+     TK_USEARGNAMES = 387,
+     TK_USELIMITEDAPI = 388,
+     TK_ALLRAISEPYEXC = 389,
+     TK_CALLSUPERINIT = 390,
+     TK_DEFERRORHANDLER = 391,
+     TK_VERSION = 392
    };
 #endif
 /* Tokens.  */
@@ -221,102 +222,103 @@
 #define TK_INSTANCECODE 300
 #define TK_FROMTYPE 301
 #define TK_TOTYPE 302
-#define TK_TOSUBCLASS 303
-#define TK_INCLUDE 304
-#define TK_IMPORT 305
-#define TK_EXPHEADERCODE 306
-#define TK_MODHEADERCODE 307
-#define TK_TYPEHEADERCODE 308
-#define TK_MODULE 309
-#define TK_COMPOMODULE 310
-#define TK_CLASS 311
-#define TK_STRUCT 312
-#define TK_PUBLIC 313
-#define TK_PROTECTED 314
-#define TK_PRIVATE 315
-#define TK_SIGNALS 316
-#define TK_SIGNAL_METHOD 317
-#define TK_SLOTS 318
-#define TK_SLOT_METHOD 319
-#define TK_BOOL 320
-#define TK_SHORT 321
-#define TK_INT 322
-#define TK_LONG 323
-#define TK_FLOAT 324
-#define TK_DOUBLE 325
-#define TK_CHAR 326
-#define TK_WCHAR_T 327
-#define TK_VOID 328
-#define TK_PYOBJECT 329
-#define TK_PYTUPLE 330
-#define TK_PYLIST 331
-#define TK_PYDICT 332
-#define TK_PYCALLABLE 333
-#define TK_PYSLICE 334
-#define TK_PYTYPE 335
-#define TK_PYBUFFER 336
-#define TK_PYENUM 337
-#define TK_VIRTUAL 338
-#define TK_ENUM 339
-#define TK_SIGNED 340
-#define TK_UNSIGNED 341
-#define TK_SCOPE 342
-#define TK_LOGICAL_OR 343
-#define TK_CONST 344
-#define TK_STATIC 345
-#define TK_PYSSIZET 346
-#define TK_SIZET 347
-#define TK_NUMBER_VALUE 348
-#define TK_REAL_VALUE 349
-#define TK_TYPEDEF 350
-#define TK_NAMESPACE 351
-#define TK_TIMELINE 352
-#define TK_PLATFORMS 353
-#define TK_FEATURE 354
-#define TK_LICENSE 355
-#define TK_QCHAR_VALUE 356
-#define TK_TRUE_VALUE 357
-#define TK_FALSE_VALUE 358
-#define TK_NULL_VALUE 359
-#define TK_OPERATOR 360
-#define TK_THROW 361
-#define TK_EXCEPTION 362
-#define TK_RAISECODE 363
-#define TK_EXPLICIT 364
-#define TK_TEMPLATE 365
-#define TK_FINAL 366
-#define TK_ELLIPSIS 367
-#define TK_DEFMETATYPE 368
-#define TK_DEFSUPERTYPE 369
-#define TK_PROPERTY 370
-#define TK_HIDE_NS 371
-#define TK_FORMAT 372
-#define TK_GET 373
-#define TK_ID 374
-#define TK_KWARGS 375
-#define TK_LANGUAGE 376
-#define TK_LICENSEE 377
-#define TK_NAME 378
-#define TK_OPTIONAL 379
-#define TK_ORDER 380
-#define TK_REMOVELEADING 381
-#define TK_SET 382
-#define TK_SIGNATURE 383
-#define TK_TIMESTAMP 384
-#define TK_TYPE 385
-#define TK_USEARGNAMES 386
-#define TK_USELIMITEDAPI 387
-#define TK_ALLRAISEPYEXC 388
-#define TK_CALLSUPERINIT 389
-#define TK_DEFERRORHANDLER 390
-#define TK_VERSION 391
+#define TK_RELEASE 303
+#define TK_TOSUBCLASS 304
+#define TK_INCLUDE 305
+#define TK_IMPORT 306
+#define TK_EXPHEADERCODE 307
+#define TK_MODHEADERCODE 308
+#define TK_TYPEHEADERCODE 309
+#define TK_MODULE 310
+#define TK_COMPOMODULE 311
+#define TK_CLASS 312
+#define TK_STRUCT 313
+#define TK_PUBLIC 314
+#define TK_PROTECTED 315
+#define TK_PRIVATE 316
+#define TK_SIGNALS 317
+#define TK_SIGNAL_METHOD 318
+#define TK_SLOTS 319
+#define TK_SLOT_METHOD 320
+#define TK_BOOL 321
+#define TK_SHORT 322
+#define TK_INT 323
+#define TK_LONG 324
+#define TK_FLOAT 325
+#define TK_DOUBLE 326
+#define TK_CHAR 327
+#define TK_WCHAR_T 328
+#define TK_VOID 329
+#define TK_PYOBJECT 330
+#define TK_PYTUPLE 331
+#define TK_PYLIST 332
+#define TK_PYDICT 333
+#define TK_PYCALLABLE 334
+#define TK_PYSLICE 335
+#define TK_PYTYPE 336
+#define TK_PYBUFFER 337
+#define TK_PYENUM 338
+#define TK_VIRTUAL 339
+#define TK_ENUM 340
+#define TK_SIGNED 341
+#define TK_UNSIGNED 342
+#define TK_SCOPE 343
+#define TK_LOGICAL_OR 344
+#define TK_CONST 345
+#define TK_STATIC 346
+#define TK_PYSSIZET 347
+#define TK_SIZET 348
+#define TK_NUMBER_VALUE 349
+#define TK_REAL_VALUE 350
+#define TK_TYPEDEF 351
+#define TK_NAMESPACE 352
+#define TK_TIMELINE 353
+#define TK_PLATFORMS 354
+#define TK_FEATURE 355
+#define TK_LICENSE 356
+#define TK_QCHAR_VALUE 357
+#define TK_TRUE_VALUE 358
+#define TK_FALSE_VALUE 359
+#define TK_NULL_VALUE 360
+#define TK_OPERATOR 361
+#define TK_THROW 362
+#define TK_EXCEPTION 363
+#define TK_RAISECODE 364
+#define TK_EXPLICIT 365
+#define TK_TEMPLATE 366
+#define TK_FINAL 367
+#define TK_ELLIPSIS 368
+#define TK_DEFMETATYPE 369
+#define TK_DEFSUPERTYPE 370
+#define TK_PROPERTY 371
+#define TK_HIDE_NS 372
+#define TK_FORMAT 373
+#define TK_GET 374
+#define TK_ID 375
+#define TK_KWARGS 376
+#define TK_LANGUAGE 377
+#define TK_LICENSEE 378
+#define TK_NAME 379
+#define TK_OPTIONAL 380
+#define TK_ORDER 381
+#define TK_REMOVELEADING 382
+#define TK_SET 383
+#define TK_SIGNATURE 384
+#define TK_TIMESTAMP 385
+#define TK_TYPE 386
+#define TK_USEARGNAMES 387
+#define TK_USELIMITEDAPI 388
+#define TK_ALLRAISEPYEXC 389
+#define TK_CALLSUPERINIT 390
+#define TK_DEFERRORHANDLER 391
+#define TK_VERSION 392
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 200 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
+#line 202 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 {
     char            qchar;
     char            *text;
@@ -360,7 +362,7 @@ typedef union YYSTYPE
     int             token;
 }
 /* Line 1529 of yacc.c.  */
-#line 364 "/Users/phil/hg/sip/code_generator/parser.h"
+#line 366 "/Users/phil/hg/sip/code_generator/parser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

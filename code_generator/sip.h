@@ -223,7 +223,6 @@
 #define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
 #define CLASS2_NEEDS_SHADOW 0x20        /* The class needs a shadow class. */
 #define CLASS2_COPY_HELPER  0x40        /* Generate a copy helper. */
-#define CLASS2_USER_STATE   0x80        /* The convertors need user state. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -240,8 +239,6 @@
 #define setNeedsShadow(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_SHADOW)
 #define copyHelper(cd)      ((cd)->classflags2 & CLASS2_COPY_HELPER)
 #define setCopyHelper(cd)   ((cd)->classflags2 |= CLASS2_COPY_HELPER)
-#define needsUserState(cd)  ((cd)->classflags2 & CLASS2_USER_STATE)
-#define setNeedsUserState(cd)   ((cd)->classflags2 |= CLASS2_USER_STATE)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -542,8 +539,8 @@
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
 #define handlesNone(mt)     ((mt)->mtflags & MT_ALLOW_NONE)
 #define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
-#define mtNeedsUserState(mt)    ((mt)->mtflags & MT_USER_STATE)
-#define setMtNeedsUserState(mt) ((mt)->mtflags |= MT_USER_STATE)
+#define needsUserState(mt)  ((mt)->mtflags & MT_USER_STATE)
+#define setNeedsUserState(mt)   ((mt)->mtflags |= MT_USER_STATE)
 
 
 /* Handle typedef flags. */
@@ -1041,6 +1038,7 @@ typedef struct _mappedTypeDef {
     codeBlockList *typecode;            /* Type code. */
     codeBlockList *convfromcode;        /* Convert from C++ code. */
     codeBlockList *convtocode;          /* Convert to C++ code. */
+    codeBlockList *releasecode;         /* Release code. */
     struct _mappedTypeDef *real;        /* The original definition. */
     struct _mappedTypeDef *next;        /* Next in the list. */
 } mappedTypeDef;

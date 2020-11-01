@@ -223,7 +223,8 @@ typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
 typedef void (*sipAssignFunc)(void *, Py_ssize_t, void *);
 typedef void *(*sipArrayFunc)(Py_ssize_t);
 typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
-typedef void (*sipReleaseFunc)(void *, int, void *);
+typedef void (*sipReleaseFunc)(void *, int);
+typedef void (*sipReleaseUSFunc)(void *, int, void *);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef int (*sipAttrGetterFunc)(const sipTypeDef *, PyObject *);
 typedef PyObject *(*sipVariableGetterFunc)(void *, PyObject *, PyObject *);
@@ -822,7 +823,7 @@ typedef struct _sipMappedTypeDef {
     sipCopyFunc mtd_copy;
 
     /* The optional release function. */
-    sipReleaseFunc mtd_release;
+    sipReleaseUSFunc mtd_release;
 
     /* The optional convert to function. */
     sipConvertToFunc mtd_cto;

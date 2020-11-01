@@ -3043,6 +3043,10 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
         mtd->convtocode = templateCode(pt, &mtd->iff->used,
                 mtt->mt->convtocode, type_names, type_values);
 
+    if (mtt->mt->releasecode != NULL)
+        mtd->releasecode = templateCode(pt, &mtd->iff->used,
+                mtt->mt->releasecode, type_names, type_values);
+
     mtd->next = pt->mappedtypes;
     pt->mappedtypes = mtd;
 

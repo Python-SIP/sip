@@ -8118,11 +8118,9 @@ static void sip_api_release_type_us(void *cpp, const sipTypeDef *td, int state,
 static void release(void *addr, const sipTypeDef *td, int state,
         void *user_state)
 {
-    sipReleaseFunc rel;
-
     if (sipTypeIsClass(td))
     {
-        rel = ((const sipClassTypeDef *)td)->ctd_release;
+        sipReleaseFunc rel = ((const sipClassTypeDef *)td)->ctd_release;
 
         /*
          * If there is no release function then it must be a C structure and we
@@ -8131,11 +8129,11 @@ static void release(void *addr, const sipTypeDef *td, int state,
         if (rel == NULL)
             sip_api_free(addr);
         else
-            rel(addr, state, user_state);
+            rel(addr, state);
     }
     else if (sipTypeIsMapped(td))
     {
-        rel = ((const sipMappedTypeDef *)td)->mtd_release;
+        sipReleaseUSFunc rel = ((const sipMappedTypeDef *)td)->mtd_release;
 
         if (rel != NULL)
             rel(addr, state, user_state);

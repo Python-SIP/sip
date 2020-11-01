@@ -194,6 +194,8 @@ static void add_new_deref(argDef *new, argDef *orig, int isconst);
 static void add_derefs(argDef *dst, argDef *src);
 static int isBackstop(qualDef *qd);
 static void checkEllipsis(signatureDef *sd);
+static int checkUserState(codeBlockList *convtocode,
+        codeBlockList *releasecode);
 static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %}
 
@@ -292,6 +294,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_INSTANCECODE
 %token          TK_FROMTYPE
 %token          TK_TOTYPE
+%token          TK_RELEASE
 %token          TK_TOSUBCLASS
 %token          TK_INCLUDE
 %token          TK_IMPORT
@@ -1131,8 +1134,8 @@ mtdefinition:   '{' mtbody '}' ';' {
             {
                 if (abiVersion >= ABI_13_0)
                 {
-                    if (usedInCode(currentMappedType->convtocode, "sipUserState"))
-                        setMtNeedsUserState(currentMappedType);
+                    if (checkUserState(currentMappedType->convtocode, currentMappedType->releasecode))
+                        setNeedsUserState(currentMappedType);
                 }
                 else
                 {
@@ -1178,6 +1181,15 @@ mtline: ifstart
                     yyerror("%MappedType has more than one %ConvertToTypeCode directive");
 
                 appendCodeBlock(&currentMappedType->convtocode, $2);
+            }
+        }
+    |   TK_RELEASE codeblock {
+            if (notSkipping())
+            {
+                if (currentMappedType->releasecode != NULL)
+                    yyerror("%MappedType has more than one %ReleaseCode directive");
+
+                appendCodeBlock(&currentMappedType->releasecode, $2);
             }
         }
     |   instancecode {
@@ -4838,9 +4850,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (cd->convtocode != NULL && getAllowNone(of))
             setClassHandlesNone(cd);
-
-        if (abiVersion >= ABI_13_0 && usedInCode(cd->convtocode, "sipUserState"))
-            setNeedsUserState(cd);
 
         if (getOptFlag(of,"Abstract",bool_flag) != NULL)
 
@@ -9064,4 +9073,22 @@ static void checkEllipsis(signatureDef *sd)
     for (a = 0; a < sd->nrArgs; ++a)
         if (sd->args[a].atype == ellipsis_type && a < sd->nrArgs - 1)
             yyerror("An ellipsis must be at the end of the argument list if /NoArgParser/ is not specified");
+}
+
+
+/*
+ * Check the usage of user state and return TRUE if it is used.
+ */
+static int checkUserState(codeBlockList *convtocode,
+        codeBlockList *releasecode)
+{
+    int convto_us, release_us;
+
+    convto_us = usedInCode(convtocode, "sipUserState");
+    release_us = usedInCode(releasecode, "sipUserState");
+
+    if (convto_us != release_us)
+        yyerror("Both %%ConvertToTypeCode and %%ReleaseCode must use user state or neither must");
+
+    return convto_us;
 }
