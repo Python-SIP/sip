@@ -608,6 +608,22 @@ it.
     mapped type similar to :c:func:`sipConvertToTypeUS()` but without support
     for any user state.
 
+    :param obj:
+        the Python object.
+    :param td:
+        the type's :ref:`generated type structure <ref-type-structures>`.
+    :param transferObj:
+        this controls any ownership changes to *obj*.
+    :param flags:
+        any combination of the :c:macro:`SIP_NOT_NONE` and
+        :c:macro:`SIP_NO_CONVERTORS` flags.
+    :param state:
+        the state of the returned C/C++ instance is returned via this pointer.
+    :param iserr:
+        the error flag is passed and updated via this pointer.
+    :return:
+        the C/C++ instance.
+
     See :c:func:`sipConvertToTypeUS()` for a full description of the arguments.
 
 
@@ -629,7 +645,8 @@ it.
     :param state:
         the state of the returned C/C++ instance is returned via this pointer.
     :param user_state:
-        the state of the returned C/C++ instance is returned via this pointer.
+        any additional state of the returned C/C++ instance is returned via
+        this pointer.
     :param iserr:
         the error flag is passed and updated via this pointer.
     :return:
@@ -794,7 +811,7 @@ it.
     mapped type similar to :c:func:`sipForceConvertToTypeUS()` but without
     support for any user state.
 
-    See :c:func:`sipForceConvertToTypeUS()` for a full description of the
+    See :c:func:`sipForceConvertToType()` for a full description of the
     arguments.
 
 
@@ -1559,17 +1576,24 @@ it.
 
 .. c:function:: void sipReleaseType(void *cpp, const sipTypeDef *td, int state)
 
-    This destroys a wrapped C/C++ or mapped type instance if it was a temporary
-    instance similar to :c:func:`sipReleaseTypeUS()` but without support for
-    any user state.
+    This releases a wrapped C/C++ or mapped type instance to the heap if it was
+    a temporary instance similar to :c:func:`sipReleaseTypeUS()` but without
+    support for any user state.
+    
+    :param cpp:
+        the C/C++ instance.
+    :param td:
+        the type's :ref:`generated type structure <ref-type-structures>`.
+    :param state:
+        describes the state of the C/C++ instance.
     
     See :c:func:`sipReleaseTypeUS()` for a full description of the arguments.
 
 
 .. c:function:: void sipReleaseTypeUS(void *cpp, const sipTypeDef *td, int state, void *user_state)
 
-    This destroys a wrapped C/C++ or mapped type instance if it was a temporary
-    instance.  It is called after a call to either
+    This releases a wrapped C/C++ or mapped type instance to the heap if it was
+    a temporary instance.  It is called after a call to either
     :c:func:`sipConvertToTypeUS()` or :c:func:`sipForceConvertToTypeUS()`.
     
     :param cpp:

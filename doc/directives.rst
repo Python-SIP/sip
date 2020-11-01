@@ -414,10 +414,10 @@ PyObject \*sipTransferObj
     code can choose to interpret these changes in any way.
 
 void \*\*sipUserStatePtr
-    This is a pointer through which the convertor can store additional state
-    information.  Any value set will be passed to the code defined by the
-    corresponding :directive:`%ReleaseCode` directive invoked by a call to
-    :c:func:`sipReleaseTypeUS()`.
+    This is a pointer through which a mapped type convertor can store
+    additional state information.  Any value set will be passed to the code
+    defined by the corresponding :directive:`%ReleaseCode` directive invoked by
+    a call to :c:func:`sipReleaseTypeUS()`.
 
 The handwritten code must explicitly return an ``int`` the meaning of which
 depends on the value of ``sipIsErr``.
@@ -430,13 +430,16 @@ If ``sipIsErr`` is not ``NULL`` then a combination of the following flags is
 returned.
 
     - :c:macro:`SIP_TEMPORARY` is set to indicate that the returned instance is
-      a temporary and should be released, by calling
-      :c:func:`sipReleaseTypeUS()`, to avoid a memory leak.
+      a temporary and should be released, by calling :c:func:`sipReleaseType()`
+      or :c:func:`sipReleaseTypeUS()`, to avoid a memory leak.
 
-    - :c:macro:`SIP_DERIVED_CLASS` is set to indicate that the type of the
-      returned instance is a derived class.  This is ignored unless the
-      directive is part of a class specification.  See
+    - :c:macro:`SIP_DERIVED_CLASS` is set by a class convertor to indicate that
+      the type of the returned instance is a derived class.  See
       :ref:`ref-derived-classes`.
+
+    - :c:macro:`SIP_USER` is a flag that can be returned by a mapped type
+      convertor.  It will be passed to the code defined by a corresponding
+      :directive:`%ReleaseCode` directive.
 
 The following example converts a Python list of ``QPoint`` instances to a
 ``QList<QPoint>`` instance::
@@ -1334,6 +1337,7 @@ For example::
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
+        [:directive:`%ReleaseCode`]
     };
 
     %MappedType *type*
@@ -1341,6 +1345,7 @@ For example::
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
+        [:directive:`%ReleaseCode`]
     };
 
 This directive is used to define an automatic mapping between a C or C++ type
@@ -1367,6 +1372,9 @@ type.
 The optional :directive:`%ConvertFromTypeCode` sub-directive is used to specify
 the handwritten code that converts an instance of the mapped type to a Python
 object.
+
+The optional :directive:`%ReleaseCode` sub-directive is used to specify the
+handwritten code that releases an instance of the mapped type to the heap.
 
 For example::
 
@@ -2013,6 +2021,35 @@ The following variable is made available to the handwritten code:
     reference is the same as the type defined in the ``throw ()`` specifier.
 
 See the :directive:`%Exception` directive for an example.
+
+
+.. directive:: %ReleaseCode
+
+:directive:`%ReleaseCode`
+-------------------------
+
+.. parsed-literal::
+    %ReleaseCode
+        *code*
+    %End
+
+This directive is used to specify handwritten code that releases a C/C++
+instance to the heap.  By default a C instance is released by calling
+:c:func:`sipFree()` and a C++ instance is released by calling its destructor.
+It is specified as part of the :directive:`%MappedType` directive.
+
+The following variables are made available to the handwritten code:
+
+*type* \*sipCpp
+    This is a pointer to the C/C++ instance.
+
+int sipState
+    This is the value of the :c:macro:`SIP_USER` returned by the code specified
+    by the corresponding :directive:`%ConvertToTypeCode` directive.
+
+void \*sipUserState
+    This is the value of the pointer saved by the code specified by the
+    corresponding :directive:`%ConvertToTypeCode` directive.
 
 
 .. directive:: %SetCode
