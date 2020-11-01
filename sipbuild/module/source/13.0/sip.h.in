@@ -264,6 +264,9 @@ struct _sipWrapperType {
      * type is garbage collected.
      */
     void *wt_user_data;
+
+    /* Reserved for future use by this ABI version. */
+    void *wt_reserved; 
 };
 
 
@@ -296,6 +299,9 @@ struct _sipSimpleWrapper {
 
     /* The main instance if this is a mixin. */
     PyObject *mixin_main;
+
+    /* Reserved for future use by this ABI version. */
+    void *reserved; 
 
     /* Next object at this address. */
     struct _sipSimpleWrapper *next;
