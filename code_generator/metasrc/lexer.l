@@ -290,6 +290,14 @@ SIP_SSIZE_T                 {
 }
 
 
+\'\\x[0-9a-fA-F]+\' {
+    /* A single-quoted hex encoded character. */
+    yylval.qchar = strtol(&yytext[3], NULL, 16);
+
+    return TK_QCHAR_VALUE;
+}
+
+
 \'[^'\n]*['\n] {
     /* A single-quoted character. */
     if (strlen(yytext) != 3)
