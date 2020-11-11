@@ -3793,7 +3793,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
                 );
         else
             prcode(fp,
-"    delete sipCpp);\n"
+"    delete sipCpp;\n"
                 );
 
         if (release_gil)
@@ -13299,7 +13299,7 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
             prcode(fp, ", sipType_%T, %aState", ad, mod, ad, a);
 
             if (typeNeedsUserState(ad))
-                prcode(fp, ", %sUserState", mod, ad, a);
+                prcode(fp, ", %aUserState", mod, ad, a);
 
             prcode(fp, ");\n"
                 );
