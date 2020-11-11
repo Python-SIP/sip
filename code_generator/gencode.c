@@ -3891,11 +3891,11 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     prcode(fp,
 "        SIP_NULLPTR,\n"
 "        %s%sSIP_TYPE_MAPPED,\n"
-"        %n,     /* %s */\n"
+"        %n,\n"
 "        SIP_NULLPTR,\n"
         , (handlesNone(mtd) ? "SIP_TYPE_ALLOW_NONE|" : "")
         , (needsUserState(mtd) ? "SIP_TYPE_USER_STATE|" : "")
-        , mtd->cname, mtd->cname->text);
+        , mtd->cname);
 
     if (plugin)
         prcode(fp,
@@ -4391,7 +4391,7 @@ static void generateConvertToDefinitions(mappedTypeDef *mtd,classDef *cd,
             , iff, (need_py ? "sipPy" : ""), (need_ptr ? "sipCppPtrV" : ""), (need_iserr ? "sipIsErr" : ""), (need_xfer ? "sipTransferObj" : ""));
 
         if (need_us_arg)
-            prcode(fp, ", void **", (need_us_val ? "sipUserStatePtr" : ""));
+            prcode(fp, ", void **%s", (need_us_val ? "sipUserStatePtr" : ""));
 
         prcode(fp, ")\n"
 "{\n"
@@ -14935,7 +14935,7 @@ static int typeNeedsUserState(argDef *ad)
 
 
 /*
- * Return the suffix for functions that have a variane that supports a user
+ * Return the suffix for functions that have a variant that supports a user
  * state.
  */
 static const char *userStateSuffix(argDef *ad)
