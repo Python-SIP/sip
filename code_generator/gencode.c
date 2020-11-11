@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "sip.h"
 
@@ -13533,12 +13534,16 @@ void prcode(FILE *fp, const char *fmt, ...)
 
             case 'c':
                 {
-                    char c = (char)va_arg(ap,int);
+                    char c = (char)va_arg(ap, int);
 
                     if (c == '\n')
                         ++currentLineNr;
 
-                    fputc(c,fp);
+                    if (isprint(c))
+                        fputc(c, fp);
+                    else
+                        fprintf(fp, "\\x%02x", (int)c);
+
                     break;
                 }
 
