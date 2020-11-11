@@ -5861,7 +5861,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 , cd->iff);
 
         prcode(fp,
-"static void release_%L(void *%s, int%s)\n",
+"static void release_%L(void *%s, int%s)\n"
 "{\n"
             , cd->iff, ((generating_c || need_ptr) ? "sipCppV" : ""), ((generating_c || need_state) ? " sipState" : ""));
 
