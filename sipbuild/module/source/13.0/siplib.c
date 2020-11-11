@@ -11630,6 +11630,7 @@ static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
         bi->bi_buf = buffer->buf;
         bi->bi_obj = buffer->obj;
         bi->bi_len = buffer->len;
+        bi->bi_readonly = buffer->readonly;
         bi->bi_format = buffer->format;
 
         rc = 1;

@@ -442,8 +442,8 @@ struct _sipBufferInfoDef {
     /* The length of the buffer in bytes. */
     Py_ssize_t bi_len;
 
-    /* The number of dimensions. */
-    int bi_ndim;
+    /* Set if the buffer is read-only. */
+    int bi_readonly;
 
     /* The format of each element of the buffer. */
     char *bi_format;

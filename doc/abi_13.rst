@@ -159,6 +159,10 @@ module, that can be used by handwritten code in specification files.
 
         The length of the buffer in bytes.
 
+    .. c:member:: int bi_readonly
+
+        Non-zero if the buffer is read-only.
+
     .. c:member:: char *bi_format
 
         The format of each element of the buffer.
