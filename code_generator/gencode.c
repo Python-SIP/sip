@@ -5149,7 +5149,7 @@ static void generateObjToCppConversion(argDef *ad, int has_state, FILE *fp)
              * all types).
              */
 
-            prcode(fp, "sipForceConvertToType%s(sipPy, sipType_%T, SIP_NULLPTR, %s, %s", userStateSuffix(ad), ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (has_state ? "SIP_NULLPTR" : "&sipValState"));
+            prcode(fp, "sipForceConvertToType%s(sipPy, sipType_%T, SIP_NULLPTR, %s, %s", userStateSuffix(ad), ad, (ad->nrderefs ? "0" : "SIP_NOT_NONE"), (has_state ? "&sipValState" : "SIP_NULLPTR"));
 
             if (typeNeedsUserState(ad))
                 prcode(fp, ", &sipValUserState");
