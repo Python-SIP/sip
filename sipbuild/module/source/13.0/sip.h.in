@@ -857,6 +857,9 @@ typedef struct _sipEnumTypeDef {
 
     /* The number of members. */
     int etd_nr_members;
+
+    /* The Python slots. */
+    struct _sipPySlotDef *etd_pyslots;
 } sipEnumTypeDef;
 
 
