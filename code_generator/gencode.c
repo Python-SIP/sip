@@ -13430,6 +13430,9 @@ void prCopying(FILE *fp, moduleDef *mod, const char *comment)
     for (cbl = mod->copying; cbl != NULL; cbl = cbl->next)
     {
         const char *cp;
+        char buf[2];
+
+        buf[1] = '\0';
 
         for (cp = cbl->block->frag; *cp != '\0'; ++cp)
         {
@@ -13439,7 +13442,8 @@ void prCopying(FILE *fp, moduleDef *mod, const char *comment)
                 prcode(fp, "%s ", comment);
             }
 
-            prcode(fp, "%c", *cp);
+            buf[0] = *cp;
+            prcode(fp, "%s", buf);
 
             if (*cp == '\n')
                 needComment = TRUE;
