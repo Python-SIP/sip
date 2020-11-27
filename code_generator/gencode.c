@@ -6239,7 +6239,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    return sipMalloc(sizeof (struct %U) * sipNrElem);\n"
+"    return sipMalloc(sizeof (%U) * sipNrElem);\n"
                 , cd);
         else
             prcode(fp,
@@ -6278,7 +6278,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    ((struct %U *)sipDst)[sipDstIdx] = *((struct %U *)sipSrc);\n"
+"    ((%U *)sipDst)[sipDstIdx] = *((%U *)sipSrc);\n"
                 , cd, cd);
         else
             prcode(fp,
@@ -6307,8 +6307,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (generating_c)
             prcode(fp,
-"    struct %U *sipPtr = sipMalloc(sizeof (struct %U));\n"
-"    *sipPtr = ((const struct %U *)sipSrc)[sipSrcIdx];\n"
+"    %U *sipPtr = sipMalloc(sizeof (%U));\n"
+"    *sipPtr = ((const %U *)sipSrc)[sipSrcIdx];\n"
 "\n"
 "    return sipPtr;\n"
                 , cd, cd
