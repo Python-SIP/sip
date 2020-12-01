@@ -54,14 +54,14 @@ static int sipWrapperType_setattro(PyObject *self, PyObject *name,
 
 static PyTypeObject sipWrapperType_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "sip.wrappertype",      /* tp_name */
+    _SIP_MODULE_FQ_NAME ".wrappertype", /* tp_name */
     sizeof (sipWrapperType),    /* tp_basicsize */
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
     0,                      /* tp_print */
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
-    0,                      /* tp_as_async (Python v3.5), tp_compare (Python v2) */
+    0,                      /* tp_as_async */
     0,                      /* tp_repr */
     0,                      /* tp_as_number */
     0,                      /* tp_as_sequence */
@@ -122,14 +122,14 @@ static sipWrapperType sipWrapper_Type = {
 #endif
         {
             PyVarObject_HEAD_INIT(&sipWrapperType_Type, 0)
-            "sip.wrapper",  /* tp_name */
+            _SIP_MODULE_FQ_NAME ".wrapper", /* tp_name */
             sizeof (sipWrapper),    /* tp_basicsize */
             0,              /* tp_itemsize */
             (destructor)sipWrapper_dealloc, /* tp_dealloc */
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_as_async (Python v3.5), tp_compare (Python v2) */
+            0,              /* tp_as_async */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -1092,19 +1092,6 @@ PyMODINIT_FUNC _SIP_MODULE_ENTRY(void)
         return NULL;
     }
 
-#if _SIP_MODULE_LEGACY
-    {
-        /*
-         * Also install the package-specific module at the top level for
-         * backwards compatibility.
-         */
-        PyObject *modules = PySys_GetObject("modules");
-
-        if (modules != NULL)
-            PyDict_SetItemString(modules, "sip", mod);
-    }
-#endif
-
     return mod;
 }
 #endif
@@ -1171,7 +1158,7 @@ static PyObject *dumpWrapper(PyObject *self, PyObject *arg)
     if (!PyObject_TypeCheck(arg, (PyTypeObject *)&sipSimpleWrapper_Type))
     {
         PyErr_Format(PyExc_TypeError,
-                "dump() argument 1 must be sip.simplewrapper, not %s",
+                "dump() argument 1 must be " _SIP_MODULE_FQ_NAME ".simplewrapper, not %s",
                 Py_TYPE(arg)->tp_name);
         return NULL;
     }
@@ -1238,7 +1225,9 @@ static PyObject *transferTo(PyObject *self, PyObject *args)
         }
         else if (!PyObject_TypeCheck(owner, (PyTypeObject *)&sipWrapper_Type))
         {
-            PyErr_Format(PyExc_TypeError, "transferto() argument 2 must be sip.wrapper, not %s", Py_TYPE(owner)->tp_name);
+            PyErr_Format(PyExc_TypeError,
+                    "transferto() argument 2 must be " _SIP_MODULE_FQ_NAME ".wrapper, not %s",
+                    Py_TYPE(owner)->tp_name);
             return NULL;
         }
 
@@ -9771,14 +9760,14 @@ sipWrapperType sipSimpleWrapper_Type = {
 #endif
         {
             PyVarObject_HEAD_INIT(&sipWrapperType_Type, 0)
-            "sip.simplewrapper",    /* tp_name */
+            _SIP_MODULE_FQ_NAME ".simplewrapper",   /* tp_name */
             sizeof (sipSimpleWrapper),  /* tp_basicsize */
             0,              /* tp_itemsize */
             (destructor)sipSimpleWrapper_dealloc,   /* tp_dealloc */
             0,              /* tp_print */
             0,              /* tp_getattr */
             0,              /* tp_setattr */
-            0,              /* tp_as_async (Python v3.5), tp_compare (Python v2) */
+            0,              /* tp_as_async */
             0,              /* tp_repr */
             0,              /* tp_as_number */
             0,              /* tp_as_sequence */
@@ -11024,7 +11013,8 @@ static int *sip_api_unicode_as_wstring(PyObject *obj)
  */
 static void raiseNoWChar()
 {
-    PyErr_SetString(PyExc_SystemError, "sip built without wchar_t support");
+    PyErr_SetString(PyExc_SystemError,
+            _SIP_MODULE_FQ_NAME " built without wchar_t support");
 }
 
 #endif

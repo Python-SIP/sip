@@ -1170,8 +1170,18 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
         if (cd->supertype == NULL && cd->supers == NULL)
             cd->supertype = cd->iff->module->defsupertype;
 
-        if (cd->supertype != NULL && strcmp(cd->supertype->text, "sip.wrapper") == 0)
-            cd->supertype = NULL;
+        if (cd->supertype != NULL)
+        {
+            /*
+             * If the super-type ends with 'sip.wrapper' then assume it is the
+             * default.
+             */
+
+            const char *tail = strstr(cd->supertype->text, "sip.wrapper");
+
+            if (tail != NULL && strcmp(tail, "sip.wrapper") == 0)
+                cd->supertype = NULL;
+        }
 
         if (cd->supertype != NULL && generatingCodeForModule(pt, cd->iff->module))
             setIsUsedName(cd->supertype);

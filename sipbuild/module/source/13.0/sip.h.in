@@ -58,7 +58,6 @@ extern "C" {
 #define _SIP_MODULE_NAME            "@_SIP_MODULE_NAME@"
 #define _SIP_MODULE_SHARED          @_SIP_MODULE_SHARED@
 #define _SIP_MODULE_ENTRY           @_SIP_MODULE_ENTRY@
-#define _SIP_MODULE_LEGACY          @_SIP_MODULE_LEGACY@
 
 
 /*
