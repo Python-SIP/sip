@@ -8233,8 +8233,16 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
     virtErrorHandler *veh;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
+    {
         if (cd->iff->module == mod)
             generateClassAPI(cd, pt, fp);
+
+        if (isExportDerived(cd))
+        {
+            generateCppCodeBlock(cd->iff->hdrcode, fp);
+            generateShadowClassDeclaration(pt, cd, fp);
+        }
+    }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff->module == mod)
@@ -8403,18 +8411,10 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
     generateEnumMacros(pt, cd->iff->module, cd, NULL, fp);
 
     if (!isExternal(cd) && !isHiddenNamespace(cd))
-    {
         prcode(fp,
 "\n"
 "extern sipClassTypeDef sipTypeDef_%s_%L;\n"
             , mname, cd->iff);
-
-        if (isExportDerived(cd))
-        {
-            generateCppCodeBlock(cd->iff->hdrcode, fp);
-            generateShadowClassDeclaration(pt, cd, fp);
-        }
-    }
 }
 
 
