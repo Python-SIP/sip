@@ -32,6 +32,7 @@
 unsigned sipVersion;
 const char *sipVersionStr;
 unsigned abiVersion;
+char *sipName;
 stringList *includeDirList;
 
 /* Support for fatal error handling. */
@@ -100,16 +101,20 @@ static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
     unsigned abi_major, abi_minor;
 
-    if (!PyArg_ParseTuple(args, "IsIIOO&",
+    if (!PyArg_ParseTuple(args, "IsIIzOO&",
             &sipVersion,
             &sipVersionStr,
             &abi_major,
             &abi_minor,
+            &sipName,
             &exception_type,
             stringList_convertor, &includeDirList))
         return NULL;
 
     abiVersion = (abi_major << 8) | abi_minor;
+
+    if (sipName != NULL && sipName[0] == '\0')
+        sipName = NULL;
 
     Py_INCREF(exception_type);
 
@@ -177,12 +182,12 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
 static PyObject *py_generateCode(PyObject *self, PyObject *args)
 {
     sipSpec *pt;
-    char *codeDir, *srcSuffix, *sipName;
+    char *codeDir, *srcSuffix;
     const char *api_header;
     int exceptions, tracing, releaseGIL, parts, docs, py_debug, action;
     stringList *versions, *xfeatures, *sources;
 
-    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&ppz",
+    if (!PyArg_ParseTuple(args, "O&O&O&pppiO&O&pp",
             sipSpec_convertor, &pt,
             fs_convertor, &codeDir,
             fs_convertor, &srcSuffix,
@@ -193,8 +198,7 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
             stringList_convertor, &versions,
             stringList_convertor, &xfeatures,
             &docs,
-            &py_debug,
-            &sipName))
+            &py_debug))
         return NULL;
 
     if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
@@ -203,11 +207,8 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (sipName != NULL && sipName[0] == '\0')
-        sipName = NULL;
-
     sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
-            releaseGIL, parts, versions, xfeatures, docs, py_debug, sipName,
+            releaseGIL, parts, versions, xfeatures, docs, py_debug,
             &api_header);
 
     return Py_BuildValue("(sN)", api_header, stringList_convert_from(sources));

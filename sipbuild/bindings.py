@@ -204,8 +204,7 @@ class Bindings(Configurable):
         header, sources = generateCode(pt, buildable.build_dir,
                 self.source_suffix, self.exceptions, self.tracing,
                 self.release_gil, self.concatenate, self.tags,
-                self.disabled_features, self.docstrings, project.py_debug,
-                project.sip_module)
+                self.disabled_features, self.docstrings, project.py_debug)
 
         if header:
             buildable.headers.append(header)

@@ -200,8 +200,14 @@ static void apiEnums(sipSpec *pt, moduleDef *mod, classDef *scope, FILE *fp)
         for (emd = ed->members; emd != NULL; emd = emd->next)
         {
             fprintf(fp, "%s.", mod->name);
-            prScopedPythonName(fp, ed->ecd, emd->pyname->text);
-            fprintf(fp, "?%d\n", ENUM_ID);
+
+            if (ed->pyname != NULL)
+            {
+                prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+                fprintf(fp, ".");
+            }
+
+            fprintf(fp, "%s?%d\n", emd->pyname->text, ENUM_ID);
         }
     }
 }

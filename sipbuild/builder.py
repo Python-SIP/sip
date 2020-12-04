@@ -292,7 +292,7 @@ class Builder(AbstractBuilder):
 
         abi_major, abi_minor = project.abi_version.split('.')
         set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major),
-                int(abi_minor), UserException,
+                int(abi_minor), project.sip_module, UserException,
                 [d.replace('\\', '/') for d in sip_include_dirs])
 
         # Generate the code for each set of bindings.

@@ -1369,6 +1369,7 @@ typedef struct _parserContext {
 
 extern unsigned sipVersion;             /* The version of SIP. */
 extern const char *sipVersionStr;       /* The version of SIP as a string. */
+extern char *sipName;                   /* The name of the sip module. */
 extern unsigned abiVersion;             /* The encoded ABI version number. */
 extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
@@ -1380,7 +1381,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 void parserEOF(const char *,parserContext *);
 void transform(sipSpec *, int);
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
-        stringList *needed_qualifiers, stringList *, int, int, const char *,
+        stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);
 void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);

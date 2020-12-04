@@ -152,10 +152,29 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
      * Generate the imports. Note that we assume the super-types are the
      * standard SIP ones.
      */
-    fprintf(fp,
+    if (abiVersion >= ABI_13_0)
+        fprintf(fp,
+"import enum\n"
 "import typing\n"
+            );
+    else
+        fprintf(fp,
+"import typing\n"
+            );
+
+    if (sipName != NULL)
+    {
+        size_t module_len = strlen(sipName) - 3;
+
+        if (module_len)
+            fprintf(fp,
+"from %.*s import sip\n"
+                , (int)module_len - 1, sipName);
+        else
+            fprintf(fp,
 "import sip\n"
-        );
+                );
+    }
 
     first = TRUE;
 
@@ -601,7 +620,28 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
         if (ed->pyname != NULL)
         {
             prIndent(indent, fp);
-            fprintf(fp, "class %s(int): ...\n", ed->pyname->text);
+
+            if (abiVersion >= ABI_13_0)
+            {
+                const char *super;
+
+                if (isEnumEnum(ed))
+                    super = "enum.Enum";
+                else if (isEnumFlag(ed))
+                    super = "enum.Flag";
+                else if (isEnumIntEnum(ed))
+                    super = "enum.IntEnum";
+                else if (isEnumIntFlag(ed))
+                    super = "enum.IntFlag";
+                else
+                    super = "int";
+
+                fprintf(fp, "class %s(%s):\n", ed->pyname->text, super);
+            }
+            else
+            {
+                fprintf(fp, "class %s(int): ...\n", ed->pyname->text);
+            }
         }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
@@ -610,12 +650,21 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
                 continue;
 
             prIndent(indent, fp);
-            fprintf(fp, "%s = ... # type: ", emd->pyname->text);
 
-            if (ed->pyname != NULL)
-                prEnumRef(ed, mod, defined, TRUE, fp);
+            if (abiVersion >= ABI_13_0)
+            {
+                prIndent(indent + 1, fp);
+                fprintf(fp, "%s = ...", emd->pyname->text);
+            }
             else
-                fprintf(fp, "int");
+            {
+                fprintf(fp, "%s = ... # type: ", emd->pyname->text);
+
+                if (ed->pyname != NULL)
+                    prEnumRef(ed, mod, defined, TRUE, fp);
+                else
+                    fprintf(fp, "int");
+            }
 
             fprintf(fp, "\n");
         }

@@ -76,10 +76,10 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList **generated, const char *srcSuffix,
         int parts, stringList *needed_qualifiers, stringList *xsl,
-        int py_debug, const char *sipName);
+        int py_debug);
 static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug);
-static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp);
+static void generateSipAPI(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
 static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
@@ -309,7 +309,7 @@ static const char *userStateSuffix(argDef *ad);
 stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
         int except, int trace, int releaseGIL, int parts,
         stringList *needed_qualifiers, stringList *xsl, int docs, int py_debug,
-        const char *sipName, const char **api_header)
+        const char **api_header)
 {
     stringList *generated = NULL;
 
@@ -330,7 +330,7 @@ stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
     else
     {
         *api_header = generateCpp(pt, pt->module, codeDir, &generated,
-                srcSuffix, parts, needed_qualifiers, xsl, py_debug, sipName);
+                srcSuffix, parts, needed_qualifiers, xsl, py_debug);
     }
 
     return generated;
@@ -1108,7 +1108,7 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
 static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList **generated, const char *srcSuffix,
         int parts, stringList *needed_qualifiers, stringList *xsl,
-        int py_debug, const char *sipName)
+        int py_debug)
 {
     char *cppfile;
     const char *mname = mod->name;
@@ -2017,7 +2017,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "\n"
         );
 
-    generateSipAPI(mod, sipName, fp);
+    generateSipAPI(mod, fp);
 
     /* Generate any initialisation code. */
     generateCppCodeBlock(mod->initcode, fp);
@@ -2220,7 +2220,7 @@ static void generateTypesTable(moduleDef *mod, FILE *fp)
 /*
  * Generate the code to get the sip API.
  */
-static void generateSipAPI(moduleDef *mod, const char *sipName, FILE *fp)
+static void generateSipAPI(moduleDef *mod, FILE *fp)
 {
     /*
      * If there is no sip module name then we are getting the API from a
