@@ -597,6 +597,7 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
+        const char *member;
         enumMemberDef *emd;
 
         if (ed->module != mod)
@@ -619,12 +620,12 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
         if (ed->pyname != NULL)
         {
+            const char *super = "int";
+
             prIndent(indent, fp);
 
             if (abiVersion >= ABI_13_0)
             {
-                const char *super;
-
                 if (isEnumEnum(ed))
                     super = "enum.Enum";
                 else if (isEnumFlag(ed))
@@ -633,15 +634,16 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
                     super = "enum.IntEnum";
                 else if (isEnumIntFlag(ed))
                     super = "enum.IntFlag";
-                else
-                    super = "int";
+            }
 
-                fprintf(fp, "class %s(%s):\n", ed->pyname->text, super);
-            }
-            else
-            {
-                fprintf(fp, "class %s(int): ...\n", ed->pyname->text);
-            }
+            fprintf(fp, "class %s(%s):\n", ed->pyname->text, super);
+
+            member = ed->pyname->text;
+            ++indent;
+        }
+        else
+        {
+            member = "int";
         }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
@@ -650,24 +652,11 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
                 continue;
 
             prIndent(indent, fp);
-
-            if (abiVersion >= ABI_13_0)
-            {
-                prIndent(indent + 1, fp);
-                fprintf(fp, "%s = ...", emd->pyname->text);
-            }
-            else
-            {
-                fprintf(fp, "%s = ... # type: ", emd->pyname->text);
-
-                if (ed->pyname != NULL)
-                    prEnumRef(ed, mod, defined, TRUE, fp);
-                else
-                    fprintf(fp, "int");
-            }
-
-            fprintf(fp, "\n");
+            fprintf(fp, "%s = ... # type: %s\n", emd->pyname->text, member);
         }
+
+        if (ed->pyname != NULL)
+            --indent;
     }
 }
 
