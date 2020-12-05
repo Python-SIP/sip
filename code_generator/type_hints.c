@@ -162,19 +162,10 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
 "import typing\n"
             );
 
-    if (sipName != NULL)
-    {
-        size_t module_len = strlen(sipName) - 3;
-
-        if (module_len)
-            fprintf(fp,
-"from %.*s import sip\n"
-                , (int)module_len - 1, sipName);
-        else
-            fprintf(fp,
-"import sip\n"
-                );
-    }
+    fprintf(fp,
+"\n"
+"import %s\n"
+        , (sipName != NULL) ? sipName : "sip");
 
     first = TRUE;
 
@@ -312,13 +303,10 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     {
         fprintf(fp, "%s", cd->supertype->text);
     }
-    else if (cd->iff->type == namespace_iface)
-    {
-        fprintf(fp, "sip.simplewrapper");
-    }
     else
     {
-        fprintf(fp, "sip.wrapper");
+        fprintf(fp, "%s.%swrapper", (sipName != NULL ? sipName : "sip"),
+                (cd->iff->type == namespace_iface ? "simple" : ""));
     }
 
     /* See if there is anything in the class body. */
