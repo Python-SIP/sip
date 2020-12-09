@@ -6483,17 +6483,30 @@ static const sipTypeDef *sip_api_type_scope(const sipTypeDef *td)
 static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
 {
     static PyObject *value = NULL;
-    PyObject *val_obj;
+    PyObject *val_obj, *type_obj;
     int val;
 
     assert(sipTypeIsEnum(td));
 
-    if (PyObject_IsInstance(obj, (PyObject *)sipTypeAsPyTypeObject(td)) <= 0)
+    /* Make sure the enum object has been created. */
+    type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
+
+    if (type_obj == NULL)
+    {
+        if (add_all_lazy_attrs(sip_api_type_scope(td)) < 0)
+            return -1;
+
+        type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
+    }
+
+    /* Check the type of the Python object. */
+    if (PyObject_IsInstance(obj, type_obj) <= 0)
     {
         enum_expected(obj, td);
         return -1;
     }
 
+    /* Get the value from the object. */
     if (objectify("value", &value) < 0)
         return -1;
 
