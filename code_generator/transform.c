@@ -2522,10 +2522,20 @@ static int sameArgType(argDef *a1, argDef *a2, int strict)
     if (pyIsConstrained(a1->atype) && pyIsConstrained(a2->atype))
         return (a1->atype == a2->atype);
 
-    /* An unconstrained enum also acts as a (very) constrained int. */
-    if ((pyAsInt(a1->atype) && a2->atype == enum_type && !isConstrained(a2)) ||
-        (a1->atype == enum_type && !isConstrained(a1) && pyAsInt(a2->atype)))
-        return TRUE;
+    if (abiVersion >= ABI_13_0)
+    {
+        /* Anonymous enums are ints. */
+        if ((pyAsInt(a1->atype) && a2->atype == enum_type && a2->u.ed->fqcname == NULL) ||
+            (a1->atype == enum_type && a1->u.ed->fqcname == NULL && pyAsInt(a2->atype)))
+            return TRUE;
+    }
+    else
+    {
+        /* An unconstrained enum also acts as a (very) constrained int. */
+        if ((pyAsInt(a1->atype) && a2->atype == enum_type && !isConstrained(a2)) ||
+            (a1->atype == enum_type && !isConstrained(a1) && pyAsInt(a2->atype)))
+            return TRUE;
+    }
 
     /* Python will see all these as strings. */
     if (pyAsString(a1->atype) && pyAsString(a2->atype))
