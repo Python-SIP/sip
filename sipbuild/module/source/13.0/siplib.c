@@ -5965,9 +5965,17 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
 
     for (i = 0; i < etd->etd_nr_members; ++i)
     {
+        PyObject *value_obj;
+
         assert(next_int->ii_name != NULL);
 
-        if (dict_set_and_discard(members, next_int->ii_name, PyLong_FromLong(next_int->ii_val)) < 0)
+        /* Flags are implicitly unsigned. */
+        if (etd->etd_base_type == SIP_ENUM_INT_FLAG || etd->etd_base_type == SIP_ENUM_FLAG)
+            value_obj = PyLong_FromUnsignedLong((unsigned)next_int->ii_val);
+        else
+            value_obj = PyLong_FromLong(next_int->ii_val);
+
+        if (dict_set_and_discard(members, next_int->ii_name, value_obj) < 0)
             goto rel_members;
 
         ++next_int;
@@ -6513,8 +6521,11 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     if ((val_obj = PyObject_GetAttr(obj, value)) == NULL)
         return -1;
 
-    /* This will never overflow. */
-    val = sip_api_long_as_int(val_obj);
+    /* Flags are implicitly unsigned. */
+    if (((sipEnumTypeDef *)td)->etd_base_type == SIP_ENUM_INT_FLAG || ((sipEnumTypeDef *)td)->etd_base_type == SIP_ENUM_FLAG)
+        val = (int)sip_api_long_as_unsigned_int(val_obj);
+    else
+        val = sip_api_long_as_int(val_obj);
 
     Py_DECREF(val_obj);
 
