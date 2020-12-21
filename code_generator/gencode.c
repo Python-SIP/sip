@@ -2098,7 +2098,19 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    sipExportedExceptions_%s[%d] = SIP_NULLPTR;\n"
             , mname, mod->nrexceptions);
 
-    /* Generate the interface source files. */
+    /* Generate the enum meta-type registrations for PyQt6. */
+    if (pluginPyQt6(pt))
+    {
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+        {
+            if (ed->module != mod || ed->fqcname == NULL)
+                continue;
+
+            prcode(fp,
+"    qMetaTypeId<%S>();\n"
+                , ed->fqcname);
+        }
+    }
 
     /* Generate any post-initialisation code. */
     generateCppCodeBlock(mod->postinitcode, fp);

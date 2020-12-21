@@ -88,6 +88,7 @@ static void moveClassCasts(sipSpec *pt, moduleDef *mod, classDef *cd);
 static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd);
 static ifaceFileDef *getIfaceFile(argDef *ad);
 static ifaceFileDef *getIfaceFileForEnum(enumDef *ed);
+static void enumIfaceFileIsUsed(enumDef *ed, moduleDef *mod);
 static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
         mappedTypeTmplDef *mtt, argDef *type);
 static classDef *getProxy(moduleDef *mod, classDef *cd);
@@ -328,6 +329,16 @@ void transform(sipSpec *pt, int strict)
 
         if (xd_mod == pt->module || xd->needed)
             xd->exceptionnr = xd_mod->nrexceptions++;
+    }
+
+    /* For PyQt6 mark all enum interface files as being used. */
+    if (pluginPyQt6(pt))
+    {
+        enumDef *ed;
+
+        for (ed = pt->enums; ed != NULL; ed = ed->next)
+            if (ed->module == pt->module)
+                enumIfaceFileIsUsed(ed, pt->module);
     }
 
     setStringPoolOffsets(pt);
@@ -898,12 +909,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         if (ed != NULL)
         {
-            ifaceFileDef *enum_iff = getIfaceFileForEnum(ed);
-
-            /* The slot code is generated at the module level. */
-            if (enum_iff != NULL)
-                appendToIfaceFileList(&mod->used, enum_iff);
-
+            enumIfaceFileIsUsed(ed, mod);
             setIsUsedName(ed->pyname);
         }
 
@@ -3526,6 +3532,18 @@ static void ifaceFileIsUsed(ifaceFileList **used, argDef *ad, int need_types)
 
     if (need_types)
         setNeededType(ad);
+}
+
+
+/*
+ * Add an enum's interface file to that used by a module.
+ */
+static void enumIfaceFileIsUsed(enumDef *ed, moduleDef *mod)
+{
+    ifaceFileDef *enum_iff = getIfaceFileForEnum(ed);
+
+    if (enum_iff != NULL)
+        appendToIfaceFileList(&mod->used, enum_iff);
 }
 
 
