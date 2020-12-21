@@ -305,6 +305,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_COMPOMODULE
 %token          TK_CLASS
 %token          TK_STRUCT
+%token          TK_UNION
 %token          TK_PUBLIC
 %token          TK_PROTECTED
 %token          TK_PRIVATE
@@ -1044,7 +1045,6 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
             {
                 static const char *annos[] = {
                     "AllowNone",
-                    "API",
                     "NoRelease",
                     "PyName",
                     "PyQtFlags",
@@ -2371,6 +2371,9 @@ optenumkey: {
     |   TK_STRUCT {
             $$ = TRUE;
         }
+    |   TK_UNION {
+            $$ = TRUE;
+        }
     ;
 
 optname:    {
@@ -2703,6 +2706,47 @@ typedef:    TK_TYPEDEF cpptype TK_NAME_VALUE optflags ';' optdocstring {
         }
     ;
 
+union:      TK_UNION scopedname {
+            if (currentSpec -> genc && $2->next != NULL)
+                yyerror("Namespaces not allowed in a C module");
+        } optflags {
+            if (notSkipping())
+            {
+                const char *annos[] = {
+                    "AllowNone",
+                    "DelayDtor",
+                    "Deprecated",
+                    "ExportDerived",
+                    "External",
+                    "FileExtension",
+                    "Metatype",
+                    "Mixin",
+                    "NoDefaultCtors",
+                    "NoTypeHint",
+                    "PyName",
+                    "PyQtFlags",
+                    "PyQtFlagsEnums",
+                    "PyQtInterface",
+                    "PyQtNoQMetaObject",
+                    "Supertype",
+                    "TypeHint",
+                    "TypeHintIn",
+                    "TypeHintOut",
+                    "TypeHintValue",
+                    NULL
+                };
+
+                checkAnnos(&$4, annos);
+                defineClass($2, currentSupers, &$4);
+                setUnion(currentScope());
+                sectionFlags = SECT_IS_PUBLIC;
+            }
+        } optclassbody ';' {
+            if (notSkipping())
+                completeClass($2, &$4, $6);
+        }
+    ;
+
 struct:     TK_STRUCT scopedname {
             if (currentSpec -> genc && $2->next != NULL)
                 yyerror("Namespaces not allowed in a C module");
@@ -2715,7 +2759,6 @@ struct:     TK_STRUCT scopedname {
                 const char *annos[] = {
                     "Abstract",
                     "AllowNone",
-                    "API",
                     "DelayDtor",
                     "Deprecated",
                     "ExportDerived",
@@ -2796,7 +2839,6 @@ class:  TK_CLASS scopedname {
                 const char *annos[] = {
                     "Abstract",
                     "AllowNone",
-                    "API",
                     "DelayDtor",
                     "Deprecated",
                     "ExportDerived",
@@ -2920,6 +2962,7 @@ classbody:
 classline:  ifstart
     |   ifend
     |   namespace
+    |   union
     |   struct
     |   class
     |   classtmpl
@@ -3245,6 +3288,8 @@ dtor_decl:  '~' TK_NAME_VALUE '(' ')' optexceptions optabstract optflags ';' pre
                 if (currentSpec -> genc && $9 == NULL)
                     yyerror("Destructor in C modules must include %MethodCode");
 
+                if (currentIsVirt && isUnion(cd))
+                    yyerror("A union cannot have a virtual destructor");
 
                 appendCodeBlock(&cd->dealloccode, $9);  /* premethodcode */
                 appendCodeBlock(&cd->dealloccode, $10); /* methodcode */
@@ -3297,7 +3342,6 @@ simplector: TK_NAME_VALUE '(' arglist ')' optexceptions optflags optctorsig ';' 
             if (notSkipping())
             {
                 const char *annos[] = {
-                    "API",
                     "Default",
                     "Deprecated",
                     "HoldGIL",
@@ -4033,6 +4077,21 @@ basetype:   scopedname {
                 $$.u.sname = $2;
             }
         }
+    |   TK_UNION scopedname {
+            memset(&$$, 0, sizeof (argDef));
+
+            /* In a C module all unions must be defined. */
+            if (currentSpec->genc)
+            {
+                $$.atype = defined_type;
+                $$.u.snd = $2;
+            }
+            else
+            {
+                $$.atype = union_type;
+                $$.u.sname = $2;
+            }
+        }
     |   TK_UNSIGNED TK_SHORT {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = ushort_type;
@@ -4690,7 +4749,7 @@ static classDef *newClass(sipSpec *pt, ifaceFileType iftype,
 
     /* Check it hasn't already been defined. */
     if (iftype != namespace_iface && cd->iff->module != NULL)
-        yyerror("The struct/class has already been defined");
+        yyerror("The struct/class/union has already been defined");
 
     /* Complete the initialisation. */
     cd->classflags |= flags;
@@ -6731,7 +6790,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         "__matmul__",
         "AbortOnException",
         "AllowNone",
-        "API",
         "AutoGen",
         "Deprecated",
         "DisallowNone",
@@ -6790,6 +6848,17 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             if (vad->atype == void_type && vad->nrderefs == 0)
                 sig->nrArgs = 0;
         }
+    }
+
+    /* Extra checks for a union. */
+    if (c_scope != NULL && isUnion(c_scope))
+    {
+        if (isvirt)
+            yyerror("A union cannot have a virtual functions");
+
+        /* We can't sub-class a union so we can't handle protected functions. */
+        if (sflags & SECT_IS_PROT)
+            yyerror("Protected functions are not supported for unions");
     }
 
     if (mt_scope != NULL)
@@ -8564,7 +8633,7 @@ static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
     if (has_def)
     {
         if (snd->next != NULL)
-            yyerror("A scoped name cannot be given in a class/struct definition");
+            yyerror("A scoped name cannot be given in a class/struct/union definition");
 
     }
     else if (cd->supers != NULL)
@@ -8579,7 +8648,7 @@ static classDef *completeClass(scopedNameDef *snd, optFlags *of, int has_def)
      * Check that external classes have only been declared at the global scope.
      */
     if (isExternal(cd) && currentScope() != NULL)
-        yyerror("External classes/structs can only be declared in the global scope");
+        yyerror("External classes/structs/unions can only be declared in the global scope");
 
     return cd;
 }

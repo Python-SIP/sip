@@ -99,6 +99,7 @@ static void fatallex(char *);
 
 class                       {return TK_CLASS;}
 struct                      {return TK_STRUCT;}
+union                       {return TK_UNION;}
 public                      {return TK_PUBLIC;}
 protected                   {return TK_PROTECTED;}
 private                     {return TK_PRIVATE;}

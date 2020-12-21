@@ -223,6 +223,7 @@
 #define CLASS2_USE_TMPL_NAME    0x10    /* Use the template name. */
 #define CLASS2_NEEDS_SHADOW 0x20        /* The class needs a shadow class. */
 #define CLASS2_COPY_HELPER  0x40        /* Generate a copy helper. */
+#define CLASS2_UNION        0x80        /* The class is a union. */
 
 #define isTemplateArg(cd)   ((cd)->classflags2 & CLASS2_TMPL_ARG)
 #define setTemplateArg(cd)  ((cd)->classflags2 |= CLASS2_TMPL_ARG)
@@ -239,6 +240,8 @@
 #define setNeedsShadow(cd)   ((cd)->classflags2 |= CLASS2_NEEDS_SHADOW)
 #define copyHelper(cd)      ((cd)->classflags2 & CLASS2_COPY_HELPER)
 #define setCopyHelper(cd)   ((cd)->classflags2 |= CLASS2_COPY_HELPER)
+#define isUnion(cd)         ((cd)->classflags2 & CLASS2_UNION)
+#define setUnion(cd)        ((cd)->classflags2 |= CLASS2_UNION)
 
 
 /* Handle ctor flags.  These are combined with the section flags. */
@@ -708,7 +711,8 @@ typedef enum {
     capsule_type,
     pybuffer_type,
     size_type,
-    pyenum_type
+    pyenum_type,
+    union_type
 } argType;
 
 

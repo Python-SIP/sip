@@ -1095,6 +1095,13 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
                 fatal("\n");
             }
 
+            /* Unions cannot be super-classes. */
+            if (isUnion(cl->cd))
+            {
+                fatalScopedName(classFQCName(cl->cd));
+                fatal(" cannot be a super-class as it is a union\n");
+            }
+
             /* Make sure the super-class's hierarchy has been done. */
             setHierarchy(pt, base, cl->cd, head);
 
@@ -2130,6 +2137,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
         break;
 
     case struct_type:
+    case union_type:
     case void_type:
         /* A simple pointer is supported. */
 
@@ -2318,6 +2326,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
         break;
 
     case struct_type:
+    case union_type:
     case void_type:
         if (isReference(ad))
         {
@@ -2648,6 +2657,7 @@ int sameBaseType(argDef *a1, argDef *a2)
         }
 
     case struct_type:
+    case union_type:
         if (compareScopedNames(a1->u.sname, a2->u.sname) != 0)
             return FALSE;
 
@@ -2906,7 +2916,7 @@ static void resolveType(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     resolveInstantiatedClassTemplate(pt, type);
 
     /* Replace the base type if it has been mapped. */
-    if (type->atype == struct_type || type->atype == template_type)
+    if (type->atype == struct_type || type->atype == union_type || type->atype == template_type)
     {
         searchMappedTypes(pt, mod, NULL, type);
 

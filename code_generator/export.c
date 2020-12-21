@@ -1012,6 +1012,7 @@ static const char *pyType(sipSpec *pt, argDef *ad, classDef **scope)
         break;
 
     case struct_type:
+    case union_type:
     case void_type:
         type_name = "sip.voidptr";
         break;

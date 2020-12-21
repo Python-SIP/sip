@@ -3022,7 +3022,7 @@ static int generateVoidPointers(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (pyScope(vd->ecd) != cd || vd->module != mod)
             continue;
 
-        if (vd->type.atype != void_type && vd->type.atype != struct_type)
+        if (vd->type.atype != void_type && vd->type.atype != struct_type && vd->type.atype != union_type)
             continue;
 
         if (needsHandler(vd))
@@ -4522,12 +4522,12 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    struct %S *sipCpp = (struct %S *)sipSelf;\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %U *sipCpp = (%U *)sipSelf;\n"
+                , vd->ecd, vd->ecd);
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %U *sipCpp = reinterpret_cast<%U *>(sipSelf);\n"
+                , vd->ecd, vd->ecd);
     }
 
     prcode(fp,
@@ -4831,6 +4831,7 @@ static void generateVariableGetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
         break;
 
     case struct_type:
+    case union_type:
     case void_type:
         prcode(fp,
 "    return sipConvertFrom%sVoidPtr(", (isConstArg(&vd->type) ? "Const" : ""));
@@ -4934,12 +4935,12 @@ static void generateVariableSetter(ifaceFileDef *scope, varDef *vd, FILE *fp)
     {
         if (generating_c)
             prcode(fp,
-"    struct %S *sipCpp = (struct %S *)sipSelf;\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %U *sipCpp = (%U *)sipSelf;\n"
+                , vd->ecd, vd->ecd);
         else
             prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipSelf);\n"
-                , classFQCName(vd->ecd), classFQCName(vd->ecd));
+"    %U *sipCpp = reinterpret_cast<%U *>(sipSelf);\n"
+                , vd->ecd, vd->ecd);
 
         prcode(fp,
 "\n"
@@ -5300,6 +5301,11 @@ static void generateObjToCppConversion(argDef *ad, int has_state, FILE *fp)
 
     case struct_type:
         prcode(fp, "(struct %S *)sipConvertToVoidPtr(sipPy);\n"
+            , ad->u.sname);
+        break;
+
+    case union_type:
+        prcode(fp, "(union %S *)sipConvertToVoidPtr(sipPy);\n"
             , ad->u.sname);
         break;
 
@@ -7849,8 +7855,9 @@ static const char *getParseResultFormat(argDef *ad, int res_isref, int xfervh)
     case ulonglong_type:
         return "o";
 
-    case void_type:
     case struct_type:
+    case union_type:
+    case void_type:
         return "V";
 
     case capsule_type:
@@ -8047,6 +8054,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             break;
 
         case struct_type:
+        case union_type:
         case void_type:
             fmt = "V";
             break;
@@ -8140,6 +8148,7 @@ static void generateTupleBuilder(moduleDef *mod, signatureDef *sd,FILE *fp)
             break;
 
         case struct_type:
+        case union_type:
         case void_type:
             --derefs;
             break;
@@ -8755,6 +8764,7 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
             break;
 
         case struct_type:
+        case union_type:
         case void_type:
             if (ad->nrderefs == 2)
                 ind = "&";
@@ -8953,6 +8963,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             prcode(fp, "struct %S", ad->u.sname);
             break;
 
+        case union_type:
+            prcode(fp, "union %S", ad->u.sname);
+            break;
+
         case capsule_type:
             nr_derefs = 1;
 
@@ -9002,6 +9016,9 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case class_type:
+            if (generating_c)
+                fprintf(fp, "%s ", (isUnion(ad->u.cd) ? "union" : "struct"));
+
             prScopedClassName(fp, scope, ad->u.cd, strip);
             break;
 
@@ -9123,8 +9140,9 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
 
     case mapped_type:
     case class_type:
-    case void_type:
     case struct_type:
+    case union_type:
+    case void_type:
         ad->nrderefs = 1;
         break;
 
@@ -10667,8 +10685,8 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
         generateCppCodeBlock(ct->methodcode,fp);
     else if (generating_c)
         prcode(fp,
-"            sipCpp = sipMalloc(sizeof (struct %S));\n"
-            ,classFQCName(cd));
+"            sipCpp = sipMalloc(sizeof (%U));\n"
+            , cd);
     else
     {
         int a;
@@ -11578,6 +11596,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
         break;
 
     case struct_type:
+    case union_type:
         prcode(fp,
 "            %s sipConvertFrom%sVoidPtr(%s);\n"
             , prefix, (isConstArg(ad) ? "Const" : ""), vname);
@@ -11720,8 +11739,9 @@ static const char *getBuildResultFormat(argDef *ad)
     case ulonglong_type:
         return "o";
 
-    case void_type:
     case struct_type:
+    case union_type:
+    case void_type:
         return "V";
 
     case capsule_type:
@@ -12923,6 +12943,7 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
             break;
 
         case struct_type:
+        case union_type:
         case void_type:
             fmt = "v";
             break;
@@ -13691,7 +13712,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     classDef *cd = va_arg(ap, classDef *);
 
                     if (generating_c)
-                        fprintf(fp,"struct ");
+                        fprintf(fp, "%s ", (isUnion(cd) ? "union" : "struct"));
 
                     prScopedClassName(fp, cd->iff, cd, STRIP_NONE);
                     break;
@@ -13958,6 +13979,7 @@ static void prTypeName(FILE *fp, argDef *ad)
     switch (ad->atype)
     {
     case struct_type:
+    case union_type:
         snd = ad->u.sname;
         break;
 
@@ -14171,9 +14193,10 @@ static void generateClassFromVoid(classDef *cd, const char *cname,
         const char *vname, FILE *fp)
 {
     if (generating_c)
-        prcode(fp, "struct %S *%s = (struct %S *)%s", classFQCName(cd), cname, classFQCName(cd), vname);
+        prcode(fp, "%U *%s = (%U *)%s", cd, cname, cd, vname);
     else
-        prcode(fp, "%S *%s = reinterpret_cast<%S *>(%s)", classFQCName(cd), cname, classFQCName(cd), vname);
+        prcode(fp, "%U *%s = reinterpret_cast<%U *>(%s)", cd, cname, cd,
+                vname);
 }
 
 
@@ -14187,7 +14210,8 @@ static void generateMappedTypeFromVoid(mappedTypeDef *mtd, const char *cname,
     if (generating_c)
         prcode(fp, "%b *%s = (%b *)%s", &mtd->type, cname, &mtd->type, vname);
     else
-        prcode(fp, "%b *%s = reinterpret_cast<%b *>(%s)", &mtd->type, cname, &mtd->type, vname);
+        prcode(fp, "%b *%s = reinterpret_cast<%b *>(%s)", &mtd->type, cname,
+                &mtd->type, vname);
 }
 
 
@@ -14916,18 +14940,20 @@ ifaceFileDef *pyEnumScopeIface(enumDef *ed)
 static void generateEnumMember(FILE *fp, enumMemberDef *emd, mappedTypeDef *mtd)
 {
     if (!generating_c)
+    {
         prcode(fp, "static_cast<int>(");
 
-    if (!isNoScope(emd->ed))
-    {
-        if (isScopedEnum(emd->ed))
-            prcode(fp, "::%s", emd->ed->cname->text);
-        else if (emd->ed->ecd != NULL)
-            prEnumMemberScope(emd, fp);
-        else if (mtd != NULL)
-            prcode(fp, "%S", mtd->iff->fqcname);
+        if (!isNoScope(emd->ed))
+        {
+            if (isScopedEnum(emd->ed))
+                prcode(fp, "::%s", emd->ed->cname->text);
+            else if (emd->ed->ecd != NULL)
+                prEnumMemberScope(emd, fp);
+            else if (mtd != NULL)
+                prcode(fp, "%S", mtd->iff->fqcname);
 
-        prcode(fp, "::");
+            prcode(fp, "::");
+        }
     }
 
     prcode(fp, "%s", emd->cname);

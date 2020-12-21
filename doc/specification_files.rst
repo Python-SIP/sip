@@ -64,6 +64,7 @@ file.
             *opaque-class* |
             *operator* |
             *struct* |
+            *union* |
             *typedef* |
             *exception*]
 
@@ -208,6 +209,8 @@ file.
 
     *struct* ::= **struct** *name* **{** {*class-line*} **};**
 
+    *union* ::= **union** *name* **{** {*class-line*} **};**
+
     *typedef* ::= **typedef** [*typed-name* | *function-pointer*]
             *typedef-annotations* **;**
 
@@ -311,7 +314,9 @@ file.
 
     *type-list* ::= *type* [**,** *type-list*]
 
-    *base-type* ::= [*scoped-name* | *template* | **struct** *scoped-name* |
+    *base-type* ::= [*scoped-name* | *template* |
+            **struct** *scoped-name* |
+            **union** *scoped-name* |
             **char** | **signed char** | **unsigned char** | **wchar_t** |
             **int** | **unsigned** | **unsigned int** | **size_t** |
             **short** | **unsigned short** |
