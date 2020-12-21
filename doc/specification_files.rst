@@ -330,6 +330,7 @@ file.
             :stype:`SIP_PYBUFFER` |
             :stype:`SIP_PYCALLABLE` |
             :stype:`SIP_PYDICT` |
+            :stype:`SIP_PYENUM` |
             :stype:`SIP_PYLIST` |
             :stype:`SIP_PYOBJECT` |
             :stype:`SIP_PYSLICE` |
@@ -381,6 +382,11 @@ This is a ``PyObject *`` that is a Python callable object.
 .. sip-type:: SIP_PYDICT
 
 This is a ``PyObject *`` that is a Python dictionary object.
+
+
+.. sip-type:: SIP_PYENUM
+
+This is a ``PyObject *`` that is a Python enum object.
 
 
 .. sip-type:: SIP_PYLIST
