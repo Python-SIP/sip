@@ -824,10 +824,10 @@ static PyObject *findPyType(const char *name);
 static int addPyObjectToList(sipPyObject **head, PyObject *object);
 static PyObject *getDictFromObject(PyObject *obj);
 static void forgetObject(sipSimpleWrapper *sw);
-static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
+static int add_lazy_container_attrs(const sipTypeDef *td, sipContainerDef *cod,
         PyObject *dict);
-static int add_lazy_attrs(sipTypeDef *td);
-static int add_all_lazy_attrs(sipTypeDef *td);
+static int add_lazy_attrs(const sipTypeDef *td);
+static int add_all_lazy_attrs(const sipTypeDef *td);
 static int objectify(const char *s, PyObject **objp);
 static void add_failure(PyObject **parseErrp, sipParseFailure *failure);
 static PyObject *bad_type_str(int arg_nr, PyObject *arg);
@@ -6220,7 +6220,7 @@ static int addMethod(PyObject *dict, PyMethodDef *pmd)
 /*
  * Populate a container's type dictionary.
  */
-static int add_lazy_container_attrs(sipTypeDef *td, sipContainerDef *cod,
+static int add_lazy_container_attrs(const sipTypeDef *td, sipContainerDef *cod,
         PyObject *dict)
 {
     int i;
@@ -6349,7 +6349,7 @@ static PyObject *create_function(PyMethodDef *ml)
  * Populate a type dictionary with all lazy attributes if it hasn't already
  * been done.
  */
-static int add_lazy_attrs(sipTypeDef *td)
+static int add_lazy_attrs(const sipTypeDef *td)
 {
     sipWrapperType *wt = (sipWrapperType *)sipTypeAsPyTypeObject(td);
     PyObject *dict;
@@ -6400,7 +6400,7 @@ static int add_lazy_attrs(sipTypeDef *td)
 /*
  * Populate the type dictionary and all its super-types.
  */
-static int add_all_lazy_attrs(sipTypeDef *td)
+static int add_all_lazy_attrs(const sipTypeDef *td)
 {
     if (td == NULL)
         return 0;
@@ -6416,7 +6416,7 @@ static int add_all_lazy_attrs(sipTypeDef *td)
         if ((sup = ctd->ctd_supers) != NULL)
             do
             {
-                sipTypeDef *sup_td = getGeneratedType(sup, td->td_module);
+                const sipTypeDef *sup_td = getGeneratedType(sup, td->td_module);
 
                 if (add_all_lazy_attrs(sup_td) < 0)
                     return -1;
