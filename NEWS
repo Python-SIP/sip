@@ -1,61 +1,17 @@
-v5.5.0 ??? ??? 2020
-  - Added the 'exceptions', 'extra_compile_args', 'extra_link_args' and
-    'extra_objects' attributes to the 'Buildable' class with corresponding
-    bindings options.
-  - The 'abi-version' project option and the '--abi-version' of sip-module can
-    now specify a major version only (as opposed to a major.minor version) to
-    select the latest ABI with that major version number.
-
-v5.4.0 29th August 2020
-  - The latest version of the module ABI is v12.8.1.
-  - Python v3.9 is supported.
-  - Added support for building the sip module for PyPy.
-  - Added the 'distinfo' project option to allow the creation of a .dist-info
-    directory to be disabled.  sip-install has a corresponding '--no-distinfo'
-    command line option.
-  - Added 'SIP_VERSION' and 'SIP_VERSION_STR' to the 'sipbuild' module API.
-  - Bug fixes.
-
-v5.3.0 1st June 2020
-  - The latest version of the module ABI is v12.8.0.
-  - Added the 'get_metadata_overrides()' and 'get_sip_distinfo_command_line()'
-    methods to the 'Project' class, and the '--metadata' command line option to
-    sip-distinfo.  Together they allow a project.py script to override any
-    PEP 566 metadata values specified in the pyproject.toml file.
-  - Added the 'gui-scripts' project option to specify a list of GUI entry
-    points to create.  sip-distinfo has a corresponding '--gui-script' command
-    line option.
-  - Added the 'minimum-macos-version' project option to specify the minimum
-    version of macOS supported by the project.
-
-v5.2.0 10th April 2020
-  - Added the 'manylinux' project option to disable the support for 'manylinux'
-    part of the platform tag to be used in the name of a wheel.  sip-wheel has
-    a corresponding '--no-manylinux' command line option.
-  - Added the 'wheels-include' project option to specify additional files and
-    directories to be included in a wheel.
-
-v5.1.2 3rd April 2020
-  - The latest version of the module ABI is v12.7.2.
-  - The examples are now included in the sdist.
-  - Bug fixes.
-
-v5.1.1 31st January 2020
-  - Bug fixes.
-
-v5.1.0 6th January 2020
-  - Added the 'minimum-glibc-version' project option to specify the minimum
-    GLIBC version required by the project.  This is used to determine the
-    correct platform tag to use for Linux wheels.
-  - Added the 'build-tag' project option to specify the build tag to be used in
-    the name of a wheel.  sip-wheel has a corresponding '--build-tag' command
-    line option.
-  - The values of list options in pyproject.toml files can now contain
-    environment markers as defined in PEP 508.
-  - Added Project.project_path() to the API.
-
-v5.0.1 19th December 2019
-  - Bug fixes.
-
-v5.0.0 4th October 2019
-  - The release of SIP v5.
+v6.0.0 ??? December 2020
+  - All features deprecated in SIP v5 have been removed.
+  - Added ABI v13.0 of the sip module.  This uses the Python enum module to
+    implement all enums.
+  - Added support for mapped type convertors to have additional user-defined
+    state.  This is implemented using the %ReleaseCode directive, the SIP_USER
+    flag and the sipConvertToTypeUS(), sipForceConvertToTypeUS() and
+    sipReleaseTypeUS() API functions.  (ABI v13 only.)
+  - %ConvertFromTypeCode and %ConvertToTypeCode are now optional for mapped
+    types.
+  - Added support for the SIP_PYENUM additional SIP type.
+  - Added and sipIsEnumFlag()
+  - Added the /BaseType/ enum annotation for specifying the exact Python enum
+    type to be used.  (ABI v13 only.)
+  - Added support for wrapping named unions.
+  - Python names automatically have a '_' appended if they are Python keywords.
+  - The lexer can now handle '\xNN' characters.
