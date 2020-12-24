@@ -325,6 +325,7 @@ file.
             **float** | **double** |
             **bool** |
             **void** |
+            **Py_hash_t** |
             **Py_ssize_t** |
             **PyObject** |
             :stype:`SIP_PYBUFFER` |

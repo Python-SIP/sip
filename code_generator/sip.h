@@ -712,7 +712,8 @@ typedef enum {
     pybuffer_type,
     size_type,
     pyenum_type,
-    union_type
+    union_type,
+    hash_type
 } argType;
 
 
@@ -1430,7 +1431,7 @@ void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isZeroArgSlot(memberDef *md);
 int isIntReturnSlot(memberDef *md);
 int isSSizeReturnSlot(memberDef *md);
-int isLongReturnSlot(memberDef *md);
+int isHashReturnSlot(memberDef *md);
 int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isInplaceNumberSlot(memberDef *md);

@@ -137,6 +137,7 @@ final                       {return TK_FINAL;}
 size_t                      {return TK_SIZET;}
 ::                          {return TK_SCOPE;}
 \|\|                        {return TK_LOGICAL_OR;}
+\.\.\.                      {return TK_ELLIPSIS;}
 SIP_PYOBJECT                {return TK_PYOBJECT;}
 SIP_PYTUPLE                 {return TK_PYTUPLE;}
 SIP_PYLIST                  {return TK_PYLIST;}
@@ -146,12 +147,16 @@ SIP_PYSLICE                 {return TK_PYSLICE;}
 SIP_PYTYPE                  {return TK_PYTYPE;}
 SIP_PYBUFFER                {return TK_PYBUFFER;}
 SIP_PYENUM                  {return TK_PYENUM;}
+Py_hash_t                   {return TK_PYHASHT;}
 Py_ssize_t                  {return TK_PYSSIZET;}
-SIP_SSIZE_T                 {
-    /* Remove in v5.1. */
+
+SIP_SSIZE_T {
+    /*
+     * Remove in v7.0.  It should have been removed in v6.0 but we accidentally
+     * left some occurences in PyQt5.
+     */
     return TK_PYSSIZET;
 }
-\.\.\.                      {return TK_ELLIPSIS;}
 
 <directive>format           {return TK_FORMAT;}
 <directive>get              {return TK_GET;}

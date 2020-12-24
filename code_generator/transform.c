@@ -1939,10 +1939,19 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
 
     /* These slots must return Py_ssize_t. */
     if (isSSizeReturnSlot(od->common))
-        if ((res->atype != ssize_type && res->atype != int_type) || res->nrderefs != 0 ||
-            isReference(res) || isConstArg(res))
+    {
+        int bad_type;
+
+        if (abiVersion >= ABI_13_0)
+            bad_type = (res->atype != ssize_type);
+        else
+            bad_type = (res->atype != ssize_type && res->atype != int_type);
+
+        if (bad_type || res->nrderefs != 0 || isReference(res) ||
+                isConstArg(res))
             fatal("%s:%d: %s slots must return Py_ssize_t\n", od->sloc.name,
                     od->sloc.linenr, od->common->pyname->text);
+    }
 
     /* These slots must return int. */
     if (isIntReturnSlot(od->common))
@@ -1958,12 +1967,28 @@ static void resolveFuncTypes(sipSpec *pt, moduleDef *mod, classDef *c_scope,
             fatal("%s:%d: %s slots must return void\n", od->sloc.name,
                     od->sloc.linenr, od->common->pyname->text);
 
-    /* These slots must return long. */
-    if (isLongReturnSlot(od->common))
-        if (res->atype != long_type || res->nrderefs != 0 ||
-            isReference(res) || isConstArg(res))
-            fatal("%s:%d: %s slots must return long\n", od->sloc.name,
-                    od->sloc.linenr, od->common->pyname->text);
+    /* These slots must return Py_hash_t. */
+    if (isHashReturnSlot(od->common))
+    {
+        const char *required_type;
+        int bad_type;
+
+        if (abiVersion >= ABI_13_0)
+        {
+            bad_type = (res->atype != hash_type);
+            required_type = "Py_hash_t";
+        }
+        else
+        {
+            bad_type = (res->atype != long_type);
+            required_type = "long";
+        }
+
+        if (bad_type || res->nrderefs != 0 || isReference(res) ||
+                isConstArg(res))
+            fatal("%s:%d: %s slots must return %s\n", od->sloc.name,
+                    od->sloc.linenr, od->common->pyname->text, required_type);
+    }
 }
 
 
@@ -2118,6 +2143,7 @@ static void resolveVariableType(sipSpec *pt, varDef *vd)
     case long_type:
     case ulonglong_type:
     case longlong_type:
+    case hash_type:
     case ssize_type:
     case size_type:
     case pyobject_type:
@@ -2249,6 +2275,7 @@ static int supportedType(classDef *cd,overDef *od,argDef *ad,int outputs)
     case long_type:
     case ulonglong_type:
     case longlong_type:
+    case hash_type:
     case ssize_type:
     case size_type:
     case pyobject_type:
@@ -2500,10 +2527,11 @@ int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
             (t) == latin1_string_type || (t) == utf8_string_type)
 #define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
             (t) == cdouble_type || (t) == double_type)
-#define pyAsInt(t)  ((t) == bool_type || (t) == ssize_type || \
-            (t) == size_type || (t) == byte_type || (t) == sbyte_type || \
-            (t) == ubyte_type || (t) == short_type || (t) == ushort_type || \
-            (t) == cint_type || (t) == int_type || (t) == uint_type)
+#define pyAsInt(t)  ((t) == bool_type || (t) == hash_type || \
+            (t) == ssize_type || (t) == size_type || (t) == byte_type || \
+            (t) == sbyte_type || (t) == ubyte_type || (t) == short_type || \
+            (t) == ushort_type || (t) == cint_type || (t) == int_type || \
+            (t) == uint_type)
 #define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
 #define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
 #define pyAsAuto(t) ((t) == bool_type || \

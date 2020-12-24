@@ -339,6 +339,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_LOGICAL_OR
 %token          TK_CONST
 %token          TK_STATIC
+%token          TK_PYHASHT
 %token          TK_PYSSIZET
 %token          TK_SIZET
 %token <number> TK_NUMBER_VALUE
@@ -4199,6 +4200,10 @@ basetype:   scopedname {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = pyenum_type;
         }
+    |   TK_PYHASHT {
+            memset(&$$, 0, sizeof (argDef));
+            $$.atype = hash_type;
+        }
     |   TK_PYSSIZET {
             memset(&$$, 0, sizeof (argDef));
             $$.atype = ssize_type;
@@ -5498,8 +5503,16 @@ static char *type2string(argDef *ad)
             s = "void *";
             break;
 
+        case ssize_type:
+            s = "Py_ssize_t";
+            break;
+
         case size_type:
             s = "size_t";
+            break;
+
+        case hash_type:
+            s = "Py_hash_t";
             break;
 
         default:

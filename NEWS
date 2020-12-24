@@ -13,5 +13,6 @@ v6.0.0 ??? December 2020
   - Added the /BaseType/ enum annotation for specifying the exact Python enum
     type to be used.  (ABI v13 only.)
   - Added support for wrapping named unions.
+  - Added support for Py_hash_t.  (ABI v13 only.)
   - Python names automatically have a '_' appended if they are Python keywords.
   - The lexer can now handle '\xNN' characters.

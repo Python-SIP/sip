@@ -5404,9 +5404,9 @@ int isSSizeReturnSlot(memberDef *md)
 
 
 /*
- * Returns TRUE if the given method is a slot that returns long.
+ * Returns TRUE if the given method is a slot that returns Py_hash_t.
  */
-int isLongReturnSlot(memberDef *md)
+int isHashReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5520,10 +5520,18 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         ret_type = "Py_ssize_t ";
         ret_value = "0";
     }
-    else if (isLongReturnSlot(md))
+    else if (isHashReturnSlot(md))
     {
-        ret_type = "long ";
-        ret_value = "0L";
+        if (abiVersion >= ABI_13_0)
+        {
+            ret_type = "Py_hash_t ";
+            ret_value = "0";
+        }
+        else
+        {
+            ret_type = "long ";
+            ret_value = "0L";
+        }
     }
     else
     {
@@ -8935,6 +8943,10 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             prcode(fp, "int");
             break;
 
+        case hash_type:
+            prcode(fp, "Py_hash_t");
+            break;
+
         case ssize_type:
             prcode(fp, "Py_ssize_t");
             break;
@@ -12025,7 +12037,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         prcode(fp,
 "                return %s;\n"
 "\n"
-            , ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "SIP_NULLPTR"));
+            , ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isHashReturnSlot(od->common)) ? "-1" : "SIP_NULLPTR"));
     }
 
     /* Call any pre-hook. */
@@ -12336,7 +12348,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         );
 
     /* Handle the error flag if it was used. */
-    error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common)) ? "-1" : "0");
+    error_value = ((isVoidReturnSlot(od->common) || isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isHashReturnSlot(od->common)) ? "-1" : "0");
 
     if (raisesPyException(od))
     {
@@ -12385,7 +12397,7 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 "            Py_INCREF(sipSelf);\n"
 "            return sipSelf;\n"
             );
-    else if (isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isLongReturnSlot(od->common))
+    else if (isIntReturnSlot(od->common) || isSSizeReturnSlot(od->common) || isHashReturnSlot(od->common))
         prcode(fp,
 "            return sipRes;\n"
             );
