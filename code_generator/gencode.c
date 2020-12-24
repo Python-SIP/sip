@@ -2106,6 +2106,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             if (ed->module != mod || ed->fqcname == NULL)
                 continue;
 
+            if (isProtectedEnum(ed))
+                continue;
+
             prcode(fp,
 "    qMetaTypeId<%S>();\n"
                 , ed->fqcname);
