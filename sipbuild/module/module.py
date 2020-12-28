@@ -165,7 +165,7 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
 
         # If the user's setup.cfg mentions sip.pyi then assume it is needed.
         if 'sip.pyi' in setup_cfg_text:
-            shutil.copy(os.path.join(module_ourcec_dir, 'sip.pyi'), sdist_dir)
+            shutil.copy(os.path.join(module_source_dir, 'sip.pyi'), sdist_dir)
 
     # Create the sdist file using setuptools.  This means any user supplied
     # setup.cfg should be handled correctly.
