@@ -320,8 +320,8 @@ The full set of command line options is:
 
     The version number of the ABI implemented by the :mod:`sip` module is
     ``MAJOR.MINOR``.  If only the major version number is specified then the
-    latest minor version with that major version is used.  By the default the
-    very latest version is used.
+    latest minor version with that major version is used.  By default the very
+    latest version is used.
 
 .. option:: --project NAME
 
@@ -337,8 +337,8 @@ The full set of command line options is:
 .. option:: --setup-cfg FILE
 
     ``FILE`` is copied to the sdist as :file:`setup.cfg` instead of the default
-    version.  This allows the meta-data included in the sdist to be customised.
-    A number of macros may be specified in the :file:`setup.cfg` file:
+    version.  This allows the sdist to be customised.  A number of macros may
+    be specified in the :file:`setup.cfg` file:
 
         ``@SIP_MODULE_FQ_NAME@`` is replaced by the fully qualified name
         of the :mod:`sip` module.
