@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -74,6 +74,13 @@ def copy_sip_h(abi_version, target_dir, sip_module=''):
             target_dir, patches)
 
 
+def copy_sip_pyi(abi_version, target_dir):
+    """ Copy the sip.pyi file. """
+
+    shutil.copy(os.path.join(get_module_source_dir(abi_version), 'sip.pyi'),
+            target_dir)
+
+
 def copy_nonshared_sources(abi_version, target_dir):
     """ Copy the module sources as a non-shared module. """
 
@@ -144,7 +151,7 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
     module_source_dir = get_module_source_dir(abi_version)
 
     for name in os.listdir(module_source_dir):
-        if name in ('sip.pyi', 'sip.rst.in'):
+        if name in ('setup.cfg.in', 'sip.pyi', 'sip.rst.in'):
             continue
 
         if name != 'MANIFEST.in' and name.endswith('.in'):
@@ -158,14 +165,11 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
         else:
             shutil.copy(os.path.join(module_source_dir, name), sdist_dir)
 
-    # Overwrite setup.cfg is required.
-    if setup_cfg is not None:
-        setup_cfg_text = _install_source_file(setup_cfg, module_source_dir,
-                os.path.join(sdist_dir, 'setup.cfg'), patches)
+    # Write setup.cfg as required.
+    if setup_cfg is None:
+        setup_cfg = os.path.join(module_source_dir, 'setup.cfg.in')
 
-        # If the user's setup.cfg mentions sip.pyi then assume it is needed.
-        if 'sip.pyi' in setup_cfg_text:
-            shutil.copy(os.path.join(module_source_dir, 'sip.pyi'), sdist_dir)
+    _install_file(setup_cfg, os.path.join(sdist_dir, 'setup.cfg'), patches)
 
     # Create the sdist file using setuptools.  This means any user supplied
     # setup.cfg should be handled correctly.
@@ -192,16 +196,14 @@ def _create_sip_file(sip_file_fn, abi_version, patches):
 
 
 def _install_source_file(name, module_source_dir, target_dir, patches):
-    """ Install a source file in a target directory and return a copy of the
-    contents of the file.
-    """
+    """ Install a source file in a target directory. """
 
-    return _install_file(os.path.join(module_source_dir, name) + '.in',
+    _install_file(os.path.join(module_source_dir, name) + '.in',
             os.path.join(target_dir, name), patches)
 
 
 def _install_file(name_in, name_out, patches):
-    """ Install a file and return a copy of its contents. """
+    """ Install a file. """
 
     # Read the file.
     with open(name_in) as f:
@@ -214,5 +216,3 @@ def _install_file(name_in, name_out, patches):
     # Write the file.
     with open(name_out, 'w') as f:
         f.write(data)
-
-    return data

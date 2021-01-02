@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,4 +23,4 @@
 
 # Publish the API.  This is private to the rest of sip.
 from .abi_version import resolve_abi_version
-from .module import copy_nonshared_sources, copy_sip_h
+from .module import copy_nonshared_sources, copy_sip_h, copy_sip_pyi

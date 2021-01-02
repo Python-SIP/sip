@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -35,7 +35,7 @@ from .code_generator import set_globals
 from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
-from .module import copy_sip_h
+from .module import copy_sip_h, copy_sip_pyi
 from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
 from .version import SIP_VERSION, SIP_VERSION_STR
 
@@ -318,16 +318,40 @@ class Builder(AbstractBuilder):
 
         # Create __init__.py if required.
         if project.dunder_init:
+            package_dir = project.get_package_dir()
+
             init_path = os.path.join(project.build_dir, '__init__.py')
 
             init_f = project.open_for_writing(init_path)
             init_f.write(project.get_dunder_init())
             init_f.close()
 
-            installable = Installable('init',
-                    target_subdir=project.get_package_dir())
+            installable = Installable('init', target_subdir=package_dir)
             installable.files.append(init_path)
             project.installables.append(installable)
+
+            # Include sip.pyi if any of the bindings generate a .pyi file.
+            for bindings in project.bindings.values():
+                if bindings.pep484_pyi:
+                    copy_sip_pyi(project.abi_version, project.build_dir)
+
+                    installable = Installable('sip_pyi',
+                            target_subdir=package_dir)
+                    installable.files.append(
+                            os.path.join(project.build_dir, 'sip.pyi'))
+                    project.installables.append(installable)
+
+                    # Create a PEP 561 marker file.
+                    py_typed_path = os.path.join(project.build_dir, 'py.typed')
+                    with open(py_typed_path, 'w') as f:
+                        pass
+
+                    installable = Installable('py_typed',
+                            target_subdir=package_dir)
+                    installable.files.append(py_typed_path)
+                    project.installables.append(installable)
+
+                    break
 
         # Create the .api file if required.
         if project.api_dir:

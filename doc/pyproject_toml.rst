@@ -126,7 +126,11 @@ list options may contain environment markers as defined in `PEP 508
 **dunder-init**
     The boolean value specifies if a :file:`__init__.py` file should be
     installed in the top level package directory.  By default it is not
-    installed and the value is ignored for standalone projects.
+    installed and the value is ignored for standalone projects.  If it is set
+    and at least one set of bindings specify that a Python type hints stub file
+    be generated (by setting the ``pep484-pyi`` option) then the stub file for
+    the ``sip`` module and a PEP 561-compatible ``py.typed`` marker file is
+    also installed.
 
 **distinfo**
     The boolean value specifies if a :file:`.dist-info` directory is to be
