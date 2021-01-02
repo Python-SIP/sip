@@ -1043,7 +1043,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         break;
 
     case pybuffer_type:
-        type_name = "sip.Buffer";
+        fprintf(fp, "%s.Buffer", (sipName != NULL ? sipName : "sip"));
         break;
 
     case pyenum_type:
