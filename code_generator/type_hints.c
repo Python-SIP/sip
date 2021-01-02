@@ -1822,7 +1822,7 @@ static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
 
 
 /*
- * Lookup an enum.
+ * Lookup an enum using its C/C++ name.
  */
 static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
         mappedTypeDef *scope_mtd)
@@ -1830,7 +1830,7 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
     enumDef *ed;
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
-        if (ed->pyname != NULL && strcmp(ed->pyname->text, name) == 0 && ed->ecd == scope_cd && ed->emtd == scope_mtd)
+        if (ed->fqcname != NULL && strcmp(scopedNameTail(ed->fqcname), name) == 0 && ed->ecd == scope_cd && ed->emtd == scope_mtd)
             return ed;
 
     return NULL;
@@ -1838,14 +1838,14 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 
 
 /*
- * Lookup a mapped type.
+ * Lookup a mapped type using its C/C++ name.
  */
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name)
 {
     mappedTypeDef *mtd;
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-        if (mtd->pyname != NULL && strcmp(mtd->pyname->text, name) == 0)
+        if (mtd->cname != NULL && strcmp(mtd->cname->text, name) == 0)
             return mtd;
 
     return NULL;
@@ -1853,14 +1853,14 @@ static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name)
 
 
 /*
- * Lookup a class.
+ * Lookup a class/struct/union using its C/C++ name.
  */
 static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 {
     classDef *cd;
 
     for (cd = pt->classes; cd != NULL; cd = cd->next)
-        if (strcmp(cd->pyname->text, name) == 0 && cd->ecd == scope_cd && !isExternal(cd))
+        if (strcmp(classBaseName(cd), name) == 0 && cd->ecd == scope_cd && !isExternal(cd))
             return cd;
 
     return NULL;
