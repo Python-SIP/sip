@@ -1,7 +1,7 @@
 /*
  * The PEP 484 type hints generator for SIP.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -640,7 +640,9 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
                 continue;
 
             prIndent(indent, fp);
-            fprintf(fp, "%s = ... # type: %s\n", emd->pyname->text, member);
+            fprintf(fp, "%s = ... # type: ", emd->pyname->text);
+            prScopedPythonName(fp, ed->ecd, member);
+            fprintf(fp, "\n");
         }
 
         if (ed->pyname != NULL)
