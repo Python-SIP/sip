@@ -155,14 +155,10 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
     if (abiVersion >= ABI_13_0)
         fprintf(fp,
 "import enum\n"
-"import typing\n"
-            );
-    else
-        fprintf(fp,
-"import typing\n"
             );
 
     fprintf(fp,
+"import typing\n"
 "\n"
 "import %s\n"
         , (sipName != NULL) ? sipName : "sip");
@@ -971,7 +967,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
 
     case struct_type:
     case void_type:
-        type_name = "sip.voidptr";
+        fprintf(fp, "%s.voidptr", (sipName != NULL ? sipName : "sip"));
         break;
 
     case ustring_type:

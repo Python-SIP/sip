@@ -35,11 +35,6 @@ class simplewrapper: ...
 class wrapper(simplewrapper): ...
 
 
-# PEP 484 has no explicit support for the buffer protocol so we just name types
-# we know that implement it.
-Buffer = Union['array', 'voidptr', str, bytes, bytearray]
-
-
 # The array type.
 class array(Sequence): ...
 
@@ -77,6 +72,11 @@ class voidptr:
     def setsize(self, size: int) -> None: ...
 
     def setwriteable(self, bool) -> None: ...
+
+
+# PEP 484 has no explicit support for the buffer protocol so we just name types
+# we know that implement it.
+Buffer = Union[array, voidptr, bytes, bytearray]
 
 
 # Remaining functions.
