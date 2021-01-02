@@ -581,7 +581,6 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
     for (ed = pt->enums; ed != NULL; ed = ed->next)
     {
-        const char *member;
         enumMemberDef *emd;
 
         if (ed->module != mod)
@@ -622,12 +621,7 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
             fprintf(fp, "class %s(%s):\n", ed->pyname->text, super);
 
-            member = ed->pyname->text;
             ++indent;
-        }
-        else
-        {
-            member = "int";
         }
 
         for (emd = ed->members; emd != NULL; emd = emd->next)
@@ -637,7 +631,12 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
 
             prIndent(indent, fp);
             fprintf(fp, "%s = ... # type: ", emd->pyname->text);
-            prScopedPythonName(fp, ed->ecd, member);
+
+            if (ed->pyname != NULL)
+                prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+            else
+                fprintf(fp, "int");
+
             fprintf(fp, "\n");
         }
 
