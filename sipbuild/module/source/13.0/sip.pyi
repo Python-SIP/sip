@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -36,7 +36,15 @@ class wrapper(simplewrapper): ...
 
 
 # The array type.
-class array(Sequence): ...
+class array(Sequence):
+
+    @overload
+    def __getitem__(self, i: int) -> Union[int, float]: ...
+
+    @overload
+    def __getitem__(self, s: slice) -> array: ...
+
+    def __len__(self) -> int: ...
 
 
 # The voidptr type.
@@ -50,7 +58,7 @@ class voidptr:
     def __getitem__(self, i: int) -> bytes: ...
 
     @overload
-    def __getitem__(self, s: slice) -> 'voidptr': ...
+    def __getitem__(self, s: slice) -> voidptr: ...
 
     def __hex__(self) -> str: ...
 

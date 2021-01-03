@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -468,7 +468,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
 /* The type data structure. */
 PyTypeObject sipVoidPtr_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "sip.voidptr",          /* tp_name */
+    _SIP_MODULE_FQ_NAME ".voidptr", /* tp_name */
     sizeof (sipVoidPtrObject),  /* tp_basicsize */
     0,                      /* tp_itemsize */
     0,                      /* tp_dealloc */
@@ -534,7 +534,8 @@ void *sip_api_convert_to_void_ptr(PyObject *obj)
 
     if (obj == NULL)
     {
-        PyErr_SetString(PyExc_TypeError, "sip.voidptr is NULL");
+        PyErr_SetString(PyExc_TypeError,
+                _SIP_MODULE_FQ_NAME ".voidptr is NULL");
         return NULL;
     }
 
@@ -592,7 +593,7 @@ static int check_size(PyObject *self)
         return 0;
 
     PyErr_SetString(PyExc_IndexError,
-            "sip.voidptr object has an unknown size");
+            _SIP_MODULE_FQ_NAME ".voidptr object has an unknown size");
 
     return -1;
 }
@@ -607,7 +608,7 @@ static int check_rw(PyObject *self)
         return 0;
 
     PyErr_SetString(PyExc_TypeError,
-            "cannot modify a read-only sip.voidptr object");
+            "cannot modify a read-only " _SIP_MODULE_FQ_NAME ".voidptr object");
 
     return -1;
 }
@@ -633,7 +634,7 @@ static int check_index(PyObject *self, Py_ssize_t idx)
 static void bad_key(PyObject *key)
 {
     PyErr_Format(PyExc_TypeError,
-            "cannot index a sip.voidptr object using '%s'",
+            "cannot index a " _SIP_MODULE_FQ_NAME ".voidptr object using '%s'",
             Py_TYPE(key)->tp_name);
 }
 
@@ -648,7 +649,7 @@ static int check_slice_size(Py_ssize_t size, Py_ssize_t value_size)
         return 0;
 
     PyErr_SetString(PyExc_ValueError,
-            "cannot modify the size of a sip.voidptr object");
+            "cannot modify the size of a " _SIP_MODULE_FQ_NAME ".voidptr object");
 
     return -1;
 }
@@ -721,7 +722,7 @@ static int vp_convertor(PyObject *arg, struct vp_values *vp)
 
         if (PyErr_Occurred())
         {
-            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, None, bytes-like object or another sip.voidptr object is required");
+            PyErr_SetString(PyExc_TypeError, "a single integer, Capsule, None, bytes-like object or another " _SIP_MODULE_FQ_NAME ".voidptr object is required");
             return 0;
         }
     }
@@ -746,7 +747,7 @@ static Py_ssize_t get_size_from_arg(sipVoidPtrObject *v, Py_ssize_t size)
 
     if (size < 0)
         PyErr_SetString(PyExc_ValueError,
-                "a size must be given or the sip.voidptr object must have a size");
+                "a size must be given or the " _SIP_MODULE_FQ_NAME ".voidptr object must have a size");
 
     return size;
 }

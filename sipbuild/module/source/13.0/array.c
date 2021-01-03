@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the array type.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -251,7 +251,7 @@ static PyMappingMethods sipArray_MappingMethods = {
 
 
 /*
- * The buffer implementation for Python v2.6.3 and later.
+ * The buffer implementation.
  */
 static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 {
@@ -317,7 +317,7 @@ static void sipArray_dealloc(PyObject *self)
 /* The type data structure. */
 PyTypeObject sipArray_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "sip.array",            /* tp_name */
+    _SIP_MODULE_FQ_NAME ".array",   /* tp_name */
     sizeof (sipArrayObject),    /* tp_basicsize */
     0,                      /* tp_itemsize */
     sipArray_dealloc,       /* tp_dealloc */
@@ -381,7 +381,8 @@ static int check_writable(sipArrayObject *array)
 {
     if (array->flags & SIP_READ_ONLY)
     {
-        PyErr_SetString(PyExc_TypeError, "sip.array object is read-only");
+        PyErr_SetString(PyExc_TypeError,
+                _SIP_MODULE_FQ_NAME ".array object is read-only");
         return -1;
     }
 
@@ -409,7 +410,7 @@ static int check_index(sipArrayObject *array, Py_ssize_t idx)
 static void bad_key(PyObject *key)
 {
     PyErr_Format(PyExc_TypeError,
-            "cannot index a sip.array object using '%s'",
+            "cannot index a " _SIP_MODULE_FQ_NAME ".array object using '%s'",
             Py_TYPE(key)->tp_name);
 }
 

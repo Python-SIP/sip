@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -35,13 +35,16 @@ class simplewrapper: ...
 class wrapper(simplewrapper): ...
 
 
-# PEP 484 has no explicit support for the buffer protocol so we just name types
-# we know that implement it.
-Buffer = Union['array', 'voidptr', str, bytes, bytearray]
-
-
 # The array type.
-class array(Sequence): ...
+class array(Sequence):
+
+    @overload
+    def __getitem__(self, i: int) -> Union[int, float]: ...
+
+    @overload
+    def __getitem__(self, s: slice) -> array: ...
+
+    def __len__(self) -> int: ...
 
 
 # The voidptr type.
@@ -55,7 +58,7 @@ class voidptr:
     def __getitem__(self, i: int) -> bytes: ...
 
     @overload
-    def __getitem__(self, s: slice) -> 'voidptr': ...
+    def __getitem__(self, s: slice) -> voidptr: ...
 
     def __hex__(self) -> str: ...
 
@@ -77,6 +80,11 @@ class voidptr:
     def setsize(self, size: int) -> None: ...
 
     def setwriteable(self, bool) -> None: ...
+
+
+# PEP 484 has no explicit support for the buffer protocol so we just name types
+# we know that implement it.
+Buffer = Union[array, voidptr, bytes, bytearray]
 
 
 # Remaining functions.
