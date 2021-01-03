@@ -1497,15 +1497,13 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
             break;
         }
 
-    /* We must have a name unless we have brackets. */
+    /* See if we have a name. */
     if (name_start == name_end)
     {
-        /* Check we have brackets. */
-        if (!have_brackets)
-            return FALSE;
-
-        /* Check we don't have empty brackets at the top level. */
-        if (top_level && children == NULL)
+        /*
+         * At the top level we must have brackets and they must not be empty.
+         */
+        if (top_level && (!have_brackets || children == NULL))
             return FALSE;
 
         /* Return the representation of brackets. */
