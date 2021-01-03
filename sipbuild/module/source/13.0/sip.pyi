@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import overload, Sequence, Union
+from typing import Generic, overload, TypeVar, Union
 
 
 # Constants.
@@ -36,13 +36,15 @@ class wrapper(simplewrapper): ...
 
 
 # The array type.
-class array(Sequence):
+T = TypeVar('T')
+
+class array(Generic[T]):
 
     @overload
-    def __getitem__(self, i: int) -> Union[int, float]: ...
+    def __getitem__(self, i: int) -> T: ...
 
     @overload
-    def __getitem__(self, s: slice) -> array: ...
+    def __getitem__(self, s: slice) -> array[T]: ...
 
     def __len__(self) -> int: ...
 
