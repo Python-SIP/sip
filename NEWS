@@ -1,4 +1,4 @@
-v6.0.0 ??? December 2020
+v6.0.0 ??? January 2021
   - All features deprecated in SIP v5 have been removed.
   - Added ABI v13.0 of the sip module.  This uses the Python enum module to
     implement all enums.
@@ -16,3 +16,5 @@ v6.0.0 ??? December 2020
   - Added support for Py_hash_t.  (ABI v13 only.)
   - Python names automatically have a '_' appended if they are Python keywords.
   - The lexer can now handle '\xNN' characters.
+  - sip.pyi and py.typed are automatically installed if dunder-init is
+    specified and pep484-pyi is specified for at least one module.
