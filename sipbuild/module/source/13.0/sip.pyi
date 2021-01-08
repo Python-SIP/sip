@@ -86,7 +86,7 @@ class voidptr:
 
 # PEP 484 has no explicit support for the buffer protocol so we just name types
 # we know that implement it.
-Buffer = Union[array, voidptr, bytes, bytearray]
+Buffer = Union[bytes, bytearray, memoryview, array, voidptr]
 
 
 # Remaining functions.

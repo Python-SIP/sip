@@ -924,7 +924,7 @@ void prDefaultValue(argDef *ad, int in_str, FILE *fp)
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         ifaceFileList *defined, int pep484, FILE *fp)
 {
-    const char *type_name;
+    const char *type_name, *sip_name;
     typeHintDef *thd;
 
     /* Use any explicit type hint unless the argument is constrained. */
@@ -937,6 +937,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
     }
 
     type_name = NULL;
+
+    sip_name = (sipName != NULL ? sipName : "sip");
 
     switch (ad->atype)
     {
@@ -966,7 +968,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
 
     case struct_type:
     case void_type:
-        fprintf(fp, "%s.voidptr", (sipName != NULL ? sipName : "sip"));
+        fprintf(fp, "%s.voidptr", sip_name);
         break;
 
     case string_type:
@@ -1041,7 +1043,12 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         break;
 
     case pybuffer_type:
-        fprintf(fp, "%s.Buffer", (sipName != NULL ? sipName : "sip"));
+        if (pep484)
+            fprintf(fp, "%s.Buffer", sip_name);
+        else
+            /* This replicates sip.pyi. */
+            fprintf(fp, "Union[bytes, bytearray, memoryview, %s.array, %s.voidptr]", sip_name, sip_name);
+
         break;
 
     case pyenum_type:
