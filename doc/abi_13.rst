@@ -587,9 +587,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: int sipConvertToEnum(PyObject *obj, const sipTypeDef *td)
 
     This converts a Python object to the value of a named C/C++ ``enum``
-    member.  If the enum is a C++11 scoped enum then the Python object must be
-    a member of the enum.  Otherwise it may also be an ``int`` corresponding to
-    the name of the member.
+    member.
 
     :param obj:
         the Python object to convert.
