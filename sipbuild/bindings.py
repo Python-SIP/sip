@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -26,7 +26,7 @@ import sys
 
 from .buildable import BuildableBindings
 from .code_generator import (parse, generateCode, generateExtracts,
-        generateAPI, generateXML, generateTypeHints)
+        generateAPI, generateTypeHints)
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .installable import Installable
