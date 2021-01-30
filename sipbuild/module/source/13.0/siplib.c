@@ -6560,7 +6560,7 @@ static PyObject *get_enum_type(const sipTypeDef *td)
     if (type_obj == NULL)
     {
         if (add_all_lazy_attrs(sip_api_type_scope(td)) < 0)
-            return -1;
+            return NULL;
 
         type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
     }
