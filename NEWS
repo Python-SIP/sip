@@ -1,5 +1,6 @@
-v6.0.1 ??? ??? 2021
+v6.0.1 ??? February 2021
   - The latest version of ABI v13 is v13.0.1.
+  - Bug fixes.
 
 v6.0.0 4th January 2021
   - All features deprecated in SIP v5 have been removed.
