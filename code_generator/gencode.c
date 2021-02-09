@@ -11036,12 +11036,21 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                  *   then the Python reimplementation would be called
                  *   recursively.
                  *
+                 * In addition, if the type is a derived class then we know
+                 * that there can't be a C++ sub-class that we don't know
+                 * about so we can avoid the vtable.
+                 *
                  * Note that we would like to rename 'sipSelfWasArg' to
                  * 'sipExplicitScope' but it is part of the public API.
                  */
-                prcode(fp,
+                if (abiVersion >= ABI_13_0)
+                    prcode(fp,
+"    bool sipSelfWasArg = (!PyObject_TypeCheck(sipSelf, (PyTypeObject *)&sipSimpleWrapper_Type) || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
+                        );
+                else
+                    prcode(fp,
 "    bool sipSelfWasArg = (!sipSelf || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
-                    );
+                        );
             }
 
             if (need_orig_self)
