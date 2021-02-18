@@ -120,10 +120,12 @@ class Bindings(Configurable):
     def __init__(self, project, name, **kwargs):
         """ Initialise the bindings. """
 
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.project = project
         self.name = name
+
+        self.initialise_options(kwargs)
 
     def apply_nonuser_defaults(self, tool):
         """ Set default values for each non-user configurable option that
