@@ -530,6 +530,9 @@ class Project(AbstractProject, Configurable):
             if not b.is_buildable():
                 del self.bindings[b.name]
 
+        if len(self.bindings) == 0:
+            raise UserException("There are no bindings that can be built")
+
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
 
