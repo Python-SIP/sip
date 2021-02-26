@@ -1,3 +1,6 @@
+v4.19.25 ??? February 2021
+  - Added support for Py_ssize_t.
+
 v4.19.24 13th August 2020
   - Added support for Python v3.9.
   - %InstanceCode is now used to provide the default result of virtual handlers
