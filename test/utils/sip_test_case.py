@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -85,6 +85,13 @@ class SIPTestCase(unittest.TestCase):
 
         module_path = module_path[0]
         module_impl = os.path.join(test_dir, os.path.basename(module_path))
+
+        # On Windows the module may be lying around from a previous run.
+        try:
+            os.remove(module_impl)
+        except:
+            pass
+
         os.rename(module_path, module_impl)
 
         # Remove the build artifacts.
@@ -104,7 +111,11 @@ class SIPTestCase(unittest.TestCase):
         except KeyError:
             pass
 
-        os.remove(cls._module_impl)
+        # This will fail on Windows (probably because the module is loaded).
+        try:
+            os.remove(cls._module_impl)
+        except:
+            pass
 
     def install_hook(self):
         """ Install a hook that will catch any exceptions raised by a Python
