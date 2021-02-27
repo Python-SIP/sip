@@ -129,7 +129,7 @@ def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
         # Create the WHEEL file.
         WHEEL = '''Wheel-Version: {}
 Generator: {} {}
-Root-Is_Purelib: false
+Root-Is-Purelib: false
 Tag: {}
 '''
 
