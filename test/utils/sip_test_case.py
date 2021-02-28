@@ -149,14 +149,16 @@ class SIPTestCase(unittest.TestCase):
 # The prototype pyproject.toml file.
 _PYPROJECT_TOML = """
 [build-system]
-requires = ["sip >=5"]
+requires = ["sip >=6"]
 build-backend = "sipbuild.api"
 
 [tool.sip.metadata]
 name = "{module_name}"
+
+[tool.sip.project]
+minimum-macos-version = "10.9"
 """
 
 _ABI_VERSION = """
-[tool.sip.project]
 abi-version = "{abi_version}"
 """
