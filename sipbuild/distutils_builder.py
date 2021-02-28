@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -27,6 +27,7 @@ from distutils.extension import Extension
 from distutils.log import ERROR, INFO, set_threshold
 
 import os
+import sys
 
 from .buildable import BuildableModule
 from .builder import Builder
@@ -47,7 +48,23 @@ class DistutilsBuilder(Builder):
     def build_project(self, target_dir, *, wheel_tag=None):
         """ Build the project. """
 
-        for buildable in self.project.buildables:
+        project = self.project
+
+        # On macOS respect the minimum macOS version.
+        remove_macos_target = False
+
+        if sys.platform == 'darwin':
+            # If the target version has already been set then assume the user
+            # knows what they are doing and leave it as it is.
+            if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+                if project.minimum_macos_version:
+                    macos_target = '.'.join(
+                            [str(v) for v in project.minimum_macos_version])
+                    os.environ['MACOSX_DEPLOYMENT_TARGET'] = macos_target
+                    remove_macos_target = True
+
+        # Build the buildables.
+        for buildable in project.buildables:
             if isinstance(buildable, BuildableModule):
                 if buildable.static:
                     raise UserException(
@@ -58,6 +75,10 @@ class DistutilsBuilder(Builder):
                 raise UserException(
                         "DistutilsBuilder cannot build '{0}' buildables".format(
                                 type(buildable).__name__))
+
+        # Tidy up.
+        if remove_macos_target:
+            del os.environ['MACOSX_DEPLOYMENT_TARGET']
 
     def install_project(self, target_dir, *, wheel_tag=None):
         """ Install the project into a target directory. """

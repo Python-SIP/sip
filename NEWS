@@ -1,3 +1,7 @@
+v6.0.3 ??? ??? 2021
+  - The distutils builder now respects the minimum-macos-version option.
+  - Bug fixes.
+
 v6.0.2 23rd February 2021
   - Bug fixes.
 
