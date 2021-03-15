@@ -148,7 +148,7 @@ class Project(AbstractProject, Configurable):
     def __init__(self, **kwargs):
         """ Initialise the project. """
 
-        super().__init__(**kwargs)
+        super().__init__()
 
         # The current directory should contain the .toml file.
         self.root_dir = os.getcwd()
@@ -160,6 +160,8 @@ class Project(AbstractProject, Configurable):
 
         self._metadata_overrides = None
         self._temp_build_dir = None
+
+        self.initialise_options(kwargs)
 
     def apply_nonuser_defaults(self, tool):
         """ Set default values for non-user options that haven't been set yet.
@@ -527,6 +529,9 @@ class Project(AbstractProject, Configurable):
         for b in list(self.bindings.values()):
             if not b.is_buildable():
                 del self.bindings[b.name]
+
+        if len(self.bindings) == 0:
+            raise UserException("There are no bindings that can be built")
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """

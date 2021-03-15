@@ -93,9 +93,9 @@ If there was a real ``fib`` library to be wrapped, with a corresponding
 like that shown below.
 
 .. parsed-literal::
-    # Specify sip v5 as the build system for the package.
+    # Specify sip v6 as the build system for the package.
     [build-system]
-    requires = ["sip >=5, <6"]
+    requires = ["sip >=6, <7"]
     build-backend = "sipbuild.api"
 
     # Specify the PEP 566 metadata for the project.

@@ -871,6 +871,7 @@ static int dict_set_and_discard(PyObject *dict, const char *name,
 static void raise_no_convert_from(const sipTypeDef *td);
 static void raise_no_convert_to(PyObject *py, const sipTypeDef *td);
 static int user_state_is_valid(const sipTypeDef *td, void **user_statep);
+static PyObject *get_enum_type(const sipTypeDef *td);
 
 
 /*
@@ -6497,15 +6498,7 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
     assert(sipTypeIsEnum(td));
 
     /* Make sure the enum object has been created. */
-    type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
-
-    if (type_obj == NULL)
-    {
-        if (add_all_lazy_attrs(sip_api_type_scope(td)) < 0)
-            return -1;
-
-        type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
-    }
+    type_obj = get_enum_type(td);
 
     /* Check the type of the Python object. */
     if (PyObject_IsInstance(obj, type_obj) <= 0)
@@ -6550,8 +6543,29 @@ static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
     assert(sipTypeIsEnum(td));
 
-    return PyObject_CallFunction((PyObject *)sipTypeAsPyTypeObject(td), "(i)",
-            eval);
+    return PyObject_CallFunction(get_enum_type(td), "(i)", eval);
+}
+
+
+/*
+ * Get the Python object for an enum type.
+ */
+static PyObject *get_enum_type(const sipTypeDef *td)
+{
+    PyObject *type_obj;
+
+    /* Make sure the enum object has been created. */
+    type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
+
+    if (type_obj == NULL)
+    {
+        if (add_all_lazy_attrs(sip_api_type_scope(td)) < 0)
+            return NULL;
+
+        type_obj = (PyObject *)sipTypeAsPyTypeObject(td);
+    }
+
+    return type_obj;
 }
 
 

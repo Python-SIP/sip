@@ -1,3 +1,14 @@
+v6.0.3 2nd March 2021
+  - The distutils builder now respects the minimum-macos-version option.
+  - Bug fixes.
+
+v6.0.2 23rd February 2021
+  - Bug fixes.
+
+v6.0.1 5th February 2021
+  - The latest version of ABI v13 is v13.0.1.
+  - Bug fixes.
+
 v6.0.0 4th January 2021
   - All features deprecated in SIP v5 have been removed.
   - Added ABI v13.0 of the sip module.  This uses the Python enum module to

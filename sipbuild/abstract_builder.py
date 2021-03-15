@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -32,9 +32,11 @@ class AbstractBuilder(Configurable, ABC):
     def __init__(self, project, **kwargs):
         """ Initialise the builder. """
 
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.project = project
+
+        self.initialise_options(kwargs)
 
     @abstractmethod
     def build(self):

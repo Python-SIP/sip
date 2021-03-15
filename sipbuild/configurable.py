@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -31,24 +31,6 @@ class Configurable:
     """ A base class for an object that can be configured by a pyproject.toml,
     a build script or (possibly) the user via command line options.
     """
-
-    def __init__(self, **kwargs):
-        """ Initialise the object. """
-
-        # Set the value for each option from the keyword arguments or undefined
-        # if not specified.
-        names = []
-
-        for option in self.get_options():
-            name = option.name
-            names.append(name)
-
-            setattr(self, name, kwargs.get(name))
-
-        # Check that all keyword arguments are valid options.
-        for kw in kwargs.keys():
-            if kw not in names:
-                raise UserException("'{0}' is not a valid option".format(kw))
 
     def add_command_line_options(self, parser, tool, all_options, options=None):
         """ Add the object's command line options to an argument parser and
@@ -170,6 +152,24 @@ class Configurable:
         """ Return a list of configurable options. """
 
         return list()
+
+    def initialise_options(self, kwargs):
+        """ Initialise the options. """
+
+        # Set the value for each option from the keyword arguments or undefined
+        # if not specified.
+        names = []
+
+        for option in self.get_options():
+            name = option.name
+            names.append(name)
+
+            setattr(self, name, kwargs.get(name))
+
+        # Check that all keyword arguments are valid options.
+        for kw in kwargs.keys():
+            if kw not in names:
+                raise UserException("'{0}' is not a valid option".format(kw))
 
     def verify_configuration(self, tool):
         """ Verify that the configuration is complete and consistent. """
