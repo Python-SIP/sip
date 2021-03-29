@@ -256,7 +256,7 @@ file.
             **SIP_RuntimeWarning** | **SIP_SyntaxWarning** |
             **SIP_UnicodeWarning** | **SIP_UserWarning**]
 
-    *exceptions* ::= **throw (** [*exception-list*] **)**
+    *exceptions* ::= **noexcept** | **throw (** [*exception-list*] **)**
 
     *exception-list* ::= *scoped-name* [**,** *exception-list*]
 

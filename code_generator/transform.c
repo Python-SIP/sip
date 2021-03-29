@@ -3005,7 +3005,7 @@ static void setNeededType(argDef *ad)
 static void setNeededExceptions(sipSpec *pt, moduleDef *mod,
         throwArgs *exceptions)
 {
-    if (generatingCodeForModule(pt, mod) && exceptions != NULL)
+    if (generatingCodeForModule(pt, mod) && exceptions != NULL && exceptions->nrArgs >= 0)
     {
         int i;
 
@@ -3525,7 +3525,7 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
     if (od->cppsig != &od->pysig)
         ifaceFilesAreUsedBySignature(used, od->cppsig, need_types);
 
-    if ((ta = od->exceptions) != NULL)
+    if ((ta = od->exceptions) != NULL && ta->nrArgs >= 0)
     {
         int a;
 

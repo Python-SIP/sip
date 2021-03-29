@@ -832,7 +832,7 @@ typedef struct _codeBlockList {
 
 /* The arguments to a throw specifier. */
 typedef struct _throwArgs {
-    int nrArgs;                         /* The number of arguments. */
+    int nrArgs;                         /* The number of arguments, -ve if noexcept. */
     struct _exceptionDef *args[MAX_NR_ARGS];    /* The arguments. */
 } throwArgs;
 

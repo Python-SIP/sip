@@ -121,6 +121,9 @@ SIP, and the bindings it produces, have the following features:
   specification files that is automatically included in all generated source
   code.
 
+SIP supports C++ compilers that implement the C++11 standard as a minimum.
+Older compilers may work depending on what features are used.
+
 
 Overview
 --------

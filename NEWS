@@ -1,8 +1,11 @@
 v6.1.0 29th March 2021
+  - Added support for the noexcept specifier.  This has he same effect as a
+    throw specifier that has no arguments.
   - Added the scripts-dir project option for specifying the directory where
     scripts are installed.  There is a corresponding --scripts-dir command line
     option to sip-build and sip-install.
   - The latest version of ABI v13 is v13.0.2.
+  - If C++ exceptions are used then a C++11 compiler is required.
   - Bug fixes.
 
 v6.0.3 2nd March 2021

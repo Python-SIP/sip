@@ -739,8 +739,16 @@ directives that allow a block of handwritten code or text to be specified.
 This directive is used to define new Python exceptions, or to provide a stub
 for existing Python exceptions.  It allows handwritten code to be provided
 that implements the translation between C++ exceptions and Python exceptions.
-The arguments to ``throw ()`` specifiers must either be names of classes or the
-names of Python exceptions defined by this directive.
+
+The arguments to a function's ``throw ()`` specifiers must either be names of
+classes or the names of Python exceptions defined by this directive.  If a
+``throw ()`` specifier has no arguments, or the ``noexcept`` specifier is used,
+then it is assumed that the function never raises an exception.
+
+.. note::
+    Even through ``throw ()`` specifiers are used in the SIP specification they
+    do not appear in the generated code in order to conform to current C++
+    standards.
 
 *name* is the name of the exception.
 

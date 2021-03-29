@@ -356,6 +356,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_NULL_VALUE
 %token          TK_OPERATOR
 %token          TK_THROW
+%token          TK_NOEXCEPT
 %token          TK_EXCEPTION
 %token          TK_RAISECODE
 %token          TK_EXPLICIT
@@ -4242,6 +4243,11 @@ cpptypelist:    cpptype {
 
 optexceptions:  {
             $$ = NULL;
+        }
+    |   TK_NOEXCEPT {
+            /* noexcept is a synonym for throw(). */
+            $$ = sipMalloc(sizeof (throwArgs));
+            $$->nrArgs = 0;
         }
     |   TK_THROW '(' exceptionlist ')' {
             if (currentSpec->genc)

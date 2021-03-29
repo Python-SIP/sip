@@ -131,6 +131,7 @@ typedef                     {return TK_TYPEDEF;}
 namespace                   {return TK_NAMESPACE;}
 operator                    {return TK_OPERATOR;}
 throw                       {return TK_THROW;}
+noexcept                    {return TK_NOEXCEPT;}
 explicit                    {return TK_EXPLICIT;}
 template                    {return TK_TEMPLATE;}
 final                       {return TK_FINAL;}
