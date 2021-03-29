@@ -1,4 +1,7 @@
 v6.1.0 29th March 2021
+  - Added the scripts-dir project option for specifying the directory where
+    scripts are installed.  There is a corresponding --scripts-dir command line
+    option to sip-build and sip-install.
   - The latest version of ABI v13 is v13.0.2.
   - Bug fixes.
 

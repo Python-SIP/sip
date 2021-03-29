@@ -130,6 +130,9 @@ class Project(AbstractProject, Configurable):
                 help="disable the use of manylinux in the platform tag used "
                         "in the wheel name",
                 tools=['wheel']),
+        Option('scripts_dir', default=os.path.dirname(sys.executable),
+                help="the scripts installation directory", metavar="DIR",
+                tools=['build', 'install']),
         Option('target_dir', default=get_python_lib(plat_specific=1),
                 help="the target installation directory", metavar="DIR",
                 tools=['build', 'install']),

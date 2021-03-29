@@ -200,17 +200,23 @@ list options may contain environment markers as defined in `PEP 508
     default progress messages are displayed.  There is also a corresponding
     command line option.
 
+**scripts-dir**
+    The value is the name of the directory where any project scripts will be
+    installed in.  If name is relative then it is taken as relative to the
+    target directory.  By default the directory containing the Python
+    interpreter is used.  There is also a corresponding command line option.
+
+**sdist-excludes**
+    The value is a list of files and directories, expressed as *glob* patterns
+    and relative to the directory containing the :file:`pyproject.toml` file,
+    that should be excluded from an sdist.
+
 **sip-files-dir**
     The value is the name of the directory containing the :file:`.sip`
     specification files.  If the project is a package project then the
     :file:`.sip` files of each set of bindings are assumed to be in their own
     bindings-specific sub-directory.  The default value is the name of the
     directory containing the :file:`pyproject.toml` file.
-
-**sdist-excludes**
-    The value is a list of files and directories, expressed as *glob* patterns
-    and relative to the directory containing the :file:`pyproject.toml` file,
-    that should be excluded from an sdist.
 
 **sip-include-dirs**
     The value is a list of additional directories that should be searched for

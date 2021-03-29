@@ -385,8 +385,7 @@ class Builder(AbstractBuilder):
             return
 
         # Create an installable for the scripts.
-        installable = Installable('scripts',
-                target_subdir=os.path.dirname(sys.executable))
+        installable = Installable('scripts', target_subdir=project.scripts_dir)
 
         for ep in scripts:
             # Parse the entry point.

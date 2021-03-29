@@ -96,6 +96,12 @@ The full set of command line options is:
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
 
+.. option:: --scripts-dir DIR
+
+    Any project scripts will eventually be installed in ``DIR``.  If ``DIR`` is
+    relative then it is taken as relative to the target directory.  By default
+    the directory containing the Python interpreter is used.
+
 .. option:: --target-dir DIR
 
     The project will eventually be installed in ``DIR``.  By default it is the
@@ -279,6 +285,12 @@ The full set of command line options is:
 
     This option disables the redefinition of ``protected`` to access protected
     C++ functions from Python and is the default on Windows.
+
+.. option:: --scripts-dir DIR
+
+    Any project scripts will be installed in ``DIR``.  If ``DIR`` is relative
+    then it is taken as relative to the target directory.  By default the
+    directory containing the Python interpreter is used.
 
 .. option:: --target-dir DIR
 
