@@ -4759,7 +4759,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va)
 {
-    int a, ok;
+    int a, ok, isstatic = FALSE;
     Py_ssize_t nr_pos_args;
 
     /* Handle the conversions of "self" first. */
@@ -4807,6 +4807,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
 
     case 'C':
         *va_arg(va, PyObject **) = self;
+        isstatic = TRUE;
         break;
 
     default:
@@ -4889,7 +4890,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
                 p = va_arg(va, void **);
 
                 if (flags & FMT_AP_TRANSFER)
-                    xfer = (self ? self : arg);
+                    xfer = (isstatic ? arg : self);
                 else if (flags & FMT_AP_TRANSFER_BACK)
                     xfer = Py_None;
                 else

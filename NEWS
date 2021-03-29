@@ -1,3 +1,7 @@
+v6.0.4 ??? ??? 2021
+  - The latest version of ABI v13 is v13.0.2.
+  - Bug fixes.
+
 v6.0.3 2nd March 2021
   - The distutils builder now respects the minimum-macos-version option.
   - Bug fixes.
