@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -10634,22 +10634,8 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
  */
 static void generateThrowSpecifier(throwArgs *ta,FILE *fp)
 {
-    if (exceptions && ta != NULL)
-    {
-        int a;
-
-        prcode(fp," throw(");
-
-        for (a = 0; a < ta->nrArgs; ++a)
-        {
-            if (a > 0)
-                prcode(fp,",");
-
-            prcode(fp,"%S",ta->args[a]->iff->fqcname);
-        }
-
-        prcode(fp,")");
-    }
+    if (exceptions && ta != NULL && ta->nrArgs == 0)
+        prcode(fp, " noexcept");
 }
 
 
