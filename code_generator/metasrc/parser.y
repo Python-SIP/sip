@@ -387,7 +387,6 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_ALLRAISEPYEXC
 %token          TK_CALLSUPERINIT
 %token          TK_DEFERRORHANDLER
-%token          TK_VERSION
 
 %type <memArg>          argvalue
 %type <memArg>          argtype

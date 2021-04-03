@@ -178,7 +178,6 @@ SIP_SSIZE_T {
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
 <directive>call_super_init  {return TK_CALLSUPERINIT;}
 <directive>default_VirtualErrorHandler  {return TK_DEFERRORHANDLER;}
-<directive>version          {return TK_VERSION;}
 
 <directive>True             {return TK_TRUE_VALUE;}
 <directive>False            {return TK_FALSE_VALUE;}
