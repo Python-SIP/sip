@@ -322,7 +322,7 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 202 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
+#line 199 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
 {
     char            qchar;
     char            *text;

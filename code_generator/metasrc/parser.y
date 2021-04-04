@@ -1,7 +1,7 @@
 /*
  * The SIP parser.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -54,8 +54,6 @@ static int sectFlagsStack[MAX_NESTED_SCOPE];    /* The section flags stack. */
 static int currentScopeIdx;             /* The scope stack index. */
 static unsigned currentTimelineOrder;   /* The current timeline order. */
 static classList *currentSupers;        /* The current super-class list. */
-static platformDef *currentPlatforms;   /* The current platforms list. */
-static platformDef *platformStack[MAX_NESTED_IF];   /* Stack of platforms. */
 static KwArgs defaultKwArgs;            /* The default keyword arguments support. */
 static int makeProtPublic;              /* Treat protected items as public. */
 static stringList **mainModuleSipFiles; /* The list of .sip files for the main module. */
@@ -120,7 +118,6 @@ static qualDef *allocQualifier(moduleDef *, int, unsigned, int, const char *,
 static void newImport(const char *filename);
 static int timePeriod(const char *lname, const char *uname);
 static int platOrFeature(char *name, int optnot);
-static void addPlatform(qualDef *qd);
 static int notSkipping(void);
 static void getHooks(optFlags *,char **,char **);
 static int getTransfer(optFlags *optflgs);
@@ -1375,20 +1372,16 @@ qualifiername:  TK_NAME_VALUE {
         }
     ;
 
-ifstart:    TK_IF '(' {
-            currentPlatforms = NULL;
-        } qualifiers ')' {
+ifstart:    TK_IF '(' qualifiers ')' {
             if (stackPtr >= MAX_NESTED_IF)
                 yyerror("Internal error: increase the value of MAX_NESTED_IF");
 
             /* Nested %Ifs are implicit logical ands. */
 
             if (stackPtr > 0)
-                $4 = ($4 && skipStack[stackPtr - 1]);
+                $3 = ($3 && skipStack[stackPtr - 1]);
 
-            skipStack[stackPtr] = $4;
-
-            platformStack[stackPtr] = currentPlatforms;
+            skipStack[stackPtr] = $3;
 
             ++stackPtr;
         }
@@ -1417,8 +1410,6 @@ qualifiers: oredqualifiers
 ifend:      TK_END {
             if (stackPtr-- <= 0)
                 yyerror("Too many %End directives");
-
-            currentPlatforms = (stackPtr == 0 ? NULL : platformStack[stackPtr - 1]);
         }
     ;
 
@@ -2416,7 +2407,6 @@ enumline:   ifstart
                 emd->cname = $1;
                 emd->no_typehint = getNoTypeHint(&$3);
                 emd->ed = currentEnum;
-                emd->platforms = currentPlatforms;
                 emd->next = NULL;
 
                 /*
@@ -4319,7 +4309,6 @@ void parse(sipSpec *spec, FILE *fp, char *filename, int strict,
     currentIsTemplate = FALSE;
     previousFile = NULL;
     stackPtr = 0;
-    currentPlatforms = NULL;
     currentScopeIdx = 0;
     sectionFlags = 0;
     defaultKwArgs = NoKwArgs;
@@ -4557,12 +4546,6 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
     iff = sipMalloc(sizeof (ifaceFileDef));
 
     iff->name = cacheName(pt, scopedNameToString(fqname));
-
-    /*
-     * Note that we assume that the type (ie. class vs. mapped type vs.
-     * exception) will be the same across all platforms.
-     */
-    iff->platforms = currentPlatforms;
 
     iff->type = iftype;
     iff->ifacenr = -1;
@@ -5249,7 +5232,6 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     ed->members = NULL;
     ed->slots = NULL;
     ed->overs = NULL;
-    ed->platforms = currentPlatforms;
     ed->next = pt -> enums;
 
     pt->enums = ed;
@@ -6479,7 +6461,6 @@ static void newTypedef(sipSpec *pt, moduleDef *mod, char *name, argDef *type,
     td->fqname = fqname;
     td->ecd = scope;
     td->module = mod;
-    td->platforms = currentPlatforms;
     td->type = *type;
 
     if (getOptFlag(optflgs, "Capsule", bool_flag) != NULL)
@@ -6669,7 +6650,6 @@ static void newVar(sipSpec *pt, moduleDef *mod, char *name, int isstatic,
     var->module = mod;
     var->varflags = 0;
     var->no_typehint = getNoTypeHint(of);
-    var->platforms = currentPlatforms;
     var->type = *type;
     appendCodeBlock(&var->accessfunc, acode);
     appendCodeBlock(&var->getcode, gcode);
@@ -6720,7 +6700,6 @@ static void newCtor(moduleDef *mod, char *name, int sectFlags,
     ct->pysig = *args;
     ct->cppsig = (cppsig != NULL ? cppsig : &ct->pysig);
     ct->exceptions = exceptions;
-    ct->platforms = currentPlatforms;
     appendCodeBlock(&ct->methodcode, methodcode);
     appendCodeBlock(&ct->premethodcode, premethodcode);
 
@@ -7073,7 +7052,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     od->pysig = *sig;
     od->cppsig = (cppsig != NULL ? cppsig : &od->pysig);
     od->exceptions = exceptions;
-    od->platforms = currentPlatforms;
     appendCodeBlock(&od->methodcode, methodcode);
     appendCodeBlock(&od->premethodcode, premethodcode);
     appendCodeBlock(&od->virtcallcode, virtcallcode);
@@ -7238,7 +7216,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
         len->common = findFunction(pt, mod, c_scope, ns_scope, mt_scope,
                 len->cppname, TRUE, 0, FALSE);
 
-        len->platforms = od->platforms;
         len->next = od->next;
         od->next = len;
     }
@@ -7260,7 +7237,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
                 matmul->cppname, (matmul->methodcode != NULL),
                 matmul->pysig.nrArgs, FALSE);
 
-        matmul->platforms = od->platforms;
         matmul->next = od->next;
         od->next = matmul;
     }
@@ -7282,7 +7258,6 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
                 imatmul->cppname, (imatmul->methodcode != NULL),
                 imatmul->pysig.nrArgs, FALSE);
 
-        imatmul->platforms = od->platforms;
         imatmul->next = od->next;
         od->next = imatmul;
     }
@@ -8220,25 +8195,6 @@ static int platOrFeature(char *name, int optnot)
     {
         if (!strictParse)
         {
-            if (optnot)
-            {
-                moduleDef *mod;
-
-                /* Add every platform except the one we have. */
-                for (mod = currentSpec->modules; mod != NULL; mod = mod->next)
-                {
-                    qualDef *not_qd;
-
-                    for (not_qd = mod->qualifiers; not_qd != NULL; not_qd = not_qd->next)
-                        if (not_qd->qtype == platform_qualifier && strcmp(not_qd->name, qd->name) != 0)
-                            addPlatform(not_qd);
-                }
-            }
-            else
-            {
-                addPlatform(qd);
-            }
-
             /*
              * If it is a non-strict parse then this is always TRUE, ie. we
              * never skip because of the platform.
@@ -8254,24 +8210,6 @@ static int platOrFeature(char *name, int optnot)
         this = !this;
 
     return this;
-}
-
-
-/*
- * Add a platform to the current list of platforms if it is not already there.
- */
-static void addPlatform(qualDef *qd)
-{
-    platformDef *pd;
-
-    for (pd = currentPlatforms; pd != NULL; pd = pd->next)
-        if (pd->qualifier == qd)
-            return;
-
-    pd = sipMalloc(sizeof (platformDef));
-    pd->qualifier = qd;
-    pd->next = currentPlatforms;
-    currentPlatforms = pd;
 }
 
 
@@ -8936,7 +8874,6 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
     pd->get = get;
     pd->set = set;
     pd->docstring = docstring;
-    pd->platforms = currentPlatforms;
     pd->next = cd->properties;
 
     cd->properties = pd;
