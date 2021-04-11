@@ -1,4 +1,4 @@
-v6.1.0 29th March 2021
+v6.1.0 11th April 2021
   - Added support for the noexcept specifier.  This has he same effect as a
     throw specifier that has no arguments.
   - Added the scripts-dir project option for specifying the directory where

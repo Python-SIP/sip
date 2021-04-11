@@ -6451,6 +6451,8 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 
             return td;
         }
+
+        PyErr_Clear();
     }
 
     return NULL;
