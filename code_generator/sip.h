@@ -1342,7 +1342,6 @@ typedef struct {
     codeBlockList *exptypehintcode;     /* Exported type hint code. */
     codeBlockList *docs;                /* Documentation. */
     classDef *qobject_cd;               /* QObject class, NULL if none. */
-    int sigslots;                       /* Set if signals or slots are used. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */
     struct _extractDef *extracts;       /* The list of extracts. */

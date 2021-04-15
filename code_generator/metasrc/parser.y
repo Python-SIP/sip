@@ -6968,13 +6968,8 @@ static void newFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
     if (isProtected(od))
         setNeedsShadow(c_scope);
 
-    if ((isSlot(od) || isSignal(od)) && !isPrivate(od))
-    {
-        if (isSignal(od))
-            setNeedsShadow(c_scope);
-
-        pt->sigslots = TRUE;
-    }
+    if (isSignal(od) && !isPrivate(od))
+        setNeedsShadow(c_scope);
 
     if (isSignal(od) && (methodcode != NULL || vcode != NULL || virtcallcode != NULL))
         yyerror("Cannot provide code for signals");
