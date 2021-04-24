@@ -6544,9 +6544,14 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td)
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
+    PyObject *et;
+
     assert(sipTypeIsEnum(td));
 
-    return PyObject_CallFunction(get_enum_type(td), "(i)", eval);
+    et = get_enum_type(td);
+
+    return PyObject_CallFunction(et, sip_api_is_enum_flag(et) ? "(I)" : "(i)",
+            eval);
 }
 
 
