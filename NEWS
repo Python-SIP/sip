@@ -1,8 +1,8 @@
 v6.1.0 27th April 2021
-  - Added support for the noexcept specifier.  This has he same effect as a
+  - Added support for the noexcept specifier.  This has the same effect as a
     throw specifier that has no arguments.
-  - throw specifiers in .sip files are now deprecated and will be removed in
-    SIP v7.
+  - throw specifiers in .sip files are now ignored when using ABI v13.1 or
+    later and v12.9 or later.
   - Added the scripts-dir project option for specifying the directory where
     scripts are installed.  There is a corresponding --scripts-dir command line
     option to sip-build and sip-install.

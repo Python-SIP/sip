@@ -746,9 +746,8 @@ classes or the names of Python exceptions defined by this directive.  If a
 then it is assumed that the function never raises an exception.
 
 .. note::
-    Even through ``throw ()`` specifiers are used in the SIP specification they
-    do not appear in the generated code in order to conform to current C++
-    standards.
+    ``throw ()`` specifiers are ignored when using ABI v13.1 or later and v12.9
+    or later.
 
 *name* is the name of the exception.
 
@@ -2025,8 +2024,7 @@ Finally, the specified code must not include any ``return`` statements.
 The following variable is made available to the handwritten code:
 
 *type* &sipExceptionRef
-    This is a reference to the caught C++ exception.  The *type* of the
-    reference is the same as the type defined in the ``throw ()`` specifier.
+    This is a reference to the caught C++ exception.
 
 See the :directive:`%Exception` directive for an example.
 

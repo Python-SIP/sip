@@ -637,6 +637,8 @@ Exception Annotations
     used as the default exception to be caught if a function or constructor
     does not have a ``throw`` clause.
 
+    This annotaion is ignored when using ABI v13.1 or later and v12.9 or later.
+
 .. exception-annotation:: PyName
 
     This name annotation specifies an alternative name for the exception being
