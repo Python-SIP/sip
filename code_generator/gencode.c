@@ -301,6 +301,7 @@ static void generateEnumMember(FILE *fp, enumMemberDef *emd,
         mappedTypeDef *mtd);
 static int typeNeedsUserState(argDef *ad);
 static const char *userStateSuffix(argDef *ad);
+static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp);
 
 
 /*
@@ -825,6 +826,12 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     /* These are dependent on the specific ABI version. */
     if (abiVersion >= ABI_13_0)
     {
+        /* ABI v13.1 and later. */
+        if (abiVersion >= ABI_13_1)
+            prcode(fp,
+"#define sipNextExceptionHandler     sipAPI_%s->api_next_exception_handler\n"
+                , mname);
+
         /* ABI v13.0 and later. */
         prcode(fp,
 "#define sipIsEnumFlag               sipAPI_%s->api_is_enum_flag\n"
@@ -838,6 +845,12 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     }
     else
     {
+        /* ABI v12.9 and later. */
+        if (abiVersion >= ABI_12_9)
+            prcode(fp,
+"#define sipNextExceptionHandler     sipAPI_%s->api_next_exception_handler\n"
+                , mname);
+
         /* ABI v12.8 and earlier. */
         prcode(fp,
 "#define sipSetNewUserTypeHandler    sipAPI_%s->api_set_new_user_type_handler\n"
@@ -1815,13 +1828,18 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     is_inst_ulonglong = generateUnsignedLongLongs(pt, mod, NULL, fp);
     is_inst_double = generateDoubles(pt, mod, NULL, fp);
 
-    /* Generate any exceptions table. */
-    if (mod->nrexceptions > 0)
+    /* Generate any exceptions support. */
+    if (exceptions && mod->nrexceptions > 0)
+    {
         prcode(fp,
 "\n"
 "\n"
 "PyObject *sipExportedExceptions_%s[%d];\n"
             , mname, mod->nrexceptions + 1);
+
+        if (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0))
+            generateExceptionHandler(pt, mod, fp);
+    }
 
     /* Generate any Qt support API. */
     if (abiVersion < ABI_13_0 && moduleSupportsQt(pt, mod))
@@ -1940,6 +1958,18 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    SIP_NULLPTR,\n"
 "    SIP_NULLPTR,\n"
             );
+    }
+
+    if (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0))
+    {
+        if (exceptions && mod->nrexceptions > 0)
+            prcode(fp,
+"    sipExceptionHandler_%s,\n"
+                , mname);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
     }
 
     prcode(fp,
@@ -8291,6 +8321,8 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
 "extern PyObject *sipExportedExceptions_%s[];\n"
 "\n"
                     , mod->name);
+
+                no_exceptions = FALSE;
             }
 
             prcode(fp,
@@ -10548,20 +10580,25 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
      */
     if (exceptions && (ta == NULL || ta->nrArgs > 0))
     {
+        int use_handler = (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0));
+
         prcode(fp,
 "            }\n"
             );
 
-        if (ta != NULL)
+        if (!use_handler)
         {
-            int a;
+            if (ta != NULL)
+            {
+                int a;
 
-            for (a = 0; a < ta->nrArgs; ++a)
-                generateCatchBlock(mod, ta->args[a], sd, fp, rgil);
-        }
-        else if (mod->defexception != NULL)
-        {
-            generateCatchBlock(mod, mod->defexception, sd, fp, rgil);
+                for (a = 0; a < ta->nrArgs; ++a)
+                    generateCatchBlock(mod, ta->args[a], sd, fp, rgil);
+            }
+            else if (mod->defexception != NULL)
+            {
+                generateCatchBlock(mod, mod->defexception, sd, fp, rgil);
+            }
         }
 
         prcode(fp,
@@ -10577,6 +10614,18 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
 
         deleteOuts(mod, sd, fp);
         deleteTemps(mod, sd, fp);
+
+        if (use_handler)
+            prcode(fp,
+"                void *sipExcState = SIP_NULLPTR;\n"
+"                sipExceptionHandler sipExcHandler;\n"
+"                std::exception_ptr sipExcPtr = std::current_exception();\n"
+"\n"
+"                while ((sipExcHandler = sipNextExceptionHandler(&sipExcState)) != SIP_NULLPTR)\n"
+"                    if (sipExcHandler(sipExcPtr))\n"
+"                        return SIP_NULLPTR;\n"
+"\n"
+                );
 
         prcode(fp,
 "                sipRaiseUnknownException();\n"
@@ -10606,8 +10655,11 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 "                Py_BLOCK_THREADS\n"
             );
 
-    deleteOuts(mod, sd, fp);
-    deleteTemps(mod, sd, fp);
+    if (sd != NULL)
+    {
+        deleteOuts(mod, sd, fp);
+        deleteTemps(mod, sd, fp);
+    }
 
     /* See if the exception is a wrapped class. */
     if (xd->cd != NULL)
@@ -10623,9 +10675,9 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 
     prcode(fp,
 "\n"
-"                return SIP_NULLPTR;\n"
+"                return %s;\n"
 "            }\n"
-        );
+        , (sd != NULL ? "SIP_NULLPTR" : "true"));
 }
 
 
@@ -14990,4 +15042,35 @@ static int typeNeedsUserState(argDef *ad)
 static const char *userStateSuffix(argDef *ad)
 {
     return (abiVersion >= ABI_13_0 && typeNeedsUserState(ad)) ? "US" : "";
+}
+
+
+/*
+ * Generate the exception handler for a module.
+ */
+static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp)
+{
+    exceptionDef *xd;
+
+    prcode(fp,
+"\n"
+"\n"
+"/* Handle the exceptions defined in this module. */\n"
+"bool sipExceptionHandler_%s(std::exception_ptr sipExcPtr)\n"
+"{\n"
+"    try {\n"
+"        std::rethrow_exception(sipExcPtr);\n"
+"    }\n"
+        , mod->name);
+
+    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
+        if (xd->iff->module == mod && xd->exceptionnr >= 0)
+            generateCatchBlock(mod, xd, NULL, fp, FALSE);
+
+    prcode(fp,
+"    catch (...) {}\n"
+"\n"
+"    return false;\n"
+"}\n"
+        );
 }
