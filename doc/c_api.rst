@@ -70,7 +70,7 @@ SIP generates a Python object for each exception defined with the
 
 These objects are named with the fully qualified exception name (i.e. including
 any enclosing scope) prefixed by ``sipException_``.  For example, the type
-object for enum ``Except`` defined in class ``Klass`` is
+object for exception ``Except`` defined in class ``Klass`` is
 ``sipException_Klass_Except``.
 
 The objects of all imported exceptions are available to handwritten code.
