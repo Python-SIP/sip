@@ -4759,7 +4759,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
         PyObject *sipKwdArgs, const char **kwdlist, const char *fmt,
         va_list va)
 {
-    int a, ok, isstatic = FALSE;
+    int a, ok;
     Py_ssize_t nr_pos_args;
 
     /* Handle the conversions of "self" first. */
@@ -4807,7 +4807,6 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
 
     case 'C':
         *va_arg(va, PyObject **) = self;
-        isstatic = TRUE;
         break;
 
     default:
@@ -4890,7 +4889,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
                 p = va_arg(va, void **);
 
                 if (flags & FMT_AP_TRANSFER)
-                    xfer = (isstatic ? arg : self);
+                    xfer = (self ? self : arg);
                 else if (flags & FMT_AP_TRANSFER_BACK)
                     xfer = Py_None;
                 else
@@ -6451,8 +6450,6 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
 
             return td;
         }
-
-        PyErr_Clear();
     }
 
     return NULL;
@@ -6544,14 +6541,9 @@ static void enum_expected(PyObject *obj, const sipTypeDef *td)
  */
 static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 {
-    PyObject *et;
-
     assert(sipTypeIsEnum(td));
 
-    et = get_enum_type(td);
-
-    return PyObject_CallFunction(et, sip_api_is_enum_flag(et) ? "(I)" : "(i)",
-            eval);
+    return PyObject_CallFunction(get_enum_type(td), "(i)", eval);
 }
 
 

@@ -35,7 +35,7 @@ extern "C" {
 
 
 /* The patch version of this implementation of the ABI. */
-#define SIP_MODULE_PATCH_VERSION    2
+#define SIP_MODULE_PATCH_VERSION    1
 
 
 /*
