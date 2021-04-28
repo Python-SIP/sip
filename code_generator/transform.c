@@ -313,7 +313,15 @@ void transform(sipSpec *pt, int strict)
     /* Number the exceptions as they will be seen by the main module. */
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
     {
-        moduleDef *xd_mod;
+        moduleDef *xd_mod = xd->iff->module;
+
+        /*
+         * Include the %TypeHeaderCode for exceptions defined in the main
+         * module.
+         */
+        if (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0))
+            if (xd_mod == pt->module)
+                appendToIfaceFileList(&pt->module->used, xd->iff);
 
         /*
          * Skip those that don't require a Python exception object to be
@@ -324,8 +332,6 @@ void transform(sipSpec *pt, int strict)
 
         if (xd->bibase == NULL && xd->base == NULL)
             continue;
-
-        xd_mod = xd->iff->module;
 
         if (xd_mod == pt->module || xd->needed)
             xd->exceptionnr = xd_mod->nrexceptions++;
@@ -3524,6 +3530,13 @@ static void ifaceFilesAreUsedByOverload(ifaceFileList **used, overDef *od,
 
     if (od->cppsig != &od->pysig)
         ifaceFilesAreUsedBySignature(used, od->cppsig, need_types);
+
+    /*
+     * Don't bother with %TypeHeaderCode from %Exception for later ABI
+     * versions.
+     */
+    if (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0))
+        return;
 
     if ((ta = od->exceptions) != NULL && ta->nrArgs >= 0)
     {

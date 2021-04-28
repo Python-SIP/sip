@@ -1169,7 +1169,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
     /*
      * Include the library headers for types used by virtual handlers, module
-     * level functions, module level variables and Qt meta types.
+     * level functions, module level variables, exceptions and Qt meta types.
      */
     generateUsedIncludes(mod->used, fp);
 
@@ -15064,7 +15064,7 @@ static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp)
         , mod->name);
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
-        if (xd->iff->module == mod && xd->exceptionnr >= 0)
+        if (xd->iff->module == mod)
             generateCatchBlock(mod, xd, NULL, fp, FALSE);
 
     prcode(fp,

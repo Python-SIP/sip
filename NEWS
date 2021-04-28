@@ -1,4 +1,4 @@
-v6.1.0 27th April 2021
+v6.1.0 28th April 2021
   - Added support for the noexcept specifier.  This has the same effect as a
     throw specifier that has no arguments.
   - throw specifiers in .sip files are now ignored when using ABI v13.1 or
