@@ -746,14 +746,15 @@ classes or the names of Python exceptions defined by this directive.  If a
 then it is assumed that the function never raises an exception.
 
 .. note::
-    ``throw ()`` specifiers are ignored when using ABI v13.1 or later and v12.9
-    or later.
+    ``throw ()`` specifiers are ignored (and should be omitted) when using ABI
+    v13.1 or later and v12.9 or later.
 
 *name* is the name of the exception.
 
 *base-exception* is the optional base exception.  This may be either one of
 the standard Python exceptions or one defined with a previous
-:directive:`%Exception` directive.
+:directive:`%Exception` directive.  If it is omitted then a new Python
+exception is not created.
 
 The optional :directive:`%TypeHeaderCode` sub-directive is used to specify any
 external interface to the exception being defined.
@@ -783,6 +784,24 @@ Python exception ``Exception``.
 
 An exception may be annotated with :xanno:`Default` to specify that it should
 be caught by default if there is no ``throw`` clause.
+
+In this second example we do not create a new Python exception but instead
+convert the standard C++ ``std::out_of_range`` exception to the standard Python
+``IndexError`` exception::
+
+    %Exception std::out_of_range
+    {
+    %TypeHeaderCode
+    #include <stdexcept>
+    %End
+    %RaiseCode
+        const char *detail = sipExceptionRef.what();
+
+        SIP_BLOCK_THREADS
+        PyErr_SetString(PyExc_IndexError, detail);
+        SIP_UNBLOCK_THREADS
+    %End
+    };
 
 
 .. directive:: %ExportedHeaderCode
