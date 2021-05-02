@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -37,3 +37,9 @@ def main():
         handle_exception(e)
 
     return 0
+
+
+if __name__ == '__main__':
+    import sys
+
+    sys.exit(main())
