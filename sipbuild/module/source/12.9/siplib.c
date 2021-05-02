@@ -1160,6 +1160,12 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
      */
     sipInterpreter = PyThreadState_Get()->interp;
 
+#if SIP_MODULE_VERSION_IS_DEPRECATED
+    PyErr_WarnFormat(PyExc_DeprecationWarning, 0,
+            "v%d.%d of the %s module is deprecated and will be removed in SIP v7",
+            SIP_ABI_MAJOR_VERSION, SIP_ABI_MINOR_VERSION, _SIP_MODULE_FQ_NAME);
+#endif
+
     return &sip_api;
 }
 

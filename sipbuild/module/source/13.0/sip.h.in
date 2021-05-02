@@ -35,7 +35,10 @@ extern "C" {
 
 
 /* The patch version of this implementation of the ABI. */
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_MODULE_PATCH_VERSION    2
+
+/* Set if this minor version of the sip module is deprecated. */
+#define SIP_MODULE_VERSION_IS_DEPRECATED    1
 
 
 /*

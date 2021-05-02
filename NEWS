@@ -1,4 +1,4 @@
-v6.1.0 28th April 2021
+v6.1.0 2nd May 2021
   - Added support for the noexcept specifier.  This has the same effect as a
     throw specifier that has no arguments.
   - throw specifiers in .sip files are now ignored when using ABI v13.1 or
@@ -8,6 +8,7 @@ v6.1.0 28th April 2021
     option to sip-build and sip-install.
   - The latest version of ABI v13 is v13.1.0.
   - The latest version of ABI v12 is v12.9.0.
+  - Implemented warnings for deprecated minor versions of the sip module ABI.
   - If C++ exceptions are used then a C++11 compiler is required.
   - Bug fixes.
 
