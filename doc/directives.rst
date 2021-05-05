@@ -230,10 +230,9 @@ don't have to remember which individual module an object is defined in.
         *code*
     %End
 
-This directive is used as part of the :directive:`%MappedType` directive (when
-it is required) or of a class specification (when it is optional) to specify
-the handwritten code that converts an instance of a C/C++ type to a Python
-object.
+This directive is used as part of the :directive:`%MappedType` directive or of
+a class specification to specify the handwritten code that converts an instance
+of a C/C++ type to a Python object.
 
 If used as part of a class specification then instances of the class will be
 automatically converted to the Python object, even though the class itself has
