@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -586,8 +586,8 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Make sure we have a valid ABI version.
-        self.abi_version = resolve_abi_version(self.abi_version)
+        # Make sure we have a supported ABI version.
+        self.abi_version = resolve_abi_version(self.abi_version, exact=False)
 
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:
