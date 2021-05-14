@@ -78,8 +78,10 @@ def resolve_abi_version(abi_version, exact=True):
                 versions = sorted(os.listdir(_module_source_dir), key=parse)
 
                 for version in versions:
-                    if target.major == version.major and target.minor <= version.minor:
-                        abi_version = f'{version.major}.{version.minor}'
+                    pv = parse(version)
+
+                    if target.major == pv.major and target.minor <= pv.minor:
+                        abi_version = version
                         found = True
                         break
                 else:
