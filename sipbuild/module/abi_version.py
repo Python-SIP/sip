@@ -58,7 +58,7 @@ def get_sip_module_version(abi_version):
         else:
             # This is an internal error and should never happen.
             raise ValueError(
-                    f"'SIP_MODULE_PATCH_VERSION' not found for ABI {abi_version}}")
+                    f"'SIP_MODULE_PATCH_VERSION' not found for ABI {abi_version}")
 
     return f'{abi_version}.{patch_version}'
 
@@ -70,7 +70,7 @@ def resolve_abi_version(abi_version, exact=True):
         # See if a complete version number was given.
         if '.' in abi_version:
             if exact:
-                found = os.path.isdir(get_module_source_dir(abi_version)):
+                found = os.path.isdir(get_module_source_dir(abi_version))
             else:
                 # Find the earliest version that satisfies this as a minimum
                 # version.
