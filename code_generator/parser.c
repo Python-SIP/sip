@@ -3577,8 +3577,8 @@ yyreduce:
   case 100:
 #line 1162 "/Users/phil/hg/sip/code_generator/metasrc/parser.y"
     {
-            if (notSkipping())
-                appendCodeBlock(&currentMappedType->typecode, (yyvsp[(1) - (1)].codeb));
+            //if (notSkipping())
+            //    appendCodeBlock(&currentMappedType->typecode, $1);
         }
     break;
 

@@ -1359,6 +1359,7 @@ For example::
     template<*type-list*>
     %MappedType *type*
     {
+        [:directive:`%TypeCode`]
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
@@ -1367,6 +1368,7 @@ For example::
 
     %MappedType *type*
     {
+        [:directive:`%TypeCode`]
         [:directive:`%TypeHeaderCode`]
         [:directive:`%ConvertToTypeCode`]
         [:directive:`%ConvertFromTypeCode`]
@@ -1386,6 +1388,10 @@ instantiated.  Template mapped types are instantiated automatically as required
 Any explicit mapped type will be used in preference to any template that maps
 the same type, ie. a template will not be automatically instantiated if there
 is an explicit mapped type.
+
+The optional :directive:`%TypeCode` sub-directive is used to specify additional
+code, typically utility functions, that can be called from other handwritten
+code.
 
 The optional :directive:`%TypeHeaderCode` sub-directive is used to specify the
 library interface to the type being mapped.
