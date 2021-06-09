@@ -279,6 +279,8 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     memberDef *md;
     propertyDef *pd;
 
+    nr_overloads = 0;
+
     if (!isHiddenNamespace(cd))
     {
         separate(TRUE, indent, fp);
@@ -308,8 +310,6 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         }
 
         /* See if there is anything in the class body. */
-        nr_overloads = 0;
-
         for (ct = cd->ctors; ct != NULL; ct = ct->next)
         {
             if (isPrivateCtor(ct))
