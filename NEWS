@@ -1,3 +1,8 @@
+v6.1.1 9th June 2021
+  - The abi-version project option is interpreted as a minimum version rather
+    than an exact version.
+  - Bug fixes.
+
 v6.1.0 5th May 2021
   - Added support for the noexcept specifier.  This has the same effect as a
     throw specifier that has no arguments.

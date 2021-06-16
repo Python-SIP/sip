@@ -279,119 +279,122 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
     memberDef *md;
     propertyDef *pd;
 
-    separate(TRUE, indent, fp);
-    prIndent(indent, fp);
-    fprintf(fp, "class %s(", cd->pyname->text);
-
-    if (cd->supers != NULL)
-    {
-        classList *cl;
-
-        for (cl = cd->supers; cl != NULL; cl = cl->next)
-        {
-            if (cl != cd->supers)
-                fprintf(fp, ", ");
-
-            prClassRef(cl->cd, mod, *defined, TRUE, fp);
-        }
-    }
-    else if (cd->supertype != NULL)
-    {
-        fprintf(fp, "%s", cd->supertype->text);
-    }
-    else
-    {
-        fprintf(fp, "%s.%swrapper", (sipName != NULL ? sipName : "sip"),
-                (cd->iff->type == namespace_iface ? "simple" : ""));
-    }
-
-    /* See if there is anything in the class body. */
     nr_overloads = 0;
 
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
+    if (!isHiddenNamespace(cd))
     {
-        if (isPrivateCtor(ct))
-            continue;
+        separate(TRUE, indent, fp);
+        prIndent(indent, fp);
+        fprintf(fp, "class %s(", cd->pyname->text);
 
-        if (ct->no_typehint)
-            continue;
-
-        ++nr_overloads;
-    }
-
-    no_body = (cd->typehintcode == NULL && nr_overloads == 0);
-
-    if (no_body)
-    {
-        overDef *od;
-
-        for (od = cd->overs; od != NULL; od = od->next)
+        if (cd->supers != NULL)
         {
-            if (isPrivate(od))
-                continue;
+            classList *cl;
 
-            if (od->no_typehint)
-                continue;
-
-            no_body = FALSE;
-            break;
-        }
-    }
-
-    if (no_body)
-    {
-        enumDef *ed;
-
-        for (ed = pt->enums; ed != NULL; ed = ed->next)
-        {
-            if (ed->no_typehint)
-                continue;
-
-            if (ed->ecd == cd)
+            for (cl = cd->supers; cl != NULL; cl = cl->next)
             {
+                if (cl != cd->supers)
+                    fprintf(fp, ", ");
+
+                prClassRef(cl->cd, mod, *defined, TRUE, fp);
+            }
+        }
+        else if (cd->supertype != NULL)
+        {
+            fprintf(fp, "%s", cd->supertype->text);
+        }
+        else
+        {
+            fprintf(fp, "%s.%swrapper", (sipName != NULL ? sipName : "sip"),
+                    (cd->iff->type == namespace_iface ? "simple" : ""));
+        }
+
+        /* See if there is anything in the class body. */
+        for (ct = cd->ctors; ct != NULL; ct = ct->next)
+        {
+            if (isPrivateCtor(ct))
+                continue;
+
+            if (ct->no_typehint)
+                continue;
+
+            ++nr_overloads;
+        }
+
+        no_body = (cd->typehintcode == NULL && nr_overloads == 0);
+
+        if (no_body)
+        {
+            overDef *od;
+
+            for (od = cd->overs; od != NULL; od = od->next)
+            {
+                if (isPrivate(od))
+                    continue;
+
+                if (od->no_typehint)
+                    continue;
+
                 no_body = FALSE;
                 break;
             }
         }
-    }
 
-    if (no_body)
-    {
-        for (nested = pt->classes; nested != NULL; nested = nested->next)
+        if (no_body)
         {
-            if (nested->no_typehint)
-                continue;
+            enumDef *ed;
 
-            if (nested->ecd == cd)
+            for (ed = pt->enums; ed != NULL; ed = ed->next)
             {
-                no_body = FALSE;
-                break;
+                if (ed->no_typehint)
+                    continue;
+
+                if (ed->ecd == cd)
+                {
+                    no_body = FALSE;
+                    break;
+                }
             }
         }
-    }
 
-    if (no_body)
-    {
-        varDef *vd;
-
-        for (vd = pt->vars; vd != NULL; vd = vd->next)
+        if (no_body)
         {
-            if (vd->no_typehint)
-                continue;
-
-            if (vd->ecd == cd)
+            for (nested = pt->classes; nested != NULL; nested = nested->next)
             {
-                no_body = FALSE;
-                break;
+                if (nested->no_typehint)
+                    continue;
+
+                if (nested->ecd == cd)
+                {
+                    no_body = FALSE;
+                    break;
+                }
             }
         }
+
+        if (no_body)
+        {
+            varDef *vd;
+
+            for (vd = pt->vars; vd != NULL; vd = vd->next)
+            {
+                if (vd->no_typehint)
+                    continue;
+
+                if (vd->ecd == cd)
+                {
+                    no_body = FALSE;
+                    break;
+                }
+            }
+        }
+
+        fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
+
+        ++indent;
+
+        pyiTypeHintCode(cd->typehintcode, indent, fp);
     }
-
-    fprintf(fp, "):%s\n", (no_body ? " ..." : ""));
-
-    ++indent;
-
-    pyiTypeHintCode(cd->typehintcode, indent, fp);
 
     pyiEnums(pt, mod, cd->iff, *defined, indent, fp);
 
@@ -460,11 +463,14 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         }
     }
 
-    /*
-     * Keep track of what has been defined so that forward references are no
-     * longer required.
-     */
-    appendToIfaceFileList(defined, cd->iff);
+    if (!isHiddenNamespace(cd))
+    {
+        /*
+         * Keep track of what has been defined so that forward references are
+         * no longer required.
+         */
+        appendToIfaceFileList(defined, cd->iff);
+    }
 }
 
 

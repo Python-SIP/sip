@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -58,22 +58,38 @@ def get_sip_module_version(abi_version):
         else:
             # This is an internal error and should never happen.
             raise ValueError(
-                    "'SIP_MODULE_PATCH_VERSION' not found for ABI {0}".format(
-                            abi_version))
+                    f"'SIP_MODULE_PATCH_VERSION' not found for ABI {abi_version}")
 
-    return abi_version + '.' + patch_version
+    return f'{abi_version}.{patch_version}'
 
 
-def resolve_abi_version(abi_version):
+def resolve_abi_version(abi_version, exact=True):
     """ Return a valid ABI version or the latest if none was given. """
 
     if abi_version:
         # See if a complete version number was given.
         if '.' in abi_version:
-            if not os.path.isdir(get_module_source_dir(abi_version)):
+            if exact:
+                found = os.path.isdir(get_module_source_dir(abi_version))
+            else:
+                # Find the earliest version that satisfies this as a minimum
+                # version.
+                target = parse(abi_version)
+                versions = sorted(os.listdir(_module_source_dir), key=parse)
+
+                for version in versions:
+                    pv = parse(version)
+
+                    if target.major == pv.major and target.minor <= pv.minor:
+                        abi_version = version
+                        found = True
+                        break
+                else:
+                    found = False
+
+            if not found:
                 raise UserException(
-                        "'{0}' is not a supported ABI version".format(
-                                abi_version))
+                        f"'{abi_version}' is not a supported ABI version")
         else:
             # Only the major version was given.
             major = abi_version + '.'
@@ -86,8 +102,7 @@ def resolve_abi_version(abi_version):
                     break
             else:
                 raise UserException(
-                        "'{0}' is not a supported ABI major version".format(
-                                abi_version))
+                        f"'{abi_version}' is not a supported ABI major version")
     else:
         abi_version = sorted(os.listdir(_module_source_dir), key=parse)[-1]
 
