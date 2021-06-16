@@ -22,12 +22,12 @@
 
 
 from abc import abstractmethod
-from distutils.util import get_platform
 import glob
 import os
 import shutil
 import stat
 import sys
+import sysconfig
 
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
@@ -169,7 +169,7 @@ class Builder(AbstractBuilder):
             except AttributeError:
                 wheel_tag.append('none')
 
-        platform_tag = get_platform()
+        platform_tag = sysconfig.get_platform()
 
         if sys.platform == 'darwin' and project.minimum_macos_version:
             # We expect a three part tag so leave anything else unchanged.
