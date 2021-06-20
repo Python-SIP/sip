@@ -437,7 +437,8 @@ build systems.
 .. py:class:: DistutilsBuilder(project, \*\*kwargs)
 
     A :py:class:`~sipbuild.Builder` that uses the Python :py:mod:`distutils`
-    package to perform builds.
+    package to perform builds.  This is the default builder for Python v3.9 and
+    earlier.
 
     :param Project project: is the project.
     :param \*\*kwargs: are keyword arguments that define the initial values of
@@ -776,6 +777,23 @@ build systems.
     :param str name: is the name of the option.
     :param str section_name: is the name of the section, defaulting to
         ``[tool.sip.project]``.
+
+
+:py:class:`~sipbuild.SetuptoolsBuilder`
+---------------------------------------
+
+.. py:class:: SetuptoolsBuilder(project, \*\*kwargs)
+
+    A :py:class:`~sipbuild.Builder` that uses the Python :py:mod:`setuptools`
+    package to perform builds.  This is the default builder for Python v3.10
+    and later.
+
+    :param Project project: is the project.
+    :param \*\*kwargs: are keyword arguments that define the initial values of
+        any corresponding :py:class:`~sipbuild.Option` defined by the builder.
+        An :py:class:`~sipbuild.Option` value set in this way cannot be
+        overridden in the :file:`pyproject.toml` file or by using a tool
+        command line option.
 
 
 :py:exc:`~sipbuild.UserException`

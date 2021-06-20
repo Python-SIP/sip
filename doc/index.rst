@@ -1,5 +1,5 @@
-SIP Reference Guide
-===================
+Reference Guide
+===============
 
 .. toctree::
     :maxdepth: 2
