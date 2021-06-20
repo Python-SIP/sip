@@ -24,8 +24,7 @@
 import os
 import sys
 
-from setuptools import Distribution, Extension
-from setuptools.command.build_ext import build_ext
+from setuptools import Distribution, Extension, setup
 
 from .buildable import BuildableModule
 from .builder import Builder
@@ -107,19 +106,26 @@ class SetuptoolsBuilder(Builder):
 
         project = self.project
 
-        distribution = Distribution()
+        # The arguments to setup().
+        setup_args = {}
 
-        module_builder = ExtensionCommand(distribution, buildable)
-        module_builder.build_lib = buildable.build_dir
-        module_builder.debug = buildable.debug
+        # Build the script arguments.
+        script_args = []
+
+        if project.verbose:
+            script_args.append('--verbose')
+        else:
+            script_args.append('--quiet')
+
+        script_args.append('--no-user-cfg')
+        script_args.append('build_ext')
 
         if buildable.debug:
-            # Enable assert().
-            module_builder.undef = 'NDEBUG'
+            script_args.append('--debug')
 
-        module_builder.ensure_finalized()
+        setup_args['script_args'] = script_args
 
-        # Convert the #defines.
+        # Handle preprocessor macros.
         define_macros = []
         for macro in buildable.define_macros:
             parts = macro.split('=', maxsplit=1)
@@ -133,7 +139,7 @@ class SetuptoolsBuilder(Builder):
 
         buildable.make_names_relative()
 
-        module_builder.extensions = [
+        setup_args['ext_modules'] = [
             Extension(buildable.fq_name, buildable.sources,
                     define_macros=define_macros,
                     extra_compile_args=buildable.extra_compile_args,
@@ -141,7 +147,8 @@ class SetuptoolsBuilder(Builder):
                     extra_objects=buildable.extra_objects,
                     include_dirs=buildable.include_dirs,
                     libraries=buildable.libraries,
-                    library_dirs=buildable.library_dirs)]
+                    library_dirs=buildable.library_dirs,
+                    py_limited_api=buildable.uses_limited_api)]
 
         project.progress(
                 "Compiling the '{0}' module".format(buildable.fq_name))
@@ -150,7 +157,7 @@ class SetuptoolsBuilder(Builder):
         os.chdir(buildable.build_dir)
 
         try:
-            module_builder.run()
+            distribution = setup(**setup_args)
         except Exception as e:
             raise UserException(
                     "Unable to compile the '{0}' module".format(
@@ -158,26 +165,13 @@ class SetuptoolsBuilder(Builder):
                     detail=str(e))
 
         # Add the extension module to the buildable's list of installables.
+        build_command = distribution.get_command_obj('build_ext')
+
         installable = Installable('module',
                 target_subdir=buildable.get_install_subdir())
         installable.files.append(
-                module_builder.get_ext_fullpath(buildable.fq_name))
+                os.path.abspath(
+                        build_command.get_ext_fullpath(buildable.fq_name)))
         buildable.installables.append(installable)
 
         os.chdir(saved_cwd)
-
-
-class ExtensionCommand(build_ext):
-    """ Extend the setuptools command to build an extension module. """
-
-    def __init__(self, distribution, buildable):
-        """ Initialise the object. """
-
-        super().__init__(distribution)
-
-        self._buildable = buildable
-
-    def get_ext_filename(self, ext_name):
-        """ Reimplemented to handle modules that use the limited API. """
-
-        return os.path.join(*ext_name.split('.')) + self._buildable.get_module_extension()
