@@ -43,7 +43,9 @@ extern "C" {
 #endif
 
 
-/* The patch version of this implementation of the ABI. */
+/* The version of the ABI. */
+#define SIP_ABI_MAJOR_VERSION       12
+#define SIP_ABI_MINOR_VERSION       9
 #define SIP_MODULE_PATCH_VERSION    0
 
 
@@ -53,10 +55,6 @@ extern "C" {
  * Preserve any current exception in the wrapper tp_dealloc functions.
  */
 
-
-/* The ABI version implemented. */
-#define SIP_ABI_MAJOR_VERSION       @SIP_ABI_MAJOR_VERSION@
-#define SIP_ABI_MINOR_VERSION       @SIP_ABI_MINOR_VERSION@
 
 /* The version of the code generator. */
 #define SIP_VERSION                 @_SIP_VERSION@

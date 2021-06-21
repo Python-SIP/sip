@@ -590,8 +590,9 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Make sure we have a supported ABI version.
-        self.abi_version = resolve_abi_version(self.abi_version, exact=False)
+        # Get the supported ABI version.  (The actual version may have a later
+        # minor version.)
+        self.abi_version = resolve_abi_version(self.abi_version, module=False)
 
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:

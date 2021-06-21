@@ -337,10 +337,10 @@ The full set of command line options is:
 
 .. option:: --abi-version MAJOR[.MINOR]
 
-    The version number of the ABI implemented by the :mod:`sip` module is
-    ``MAJOR.MINOR``.  If only the major version number is specified then the
-    latest minor version with that major version is used.  By default the very
-    latest version is used.
+    The major version number of the ABI implemented by the :mod:`sip` module is
+    ``MAJOR``.  If a minor version number is also specified it is interpreted
+    as a minimum minor version rather than the exact minor version to be used.
+    By default the very latest version is used.
 
 .. option:: --project NAME
 

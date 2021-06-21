@@ -244,7 +244,7 @@ class Bindings(Configurable):
                 buildable.installables.append(installable)
         else:
             buildable.sources.extend(
-                    copy_nonshared_sources(project.abi_version,
+                    copy_nonshared_sources(project.abi_version.split('.')[0],
                             buildable.build_dir))
 
         buildable.include_dirs.extend(self.include_dirs)
