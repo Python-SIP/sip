@@ -1,4 +1,4 @@
-v6.2.0 21th June 2021
+v6.2.0 29th June 2021
   - Added support for Python v3.10.
   - Added the setuptools builder which is the default for Python v3.10 and
     later.
