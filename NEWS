@@ -1,9 +1,10 @@
-v6.2.0 29th June 2021
+v6.2.0 13th July 2021
   - Added support for Python v3.10.
   - Added the setuptools builder which is the default for Python v3.10 and
     later.
   - The ABI version, wherever specified, is now a minimum version with a
     default minor version of 0.
+  - Bug fixes.
 
 v6.1.1 9th June 2021
   - The abi-version project option is interpreted as a minimum version rather

@@ -58,7 +58,7 @@ static int fs_convertor(PyObject *obj, char **fsp);
 static int sipSpec_convertor(PyObject *obj, sipSpec **ptp);
 static int stringList_convertor(PyObject *obj, stringList **slp);
 static PyObject *stringList_convert_from(stringList *sl);
-static int extend_stringList(stringList **slp, PyObject *py_list);
+static int extend_stringList(stringList **slp, PyObject *py_list, int no_dups);
 static void exception_set(void);
 
 
@@ -376,7 +376,7 @@ static int stringList_convertor(PyObject *obj, stringList **slp)
         return 0;
     }
 
-    return extend_stringList(slp, obj);
+    return extend_stringList(slp, obj, 0);
 }
 
 
@@ -419,19 +419,34 @@ static PyObject *stringList_convert_from(stringList *sl)
 /*
  * Extend a stringList by the contents fo a Python list of strings.
  */
-static int extend_stringList(stringList **slp, PyObject *py_list)
+static int extend_stringList(stringList **slp, PyObject *py_list, int no_dups)
 {
     Py_ssize_t i;
 
     for (i = 0; i < PyList_GET_SIZE(py_list); ++i)
     {
+        const char *el_s;
         PyObject *el = PyUnicode_EncodeLocale(PyList_GET_ITEM(py_list, i),
                 NULL);
 
         if (el == NULL)
             return 0;
 
-        appendString(slp, sipStrdup(PyBytes_AS_STRING(el)));
+        el_s = PyBytes_AS_STRING(el);
+
+        if (no_dups)
+        {
+            stringList *sl;
+
+            for (sl = *slp; sl != NULL; sl = sl->next)
+                if (strcmp(sl->s, el_s) == 0)
+                    break;
+
+            if (sl != NULL)
+                continue;
+        }
+
+        appendString(slp, sipStrdup(el_s));
     }
 
     return 1;
@@ -571,7 +586,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     py_tags = PyTuple_GET_ITEM(res, 0);
     assert(PyList_Check(py_tags));
 
-    if (!extend_stringList(tags, py_tags))
+    if (!extend_stringList(tags, py_tags, 1))
     {
         Py_DECREF(res);
         exception_set();
@@ -580,7 +595,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
     py_disabled = PyTuple_GET_ITEM(res, 1);
     assert(PyList_Check(py_disabled));
 
-    if (!extend_stringList(disabled, py_disabled))
+    if (!extend_stringList(disabled, py_disabled, 1))
     {
         Py_DECREF(res);
         exception_set();
