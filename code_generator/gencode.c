@@ -13638,7 +13638,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     if (isprint(c))
                         fputc(c, fp);
                     else
-                        fprintf(fp, "\\x%02x", (int)c);
+                        fprintf(fp, "\\%03o", (unsigned char)c);
 
                     break;
                 }
