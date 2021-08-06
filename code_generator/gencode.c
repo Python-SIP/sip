@@ -302,6 +302,8 @@ static void generateEnumMember(FILE *fp, enumMemberDef *emd,
 static int typeNeedsUserState(argDef *ad);
 static const char *userStateSuffix(argDef *ad);
 static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp);
+static void normaliseArg(argDef *ad);
+static void restoreArg(argDef *ad);
 
 
 /*
@@ -6687,19 +6689,15 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp)
 {
     overDef *od = vod->od;
-    argDef *res;
+    argDef *res = &od->cppsig->result;
 
+    normaliseArg(res);
     normaliseArgs(od->cppsig);
-
-    res = &od->cppsig->result;
-
-    if (res->atype == void_type && res->nrderefs == 0)
-        res = NULL;
 
     prcode(fp,
 "\n");
 
-    generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_NONE, fp);
+    generateBaseType(cd->iff, res, TRUE, STRIP_NONE, fp);
 
     prcode(fp," sip%C::%O(",classFQCName(cd),od);
     generateCalledArgs(mod, cd->iff, od->cppsig, Definition, fp);
@@ -6712,7 +6710,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         prcode(fp,
 "    sipTrace(SIP_TRACE_CATCHERS,\"");
 
-        generateBaseType(cd->iff, &od->cppsig->result, TRUE, STRIP_GLOBAL, fp);
+        generateBaseType(cd->iff, res, TRUE, STRIP_GLOBAL, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
         generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, fp);
         prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
@@ -6721,6 +6719,7 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     }
 
     restoreArgs(od->cppsig);
+    restoreArg(res);
 
     prcode(fp,
 "    sip_gilstate_t sipGILState;\n"
@@ -6773,6 +6772,10 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     }
 
     /* The rest of the common code. */
+
+    if (res->atype == void_type && res->nrderefs == 0)
+        res = NULL;
+
     prcode(fp,
 "\n"
 "    if (!sipMeth)\n"
@@ -6780,12 +6783,10 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
     if (od->virtcallcode != NULL)
     {
-        argDef *res = &od->cppsig->result;
-
         prcode(fp,
 "    {\n");
 
-        if (res->atype != void_type || res->nrderefs != 0)
+        if (res != NULL)
         {
             prcode(fp,
 "        ");
@@ -6795,10 +6796,6 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
 
             prcode(fp, ";\n"
                 );
-        }
-        else
-        {
-            res = NULL;
         }
 
         prcode(fp,
@@ -6883,6 +6880,7 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
     signatureDef saved;
     argDef *ad;
     int a, args_keep = FALSE, result_keep = FALSE;
+    const char *trailing = "";
 
     saved = *vhd->cppsig;
     fakeProtectedArgs(vhd->cppsig);
@@ -6926,7 +6924,17 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
 "%s", indent);
 
     if (!isNewThread(od) && res != NULL)
+    {
         prcode(fp, "return ");
+
+        if (res->atype == enum_type && isProtectedEnum(res->u.ed))
+        {
+            normaliseArg(res);
+            prcode(fp, "static_cast<%E>(", res->u.ed);
+            trailing = ")";
+            restoreArg(res);
+        }
+    }
 
     prcode(fp, "sipVH_%s_%d(sipGILState, ", mod->name, vhd->virthandlernr);
 
@@ -6960,8 +6968,8 @@ static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
             if (isOutArg(ad) && keepPyReference(ad))
                 prcode(fp, ", %d", ad->key);
 
-    prcode(fp,");\n"
-        );
+    prcode(fp,")%s;\n"
+        , trailing);
 
     if (isNewThread(od))
         prcode(fp,
@@ -7551,6 +7559,16 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
                 if (ct != NULL && isPublicCtor(ct) && ct->cppsig != NULL && ct->cppsig->nrArgs > 0 && ct->cppsig->args[0].defval == NULL)
                     generateCallDefaultCtor(ct,fp);
             }
+        }
+        else if (res->atype == enum_type && isProtectedEnum(res->u.ed))
+        {
+            /*
+             * Currently SIP generates the virtual handlers before any shadow
+             * classes which means that the compiler doesn't know about the
+             * handling of protected enums.  Therefore we can only initialise
+             * to 0.
+             */
+            prcode(fp," = 0");
         }
         else
         {
@@ -8705,11 +8723,15 @@ static void generateShadowClassDeclaration(sipSpec *pt,classDef *cd,FILE *fp)
 static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od)
 {
     int a;
+    argDef *res = &od->cppsig->result;
 
+    /* Counter the handling of protected enums by generateBaseType(). */
+    normaliseArg(res);
+    generateBaseType(scope, res, TRUE, STRIP_NONE, fp);
+    restoreArg(res);
+ 
     normaliseArgs(od->cppsig);
 
-    generateBaseType(scope, &od->cppsig->result, TRUE, STRIP_NONE, fp);
- 
     prcode(fp, " %O(", od);
 
     for (a = 0; a < od->cppsig->nrArgs; ++a)
@@ -14128,28 +14150,51 @@ static void fakeProtectedArgs(signatureDef *sd)
 
 
 /*
+ * Reset and save any argument flags so that the argument will be rendered
+ * exactly as defined in C++.
+ */
+static void normaliseArg(argDef *ad)
+{
+    if (ad->atype == class_type && isProtectedClass(ad->u.cd))
+    {
+        resetIsProtectedClass(ad->u.cd);
+        setWasProtectedClass(ad->u.cd);
+    }
+    else if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
+    {
+        resetIsProtectedEnum(ad->u.ed);
+        setWasProtectedEnum(ad->u.ed);
+    }
+}
+
+
+/*
  * Reset and save any argument flags so that the signature will be rendered
  * exactly as defined in C++.
  */
 void normaliseArgs(signatureDef *sd)
 {
     int a;
-    argDef *ad = sd->args;
 
     for (a = 0; a < sd->nrArgs; ++a)
-    {
-        if (ad->atype == class_type && isProtectedClass(ad->u.cd))
-        {
-            resetIsProtectedClass(ad->u.cd);
-            setWasProtectedClass(ad->u.cd);
-        }
-        else if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
-        {
-            resetIsProtectedEnum(ad->u.ed);
-            setWasProtectedEnum(ad->u.ed);
-        }
+        normaliseArg(&sd->args[a]);
+}
 
-        ++ad;
+
+/*
+ * Restore any argument flags modified by normaliseArg().
+ */
+static void restoreArg(argDef *ad)
+{
+    if (ad->atype == class_type && wasProtectedClass(ad->u.cd))
+    {
+        resetWasProtectedClass(ad->u.cd);
+        setIsProtectedClass(ad->u.cd);
+    }
+    else if (ad->atype == enum_type && wasProtectedEnum(ad->u.ed))
+    {
+        resetWasProtectedEnum(ad->u.ed);
+        setIsProtectedEnum(ad->u.ed);
     }
 }
 
@@ -14160,23 +14205,9 @@ void normaliseArgs(signatureDef *sd)
 void restoreArgs(signatureDef *sd)
 {
     int a;
-    argDef *ad = sd->args;
 
     for (a = 0; a < sd->nrArgs; ++a)
-    {
-        if (ad->atype == class_type && wasProtectedClass(ad->u.cd))
-        {
-            resetWasProtectedClass(ad->u.cd);
-            setIsProtectedClass(ad->u.cd);
-        }
-        else if (ad->atype == enum_type && wasProtectedEnum(ad->u.ed))
-        {
-            resetWasProtectedEnum(ad->u.ed);
-            setIsProtectedEnum(ad->u.ed);
-        }
-
-        ++ad;
-    }
+        restoreArg(&sd->args[a]);
 }
 
 
