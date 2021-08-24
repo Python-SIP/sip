@@ -280,7 +280,8 @@ values of all list options may contain environment markers as defined in `PEP
     or ``"NAME=VALUE"``.
 
 **disabled-features**
-    The value is a list of disabled :directive:`%Feature` tags.
+    The value is a list of disabled :directive:`%Feature` tags.  There is also
+    a corresponding command line option.
 
 **docstrings**
     The boolean value specifies if docstrings that describe the signature of

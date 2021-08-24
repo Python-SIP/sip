@@ -66,6 +66,11 @@ The full set of command line options is:
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
 
+.. option:: --disabled-feature TAG
+
+    The ``TAG`` feature tag is disabled.  This option may be specified multiple
+    times.
+
 .. option:: --enable NAME
 
     The ``NAME`` bindings are enabled and will be built.  Any associated
@@ -251,6 +256,11 @@ The full set of command line options is:
     The ``NAME`` bindings are disabled and will not be built.  This option may
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
+
+.. option:: --disabled-feature TAG
+
+    The ``TAG`` feature tag is disabled.  This option may be specified multiple
+    times.
 
 .. option:: --enable NAME
 
@@ -472,6 +482,11 @@ The full set of command line options is:
     The ``NAME`` bindings are disabled and will not be built.  This option may
     be specified multiple times.  It is only available if the project contains
     multiple sets of bindings.
+
+.. option:: --disabled-feature TAG
+
+    The ``TAG`` feature tag is disabled.  This option may be specified multiple
+    times.
 
 .. option:: --enable NAME
 
