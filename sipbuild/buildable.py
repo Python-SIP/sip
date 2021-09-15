@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -146,7 +146,7 @@ class BuildableModule(BuildableFromSources):
     def get_module_extension(self):
         """ Return the filename extension that a module should have. """
 
-        if sys.platform == 'win32':
+        if self.project.py_platform == 'win32':
             return '.pyd'
 
         suffixes = importlib.machinery.EXTENSION_SUFFIXES

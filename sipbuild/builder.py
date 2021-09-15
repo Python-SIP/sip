@@ -157,7 +157,7 @@ class Builder(AbstractBuilder):
                             LAST_SUPPORTED_MINOR + 1)]
             wheel_tag.append('.'.join(vtags))
 
-            wheel_tag.append('none' if sys.platform == 'win32' else 'abi3')
+            wheel_tag.append('none' if project.py_platform == 'win32' else 'abi3')
         else:
             major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
                     (sys.hexversion >> 16) & 0xff)
@@ -171,7 +171,7 @@ class Builder(AbstractBuilder):
 
         platform_tag = sysconfig.get_platform()
 
-        if sys.platform == 'darwin' and project.minimum_macos_version:
+        if project.py_platform == 'darwin' and project.minimum_macos_version:
             # We expect a three part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 3:
@@ -180,7 +180,7 @@ class Builder(AbstractBuilder):
 
                 platform_tag = '-'.join(parts)
 
-        elif sys.platform == 'linux' and project.manylinux:
+        elif project.py_platform == 'linux' and project.manylinux:
             # We expect a two part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 2:

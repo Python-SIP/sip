@@ -53,7 +53,7 @@ class DistutilsBuilder(Builder):
         # On macOS respect the minimum macOS version.
         remove_macos_target = False
 
-        if sys.platform == 'darwin':
+        if project.py_platform == 'darwin':
             # If the target version has already been set then assume the user
             # knows what they are doing and leave it as it is.
             if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:

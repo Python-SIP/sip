@@ -1,4 +1,4 @@
-v6.2.0 24th August 2021
+v6.2.0 15th September 2021
   - sip-build, sip-install and sip-wheel now support the --disabled-feature
     command line option.
   - Added support for Python v3.10.
