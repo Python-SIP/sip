@@ -4026,7 +4026,7 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     else
     {
         prcode(fp,
-"    SIP_NULLPTR\n"
+"    SIP_NULLPTR,\n"
             );
     }
 
