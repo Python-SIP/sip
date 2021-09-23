@@ -1218,12 +1218,17 @@ mtfunction: TK_STATIC cpptype TK_NAME_VALUE '(' arglist ')' optconst optexceptio
         }
     ;
 
-namespace:  TK_NAMESPACE TK_NAME_VALUE {
+namespace:  TK_NAMESPACE TK_NAME_VALUE optflags {
             if (currentSpec -> genc)
                 yyerror("namespace definition not allowed in a C module");
 
             if (notSkipping())
             {
+                const char *annos[] = {
+                    "PyQtNoQMetaObject",
+                    NULL
+                };
+
                 classDef *ns, *c_scope;
                 ifaceFileDef *scope;
 
@@ -1232,8 +1237,12 @@ namespace:  TK_NAMESPACE TK_NAME_VALUE {
                 else
                     scope = NULL;
 
+                checkAnnos(&$3, annos);
                 ns = newClass(currentSpec, namespace_iface,
                         text2scopedName(scope, $2), NULL, NULL, NULL, NULL);
+
+                if (getOptFlag(&$3, "PyQtNoQMetaObject", bool_flag) != NULL)
+                    setPyQtNoQMetaObject(ns);
 
                 pushScope(ns);
 

@@ -1,4 +1,5 @@
-v6.2.0 22nd September 2021
+v6.2.0 23rd September 2021
+  - The /PyQtNoQMetaObject/ annotation can now be applied to namespaces.
   - sip-build, sip-install and sip-wheel now support the --disabled-feature
     command line option.
   - Added support for Python v3.10.
