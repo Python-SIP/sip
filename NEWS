@@ -1,4 +1,7 @@
-v6.2.0 23rd September 2021
+v6.2.0 28th September 2021
+  - The interpreter tag in the name of a wheel now specifies a minimum Python
+    version (rather than each supported Python version) when the limited API is
+    used.
   - The /PyQtNoQMetaObject/ annotation can now be applied to namespaces.
   - sip-build, sip-install and sip-wheel now support the --disabled-feature
     command line option.

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -25,7 +25,7 @@ from collections import OrderedDict
 import toml
 
 from .exceptions import UserFileException, UserParseException
-from .py_versions import FIRST_SUPPORTED_MINOR
+from .py_versions import OLDEST_SUPPORTED_MINOR
 
 
 class PyProjectException(UserFileException):
@@ -137,7 +137,7 @@ class PyProject:
         if requires_python is None:
             # The minimal version of Python we support.
             metadata['requires-python'] = '>=3.{}'.format(
-                    FIRST_SUPPORTED_MINOR)
+                    OLDEST_SUPPORTED_MINOR)
 
         # This is cosmetic.
         for name in ('requires-python', 'version', 'name', 'metadata-version'):

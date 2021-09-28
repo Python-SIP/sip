@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2021, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,6 +21,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# The first and last supported minor versions of Python v3.
-FIRST_SUPPORTED_MINOR = 6
-LAST_SUPPORTED_MINOR = 10
+# The oldest supported minor version of Python v3.
+OLDEST_SUPPORTED_MINOR = 6

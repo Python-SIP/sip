@@ -37,7 +37,7 @@ from .bindings import Bindings
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .module import resolve_abi_version
-from .py_versions import FIRST_SUPPORTED_MINOR, LAST_SUPPORTED_MINOR
+from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import (PyProjectException, PyProjectOptionException,
         PyProjectUndefinedOptionException)
 
@@ -580,12 +580,13 @@ class Project(AbstractProject, Configurable):
         self.sip_include_dirs = [self.project_path(d)
                 for d in self.sip_include_dirs]
 
-        # Make sure we support the targeted version of Python.
+        # Check that the targeted version of Python isn't too old.  We hope
+        # that we will support newer versions automatically, but it's not
+        # guaranteed.
         py_version = (self.py_major_version, self.py_minor_version)
-        first_version = (3, FIRST_SUPPORTED_MINOR)
-        last_version = (3, LAST_SUPPORTED_MINOR)
+        first_version = (3, OLDEST_SUPPORTED_MINOR)
 
-        if py_version < first_version or py_version > last_version:
+        if py_version < first_version or self.py_major_version > 3:
             raise UserException(
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
