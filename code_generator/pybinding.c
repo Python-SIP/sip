@@ -1,7 +1,7 @@
 /*
  * The transitional Python bindings for the C parts of the sip code generator.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -22,6 +22,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+#if !defined(Py_LIMITED_API)
+#define Py_LIMITED_API      0x03030000
+#endif
 
 #include <Python.h>
 
@@ -325,6 +329,7 @@ static PyObject *py_generateTypeHints(PyObject *self, PyObject *args)
 static int fs_convertor(PyObject *obj, char **fsp)
 {
     PyObject *bytes;
+    char *fs;
 
     if (obj == Py_None)
     {
@@ -335,8 +340,15 @@ static int fs_convertor(PyObject *obj, char **fsp)
     if ((bytes = PyUnicode_EncodeFSDefault(obj)) == NULL)
         return 0;
 
-    /* Leak the bytes object rather than strdup() its contents. */
-    *fsp = PyBytes_AS_STRING(bytes);
+    if ((fs = PyBytes_AsString(bytes)) == NULL)
+    {
+        Py_DECREF(bytes);
+        return 0;
+    }
+
+    *fsp = sipStrdup(fs);
+
+    Py_DECREF(bytes);
 
     return 1;
 }
@@ -369,12 +381,6 @@ static int stringList_convertor(PyObject *obj, stringList **slp)
 
     if (obj == Py_None)
         return 1;
-
-    if (!PyList_Check(obj))
-    {
-        PyErr_SetString(PyExc_TypeError, "list of str expected");
-        return 0;
-    }
 
     return extend_stringList(slp, obj, 0);
 }
@@ -421,18 +427,25 @@ static PyObject *stringList_convert_from(stringList *sl)
  */
 static int extend_stringList(stringList **slp, PyObject *py_list, int no_dups)
 {
-    Py_ssize_t i;
+    Py_ssize_t i, size;
 
-    for (i = 0; i < PyList_GET_SIZE(py_list); ++i)
+    if ((size = PyList_Size(py_list)) < 0)
+        return 0;
+
+    for (i = 0; i < size; ++i)
     {
         const char *el_s;
-        PyObject *el = PyUnicode_EncodeLocale(PyList_GET_ITEM(py_list, i),
+        PyObject *el = PyUnicode_EncodeLocale(PyList_GetItem(py_list, i),
                 NULL);
 
         if (el == NULL)
             return 0;
 
-        el_s = PyBytes_AS_STRING(el);
+        if ((el_s = PyBytes_AsString(el)) == NULL)
+        {
+            Py_DECREF(el);
+            return 0;
+        }
 
         if (no_dups)
         {
@@ -447,6 +460,7 @@ static int extend_stringList(stringList **slp, PyObject *py_list, int no_dups)
         }
 
         appendString(slp, sipStrdup(el_s));
+        Py_DECREF(el);
     }
 
     return 1;
@@ -553,7 +567,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 {
     static PyObject *get_bindings_configuration = NULL;
 
-    PyObject *res, *py_tags, *py_disabled;
+    PyObject *res;
 
     /* Get the Python helper. */
     if (get_bindings_configuration == NULL)
@@ -581,21 +595,15 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 
     /* The result should be a 2-tuple of lists of strings. */
     assert(PyTuple_Check(res));
-    assert(PyTuple_GET_SIZE(res) == 2);
+    assert(PyTuple_Size(res) == 2);
 
-    py_tags = PyTuple_GET_ITEM(res, 0);
-    assert(PyList_Check(py_tags));
-
-    if (!extend_stringList(tags, py_tags, 1))
+    if (!extend_stringList(tags, PyTuple_GetItem(res, 0), 1))
     {
         Py_DECREF(res);
         exception_set();
     }
 
-    py_disabled = PyTuple_GET_ITEM(res, 1);
-    assert(PyList_Check(py_disabled));
-
-    if (!extend_stringList(disabled, py_disabled, 1))
+    if (!extend_stringList(disabled, PyTuple_GetItem(res, 1), 1))
     {
         Py_DECREF(res);
         exception_set();
