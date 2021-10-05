@@ -43,7 +43,7 @@ except FileNotFoundError:
 # Build the code generator extension module.
 code_gen_src = sorted(glob.glob(os.path.join('code_generator', '*.c')))
 code_gen_module = Extension('sipbuild.code_generator', code_gen_src,
-        include_dirs=['code_generator'])
+        include_dirs=['code_generator'], py_limited_api=True)
 
 # Do the setup.
 setup(
