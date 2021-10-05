@@ -27,7 +27,6 @@ import os
 import shutil
 import stat
 import sys
-import sysconfig
 
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
@@ -168,41 +167,7 @@ class Builder(AbstractBuilder):
             except AttributeError:
                 wheel_tag.append('none')
 
-        platform_tag = sysconfig.get_platform()
-
-        if project.py_platform == 'darwin' and project.minimum_macos_version:
-            # We expect a three part tag so leave anything else unchanged.
-            parts = platform_tag.split('-')
-            if len(parts) == 3:
-                parts[1] = '{}.{}'.format(project.minimum_macos_version[0],
-                        project.minimum_macos_version[1])
-
-                platform_tag = '-'.join(parts)
-
-        elif project.py_platform == 'linux' and project.manylinux:
-            # We expect a two part tag so leave anything else unchanged.
-            parts = platform_tag.split('-')
-            if len(parts) == 2:
-                if project.minimum_glibc_version > (2, 17):
-                    # PEP 600.
-                    parts[0] = 'manylinux'
-                    parts.insert(1,
-                            '{}.{}'.format(project.minimum_glibc_version[0],
-                                    project.minimum_glibc_version[1]))
-                elif project.minimum_glibc_version > (2, 12):
-                    # PEP 599.
-                    parts[0] = 'manylinux2014'
-                elif project.minimum_glibc_version > (2, 5):
-                    # PEP 571.
-                    parts[0] = 'manylinux2010'
-                else:
-                    # PEP 513.
-                    parts[0] = 'manylinux1'
-
-                platform_tag = '-'.join(parts)
-
-        platform_tag = platform_tag.replace('.', '_').replace('-', '_')
-        wheel_tag.append(platform_tag)
+        wheel_tag.append(project.get_platform_tag())
 
         wheel_tag = '-'.join(wheel_tag)
 

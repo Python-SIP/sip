@@ -1,5 +1,6 @@
-v6.2.1 1st October 2021
+v6.3.0 5th October 2021
   - SIP itself now uses the limited API itself.
+  - Added the Project.get_platform_tag() method to the sipbuild API.
 
 v6.2.0 28th September 2021
   - The interpreter tag in the name of a wheel now specifies a minimum Python

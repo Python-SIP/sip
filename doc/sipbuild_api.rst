@@ -621,6 +621,14 @@ build systems.
 
         :return: the list of :py:class:`~sipbuild.Option` objects.
 
+    .. py:method:: get_platform_tag()
+
+        Get the platform tag to use in a wheel name.  This default
+        implementation uses the platform name and applies PEP defined
+        conventions depending on OS version and GLIBC version as appropriate.
+
+        :return: the platform tag.
+
     .. py:method:: get_requires_dists()
 
         Get the list of any implicit ``requires-dist`` expressions that should
