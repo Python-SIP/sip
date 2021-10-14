@@ -71,11 +71,18 @@ class SIPTestCase(unittest.TestCase):
         # Move the extension module to the test directory.
         build_dir = os.path.join(test_dir, 'build')
 
-        module_path = glob.glob(
-                os.path.join(build_dir, module_name,
-                        module_name + '*.pyd' if sys.platform == 'win32' else '*.so'))
+        # The distutils and setuptools builders leave the module in different
+        # places.
+        for subdirs in ((module_name, ), (module_name, 'build', 'lib*')):
+            module_pattern = [build_dir]
+            module_pattern.extend(subdirs)
+            module_pattern.append(
+                    module_name + '*.pyd' if sys.platform == 'win32' else '*.so')
 
-        if len(module_path) == 0:
+            module_path = glob.glob(os.path.join(*module_pattern))
+            if len(module_path) != 0:
+                break
+        else:
             raise Exception(
                     "no '{0}' extension module was built".format(module_name))
 
