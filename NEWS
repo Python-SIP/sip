@@ -1,3 +1,9 @@
+v6.3.2 16th October 2021
+  - Bug fixes.
+
+v6.3.1 13th October 2021
+  - Bug fixes.
+
 v6.3.0 5th October 2021
   - SIP itself now uses the limited API itself.
   - Added the Project.get_platform_tag() method to the sipbuild API.
