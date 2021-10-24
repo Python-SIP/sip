@@ -174,6 +174,7 @@ SIP_SSIZE_T {
 <directive>timestamp        {return TK_TIMESTAMP;}
 <directive>type             {return TK_TYPE;}
 <directive>use_argument_names   {return TK_USEARGNAMES;}
+<directive>py_ssize_t_clean {return TK_PYSSIZETCLEAN;}
 <directive>use_limited_api  {return TK_USELIMITEDAPI;}
 <directive>all_raise_py_exception   {return TK_ALLRAISEPYEXC;}
 <directive>call_super_init  {return TK_CALLSUPERINIT;}

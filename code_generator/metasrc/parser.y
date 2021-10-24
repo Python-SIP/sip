@@ -177,9 +177,9 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
         docstringDef *docstring);
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int c_module, KwArgs kwargs,
-        int use_arg_names, int use_limited_api, int call_super_init,
-        int all_raise_py_exc, const char *def_error_handler,
-        docstringDef *docstring);
+        int use_arg_names, int py_ssize_t_clean, int use_limited_api,
+        int call_super_init, int all_raise_py_exc,
+        const char *def_error_handler, docstringDef *docstring);
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
@@ -380,6 +380,7 @@ static scopedNameDef *fullyQualifiedName(scopedNameDef *snd);
 %token          TK_TIMESTAMP
 %token          TK_TYPE
 %token          TK_USEARGNAMES
+%token          TK_PYSSIZETCLEAN
 %token          TK_USELIMITEDAPI
 %token          TK_ALLRAISEPYEXC
 %token          TK_CALLSUPERINIT
@@ -1716,9 +1717,10 @@ module: TK_MODULE module_args module_body {
             if (notSkipping())
                 currentModule = configureModule(currentSpec, currentModule,
                         currentContext.filename, $2.name, $2.c_module,
-                        $2.kwargs, $2.use_arg_names, $2.use_limited_api,
-                        $2.call_super_init, $2.all_raise_py_exc,
-                        $2.def_error_handler, $3.docstring);
+                        $2.kwargs, $2.use_arg_names, $2.py_ssize_t_clean,
+                        $2.use_limited_api, $2.call_super_init,
+                        $2.all_raise_py_exc, $2.def_error_handler,
+                        $3.docstring);
         }
     ;
 
@@ -1727,6 +1729,7 @@ module_args:    dottedname {resetLexerState();} {
             $$.kwargs = defaultKwArgs;
             $$.name = $1;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1747,6 +1750,7 @@ module_arg_list:    module_arg
             case TK_LANGUAGE: $$.c_module = $3.c_module; break;
             case TK_NAME: $$.name = $3.name; break;
             case TK_USEARGNAMES: $$.use_arg_names = $3.use_arg_names; break;
+            case TK_PYSSIZETCLEAN: $$.py_ssize_t_clean = $3.py_ssize_t_clean; break;
             case TK_USELIMITEDAPI: $$.use_limited_api = $3.use_limited_api; break;
             case TK_ALLRAISEPYEXC: $$.all_raise_py_exc = $3.all_raise_py_exc; break;
             case TK_CALLSUPERINIT: $$.call_super_init = $3.call_super_init; break;
@@ -1762,6 +1766,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = convertKwArgs($3);
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1780,6 +1785,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1792,6 +1798,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = $3;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1804,6 +1811,20 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = $3;
+            $$.py_ssize_t_clean = FALSE;
+            $$.use_limited_api = FALSE;
+            $$.all_raise_py_exc = FALSE;
+            $$.call_super_init = -1;
+            $$.def_error_handler = NULL;
+        }
+    |   TK_PYSSIZETCLEAN '=' bool_value {
+            $$.token = TK_PYSSIZETCLEAN;
+
+            $$.c_module = FALSE;
+            $$.kwargs = defaultKwArgs;
+            $$.name = NULL;
+            $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = $3;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1816,6 +1837,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = $3;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -1828,6 +1850,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = $3;
             $$.call_super_init = -1;
@@ -1840,6 +1863,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = $3;
@@ -1852,6 +1876,7 @@ module_arg: TK_KWARGS '=' TK_STRING_VALUE {
             $$.kwargs = defaultKwArgs;
             $$.name = NULL;
             $$.use_arg_names = FALSE;
+            $$.py_ssize_t_clean = FALSE;
             $$.use_limited_api = FALSE;
             $$.all_raise_py_exc = FALSE;
             $$.call_super_init = -1;
@@ -8892,9 +8917,9 @@ static void addProperty(sipSpec *pt, moduleDef *mod, classDef *cd,
  */
 static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
         const char *filename, const char *name, int c_module, KwArgs kwargs,
-        int use_arg_names, int use_limited_api, int call_super_init,
-        int all_raise_py_exc, const char *def_error_handler,
-        docstringDef *docstring)
+        int use_arg_names, int py_ssize_t_clean, int use_limited_api,
+        int call_super_init, int all_raise_py_exc,
+        const char *def_error_handler, docstringDef *docstring)
 {
     moduleDef *mod;
 
@@ -8927,6 +8952,9 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 
     if (use_arg_names)
         setUseArgNames(module);
+
+    if (py_ssize_t_clean)
+        setPY_SSIZE_T_CLEAN(module);
 
     if (use_limited_api)
         setUseLimitedAPI(module);

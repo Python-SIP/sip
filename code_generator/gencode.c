@@ -293,7 +293,7 @@ static int isString(argDef *ad);
 static scopedNameDef *stripScope(scopedNameDef *snd, int strip);
 static void prEnumMemberScope(enumMemberDef *emd, FILE *fp);
 static void normaliseSignalArg(argDef *ad);
-static void generate_include_sip_h(FILE *fp);
+static void generate_include_sip_h(moduleDef *mod, FILE *fp);
 static int get_nr_members(const enumDef *ed);
 ifaceFileDef *pyScopeIface(classDef *cd);
 ifaceFileDef *pyEnumScopeIface(enumDef *ed);
@@ -469,7 +469,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     declareLimitedAPI(py_debug, mod, fp);
 
-    generate_include_sip_h(fp);
+    generate_include_sip_h(mod, fp);
 
     if (pluginPyQt5(pt) || pluginPyQt6(pt))
         prcode(fp,
@@ -1017,7 +1017,7 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 
     declareLimitedAPI(py_debug, NULL, fp);
 
-    generate_include_sip_h(fp);
+    generate_include_sip_h(pt->module, fp);
 
     prcode(fp,
 "\n"
@@ -14996,8 +14996,14 @@ static void prEnumMemberScope(enumMemberDef *emd, FILE *fp)
 /*
  * Generate the inclusion of sip.h.
  */
-static void generate_include_sip_h(FILE *fp)
+static void generate_include_sip_h(moduleDef *mod, FILE *fp)
 {
+    if (isPY_SSIZE_T_CLEAN(mod))
+        prcode(fp,
+"\n"
+"#define PY_SSIZE_T_CLEAN\n"
+            );
+
     prcode(fp,
 "\n"
 "#include \"sip.h\"\n"

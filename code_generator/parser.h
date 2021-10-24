@@ -172,10 +172,11 @@
      TK_TIMESTAMP = 388,
      TK_TYPE = 389,
      TK_USEARGNAMES = 390,
-     TK_USELIMITEDAPI = 391,
-     TK_ALLRAISEPYEXC = 392,
-     TK_CALLSUPERINIT = 393,
-     TK_DEFERRORHANDLER = 394
+     TK_PYSSIZETCLEAN = 391,
+     TK_USELIMITEDAPI = 392,
+     TK_ALLRAISEPYEXC = 393,
+     TK_CALLSUPERINIT = 394,
+     TK_DEFERRORHANDLER = 395
    };
 #endif
 /* Tokens.  */
@@ -312,10 +313,11 @@
 #define TK_TIMESTAMP 388
 #define TK_TYPE 389
 #define TK_USEARGNAMES 390
-#define TK_USELIMITEDAPI 391
-#define TK_ALLRAISEPYEXC 392
-#define TK_CALLSUPERINIT 393
-#define TK_DEFERRORHANDLER 394
+#define TK_PYSSIZETCLEAN 391
+#define TK_USELIMITEDAPI 392
+#define TK_ALLRAISEPYEXC 393
+#define TK_CALLSUPERINIT 394
+#define TK_DEFERRORHANDLER 395
 
 
 
@@ -366,7 +368,7 @@ typedef union YYSTYPE
     int             token;
 }
 /* Line 1529 of yacc.c.  */
-#line 370 "/Users/phil/hg/sip/code_generator/parser.h"
+#line 372 "/Users/phil/hg/sip/code_generator/parser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

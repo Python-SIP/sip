@@ -1726,6 +1726,7 @@ then the pattern should instead be::
             [, default_VirtualErrorHandler = *name*]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
+            [, py_ssize_t_clean = [True | False]]
             [, use_argument_names = [True | False]]
             [, use_limited_api = [True | False]])
     {
@@ -1761,6 +1762,9 @@ possible values and their effect.
 
 ``language`` specifies the implementation language of the library being
 wrapped.  Its value is either ``"C++"`` (the default) or ``"C"``.
+
+``py_ssize_t_clean`` specifies that the generated code should include ``#define
+PY_SSIZE_T_CLEAN`` before any ``#include <Python.h>``.
 
 When providing handwritten code as part of either the :directive:`%MethodCode`
 or :directive:`%VirtualCatcherCode` directives the names of the arguments of

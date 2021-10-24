@@ -95,6 +95,7 @@
 #define MOD_SUPER_INIT_UNDEF    0x0000  /* Calling super().__init__() is undefined. */
 #define MOD_SUPER_INIT_MASK     0x0180  /* The mask for the above flags. */
 #define MOD_SETTING_IMPORTS     0x0200  /* Imports are being set. */
+#define MOD_PY_SSIZE_T_CLEAN    0x0400  /* #define PY_SSIZE_T_CLEAN. */
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
@@ -118,6 +119,8 @@
 #define settingImports(m)   ((m)->modflags & MOD_SETTING_IMPORTS)
 #define setSettingImports(m)    ((m)->modflags |= MOD_SETTING_IMPORTS)
 #define resetSettingImports(m)  ((m)->modflags &= ~MOD_SETTING_IMPORTS)
+#define setPY_SSIZE_T_CLEAN(m)  ((m)->modflags |= MOD_PY_SSIZE_T_CLEAN)
+#define isPY_SSIZE_T_CLEAN(m)   ((m)->modflags & MOD_PY_SSIZE_T_CLEAN)
 
 
 /* Handle section flags. */
@@ -1604,6 +1607,7 @@ typedef struct _moduleCfg {
     KwArgs kwargs;
     const char *name;
     int use_arg_names;
+    int py_ssize_t_clean;
     int use_limited_api;
     int all_raise_py_exc;
     int call_super_init;
