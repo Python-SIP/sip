@@ -598,8 +598,12 @@ Enum Annotations
 
     This name annotation specifies the type from the :mod:`enum` module
     that will be used as the base type of the enum.  The possible values are
-    :class:`~enum.Enum`, :class:`~enum.Flag`, :class:`~enum.IntEnum` and
-    :class:`~enum.IntFlag`.  The default value is :class:`~enum.Enum`.
+    ``Enum`` (corresponding to :class:`~enum.Enum`), ``Flag`` (corresponding to
+    :class:`~enum.Flag`), ``IntEnum`` (corresponding to
+    :class:`~enum.IntEnum`), ``UIntEnum`` (also corresponding to
+    :class:`~enum.IntEnum` but with unsigned members) and ``IntFlag``
+    (corresponding to :class:`~enum.IntFlag`).  The default value is ``Enum``.
+    The members of ``Flag`` and ``IntFlag`` enums are implicitly unsigned.
 
     This annotation is only available when ABI v13 or later is specified.
 

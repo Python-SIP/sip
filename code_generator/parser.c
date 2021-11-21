@@ -8971,6 +8971,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
             setIsEnumFlag(ed);
         else if (strcmp(base_type, "IntEnum") == 0)
             setIsEnumIntEnum(ed);
+        else if (strcmp(base_type, "UIntEnum") == 0)
+            setIsEnumUIntEnum(ed);
         else if (strcmp(base_type, "IntFlag") == 0)
             setIsEnumIntFlag(ed);
         else

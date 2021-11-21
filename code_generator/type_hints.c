@@ -619,7 +619,7 @@ static void pyiEnums(sipSpec *pt, moduleDef *mod, ifaceFileDef *scope,
                     super = "enum.Enum";
                 else if (isEnumFlag(ed))
                     super = "enum.Flag";
-                else if (isEnumIntEnum(ed))
+                else if (isEnumIntEnum(ed) || isEnumUIntEnum(ed))
                     super = "enum.IntEnum";
                 else if (isEnumIntFlag(ed))
                     super = "enum.IntFlag";

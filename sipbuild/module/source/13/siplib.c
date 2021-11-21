@@ -570,6 +570,7 @@ static const sipAPIDef sip_api = {
 };
 
 
+#define IS_UNSIGNED_ENUM(etd)   ((etd)->etd_base_type == SIP_ENUM_UINT_ENUM || (etd)->etd_base_type == SIP_ENUM_INT_FLAG || (etd)->etd_base_type == SIP_ENUM_FLAG)
 #define AUTO_DOCSTRING          '\1'    /* Marks an auto class docstring. */
 
 
@@ -5973,7 +5974,7 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
         assert(next_int->ii_name != NULL);
 
         /* Flags are implicitly unsigned. */
-        if (etd->etd_base_type == SIP_ENUM_INT_FLAG || etd->etd_base_type == SIP_ENUM_FLAG)
+        if (IS_UNSIGNED_ENUM(etd))
             value_obj = PyLong_FromUnsignedLong((unsigned)next_int->ii_val);
         else
             value_obj = PyLong_FromLong(next_int->ii_val);
@@ -6028,7 +6029,7 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
         enum_factory = int_flag_type;
     else if (etd->etd_base_type == SIP_ENUM_FLAG)
         enum_factory = flag_type;
-    else if (etd->etd_base_type == SIP_ENUM_INT_ENUM)
+    else if (etd->etd_base_type == SIP_ENUM_INT_ENUM || etd->etd_base_type == SIP_ENUM_UINT_ENUM)
         enum_factory = int_enum_type;
     else
         enum_factory = enum_type;
@@ -6519,7 +6520,7 @@ static int sip_api_convert_to_enum(PyObject *obj, const sipTypeDef *td)
         return -1;
 
     /* Flags are implicitly unsigned. */
-    if (((sipEnumTypeDef *)td)->etd_base_type == SIP_ENUM_INT_FLAG || ((sipEnumTypeDef *)td)->etd_base_type == SIP_ENUM_FLAG)
+    if (IS_UNSIGNED_ENUM((sipEnumTypeDef *)td))
         val = (int)sip_api_long_as_unsigned_int(val_obj);
     else
         val = sip_api_long_as_int(val_obj);
@@ -6551,8 +6552,8 @@ static PyObject *sip_api_convert_from_enum(int eval, const sipTypeDef *td)
 
     et = get_enum_type(td);
 
-    return PyObject_CallFunction(et, sip_api_is_enum_flag(et) ? "(I)" : "(i)",
-            eval);
+    return PyObject_CallFunction(et,
+            IS_UNSIGNED_ENUM((sipEnumTypeDef *)td) ? "(I)" : "(i)", eval);
 }
 
 

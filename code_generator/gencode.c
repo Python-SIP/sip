@@ -1481,6 +1481,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 base_type = "SIP_ENUM_FLAG";
             else if (isEnumIntEnum(ed))
                 base_type = "SIP_ENUM_INT_ENUM";
+            else if (isEnumUIntEnum(ed))
+                base_type = "SIP_ENUM_UINT_ENUM";
             else
                 base_type = "SIP_ENUM_ENUM";
 

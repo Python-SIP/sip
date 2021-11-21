@@ -307,11 +307,12 @@
 #define ENUM_NO_SCOPE       0x00000200  /* Omit the member scopes. */
 #define ENUM_NEEDS_ENUM     0x00000400  /* The module needs it. */
 #define ENUM_SCOPED         0x00000800  /* A C++0x11 scoped enum. */
-#define ENUM_MASK           0x00003000  /* The enum base type mask. */
+#define ENUM_MASK           0x00007000  /* The enum base type mask. */
 #define ENUM_ENUM           0x00000000  /* The base type is Enum. */
 #define ENUM_FLAG           0x00001000  /* The base type is Flag. */
 #define ENUM_INT_ENUM       0x00002000  /* The base type is IntEnum. */
 #define ENUM_INT_FLAG       0x00003000  /* The base type is IntFlag. */
+#define ENUM_UINT_ENUM      0x00004000  /* The base type is IntEnum with unsigned members. */
 
 #define isProtectedEnum(e)  ((e)->enumflags & SECT_IS_PROT)
 #define setIsProtectedEnum(e)   ((e)->enumflags |= SECT_IS_PROT)
@@ -335,6 +336,8 @@
 #define setIsEnumIntEnum(e) ((e)->enumflags |= ENUM_INT_ENUM)
 #define isEnumIntFlag(e)    (((e)->enumflags & ENUM_MASK) == ENUM_INT_FLAG)
 #define setIsEnumIntFlag(e) ((e)->enumflags |= ENUM_INT_FLAG)
+#define isEnumUIntEnum(e)   (((e)->enumflags & ENUM_MASK) == ENUM_UINT_ENUM)
+#define setIsEnumUIntEnum(e)    ((e)->enumflags |= ENUM_UINT_ENUM)
 
 
 /* Handle hierarchy flags. */

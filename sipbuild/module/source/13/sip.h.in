@@ -45,14 +45,16 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
-#define SIP_ABI_MINOR_VERSION       1
+#define SIP_ABI_MINOR_VERSION       2
 #define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The changes to this version of the ABI.
  *
- * This is the first minor version of this version of the ABI.
+ * v13.2
+ *  - Added support for SIP_ENUM_UINT_ENUM to represent IntEnums with unsigned
+ *    members.
  */
 
 
@@ -1493,6 +1495,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 #define SIP_ENUM_FLAG       1       /* The base type is Flag. */
 #define SIP_ENUM_INT_ENUM   2       /* The base type is IntEnum. */
 #define SIP_ENUM_INT_FLAG   3       /* The base type is IntFlag. */
+#define SIP_ENUM_UINT_ENUM  4       /* The base type is IntEnum with unsigned members. */
 
 
 /*
