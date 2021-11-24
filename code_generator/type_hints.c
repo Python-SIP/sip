@@ -210,6 +210,10 @@ static void pyiModule(sipSpec *pt, moduleDef *mod, FILE *fp)
         if (cd->ecd != NULL)
             continue;
 
+        /* We can't handle extenders. */
+        if (cd->real != NULL)
+            continue;
+
         pyiClass(pt, mod, cd, &defined, 0, fp);
     }
 

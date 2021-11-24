@@ -1,7 +1,8 @@
-v6.5.0 21st November 2021
+v6.5.0 24th November 2021
   - Added 'UIntEnum' as a value of the /BaseType/ enum annotation to support
     enum.IntEnum types with unsigned values.
   - The latest version of ABI v13 is v13.2.0.
+  - Bug fixes.
 
 v6.4.0 24th October 2021
   - Added support for the 'py_ssize_t_clean' argument to the '%Module'
