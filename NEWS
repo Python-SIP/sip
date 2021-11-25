@@ -1,4 +1,4 @@
-v6.5.0 24th November 2021
+v6.5.0 25th November 2021
   - Added 'UIntEnum' as a value of the /BaseType/ enum annotation to support
     enum.IntEnum types with unsigned values.
   - The latest version of ABI v13 is v13.2.0.

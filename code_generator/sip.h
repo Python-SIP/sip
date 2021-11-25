@@ -84,7 +84,7 @@
 /* Handle module flags. */
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
-#define MOD_IS_CONSOLIDATED     0x0002  /* It is a consolidated module. */
+#define MOD_IS_UNUSED           0x0002  /* This flag is unused. */
 #define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
@@ -99,11 +99,8 @@
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
-#define isConsolidated(m)   ((m)->modflags & MOD_IS_CONSOLIDATED)
-#define setIsConsolidated(m)    ((m)->modflags |= MOD_IS_CONSOLIDATED)
 #define isComposite(m)      ((m)->modflags & MOD_IS_COMPOSITE)
 #define setIsComposite(m)   ((m)->modflags |= MOD_IS_COMPOSITE)
-#define isContainer(m)      ((m)->modflags & (MOD_IS_CONSOLIDATED | MOD_IS_COMPOSITE))
 #define setIsTransformed(m) ((m)->modflags |= MOD_IS_TRANSFORMED)
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
 #define setUseArgNames(m)   ((m)->modflags |= MOD_USE_ARG_NAMES)
@@ -1348,7 +1345,6 @@ typedef struct {
     virtErrorHandler *errorhandlers;    /* The list of virtual error handlers. */
     codeBlockList *exphdrcode;          /* Exported header code. */
     codeBlockList *exptypehintcode;     /* Exported type hint code. */
-    codeBlockList *docs;                /* Documentation. */
     classDef *qobject_cd;               /* QObject class, NULL if none. */
     int genc;                           /* Set if we are generating C code. */
     struct _stringList *plugins;        /* The list of plugins. */

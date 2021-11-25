@@ -8220,16 +8220,6 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
         {
             mappedTypeDef *mtd;
 
-            /*
-             * This is a bit of a cheat.  With consolidated modules it's
-             * possible to have two implementations of a mapped type in
-             * different branches of the module hierarchy.  We assume that, if
-             * there really are multiple implementations in the same branch,
-             * then it will be picked up in a non-consolidated build.
-             */
-            if (isConsolidated(pt->module))
-                continue;
-
             for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
             {
                 if (mtd->iff != iff)
@@ -12611,15 +12601,15 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
             yyerror("Module is already defined");
 
     /*
-     * If we are in a container module then create a component module and make
+     * If we are in a composite module then create a component module and make
      * it current.
      */
-    if (isContainer(module) || module->container != NULL)
+    if (isComposite(module) || module->container != NULL)
     {
         mod = allocModule();
 
         mod->file = filename;
-        mod->container = (isContainer(module) ? module : module->container);
+        mod->container = (isComposite(module) ? module : module->container);
 
         module = mod;
     }

@@ -1087,14 +1087,6 @@ static void generateNameCache(sipSpec *pt, FILE *fp)
     prcode(fp,
 "\n"
 "/* Define the strings used by this module. */\n"
-        );
-
-    if (isConsolidated(pt->module))
-        prcode(fp,
-"extern const char sipStrings_%s[];\n"
-            , pt->module->name);
-
-    prcode(fp,
 "const char sipStrings_%s[] = {\n"
         , pt->module->name);
 
