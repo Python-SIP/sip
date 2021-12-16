@@ -8977,7 +8977,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
  * Get the type values and (optionally) the type names for substitution in
  * handwritten code.
  */
-void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values)
+void appendTypeStrings(signatureDef *patt, signatureDef *src,
+        signatureDef *known, scopedNameDef **names, scopedNameDef **values)
 {
     int a;
 
@@ -9050,7 +9051,8 @@ void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *s
 
             /* These checks shouldn't be necessary, but... */
             if (sad->atype == template_type && pad->u.td->types.nrArgs == sad->u.td->types.nrArgs)
-                appendTypeStrings(ename, &pad->u.td->types, &sad->u.td->types, known, names, values);
+                appendTypeStrings(&pad->u.td->types, &sad->u.td->types, known,
+                        names, values);
         }
     }
 }
@@ -9308,7 +9310,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     stringList *sl;
 
     type_names = type_values = NULL;
-    appendTypeStrings(classFQCName(tcd->cd), &tcd->sig, &td->types, NULL, &type_names, &type_values);
+    appendTypeStrings(&tcd->sig, &td->types, NULL, &type_names, &type_values);
 
     /*
      * Add a mapping from the template name to the instantiated name.  If we

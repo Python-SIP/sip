@@ -1433,7 +1433,8 @@ int isInplaceNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
 mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
 void appendString(stringList **headp, const char *s);
-void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
+void appendTypeStrings(signatureDef *patt, signatureDef *src,
+        signatureDef *known, scopedNameDef **names, scopedNameDef **values);
 codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
         codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,

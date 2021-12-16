@@ -3067,7 +3067,8 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     mappedTypeDef *mtd;
 
     type_names = type_values = NULL;
-    appendTypeStrings(type->u.td->fqname, &mtt->mt->type.u.td->types, &type->u.td->types, &mtt->sig, &type_names, &type_values);
+    appendTypeStrings(&mtt->mt->type.u.td->types, &type->u.td->types,
+            &mtt->sig, &type_names, &type_values);
 
     mtd = allocMappedType(pt, type);
 
