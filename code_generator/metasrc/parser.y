@@ -5297,8 +5297,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
  * Get the type values and (optionally) the type names for substitution in
  * handwritten code.
  */
-void appendTypeStrings(signatureDef *patt, signatureDef *src,
-        signatureDef *known, scopedNameDef **names, scopedNameDef **values)
+void templateExpansions(signatureDef *patt, signatureDef *src,
+        scopedNameDef **names, scopedNameDef **values)
 {
     int a;
 
@@ -5308,38 +5308,11 @@ void appendTypeStrings(signatureDef *patt, signatureDef *src,
 
         if (pad->atype == defined_type)
         {
-            char *nam = NULL, *val;
+            char *val;
             argDef *sad;
 
-            /*
-             * If the type names are already known then check that this is one
-             * of them.
-             */
-            if (known == NULL)
-                nam = scopedNameTail(pad->u.snd);
-            else if (pad->u.snd->next == NULL)
-            {
-                int k;
-
-                for (k = 0; k < known->nrArgs; ++k)
-                {
-                    /* Skip base types. */
-                    if (known->args[k].atype != defined_type)
-                        continue;
-
-                    if (strcmp(pad->u.snd->name, known->args[k].u.snd->name) == 0)
-                    {
-                        nam = pad->u.snd->name;
-                        break;
-                    }
-                }
-            }
-
-            if (nam == NULL)
-                continue;
-
             /* Add the name. */
-            appendScopedName(names, text2scopePart(nam));
+            appendScopedName(names, text2scopePart(scopedNameTail(pad->u.snd)));
 
             /*
              * Add the corresponding value.  For defined types we don't want 
@@ -5371,7 +5344,7 @@ void appendTypeStrings(signatureDef *patt, signatureDef *src,
 
             /* These checks shouldn't be necessary, but... */
             if (sad->atype == template_type && pad->u.td->types.nrArgs == sad->u.td->types.nrArgs)
-                appendTypeStrings(&pad->u.td->types, &sad->u.td->types, known,
+                templateExpansions(&pad->u.td->types, &sad->u.td->types,
                         names, values);
         }
     }
@@ -5630,7 +5603,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     stringList *sl;
 
     type_names = type_values = NULL;
-    appendTypeStrings(&tcd->sig, &td->types, NULL, &type_names, &type_values);
+    templateExpansions(&tcd->sig, &td->types, &type_names, &type_values);
 
     /*
      * Add a mapping from the template name to the instantiated name.  If we

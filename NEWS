@@ -1,3 +1,6 @@
+v6.5.1 16th December 2021
+  - Refactoring.
+
 v6.5.0 25th November 2021
   - Added 'UIntEnum' as a value of the /BaseType/ enum annotation to support
     enum.IntEnum types with unsigned values.
