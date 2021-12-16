@@ -22,7 +22,6 @@ file.
     *module-statement* ::= [*module-directive* | *statement*]
 
     *module-directive* ::= [
-            :directive:`%API` |
             :directive:`%CompositeModule` |
             :directive:`%Copying` |
             :directive:`%DefaultDocstringFormat` |
@@ -77,10 +76,6 @@ file.
     *class-line* ::= [
             *class-statement* |
             :directive:`%BIGetBufferCode` |
-            :directive:`%BIGetReadBufferCode` |
-            :directive:`%BIGetWriteBufferCode` |
-            :directive:`%BIGetSegCountCode` |
-            :directive:`%BIGetCharBufferCode` |
             :directive:`%BIReleaseBufferCode` |
             :directive:`%ConvertToSubClassCode` |
             :directive:`%ConvertToTypeCode` |
