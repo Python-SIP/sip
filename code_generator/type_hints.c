@@ -443,7 +443,8 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         first = separate(first, indent, fp);
 
-        pyiCallable(pt, mod, md, cd->overs, TRUE, *defined, indent, fp);
+        pyiCallable(pt, mod, md, cd->overs, !isHiddenNamespace(cd), *defined,
+                indent, fp);
     }
 
     for (pd = cd->properties; pd != NULL; pd = pd->next)

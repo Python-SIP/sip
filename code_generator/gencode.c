@@ -11059,8 +11059,8 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
             prcode(fp,
 "PyDoc_STRVAR(doc_%L_%s, \"" , cd->iff, pname);
 
-            has_auto_docstring = generateMemberDocstring(pt, overs, md, TRUE,
-                    fp);
+            has_auto_docstring = generateMemberDocstring(pt, overs, md,
+                    !isHiddenNamespace(cd), fp);
 
             prcode(fp, "\");\n"
 "\n"
