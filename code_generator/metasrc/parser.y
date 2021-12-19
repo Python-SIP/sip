@@ -1064,6 +1064,17 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
 mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             if (notSkipping())
             {
+                /*
+                 * Note that we only use the template arguments to confirm that
+                 * any names in the base type are to be substituted when the
+                 * template is instantiated.  Any other template arguments are
+                 * quietly ignored.  This behaviour isn't really necessary (and
+                 * cannot be replicated for class templates).  It might be more
+                 * consistent not to do this, which would mean that the
+                 * template arguments could be dropped and a new
+                 * %MappedTypeTemplate introduced.
+                 */
+
                 static const char *annos[] = {
                     "AllowNone",
                     "NoRelease",
@@ -1083,18 +1094,6 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
 
                 if (currentSpec->genc)
                     yyerror("%MappedType templates not allowed in a C module");
-
-                /*
-                 * Check the template arguments are basic types or simple
-                 * names.
-                 */
-                for (a = 0; a < $1.nrArgs; ++a)
-                {
-                    argDef *ad = &$1.args[a];
-
-                    if (ad->atype == defined_type && ad->u.snd->next != NULL)
-                        yyerror("%MappedType template arguments must be simple names");
-                }
 
                 if ($3.atype != template_type)
                     yyerror("%MappedType template must map a template type");
@@ -5298,7 +5297,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
  * handwritten code.
  */
 void templateExpansions(signatureDef *patt, signatureDef *src,
-        scopedNameDef **names, scopedNameDef **values)
+        signatureDef *declared_names, scopedNameDef **names,
+        scopedNameDef **values)
 {
     int a;
 
@@ -5308,8 +5308,49 @@ void templateExpansions(signatureDef *patt, signatureDef *src,
 
         if (pad->atype == defined_type)
         {
-            char *val;
+            char *nam, *val;
             argDef *sad;
+
+            /*
+             * If the type names have been declared (as they are with a mapped
+             * type template) check that this is one of them.
+             */
+            if (declared_names != NULL)
+            {
+                int k;
+
+                /* Only consider unscoped names. */
+                if (pad->u.snd->next != NULL)
+                    continue;
+
+                nam = NULL;
+
+                for (k = 0; k < declared_names->nrArgs; ++k)
+                {
+                    argDef *dad = &declared_names->args[k];
+
+                    /* Skip anything but simple names. */
+                    if (dad->atype != defined_type || dad->u.snd->next != NULL)
+                        continue;
+
+                    if (strcmp(pad->u.snd->name, dad->u.snd->name) == 0)
+                    {
+                        nam = pad->u.snd->name;
+                        break;
+                    }
+                }
+
+                /*
+                 * Ignore the argument if it doesn't seem to correspond to a
+                 * declared name.
+                 */
+                if (nam == NULL)
+                    continue;
+            }
+            else
+            {
+                nam = scopedNameTail(pad->u.snd);
+            }
 
             /* Add the name. */
             appendScopedName(names, text2scopePart(scopedNameTail(pad->u.snd)));
@@ -5345,7 +5386,7 @@ void templateExpansions(signatureDef *patt, signatureDef *src,
             /* These checks shouldn't be necessary, but... */
             if (sad->atype == template_type && pad->u.td->types.nrArgs == sad->u.td->types.nrArgs)
                 templateExpansions(&pad->u.td->types, &sad->u.td->types,
-                        names, values);
+                        declared_names, names, values);
         }
     }
 }
@@ -5603,7 +5644,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     stringList *sl;
 
     type_names = type_values = NULL;
-    templateExpansions(&tcd->sig, &td->types, &type_names, &type_values);
+    templateExpansions(&tcd->sig, &td->types, NULL, &type_names, &type_values);
 
     /*
      * Add a mapping from the template name to the instantiated name.  If we

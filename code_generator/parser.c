@@ -8978,7 +8978,8 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
  * handwritten code.
  */
 void templateExpansions(signatureDef *patt, signatureDef *src,
-        scopedNameDef **names, scopedNameDef **values)
+        signatureDef *declared_names, scopedNameDef **names,
+        scopedNameDef **values)
 {
     int a;
 
@@ -8988,8 +8989,49 @@ void templateExpansions(signatureDef *patt, signatureDef *src,
 
         if (pad->atype == defined_type)
         {
-            char *val;
+            char *nam, *val;
             argDef *sad;
+
+            /*
+             * If the type names have been declared (as they are with a mapped
+             * type template) check that this is one of them.
+             */
+            if (declared_names != NULL)
+            {
+                int k;
+
+                /* Only consider unscoped names. */
+                if (pad->u.snd->next != NULL)
+                    continue;
+
+                nam = NULL;
+
+                for (k = 0; k < declared_names->nrArgs; ++k)
+                {
+                    argDef *dad = &declared_names->args[k];
+
+                    /* Skip anything but simple names. */
+                    if (dad->atype != defined_type || dad->u.snd->next != NULL)
+                        continue;
+
+                    if (strcmp(pad->u.snd->name, dad->u.snd->name) == 0)
+                    {
+                        nam = pad->u.snd->name;
+                        break;
+                    }
+                }
+
+                /*
+                 * Ignore the argument if it doesn't seem to correspond to a
+                 * declared name.
+                 */
+                if (nam == NULL)
+                    continue;
+            }
+            else
+            {
+                nam = scopedNameTail(pad->u.snd);
+            }
 
             /* Add the name. */
             appendScopedName(names, text2scopePart(scopedNameTail(pad->u.snd)));
@@ -9025,7 +9067,7 @@ void templateExpansions(signatureDef *patt, signatureDef *src,
             /* These checks shouldn't be necessary, but... */
             if (sad->atype == template_type && pad->u.td->types.nrArgs == sad->u.td->types.nrArgs)
                 templateExpansions(&pad->u.td->types, &sad->u.td->types,
-                        names, values);
+                        declared_names, names, values);
         }
     }
 }
@@ -9283,7 +9325,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     stringList *sl;
 
     type_names = type_values = NULL;
-    templateExpansions(&tcd->sig, &td->types, &type_names, &type_values);
+    templateExpansions(&tcd->sig, &td->types, NULL, &type_names, &type_values);
 
     /*
      * Add a mapping from the template name to the instantiated name.  If we

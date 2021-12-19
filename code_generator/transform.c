@@ -3068,7 +3068,7 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
     type_names = type_values = NULL;
     templateExpansions(&mtt->mt->type.u.td->types, &type->u.td->types,
-            &type_names, &type_values);
+            &mtt->sig, &type_names, &type_values);
 
     mtd = allocMappedType(pt, type);
 
