@@ -18,7 +18,7 @@ build systems.
     :type: int
 
     The major.minor.patch version number encoded as an integer.  For example
-    v5.4.0 would be encoded as 0x050400.
+    v6.5.0 would be encoded as 0x060500.
 
 .. py:data:: SIP_VERSION_STR
     :type: str
@@ -29,7 +29,7 @@ build systems.
 :py:class:`~sipbuild.AbstractBuilder`
 -------------------------------------
 
-.. py:class:: AbstractBuilder(project, \*\*kwargs)
+.. py:class:: AbstractBuilder(project, **kwargs)
 
     An abstract class that defines the API of a builder.
 
@@ -135,7 +135,7 @@ build systems.
 :py:class:`~sipbuild.Bindings`
 ------------------------------
 
-.. py:class:: Bindings(project, name, \*\*kwargs)
+.. py:class:: Bindings(project, name, **kwargs)
 
     The encapsulation of a set of bindings.
 
@@ -231,7 +231,7 @@ build systems.
 :py:class:`~sipbuild.BuildableBindings`
 ---------------------------------------
 
-.. py:class:: BuildableBindings(bindings, fq_name, \*, uses_limited_api=False)
+.. py:class:: BuildableBindings(bindings, fq_name, *, uses_limited_api=False)
 
     A :py:class:`~sipbuild.BuildableModule` sub-class that encapsulates the
     Python extension module for a set of bindings.
@@ -249,7 +249,7 @@ build systems.
 :py:class:`~sipbuild.BuildableExecutable`
 -----------------------------------------
 
-.. py:class:: BuildableExecutable(project, name, target, \*, uses_limited_api=False)
+.. py:class:: BuildableExecutable(project, name, target, *, uses_limited_api=False)
 
     A :py:class:`~sipbuild.BuildableFromSources` sub-class that encapsulates an
     executable.
@@ -265,7 +265,7 @@ build systems.
 :py:class:`~sipbuild.BuildableFromSources`
 ------------------------------------------
 
-.. py:class:: BuildableFromSources(project, name, target, \*, uses_limited_api=False)
+.. py:class:: BuildableFromSources(project, name, target, *, uses_limited_api=False)
 
     A :py:class:`~sipbuild.Buildable` sub-class that encapsulates a target that
     is built from source code.
@@ -324,7 +324,7 @@ build systems.
 :py:class:`~sipbuild.BuildableModule`
 -------------------------------------
 
-.. py:class:: BuildableModule(project, name, fq_name, \*, uses_limited_api=False)
+.. py:class:: BuildableModule(project, name, fq_name, *, uses_limited_api=False)
 
     A :py:class:`~sipbuild.BuildableFromSources` sub-class that encapsulates a
     Python extension module.
@@ -365,7 +365,7 @@ build systems.
 :py:class:`~sipbuild.Builder`
 -----------------------------
 
-.. py:class:: Builder(project, \*\*kwargs)
+.. py:class:: Builder(project, **kwargs)
 
     The default base implementation of a builder.
 
@@ -394,7 +394,7 @@ build systems.
 
         :param str tool: is the name of the tool being used.
 
-    .. py:method:: build_executable(buildable, \*, fatal=True)
+    .. py:method:: build_executable(buildable, *, fatal=True)
         :abstractmethod:
 
         Build an executable from a buildable.
@@ -404,7 +404,7 @@ build systems.
             should be raised if the build failed.
         :return: the relative path name of the built executable.
 
-    .. py:method:: build_project(target_dir, \*, wheel_tag=None)
+    .. py:method:: build_project(target_dir, *, wheel_tag=None)
         :abstractmethod:
 
         Build the project either to be installed for use or to create a wheel.
@@ -421,7 +421,7 @@ build systems.
 
         :return: the list of :py:class:`~sipbuild.Option` objects.
 
-    .. py:method:: install_project(target_dir, \*, wheel_tag=None)
+    .. py:method:: install_project(target_dir, *, wheel_tag=None)
         :abstractmethod:
 
         Install a built project either for use or to create a wheel.
@@ -434,7 +434,7 @@ build systems.
 :py:class:`~sipbuild.DistutilsBuilder`
 --------------------------------------
 
-.. py:class:: DistutilsBuilder(project, \*\*kwargs)
+.. py:class:: DistutilsBuilder(project, **kwargs)
 
     A :py:class:`~sipbuild.Builder` that uses the Python :py:mod:`distutils`
     package to perform builds.  This is the default builder for Python v3.9 and
@@ -462,7 +462,7 @@ build systems.
 :py:class:`~sipbuild.Installable`
 ---------------------------------
 
-.. py:class:: Installable(name, \*, target_subdir=None)
+.. py:class:: Installable(name, *, target_subdir=None)
 
     Encapsulate a list of files that will be installed in the same directory.
 
@@ -484,7 +484,7 @@ build systems.
         :return: the full path name of the sub-directory within the target
             directory where the files will be installed.
 
-    .. py:method:: install(target_dir, installed, \*, do_install=True)
+    .. py:method:: install(target_dir, installed, *, do_install=True)
 
         Install the installable's files in a target directory.
 
@@ -507,7 +507,7 @@ build systems.
 :py:class:`~sipbuild.Option`
 ----------------------------
 
-.. py:class:: Option(name, \*, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None)
+.. py:class:: Option(name, *, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None)
 
     Encapsulate a configurable option.  Option values may be specified in code,
     in the :file:`pyproject.toml` file or on the command line of SIP's tools.
@@ -535,7 +535,7 @@ build systems.
 :py:class:`~sipbuild.Project`
 -----------------------------
 
-.. py:class:: Project(\*\*kwargs)
+.. py:class:: Project(**kwargs)
 
     The default implementation of a project.  It has an associated builder
     which it uses to build a set of buildables.  Building a buildable may
@@ -691,7 +691,7 @@ build systems.
             directory.
         :return: the converted path.
 
-    .. py:method:: read_command_pipe(args, \*, and_stderr=False, fatal=True)
+    .. py:method:: read_command_pipe(args, *, and_stderr=False, fatal=True)
 
         Create a generator that will return each line of a command's
         ``stdout``.
@@ -704,7 +704,7 @@ build systems.
             should be raised if the command returns a non-zero exit code.
         :return: the generator.
 
-    .. py:method:: run_command(args, \*, fatal=True)
+    .. py:method:: run_command(args, *, fatal=True)
 
         Run a command and display any output from ``stdout`` or ``stderr`` if
         verbose progress messages are enabled.
@@ -749,7 +749,7 @@ build systems.
 
         :return: the meta-data.
 
-    .. py:method:: get_section(section_name: str, \*, required=False)
+    .. py:method:: get_section(section_name: str, *, required=False)
 
         Get a section as either an :py:class:`~collections.OrderedDict`, if the
         section is a table, or a ``list`` if the section is a list.
@@ -762,7 +762,7 @@ build systems.
 :py:exc:`~sipbuild.PyProjectOptionException`
 --------------------------------------------
 
-.. py:exception:: PyProjectOptionException(name, text, \*, section_name=None, detail=None)
+.. py:exception:: PyProjectOptionException(name, text, *, section_name=None, detail=None)
 
     The exception raised to describe an error with a particular option (i.e.
     key/value) in a particular section of a :file:`pyproject.toml` file.
@@ -777,7 +777,7 @@ build systems.
 :py:exc:`~sipbuild.PyProjectUndefinedOptionException`
 -----------------------------------------------------
 
-.. py:exception:: PyProjectUndefinedOptionException(name, \*, section_name=None)
+.. py:exception:: PyProjectUndefinedOptionException(name, *, section_name=None)
 
     The exception raised to when a particular option (i.e.  key/value) in a
     particular section of a :file:`pyproject.toml` file has not been defined.
@@ -790,7 +790,7 @@ build systems.
 :py:class:`~sipbuild.SetuptoolsBuilder`
 ---------------------------------------
 
-.. py:class:: SetuptoolsBuilder(project, \*\*kwargs)
+.. py:class:: SetuptoolsBuilder(project, **kwargs)
 
     A :py:class:`~sipbuild.Builder` that uses the Python :py:mod:`setuptools`
     package to perform builds.  This is the default builder for Python v3.10
@@ -807,7 +807,7 @@ build systems.
 :py:exc:`~sipbuild.UserException`
 ---------------------------------
 
-.. py:exception:: UserException(text, \*, detail=None)
+.. py:exception:: UserException(text, *, detail=None)
 
     The exception raised to describe an anticipated error to the user.
 

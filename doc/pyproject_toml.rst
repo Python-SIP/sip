@@ -111,7 +111,9 @@ list options may contain environment markers as defined in `PEP 508
 
 **builder-factory**
     The value is a callable that will return an object that is a sub-class
-    of :class:`~sipbuild.AbstractBuilder`.  The default builder factory is
+    of :class:`~sipbuild.AbstractBuilder`.  For Python v3.10 and later the
+    default builder factory is :class:`~sipbuild.SetuptoolsBuilder`.  For
+    earlier versions of Python the default builder factory is
     :class:`~sipbuild.DistutilsBuilder`.
 
 **console-scripts**
