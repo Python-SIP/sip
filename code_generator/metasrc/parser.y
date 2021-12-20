@@ -1066,13 +1066,9 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             {
                 /*
                  * Note that we only use the template arguments to confirm that
-                 * any names in the base type are to be substituted when the
-                 * template is instantiated.  Any other template arguments are
-                 * quietly ignored.  This behaviour isn't really necessary (and
-                 * cannot be replicated for class templates).  It might be more
-                 * consistent not to do this, which would mean that the
-                 * template arguments could be dropped and a new
-                 * %MappedTypeTemplate introduced.
+                 * any simple (ie. unscoped) names in the base type are to be
+                 * substituted when the template is instantiated.  Anything
+                 * else is quietly ignored.
                  */
 
                 static const char *annos[] = {
