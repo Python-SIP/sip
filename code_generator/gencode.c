@@ -304,6 +304,7 @@ static const char *userStateSuffix(argDef *ad);
 static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void normaliseArg(argDef *ad);
 static void restoreArg(argDef *ad);
+static int stringFind(stringList *sl, const char *s);
 
 
 /*
@@ -15135,4 +15136,115 @@ static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp)
 "    return false;\n"
 "}\n"
         );
+}
+ 
+ 
+/*
+ * Append a string to a list of them.
+ */
+void appendString(stringList **headp, const char *s)
+{
+    stringList *sl;
+
+    /* Create the new entry. */
+    sl = sipMalloc(sizeof (stringList));
+    sl->s = s;
+    sl->next = NULL;
+
+    /* Append it to the list. */
+    while (*headp != NULL)
+        headp = &(*headp)->next;
+
+    *headp = sl;
+}
+
+
+/*
+ * Return TRUE if the given qualifier is excluded.
+ */
+int excludedFeature(stringList *xsl, qualDef *qd)
+{
+    while (xsl != NULL)
+    {
+        if (strcmp(qd->name, xsl->s) == 0)
+            return TRUE;
+
+        xsl = xsl->next;
+    }
+
+    return !qd->default_enabled;
+}
+
+
+/*
+ * Return TRUE if the PyQt5 plugin was specified.
+ */
+int pluginPyQt5(sipSpec *pt)
+{
+    return stringFind(pt->plugins, "PyQt5");
+}
+
+
+/*
+ * Return TRUE if the PyQt6 plugin was specified.
+ */
+int pluginPyQt6(sipSpec *pt)
+{
+    return stringFind(pt->plugins, "PyQt6");
+}
+
+
+/*
+ * Return TRUE if a list of strings contains a given entry.
+ */
+static int stringFind(stringList *sl, const char *s)
+{
+    while (sl != NULL)
+    {
+        if (strcmp(sl->s, s) == 0)
+            return TRUE;
+
+        sl = sl->next;
+    }
+
+    return FALSE;
+}
+
+
+/*
+ * Remove any explicit global scope.
+ */
+scopedNameDef *removeGlobalScope(scopedNameDef *snd)
+{
+    return ((snd != NULL && snd->name[0] == '\0') ? snd->next : snd);
+}
+
+
+/*
+ * Return a pointer to the tail part of a scoped name.
+ */
+char *scopedNameTail(scopedNameDef *snd)
+{
+    if (snd == NULL)
+        return NULL;
+
+    while (snd->next != NULL)
+        snd = snd->next;
+
+    return snd->name;
+}
+
+
+/*
+ * Return TRUE if the given qualifier is needed.
+ */
+int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
+{
+    stringList *sl;
+
+    for (sl = needed_qualifiers; sl != NULL; sl = sl->next)
+        if (strcmp(qd->name, sl->s) == 0)
+            return qd->default_enabled;
+
+    return FALSE;
 }

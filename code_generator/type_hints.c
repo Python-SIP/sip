@@ -85,6 +85,7 @@ static void strip_trailing(char *start, char **endp);
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes);
 static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
         int out);
+static int isPyKeyword(const char *word);
 
 
 /*
@@ -1883,4 +1884,30 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 static void maybeAnyObject(const char *hint, int pep484, FILE *fp)
 {
     fprintf(fp, "%s", (strcmp(hint, "Any") != 0 ? hint : anyObject(pep484)));
+}
+
+
+/*
+ * Check if a word is a Python keyword (or has been at any time).
+ */
+static int isPyKeyword(const char *word)
+{
+    static const char *kwds[] = {
+        "False", "None", "True", "and", "as", "assert", "break", "class",
+        "continue", "def", "del", "elif", "else", "except", "finally", "for",
+        "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
+        "not", "or", "pass", "raise", "return", "try", "while", "with'"
+        "yield",
+        /* Historical keywords. */
+        "exec", "print",
+        NULL
+    };
+
+    const char **kwd;
+
+    for (kwd = kwds; *kwd != NULL; ++kwd)
+        if (strcmp(*kwd, word) == 0)
+            return TRUE;
+
+    return FALSE;
 }

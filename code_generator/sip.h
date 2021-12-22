@@ -1412,7 +1412,9 @@ scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 scopedNameDef *text2scopePart(char *text);
 void freeScopedName(scopedNameDef *);
+char *scopedNameToString(scopedNameDef *name);
 void appendToClassList(classList **,classDef *);
+void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
@@ -1446,7 +1448,6 @@ nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 memberDef *findMethod(classDef *cd, const char *name);
 typeHintDef *newTypeHint(char *raw_hint);
-int isPyKeyword(const char *word);
 char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
@@ -1463,6 +1464,7 @@ void normaliseArgs(signatureDef *sd);
 void restoreArgs(signatureDef *sd);
 void initialiseLexer(void);
 int usedInCode(codeBlockList *cbl, const char *str);
+int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
 
 
 /* These are only here because bison publically references them. */
