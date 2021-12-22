@@ -1109,21 +1109,11 @@ static void setHierarchy(sipSpec *pt, classDef *base, classDef *cd,
 
                 /* See if the class is already in the hierarchy. */
                 for (tailp = &cd->mro->next; *tailp != NULL; tailp = &(*tailp)->next)
-                {
                     if ((*tailp)->cd == mro->cd)
-                    {
-                        setInADiamond(*tailp);
                         break;
-                    }
-                }
 
                 if (*tailp == NULL)
-                {
                     *tailp = newMRO(mro->cd);
-
-                    if (inADiamond(mro))
-                        setInADiamond(*tailp);
-                }
 
                 if (generatingCodeForModule(pt, cd->iff->module))
                     mro->cd->iff->needed = TRUE;

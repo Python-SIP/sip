@@ -5833,15 +5833,10 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         else if (md->slot != no_slot)
             generateSlot(mod, cd, NULL, md, fp);
 
-    /*
-     * The cast function.  Note that we used to try and work out if the cast
-     * function was really needed (eg. only for multiple inheritance) but there
-     * are subtle cases where, even for single inheritance, it is needed.  We
-     * take the conservative approach and generate it for all derived classes.
-     */
+    /* The cast function. */
     if (cd->supers != NULL)
     {
-        mroDef *mro;
+        classList *super;
 
         prcode(fp,
 "\n"
@@ -5858,30 +5853,45 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         prcode(fp, ";\n"
 "\n"
-            );
+"    if (targetType == sipType_%C)\n"
+"        return sipCppV;\n"
+"\n"
+            , classFQCName(cd));
 
-        /* Skip the the class itself. */
-        for (mro = cd->mro->next; mro != NULL; mro = mro->next)
+        for (super = cd->supers; super != NULL; super = super->next)
         {
-            /*
-             * If the class appears more than once in the hierarchy then we
-             * choose to ignore it (rather than pick a copy to use).  Note that
-             * we should support the concept of virtual inheritance if it used
-             * to ensure there is only one copy of the class in the hierarchy.
-             */
-            if (inADiamond(mro))
-                continue;
-
-            prcode(fp,
+            if (super->cd->supers != NULL)
+            {
+                /*
+                 * Delegate to the super-class's cast function.  This will
+                 * handle virtual and non-virtual diamonds.
+                 */
+                prcode(fp,
+"    sipCppV = ((const sipClassTypeDef *)sipType_%C)->ctd_cast(static_cast<%U *>(sipCpp), targetType);\n"
+"    if (sipCppV)\n"
+"        return sipCppV;\n"
+"\n"
+                    , classFQCName(super->cd)
+                    , super->cd);
+            }
+            else
+            {
+                /*
+                 * The super-class is a base class and so doesn't have a cast
+                 * function.  It also means that a simple check will do
+                 * instead.
+                 */
+                prcode(fp,
 "    if (targetType == sipType_%C)\n"
 "        return static_cast<%U *>(sipCpp);\n"
 "\n"
-                , classFQCName(mro->cd)
-                , mro->cd);
+                    , classFQCName(super->cd)
+                    , super->cd);
+            }
         }
 
         prcode(fp,
-"    return sipCppV;\n"
+"    return SIP_NULLPTR;\n"
 "}\n"
             );
     }
