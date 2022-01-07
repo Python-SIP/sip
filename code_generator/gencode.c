@@ -11131,8 +11131,8 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                  */
                 if (abiVersion >= ABI_13_0)
                     prcode(fp,
-"    bool sipSelfWasArg = (!PyObject_TypeCheck(sipSelf, (PyTypeObject *)&sipSimpleWrapper_Type) || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
-                        );
+"    bool sipSelfWasArg = (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sipType_%L)) || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
+                        , cd->iff);
                 else
                     prcode(fp,
 "    bool sipSelfWasArg = (!sipSelf || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n"
