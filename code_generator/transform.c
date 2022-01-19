@@ -774,7 +774,6 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
         memberDef *md, **mdhead;
         overDef **odhead;
         moduleDef *mod;
-        enumDef *ed;
 
         if (od->common != gmd)
         {
@@ -793,20 +792,12 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         mdhead = NULL;
         second = FALSE;
-        ed = NULL;
 
         if (arg0->atype == class_type)
         {
             mdhead = &arg0->u.cd->members;
             odhead = &arg0->u.cd->overs;
             mod = arg0->u.cd->iff->module;
-        }
-        else if (arg0->atype == enum_type)
-        {
-            mdhead = &arg0->u.ed->slots;
-            odhead = &arg0->u.ed->overs;
-            mod = arg0->u.ed->module;
-            ed = arg0->u.ed;
         }
         else if (arg1->atype == class_type)
         {
@@ -815,46 +806,22 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             mod = arg1->u.cd->iff->module;
             second = TRUE;
         }
-        else if (arg1->atype == enum_type)
-        {
-            mdhead = &arg1->u.ed->slots;
-            odhead = &arg1->u.ed->overs;
-            mod = arg1->u.ed->module;
-            ed = arg1->u.ed;
-            second = TRUE;
-        }
 
         if (mdhead == NULL)
         {
             fatalAppend("%s:%d: One of the arguments of ", od->sloc.name,
                     od->sloc.linenr);
             prOverloadName(NULL, od);
-            fatal(" must be a class or enum\n");
+            fatal(" must be a class\n");
         }
 
-        /*
-         * For rich comparisons the first argument must be a class or an enum.
-         * For cross-module slots then it may only be a class.  (This latter
-         * limitation is artificial, but is unlikely to be a problem in
-         * practice.)
-         */
-        if (isRichCompareSlot(gmd))
+        /* For rich comparisons the first argument must be a class. */
+        if (isRichCompareSlot(gmd) && second)
         {
-            if (second)
-            {
-                fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
-                        od->sloc.linenr);
-                prOverloadName(NULL, od);
-                fatal(" must be a class or enum\n");
-            }
-
-            if (mod != gmd->module && arg0->atype == enum_type)
-            {
-                fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
-                        od->sloc.linenr);
-                prOverloadName(NULL, od);
-                fatal(" must be a class\n");
-            }
+            fatalAppend("%s:%d: Argument 1 of ", od->sloc.name,
+                    od->sloc.linenr);
+            prOverloadName(NULL, od);
+            fatal(" must be a class\n");
         }
 
         if (mod != gmd->module)
@@ -909,12 +876,6 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
         /* Remove from the list. */
         *odp = od->next;
-
-        if (ed != NULL)
-        {
-            enumIfaceFileIsUsed(ed, mod);
-            setIsUsedName(ed->pyname);
-        }
 
         /* See if there is already a member or create a new one. */
         for (md = *mdhead; md != NULL; md = md->next)

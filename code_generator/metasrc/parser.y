@@ -5007,8 +5007,6 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
     ed->emtd = mt_scope;
     ed->module = mod;
     ed->members = NULL;
-    ed->slots = NULL;
-    ed->overs = NULL;
     ed->next = pt -> enums;
 
     pt->enums = ed;
@@ -5395,11 +5393,6 @@ static void instantiateTemplateEnums(sipSpec *pt, classTmplDef *tcd,
                 emd->next = ed->members;
                 ed->members = emd;
             }
-
-            ed->slots = instantiateTemplateMethods(ted->slots, mod);
-            ed->overs = instantiateTemplateOverloads(pt, ted->overs,
-                    ted->slots, ed->slots, tcd, td, cd, used, type_names,
-                    type_values);
 
             ed->next = pt->enums;
             pt->enums = ed;

@@ -1185,8 +1185,6 @@ typedef struct _enumDef {
     struct _mappedTypeDef *emtd;        /* The enclosing mapped type, if any. */
     moduleDef *module;                  /* The owning module. */
     enumMemberDef *members;             /* The list of members. */
-    struct _memberDef *slots;           /* The list of slots. */
-    struct _overDef *overs;             /* The list of slot overloads. */
     struct _enumDef *next;              /* Next in the list. */
 } enumDef;
 
