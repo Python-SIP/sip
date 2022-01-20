@@ -47,7 +47,9 @@ class Builder(AbstractBuilder):
 
         self._generate_bindings()
         self._generate_scripts()
-        self.build_project(self.project.target_dir)
+
+        if self.project.compile:
+            self.build_project(self.project.target_dir)
 
     @abstractmethod
     def build_executable(self, buildable, *, fatal=True):

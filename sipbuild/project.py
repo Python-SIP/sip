@@ -138,6 +138,9 @@ class Project(AbstractProject, Configurable):
                 tools=['build', 'install']),
         Option('api_dir', help="generate a QScintilla .api file in DIR",
                 metavar="DIR"),
+        Option('compile', option_type=bool, inverted=True,
+                help="disable the compilation of the generated code",
+                tools=['build']),
         Option('version_info', option_type=bool, inverted=True,
                 help="disable any reference to the SIP version number in "
                         "generated code",

@@ -116,6 +116,11 @@ list options may contain environment markers as defined in `PEP 508
     earlier versions of Python the default builder factory is
     :class:`~sipbuild.DistutilsBuilder`.
 
+**compile**
+    The boolean value specifies if the generated code is to be compiled.
+    By default it is compiled.  There is also a corresponding command line
+    option.
+
 **console-scripts**
     The value is a list of entry points that defines one or more console
     scripts to be installed as part of the project.

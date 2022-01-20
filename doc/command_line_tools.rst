@@ -83,6 +83,10 @@ The full set of command line options is:
 
     A build with debugging symbols is performed.
 
+.. option:: --no-compile
+
+    The compilation of the generated code is disabled.
+
 .. option:: --no-docstrings
 
     The generation of docstrings that describe the signature of all functions,
