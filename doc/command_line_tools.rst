@@ -88,6 +88,10 @@ The full set of command line options is:
     The generation of docstrings that describe the signature of all functions,
     methods and constructors is disabled.
 
+.. option:: --no-version-info
+
+    No reference the SIP version number is included in any generated code.
+
 .. option:: --pep484-pyi
 
     The generation of Python type hints stub files is enabled.  These files

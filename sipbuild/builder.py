@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -256,8 +256,10 @@ class Builder(AbstractBuilder):
             copy_sip_h(abi_major_version, project.build_dir,
                     project.sip_module)
 
-        set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major_version),
-                int(abi_minor_version), project.sip_module, UserException,
+        set_globals(SIP_VERSION,
+                SIP_VERSION_STR if project.version_info else None,
+                int(abi_major_version), int(abi_minor_version),
+                project.sip_module, UserException,
                 [d.replace('\\', '/') for d in sip_include_dirs])
 
         # Generate the code for each set of bindings.

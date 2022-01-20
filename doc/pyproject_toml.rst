@@ -237,6 +237,11 @@ list options may contain environment markers as defined in `PEP 508
     messages.  By default verbose progress messages are not displayed.  There
     is also a corresponding command line option.
 
+**version-info**
+    The boolean value determines if the generated code includes a reference to
+    the SIP version number.  By default a reference is included.  There is also
+    a corresponding command line option.
+
 **wheel-includes**
     The values is a list of files and directories, specified as *glob* patterns
     and relative to the project directory, that should be included in a wheel.

@@ -1,7 +1,7 @@
 /*
  * The transitional Python bindings for the C parts of the sip code generator.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -105,7 +105,7 @@ static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
     unsigned abi_major, abi_minor;
 
-    if (!PyArg_ParseTuple(args, "IsIIzOO&",
+    if (!PyArg_ParseTuple(args, "IzIIzOO&",
             &sipVersion,
             &sipVersionStr,
             &abi_major,
