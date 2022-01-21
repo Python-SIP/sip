@@ -256,7 +256,7 @@ class Builder(AbstractBuilder):
 
             # Generate the sip.h file for the shared sip module.
             copy_sip_h(abi_major_version, project.build_dir,
-                    project.sip_module)
+                    project.sip_module, version_info=project.version_info)
 
         set_globals(SIP_VERSION,
                 SIP_VERSION_STR if project.version_info else None,

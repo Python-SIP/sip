@@ -1,4 +1,4 @@
-v6.5.1 20th January 2022
+v6.5.1 21st January 2022
   - Added the --no-compile command line option to sip-build.
   - Added the --no-version-info command line option to sip-build.
   - The latest version of ABI v13 is v13.2.1.
