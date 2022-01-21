@@ -200,6 +200,7 @@ class BuildableBindings(BuildableModule):
         bindings = self.bindings
 
         with open(config_path, 'w') as cf:
+            sip_version_str = SIP_VERSION_STR if self.project.version_info else ''
             tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
             disabled = ', '.join(
                     ['"{}"'.format(f) for f in bindings.disabled_features])
@@ -210,4 +211,4 @@ sip-version = "{}"
 sip-abi-version = "{}"
 module-tags = [{}]
 module-disabled-features = [{}]
-'''.format(SIP_VERSION_STR, self.project.abi_version, tags, disabled))
+'''.format(sip_version_str, self.project.abi_version, tags, disabled))
