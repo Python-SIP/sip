@@ -793,13 +793,6 @@ typedef struct _qualDef {
 } qualDef;
 
 
-/* A platform. */
-typedef struct _platformDef {
-    struct _qualDef *qualifier;         /* The platform qualifier. */
-    struct _platformDef *next;          /* Next in the list. */
-} platformDef;
-
-
 /* A scoped name. */
 typedef struct _scopedNameDef {
     char *name;                         /* The name. */
