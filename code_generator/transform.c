@@ -4322,6 +4322,10 @@ nameDef *cacheName(sipSpec *pt, const char *name)
         if (memcmp(nd->text, name, len) == 0)
             return nd;
 
+    /* Keep names of the same length in alphabetical order. */
+    while (*ndp != NULL && (*ndp)->len == len && strcmp(name, (*ndp)->text) > 0)
+        ndp = &(*ndp)->next;
+
     /* Create a new one. */
     nd = sipMalloc(sizeof (nameDef));
 
