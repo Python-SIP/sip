@@ -1423,7 +1423,7 @@ int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isInplaceNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
+mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name);
 void appendString(stringList **headp, const char *s);
 void templateExpansions(signatureDef *patt, signatureDef *src,
         signatureDef *declared_names, scopedNameDef **names,

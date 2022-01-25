@@ -1086,7 +1086,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 if ($3.atype != template_type)
                     yyerror("%MappedType template must map a template type");
 
-                $3.u.td->fqname  = fullyQualifiedName($3.u.td->fqname);
+                $3.u.td->fqname = fullyQualifiedName($3.u.td->fqname);
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
@@ -1099,7 +1099,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 mtt = sipMalloc(sizeof (mappedTypeTmplDef));
 
                 mtt->sig = $1;
-                mtt->mt = allocMappedType(currentSpec, &$3);
+                mtt->mt = allocMappedType(currentSpec, &$3, FALSE);
                 mappedTypeAnnos(currentSpec, mtt->mt, &$4);
                 mtt->next = currentSpec->mappedtypetemplates;
 
@@ -4916,7 +4916,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     iff->module = currentModule;
 
     /* Create a new mapped type. */
-    mtd = allocMappedType(pt, ad);
+    mtd = allocMappedType(pt, ad, TRUE);
 
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));

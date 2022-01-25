@@ -3066,7 +3066,7 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
     templateExpansions(&mtt->mt->type.u.td->types, &type->u.td->types,
             &mtt->sig, &type_names, &type_values);
 
-    mtd = allocMappedType(pt, type);
+    mtd = allocMappedType(pt, type, TRUE);
 
     if (generatingCodeForModule(pt, mod))
         setIsUsedName(mtd->cname);
@@ -3170,7 +3170,7 @@ void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
 /*
  * Allocate, initialise and return a mapped type structure.
  */
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
+mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name)
 {
     mappedTypeDef *mtd;
 
@@ -3180,7 +3180,8 @@ mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
     mtd->type.argflags = 0;
     mtd->type.nrderefs = 0;
 
-    mtd->cname = cacheName(pt, type2string(&mtd->type));
+    if (use_name)
+        mtd->cname = cacheName(pt, type2string(&mtd->type));
 
     /* Keep track of the original definition as it gets copied. */
     mtd->real = mtd;

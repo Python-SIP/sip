@@ -3497,7 +3497,7 @@ yyreduce:
                 if ((yyvsp[(3) - (4)].memArg).atype != template_type)
                     yyerror("%MappedType template must map a template type");
 
-                (yyvsp[(3) - (4)].memArg).u.td->fqname  = fullyQualifiedName((yyvsp[(3) - (4)].memArg).u.td->fqname);
+                (yyvsp[(3) - (4)].memArg).u.td->fqname = fullyQualifiedName((yyvsp[(3) - (4)].memArg).u.td->fqname);
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
@@ -3510,7 +3510,7 @@ yyreduce:
                 mtt = sipMalloc(sizeof (mappedTypeTmplDef));
 
                 mtt->sig = (yyvsp[(1) - (4)].signature);
-                mtt->mt = allocMappedType(currentSpec, &(yyvsp[(3) - (4)].memArg));
+                mtt->mt = allocMappedType(currentSpec, &(yyvsp[(3) - (4)].memArg), FALSE);
                 mappedTypeAnnos(currentSpec, mtt->mt, &(yyvsp[(4) - (4)].optflags));
                 mtt->next = currentSpec->mappedtypetemplates;
 
@@ -8596,7 +8596,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     iff->module = currentModule;
 
     /* Create a new mapped type. */
-    mtd = allocMappedType(pt, ad);
+    mtd = allocMappedType(pt, ad, TRUE);
 
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
