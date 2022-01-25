@@ -6762,6 +6762,9 @@ static PyObject *createUnscopedEnum(sipExportedModuleDef *client,
     if (eto == NULL)
         return NULL;
 
+    if (etd->etd_pyslots != NULL)
+        fix_slots((PyTypeObject *)eto, etd->etd_pyslots);
+
     /*
      * If the enum has a scope then the default __qualname__ will be incorrect.
      */
@@ -9548,11 +9551,10 @@ sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
  */
 static void *findSlot(PyObject *self, sipPySlotType st)
 {
-    void *slot = NULL;
+    void *slot;
     PyTypeObject *py_type = Py_TYPE(self);
 
     /* See if it is a wrapper. */
-    /* TODO: will this always be TRUE? */
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
     {
         const sipClassTypeDef *ctd;
@@ -9560,6 +9562,19 @@ static void *findSlot(PyObject *self, sipPySlotType st)
         ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->wt_td;
 
         slot = findSlotInClass(ctd, st);
+    }
+    else
+    {
+        sipEnumTypeDef *etd;
+
+        /* If it is not a wrapper then it must be an enum. */
+        assert(PyObject_TypeCheck((PyObject *)py_type, &sipEnumType_Type));
+
+        etd = (sipEnumTypeDef *)((sipEnumTypeObject *)(py_type))->type;
+
+        assert(etd->etd_pyslots != NULL);
+
+        slot = findSlotInSlotList(etd->etd_pyslots, st);
     }
 
     return slot;
@@ -12149,6 +12164,7 @@ static void raiseNoWChar()
 static PyObject *sipEnumType_alloc(PyTypeObject *self, Py_ssize_t nitems)
 {
     sipEnumTypeObject *py_type;
+    sipPySlotDef *psd;
 
     assert(currentType != NULL);
     assert(sipTypeIsEnum(currentType));
@@ -12163,6 +12179,13 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, Py_ssize_t nitems)
      */
     py_type->type = currentType;
     currentType->td_py_type = (PyTypeObject *)py_type;
+
+    /*
+     * Initialise any slots.  This must be done here, after the type is
+     * allocated but before PyType_Ready() is called.
+     */
+    if ((psd = ((sipEnumTypeDef *)currentType)->etd_pyslots) != NULL)
+        addTypeSlots(&py_type->super, psd);
 
     return (PyObject *)py_type;
 }

@@ -212,8 +212,8 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
 static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
         signatureDef *sd, FILE *fp, int rgil);
 static void generateThrowSpecifier(throwArgs *, FILE *);
-static void generateSlot(moduleDef *mod, classDef *cd, memberDef *md,
-        FILE *fp);
+static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+        memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad, FILE *fp);
 static void generateCallDefaultCtor(ctorDef *ct, FILE *fp);
 static void generateVoidPtrCast(argDef *ad, FILE *fp);
@@ -1235,7 +1235,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             {
                 if (od->common == md)
                 {
-                    generateSlot(mod, NULL, md, fp);
+                    generateSlot(mod, NULL, NULL, md, fp);
                     slot_extenders = TRUE;
                     break;
                 }
@@ -1267,7 +1267,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
         for (md = cd->members; md != NULL; md = md->next)
         {
-            generateSlot(mod, cd, md, fp);
+            generateSlot(mod, cd, NULL, md, fp);
             slot_extenders = TRUE;
         }
     }
@@ -1392,6 +1392,42 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "};\n"
             );
 
+    /* Generate any enum slot tables. */
+    for (ed = pt->enums; ed != NULL; ed = ed->next)
+    {
+        memberDef *slot;
+
+        if (ed->module != mod || ed->fqcname == NULL)
+            continue;
+
+        if (ed->slots == NULL)
+            continue;
+
+        for (slot = ed->slots; slot != NULL; slot = slot->next)
+            generateSlot(mod, NULL, ed, slot, fp);
+
+        prcode(fp,
+"\n"
+"static sipPySlotDef slots_%C[] = {\n"
+            , ed->fqcname);
+
+        for (slot = ed->slots; slot != NULL; slot = slot->next)
+        {
+            const char *stype;
+
+            if ((stype = slotName(slot->slot)) != NULL)
+                prcode(fp,
+"    {(void *)slot_%C_%s, %s},\n"
+                    , ed->fqcname, slot->pyname->text, stype);
+        }
+
+        prcode(fp,
+"    {SIP_NULLPTR, (sipPySlotType)0}\n"
+"};\n"
+"\n"
+            );
+    }
+
     /*
      * Generate the enum type structures.  Note that we go through the sorted
      * table of needed types rather than the unsorted list of all enums.
@@ -1452,7 +1488,12 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    {{-1, SIP_NULLPTR, SIP_NULLPTR, SIP_TYPE_%s, %n, SIP_NULLPTR, 0}, %n, %d", (isScopedEnum(ed) ? "SCOPED_ENUM" : "ENUM"), ed->cname, ed->pyname, type_nr);
         }
 
-        prcode(fp, ", SIP_NULLPTR},\n"
+        if (ed->slots != NULL)
+            prcode(fp, ", slots_%C", ed->fqcname);
+        else
+            prcode(fp, ", SIP_NULLPTR");
+
+        prcode(fp, "},\n"
             );
     }
 
@@ -5471,7 +5512,8 @@ int isRichCompareSlot(memberDef *md)
 /*
  * Generate a Python slot handler for either a class, an enum or an extender.
  */
-static void generateSlot(moduleDef *mod, classDef *cd, memberDef *md, FILE *fp)
+static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+        memberDef *md, FILE *fp)
 {
     char *arg_str, *decl_arg_str, *prefix, *ret_type, *ret_value;
     int has_args;
@@ -5479,7 +5521,14 @@ static void generateSlot(moduleDef *mod, classDef *cd, memberDef *md, FILE *fp)
     scopedNameDef *fqcname;
     nameDef *pyname;
 
-    if (cd != NULL)
+    if (ed != NULL)
+    {
+        prefix = "Type";
+        pyname = ed->pyname;
+        fqcname = ed->fqcname;
+        overs = ed->overs;
+    }
+    else if (cd != NULL)
     {
         prefix = "Type";
         pyname = cd->pyname;
@@ -5654,7 +5703,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, memberDef *md, FILE *fp)
 
         for (od = overs; od != NULL; od = od->next)
             if (od->common == md)
-                generateFunctionBody(od, cd, NULL, cd, !dontDerefSelf(od), mod, fp);
+                generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
 
         if (has_args)
         {
@@ -5783,7 +5832,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (cd->iff->type == namespace_iface)
             generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
         else if (md->slot != no_slot)
-            generateSlot(mod, cd, md, fp);
+            generateSlot(mod, cd, NULL, md, fp);
 
     /* The cast function. */
     if (cd->supers != NULL)

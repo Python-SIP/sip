@@ -6053,6 +6053,9 @@ static PyObject *createEnumObject(sipExportedModuleDef *client,
 
     Py_DECREF(etd_cap);
 
+    if (etd->etd_pyslots != NULL)
+        addTypeSlots((PyHeapTypeObject *)enum_obj, etd->etd_pyslots);
+
     return enum_obj;
 
     /* Unwind on errors. */

@@ -117,13 +117,16 @@ typedef unsigned int uint;
 #endif
 
 
-/* These are deprecated. */
+/* Remove in v5.1. */
 #define SIP_SSIZE_T             Py_ssize_t
 #define SIP_SSIZE_T_FORMAT      "%zd"
 #define SIP_USE_PYCAPSULE
 #define SIP_MODULE_RETURN(v)    return (v)
 
-/* These are deprecated. */
+/*
+ * Remove in v5.1.  These are undocumented and can be removed when PyQt5 drops
+ * support for Python v2.
+ */
 #define SIPLong_Check       PyLong_Check
 #define SIPLong_FromLong    PyLong_FromLong
 #define SIPLong_AsLong      PyLong_AsLong
@@ -359,6 +362,7 @@ struct _sipWrapper {
 
 
 /*
+ * Removed in v5.1.
  * The meta-type of an enum type.  (This is exposed only to support the
  * deprecated sipConvertFromNamedEnum() macro.)
  */
@@ -927,11 +931,8 @@ typedef struct _sipEnumTypeDef {
     /* The scoping type, -1 if it is defined at the module level. */
     int etd_scope;
 
-    /*
-     * This may be re-used as it was never populated by versions of SIP that
-     * support this version of the ABI.
-     */
-    void *etd_unused;
+    /* The Python slots. */
+    struct _sipPySlotDef *etd_pyslots;
 } sipEnumTypeDef;
 
 
@@ -948,6 +949,7 @@ typedef struct _sipExternalTypeDef {
 
 
 /*
+ * Remove in v5.1.
  * The information describing a mapped class.  This (and anything that uses it)
  * is deprecated.
  */
@@ -1319,6 +1321,7 @@ typedef struct _sipTypeInstanceDef {
 
 
 /*
+ * Remove in v5.1.
  * Define a mapping between a wrapped type identified by a string and the
  * corresponding Python type.
  */
@@ -1332,6 +1335,7 @@ typedef struct _sipStringTypeClassMap {
 
 
 /*
+ * Remove in v5.1.
  * Define a mapping between a wrapped type identified by an integer and the
  * corresponding Python type.
  */
@@ -1772,7 +1776,7 @@ typedef struct _sipQtAPI {
 
 
 /*
- * These are deprecated.
+ * Remove in v5.1.
  */
 #define sipClassName(w)     PyString_FromString(Py_TYPE(w)->tp_name)
 #define sipIsExactWrappedType(wt)   (sipTypeAsPyTypeObject((wt)->wt_td) == (PyTypeObject *)(wt))

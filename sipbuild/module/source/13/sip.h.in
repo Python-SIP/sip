@@ -866,11 +866,8 @@ typedef struct _sipEnumTypeDef {
     /* The number of members. */
     int etd_nr_members;
 
-    /*
-     * This may be re-used as it was never populated by versions of SIP that
-     * support this version of the ABI.
-     */
-    void *etd_unused;
+    /* The Python slots. */
+    struct _sipPySlotDef *etd_pyslots;
 } sipEnumTypeDef;
 
 
