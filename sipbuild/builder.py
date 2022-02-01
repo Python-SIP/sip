@@ -261,8 +261,7 @@ class Builder(AbstractBuilder):
         set_globals(SIP_VERSION,
                 SIP_VERSION_STR if project.version_info else None,
                 int(abi_major_version), int(abi_minor_version),
-                project.sip_module, UserException,
-                [d.replace('\\', '/') for d in sip_include_dirs])
+                project.sip_module, UserException)
 
         # Generate the code for each set of bindings.
         api_files = []
@@ -271,8 +270,12 @@ class Builder(AbstractBuilder):
             project.progress(
                     "Generating the {0} bindings".format(bindings.name))
 
-            # Generate the source code.
+            # Generate the source code.  We would prefer to pass the include
+            # directories as an argument to generate but this is a fixed public
+            # interface.
+            bindings._sip_include_dirs = sip_include_dirs
             buildable = bindings.generate()
+            del bindings._sip_include_dirs
 
             if not bindings.internal:
                 api_files.append(

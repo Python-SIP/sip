@@ -1,4 +1,4 @@
 include ChangeLog LICENSE* NEWS
-include code_generator/*.h code_generator/metasrc/*
+include code_generator/*.h
 graft doc
 graft examples

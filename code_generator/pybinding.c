@@ -37,7 +37,6 @@ unsigned sipVersion;
 const char *sipVersionStr;
 unsigned abiVersion;
 char *sipName;
-stringList *includeDirList;
 
 /* Support for fatal error handling. */
 #define NO_EXCEPTION        0           /* No exception has been set. */
@@ -51,7 +50,8 @@ static void raise_exception(int action);
 
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
-static PyObject *py_parse(PyObject *self, PyObject *args);
+static PyObject *py_py2c(PyObject *self, PyObject *args);
+static PyObject *py_transform(PyObject *self, PyObject *args);
 static PyObject *py_generateCode(PyObject *self, PyObject *args);
 static PyObject *py_generateExtracts(PyObject *self, PyObject *args);
 static PyObject *py_generateAPI(PyObject *self, PyObject *args);
@@ -73,7 +73,8 @@ PyMODINIT_FUNC PyInit_code_generator(void)
 {
     static PyMethodDef methods[] = {
         {"set_globals", py_set_globals, METH_VARARGS, NULL},
-        {"parse", py_parse, METH_VARARGS, NULL},
+        {"py2c", py_py2c, METH_VARARGS, NULL},
+        {"transform", py_transform, METH_VARARGS, NULL},
         {"generateCode", py_generateCode, METH_VARARGS, NULL},
         {"generateExtracts", py_generateExtracts, METH_VARARGS, NULL},
         {"generateAPI", py_generateAPI, METH_VARARGS, NULL},
@@ -105,14 +106,13 @@ static PyObject *py_set_globals(PyObject *self, PyObject *args)
 {
     unsigned abi_major, abi_minor;
 
-    if (!PyArg_ParseTuple(args, "IzIIzOO&",
+    if (!PyArg_ParseTuple(args, "IzIIzO",
             &sipVersion,
             &sipVersionStr,
             &abi_major,
             &abi_minor,
             &sipName,
-            &exception_type,
-            stringList_convertor, &includeDirList))
+            &exception_type))
         return NULL;
 
     abiVersion = (abi_major << 8) | abi_minor;
@@ -127,36 +127,19 @@ static PyObject *py_set_globals(PyObject *self, PyObject *args)
 
 
 /*
- * Wrapper around parse().
+ * Wrapper around py2c().
  */
-static PyObject *py_parse(PyObject *self, PyObject *args)
+static PyObject *py_py2c(PyObject *self, PyObject *args)
 {
-    sipSpec *pt;
-    FILE *file;
-    char *filename;
-    stringList *versions, *backstops, *xfeatures, *sip_files;
-    int strict, protHack, action;
+    PyObject *spec;
+    int action;
+    const char *encoding;
+    extern sipSpec *py2c(PyObject *, const char *);
 
-    if (!PyArg_ParseTuple(args, "O&pO&O&O&p",
-            fs_convertor, &filename,
-            &strict,
-            stringList_convertor, &versions,
-            stringList_convertor, &backstops,
-            stringList_convertor, &xfeatures,
-            &protHack))
+    if (!PyArg_ParseTuple(args, "Os",
+            &spec,
+            &encoding))
         return NULL;
-
-    pt = sipMalloc(sizeof (sipSpec));
-
-    if (filename != NULL)
-    {
-        file = NULL;
-    }
-    else
-    {
-        file = stdin;
-        filename = "stdin";
-    }
 
     if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
     {
@@ -164,19 +147,32 @@ static PyObject *py_parse(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    sip_files = NULL;
+    return PyCapsule_New(py2c(spec, encoding), NULL, NULL);
+}
 
-    parse(pt, file, filename, strict, &versions, backstops, &xfeatures,
-            protHack, &sip_files);
+
+/*
+ * Wrapper around transform().
+ */
+static PyObject *py_transform(PyObject *self, PyObject *args)
+{
+    sipSpec *pt;
+    int strict, action;
+
+    if (!PyArg_ParseTuple(args, "O&p",
+            sipSpec_convertor, &pt,
+            &strict))
+        return NULL;
+
+    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
+    {
+        raise_exception(action);
+        return NULL;
+    }
 
     transform(pt, strict);
 
-    return Py_BuildValue("(NsiNNN)", PyCapsule_New(pt, NULL, NULL),
-            pt->module->fullname->text,
-            (isComposite(pt->module) || useLimitedAPI(pt->module)),
-            stringList_convert_from(sip_files),
-            stringList_convert_from(versions),
-            stringList_convert_from(xfeatures));
+    Py_RETURN_NONE;
 }
 
 
@@ -555,60 +551,4 @@ void warning(Warning w, const char *fmt, ...)
         if (ret < 0)
             exception_set();
     }
-}
-
-
-/*
- * Get the configuration of a set of bindings and update the list of tags and
- * disabled features.
- */
-void get_bindings_configuration(const char *sip_file, stringList **tags,
-        stringList **disabled)
-{
-    static PyObject *get_bindings_configuration = NULL;
-
-    PyObject *res;
-
-    /* Get the Python helper. */
-    if (get_bindings_configuration == NULL)
-    {
-        PyObject *mod;
-
-        if ((mod = PyImport_ImportModule("sipbuild.helpers")) == NULL)
-            exception_set();
-
-        get_bindings_configuration = PyObject_GetAttrString(mod,
-                "get_bindings_configuration");
-        Py_DECREF(mod);
-
-        if (get_bindings_configuration == NULL)
-            exception_set();
-    }
-
-    /* Call the helper. */
-    res = PyObject_CallFunction(get_bindings_configuration, "IsN",
-            abiVersion >> 8, sip_file,
-            stringList_convert_from(includeDirList));
-
-    if (res == NULL)
-        exception_set();
-
-    /* The result should be a 2-tuple of lists of strings. */
-    assert(PyTuple_Check(res));
-    assert(PyTuple_Size(res) == 2);
-
-    if (!extend_stringList(tags, PyTuple_GetItem(res, 0), 1))
-    {
-        Py_DECREF(res);
-        exception_set();
-    }
-
-    if (!extend_stringList(disabled, PyTuple_GetItem(res, 1), 1))
-    {
-        Py_DECREF(res);
-        exception_set();
-    }
-
-    /* Tidy up. */
-    Py_DECREF(res);
 }
