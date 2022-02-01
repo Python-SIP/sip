@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -138,6 +138,13 @@ class Project(AbstractProject, Configurable):
                 tools=['build', 'install']),
         Option('api_dir', help="generate a QScintilla .api file in DIR",
                 metavar="DIR"),
+        Option('compile', option_type=bool, inverted=True,
+                help="disable the compilation of the generated code",
+                tools=['build']),
+        Option('version_info', option_type=bool, inverted=True,
+                help="disable any reference to the SIP version number in "
+                        "generated code",
+                tools=['build']),
     )
 
     # The configurable options for multiple bindings.

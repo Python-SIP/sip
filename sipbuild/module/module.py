@@ -66,10 +66,12 @@ def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
         _create_sip_file(sip_rst_fn, abi_major_version, patches)
 
 
-def copy_sip_h(abi_major_version, target_dir, sip_module=''):
+def copy_sip_h(abi_major_version, target_dir, sip_module='',
+        version_info=True):
     """ Copy the sip.h file. """
 
-    patches = _create_patches(sip_module, abi_major_version)
+    patches = _create_patches(sip_module, abi_major_version,
+            version_info=version_info)
     _install_source_file('sip.h', get_module_source_dir(abi_major_version),
             target_dir, patches)
 
@@ -104,7 +106,8 @@ def copy_nonshared_sources(abi_major_version, target_dir):
     return sources
 
 
-def _create_patches(sip_module, abi_major_version, project=''):
+def _create_patches(sip_module, abi_major_version, project='',
+        version_info=True):
     """ Return a dict of the patches. """
 
     sip_module_parts = sip_module.split('.')
@@ -114,6 +117,13 @@ def _create_patches(sip_module, abi_major_version, project=''):
     # We special case this because this should be the only package requiring
     # the support.
     legacy = (sip_module == 'PyQt5.sip')
+
+    if version_info:
+        sip_version = SIP_VERSION
+        sip_version_str = SIP_VERSION_STR
+    else:
+        sip_version = 0
+        sip_version_str = ''
 
     return {
         # The public patches are those that might be needed in setup.cfg or any
@@ -130,8 +140,8 @@ def _create_patches(sip_module, abi_major_version, project=''):
         '@_SIP_MODULE_SHARED@':         '1' if sip_module else '0',
         '@_SIP_MODULE_ENTRY@':          'PyInit_' + sip_module_name,
         '@_SIP_MODULE_LEGACY@':         "1" if legacy else "0",
-        '@_SIP_VERSION@':               hex(SIP_VERSION),
-        '@_SIP_VERSION_STR@':           SIP_VERSION_STR
+        '@_SIP_VERSION@':               hex(sip_version),
+        '@_SIP_VERSION_STR@':           sip_version_str
     }
 
 

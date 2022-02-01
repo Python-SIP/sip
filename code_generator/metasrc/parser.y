@@ -136,12 +136,6 @@ static void templateSignature(signatureDef *sd, KwArgs kwargs, int result,
         scopedNameDef *type_names, scopedNameDef *type_values);
 static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
         classDef *ncd, scopedNameDef *type_names, scopedNameDef *type_values);
-static int search_back(const char *end, const char *start, const char *target);
-static char *type2string(argDef *ad);
-static char *scopedNameToString(scopedNameDef *name);
-static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname);
-static int sameName(scopedNameDef *snd, const char *sname);
-static int stringFind(stringList *sl, const char *s);
 static void setModuleName(sipSpec *pt, moduleDef *mod, const char *fullname);
 static int foundInScope(scopedNameDef *fq_name, scopedNameDef *rel_name);
 static void defineClass(scopedNameDef *snd, classList *supers, optFlags *of);
@@ -183,7 +177,6 @@ static moduleDef *configureModule(sipSpec *pt, moduleDef *module,
 static void addAutoPyName(moduleDef *mod, const char *remove_leading);
 static KwArgs convertKwArgs(const char *kwargs);
 static void checkAnnos(optFlags *annos, const char *valid[]);
-static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 static void handleKeepReference(optFlags *optflgs, argDef *ad, moduleDef *mod);
 static void mappedTypeAnnos(sipSpec *pt, mappedTypeDef *mtd,
         optFlags *optflgs);
@@ -1064,6 +1057,13 @@ mappedtype: TK_MAPPEDTYPE basetype optflags {
 mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
             if (notSkipping())
             {
+                /*
+                 * Note that we only use the template arguments to confirm that
+                 * any simple (ie. unscoped) names in the base type are to be
+                 * substituted when the template is instantiated.  Anything
+                 * else is quietly ignored.
+                 */
+
                 static const char *annos[] = {
                     "AllowNone",
                     "NoRelease",
@@ -1075,7 +1075,6 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                     NULL
                 };
 
-                int a;
                 mappedTypeTmplDef *mtt;
                 ifaceFileDef *iff;
 
@@ -1084,22 +1083,10 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 if (currentSpec->genc)
                     yyerror("%MappedType templates not allowed in a C module");
 
-                /*
-                 * Check the template arguments are basic types or simple
-                 * names.
-                 */
-                for (a = 0; a < $1.nrArgs; ++a)
-                {
-                    argDef *ad = &$1.args[a];
-
-                    if (ad->atype == defined_type && ad->u.snd->next != NULL)
-                        yyerror("%MappedType template arguments must be simple names");
-                }
-
                 if ($3.atype != template_type)
                     yyerror("%MappedType template must map a template type");
 
-                $3.u.td->fqname  = fullyQualifiedName($3.u.td->fqname);
+                $3.u.td->fqname = fullyQualifiedName($3.u.td->fqname);
 
                 /* Check a template hasn't already been provided. */
                 for (mtt = currentSpec->mappedtypetemplates; mtt != NULL; mtt = mtt->next)
@@ -1112,7 +1099,7 @@ mappedtypetmpl: template TK_MAPPEDTYPE basetype optflags {
                 mtt = sipMalloc(sizeof (mappedTypeTmplDef));
 
                 mtt->sig = $1;
-                mtt->mt = allocMappedType(currentSpec, &$3);
+                mtt->mt = allocMappedType(currentSpec, &$3, FALSE);
                 mappedTypeAnnos(currentSpec, mtt->mt, &$4);
                 mtt->next = currentSpec->mappedtypetemplates;
 
@@ -4399,34 +4386,6 @@ void parserEOF(const char *name, parserContext *pc)
 
 
 /*
- * Append a class definition to a class list if it doesn't already appear.
- * Append is needed specifically for the list of super-classes because the
- * order is important to Python.
- */
-void appendToClassList(classList **clp,classDef *cd)
-{
-    classList *new;
-
-    /* Find the end of the list. */
-
-    while (*clp != NULL)
-    {
-        if ((*clp) -> cd == cd)
-            return;
-
-        clp = &(*clp) -> next;
-    }
-
-    new = sipMalloc(sizeof (classList));
-
-    new -> cd = cd;
-    new -> next = NULL;
-
-    *clp = new;
-}
-
-
-/*
  * Create a new module for the current specification and make it current.
  */
 static void newModule(FILE *fp, const char *filename)
@@ -4495,98 +4454,6 @@ static void parseFile(FILE *fp, const char *name, moduleDef *prevmod,
 
 
 /*
- * Find an interface file, or create a new one.
- */
-ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
-        ifaceFileType iftype, argDef *ad)
-{
-    ifaceFileDef *iff;
-
-    /* See if the name is already used. */
-
-    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-    {
-        if (compareScopedNames(iff->fqcname, fqname) != 0)
-            continue;
-
-        /*
-         * They must be the same type except that we allow a class if we want
-         * an exception.  This is because we allow classes to be used before
-         * they are defined.
-         */
-        if (iff->type != iftype)
-            if (iftype != exception_iface || iff->type != class_iface)
-                yyerror("A class, exception, namespace or mapped type has already been defined with the same name");
-
-        /* Ignore an external class declared in another module. */
-        if (iftype == class_iface && iff->module != mod)
-        {
-            classDef *cd;
-
-            for (cd = pt->classes; cd != NULL; cd = cd->next)
-                if (cd->iff == iff)
-                    break;
-
-            if (cd != NULL && iff->module != NULL && isExternal(cd))
-                continue;
-        }
-
-        /*
-         * If this is a mapped type with the same name defined in a different
-         * module, then check that this type isn't the same as any of the
-         * mapped types defined in that module.
-         */
-        if (iftype == mappedtype_iface && iff->module != mod)
-        {
-            mappedTypeDef *mtd;
-
-            for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
-            {
-                if (mtd->iff != iff)
-                    continue;
-
-                if (ad->atype != template_type ||
-                    mtd->type.atype != template_type ||
-                    sameBaseType(ad, &mtd->type))
-                    yyerror("Mapped type has already been defined in another module");
-            }
-
-            /*
-             * If we got here then we have a mapped type based on an existing
-             * template, but with unique parameters.  We don't want to use
-             * interface files from other modules, so skip this one.
-             */
-
-            continue;
-        }
-
-        /* Ignore a namespace defined in another module. */
-        if (iftype == namespace_iface && iff->module != mod)
-            continue;
-
-        return iff;
-    }
-
-    iff = sipMalloc(sizeof (ifaceFileDef));
-
-    iff->name = cacheName(pt, scopedNameToString(fqname));
-
-    iff->type = iftype;
-    iff->ifacenr = -1;
-    iff->fqcname = fqname;
-    iff->module = NULL;
-    iff->hdrcode = NULL;
-    iff->used = NULL;
-    iff->file_extension = NULL;
-    iff->next = pt->ifacefiles;
-
-    pt->ifacefiles = iff;
-
-    return iff;
-}
-
-
-/*
  * Find a class definition in a parse tree.
  */
 static classDef *findClass(sipSpec *pt, ifaceFileType iftype,
@@ -4627,35 +4494,6 @@ static classDef *findClassWithInterface(sipSpec *pt, ifaceFileDef *iff,
     pt->classes = cd;
 
     return cd;
-}
-
-
-/*
- * Add an interface file to an interface file list if it isn't already there.
- */
-void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
-{
-    /* Make sure we don't try to add an interface file to its own list. */
-    if (&iff->used != ifflp)
-    {
-        ifaceFileList *iffl;
-
-        while ((iffl = *ifflp) != NULL)
-        {
-            /* Don't bother if it is already there. */
-            if (iffl->iff == iff)
-                return;
-
-            ifflp = &iffl -> next;
-        }
-
-        iffl = sipMalloc(sizeof (ifaceFileList));
-
-        iffl->iff = iff;
-        iffl->next = NULL;
-
-        *ifflp = iffl;
-    }
 }
 
 
@@ -5028,69 +4866,6 @@ static void finishClass(sipSpec *pt, moduleDef *mod, classDef *cd,
 
 
 /*
- * Return the encoded name of a template (ie. including its argument types) as
- * a scoped name.
- */
-scopedNameDef *encodedTemplateName(templateDef *td)
-{
-    int a;
-    scopedNameDef *snd;
-
-    snd = copyScopedName(td->fqname);
-
-    for (a = 0; a < td->types.nrArgs; ++a)
-    {
-        char buf[50];
-        int flgs;
-        scopedNameDef *arg_snd;
-        argDef *ad = &td->types.args[a];
-
-        flgs = 0;
-
-        if (isConstArg(ad))
-            flgs += 1;
-
-        if (isReference(ad))
-            flgs += 2;
-
-        /* We use numbers so they don't conflict with names. */
-        sprintf(buf, "%02d%d%d", ad->atype, flgs, ad->nrderefs);
-
-        switch (ad->atype)
-        {
-        case defined_type:
-            arg_snd = copyScopedName(ad->u.snd);
-            break;
-
-        case template_type:
-            arg_snd = encodedTemplateName(ad->u.td);
-            break;
-
-        case struct_type:
-            arg_snd = copyScopedName(ad->u.sname);
-            break;
-
-        default:
-            arg_snd = NULL;
-        }
-
-        /*
-         * Replace the first element of the argument name with a copy with the
-         * encoding prepended.
-         */
-        if (arg_snd != NULL)
-            arg_snd->name = concat(buf, arg_snd->name, NULL);
-        else
-            arg_snd = text2scopePart(sipStrdup(buf));
-
-        appendScopedName(&snd, arg_snd);
-    }
-
-    return snd;
-}
-
-
-/*
  * Create a new mapped type.
  */
 static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
@@ -5141,7 +4916,7 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
     iff->module = currentModule;
 
     /* Create a new mapped type. */
-    mtd = allocMappedType(pt, ad);
+    mtd = allocMappedType(pt, ad, TRUE);
 
     if (cname != NULL)
         mtd->pyname = cacheName(pt, getPythonName(currentModule, of, cname));
@@ -5160,28 +4935,6 @@ static mappedTypeDef *newMappedType(sipSpec *pt, argDef *ad, optFlags *of)
         if (mtd->pyname)
             setIsUsedName(mtd->pyname);
     }
-
-    return mtd;
-}
-
-
-/*
- * Allocate, initialise and return a mapped type structure.
- */
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type)
-{
-    mappedTypeDef *mtd;
-
-    mtd = sipMalloc(sizeof (mappedTypeDef));
-
-    mtd->type = *type;
-    mtd->type.argflags = 0;
-    mtd->type.nrderefs = 0;
-
-    mtd->cname = cacheName(pt, type2string(&mtd->type));
-
-    /* Keep track of the original definition as it gets copied. */
-    mtd->real = mtd;
 
     return mtd;
 }
@@ -5294,324 +5047,6 @@ static enumDef *newEnum(sipSpec *pt, moduleDef *mod, mappedTypeDef *mt_scope,
 
 
 /*
- * Get the type values and (optionally) the type names for substitution in
- * handwritten code.
- */
-void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values)
-{
-    int a;
-
-    for (a = 0; a < patt->nrArgs; ++a)
-    {
-        argDef *pad = &patt->args[a];
-
-        if (pad->atype == defined_type)
-        {
-            char *nam = NULL, *val;
-            argDef *sad;
-
-            /*
-             * If the type names are already known then check that this is one
-             * of them.
-             */
-            if (known == NULL)
-                nam = scopedNameTail(pad->u.snd);
-            else if (pad->u.snd->next == NULL)
-            {
-                int k;
-
-                for (k = 0; k < known->nrArgs; ++k)
-                {
-                    /* Skip base types. */
-                    if (known->args[k].atype != defined_type)
-                        continue;
-
-                    if (strcmp(pad->u.snd->name, known->args[k].u.snd->name) == 0)
-                    {
-                        nam = pad->u.snd->name;
-                        break;
-                    }
-                }
-            }
-
-            if (nam == NULL)
-                continue;
-
-            /* Add the name. */
-            appendScopedName(names, text2scopePart(nam));
-
-            /*
-             * Add the corresponding value.  For defined types we don't want 
-             * any indirection or references.
-             */
-            sad = &src->args[a];
-
-            if (sad->atype == defined_type)
-                val = scopedNameToString(sad->u.snd);
-            else
-                val = type2string(sad);
-
-            /* We do want const. */
-            if (isConstArg(sad))
-            {
-                char *const_val = sipStrdup("const ");
-
-                append(&const_val, val);
-                free(val);
-
-                val = const_val;
-            }
-
-            appendScopedName(values, text2scopePart(val));
-        }
-        else if (pad->atype == template_type)
-        {
-            argDef *sad = &src->args[a];
-
-            /* These checks shouldn't be necessary, but... */
-            if (sad->atype == template_type && pad->u.td->types.nrArgs == sad->u.td->types.nrArgs)
-                appendTypeStrings(ename, &pad->u.td->types, &sad->u.td->types, known, names, values);
-        }
-    }
-}
-
-
-/*
- * Convert a type to a string on the heap.  The string will use the minimum
- * whitespace while still remaining valid C++.
- */
-static char *type2string(argDef *ad)
-{
-    int i, on_heap = FALSE;
-    int nr_derefs = ad->nrderefs;
-    int is_reference = isReference(ad);
-    char *s;
-
-    /* Use the original type if possible. */
-    if (ad->original_type != NULL && !noTypeName(ad->original_type))
-    {
-        s = scopedNameToString(ad->original_type->fqname);
-        on_heap = TRUE;
-
-        nr_derefs -= ad->original_type->type.nrderefs;
-
-        if (isReference(&ad->original_type->type))
-            is_reference = FALSE;
-    }
-    else
-        switch (ad->atype)
-        {
-        case template_type:
-            {
-                templateDef *td = ad->u.td;
-
-                s = scopedNameToString(td->fqname);
-                append(&s, "<");
-
-                for (i = 0; i < td->types.nrArgs; ++i)
-                {
-                    char *sub_type = type2string(&td->types.args[i]);
-
-                    if (i > 0)
-                        append(&s, ",");
-
-                    append(&s, sub_type);
-                    free(sub_type);
-                }
-
-                if (s[strlen(s) - 1] == '>')
-                    append(&s, " >");
-                else
-                    append(&s, ">");
-
-                on_heap = TRUE;
-                break;
-            }
-
-        case struct_type:
-            s = scopedNameToString(ad->u.sname);
-            on_heap = TRUE;
-            break;
-
-        case defined_type:
-            s = scopedNameToString(ad->u.snd);
-            on_heap = TRUE;
-            break;
-
-        case ubyte_type:
-        case ustring_type:
-            s = "unsigned char";
-            break;
-
-        case byte_type:
-        case ascii_string_type:
-        case latin1_string_type:
-        case utf8_string_type:
-        case string_type:
-            s = "char";
-            break;
-
-        case sbyte_type:
-        case sstring_type:
-            s = "signed char";
-            break;
-
-        case wstring_type:
-            s = "wchar_t";
-            break;
-
-        case ushort_type:
-            s = "unsigned short";
-            break;
-
-        case short_type:
-            s = "short";
-            break;
-
-        case uint_type:
-            s = "uint";
-            break;
-
-        case int_type:
-        case cint_type:
-            s = "int";
-            break;
-
-        case ulong_type:
-            s = "unsigned long";
-            break;
-
-        case long_type:
-            s = "long";
-            break;
-
-        case ulonglong_type:
-            s = "unsigned long long";
-            break;
-
-        case longlong_type:
-            s = "long long";
-            break;
-
-        case float_type:
-        case cfloat_type:
-            s = "float";
-            break;
-
-        case double_type:
-        case cdouble_type:
-            s = "double";
-            break;
-
-        case bool_type:
-        case cbool_type:
-            s = "bool";
-            break;
-
-        case void_type:
-            s = "void";
-            break;
-
-        case capsule_type:
-            s = "void *";
-            break;
-
-        case ssize_type:
-            s = "Py_ssize_t";
-            break;
-
-        case size_type:
-            s = "size_t";
-            break;
-
-        case hash_type:
-            s = "Py_hash_t";
-            break;
-
-        default:
-            fatal("Unsupported type argument to type2string(): %d\n", ad->atype);
-        }
-
-    /* Make sure the string is on the heap. */
-    if (!on_heap)
-        s = sipStrdup(s);
-
-    while (nr_derefs-- > 0)
-        append(&s, "*");
-
-    if (is_reference)
-        append(&s, "&");
-
-    return s;
-}
-
-
-/*
- * Remove any explicit global scope.
- */
-scopedNameDef *removeGlobalScope(scopedNameDef *snd)
-{
-    return ((snd != NULL && snd->name[0] == '\0') ? snd->next : snd);
-}
-
-
-/*
- * Convert a scoped name to a string on the heap.
- */
-static char *scopedNameToString(scopedNameDef *name)
-{
-    static const char scope_string[] = "::";
-    size_t len;
-    scopedNameDef *snd;
-    char *s, *dp;
-
-    /*
-     * We don't want the global scope (which probably should always be there,
-     * but we check anyway).
-     */
-    name = removeGlobalScope(name);
-
-    /* Work out the length of buffer needed. */
-    len = 0;
-
-    for (snd = name; snd != NULL; snd = snd->next)
-    {
-        len += strlen(snd->name);
-
-        if (snd->next != NULL)
-        {
-            /* Ignore the encoded part of template names. */
-            if (isdigit(snd->next->name[0]))
-                break;
-
-            len += strlen(scope_string);
-        }
-    }
-
-    /* Allocate and populate the buffer. */
-    dp = s = sipMalloc(len + 1);
-
-    for (snd = name; snd != NULL; snd = snd->next)
-    {
-        strcpy(dp, snd->name);
-        dp += strlen(snd->name);
-
-        if (snd->next != NULL)
-        {
-            /* Ignore the encoded part of template names. */
-            if (isdigit(snd->next->name[0]))
-                break;
-
-            strcpy(dp, scope_string);
-            dp += strlen(scope_string);
-        }
-    }
-
-    return s;
-}
-
-
-/*
  * Instantiate a class template.
  */
 static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
@@ -5628,7 +5063,7 @@ static void instantiateClassTemplate(sipSpec *pt, moduleDef *mod,
     stringList *sl;
 
     type_names = type_values = NULL;
-    appendTypeStrings(classFQCName(tcd->cd), &tcd->sig, &td->types, NULL, &type_names, &type_values);
+    templateExpansions(&tcd->sig, &td->types, NULL, &type_names, &type_values);
 
     /*
      * Add a mapping from the template name to the instantiated name.  If we
@@ -6175,251 +5610,6 @@ static void templateType(argDef *ad, classTmplDef *tcd, templateDef *td,
 
 
 /*
- * Replace any template arguments in a literal code block.
- */
-codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
-        codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values)
-{
-    codeBlockList *ncbl = NULL;
-
-    while (ocbl != NULL)
-    {
-        char *at = ocbl->block->frag;
-        int start_of_line = TRUE;
-
-        do
-        {
-            char *from = at, *first = NULL;
-            codeBlock *cb;
-            scopedNameDef *nam, *val, *nam_first, *val_first;
-
-            /* Suppress a compiler warning. */
-            val_first = NULL;
-
-            /*
-             * Don't do any substitution in lines that appear to be
-             * preprocessor directives.  This prevents #include'd file names
-             * being broken.
-             */
-            if (start_of_line)
-            {
-                /* Strip leading whitespace. */
-                while (isspace(*from))
-                    ++from;
-
-                if (*from == '#')
-                {
-                    /* Skip to the end of the line. */
-                    do
-                        ++from;
-                    while (*from != '\n' && *from != '\0');
-                }
-                else
-                {
-                    start_of_line = FALSE;
-                }
-            }
-
-            /*
-             * Go through the rest of this fragment looking for each of the
-             * types and the name of the class itself.
-             */
-            nam = names;
-            val = values;
-
-            while (nam != NULL && val != NULL)
-            {
-                char *cp;
-
-                if ((cp = strstr(from, nam->name)) != NULL)
-                    if (first == NULL || first > cp)
-                    {
-                        nam_first = nam;
-                        val_first = val;
-                        first = cp;
-                    }
-
-                nam = nam->next;
-                val = val->next;
-            }
-
-            /* Create the new fragment. */
-            cb = sipMalloc(sizeof (codeBlock));
-
-            if (at == ocbl->block->frag)
-            {
-                cb->filename = ocbl->block->filename;
-                cb->linenr = ocbl->block->linenr;
-            }
-            else
-                cb->filename = NULL;
-
-            appendCodeBlock(&ncbl, cb);
-
-            /* See if anything was found. */
-            if (first == NULL)
-            {
-                /* We can just point to this. */
-                cb->frag = at;
-
-                /* All done with this one. */
-                at = NULL;
-            }
-            else
-            {
-                static char *gen_names[] = {
-                    "sipType_",
-                    "sipException_",
-                    NULL
-                };
-
-                char *dp, *sp, **gn;
-                int genname = FALSE;
-
-                /*
-                 * If the context in which the text is used is in the name of a
-                 * SIP generated object then translate any "::" scoping to "_"
-                 * and remove any const.
-                 */
-                for (gn = gen_names; *gn != NULL; ++gn)
-                    if (search_back(first, at, *gn))
-                    {
-                        addUsedFromCode(pt, used, val_first->name);
-                        genname = TRUE;
-                        break;
-                    }
-
-                /* Fragment the fragment. */
-                cb->frag = sipMalloc(first - at + strlen(val_first->name) + 1);
-
-                strncpy(cb->frag, at, first - at);
-
-                dp = &cb->frag[first - at];
-                sp = val_first->name;
-
-                if (genname)
-                {
-                    char gch;
-
-                    if (strlen(sp) > 6 && strncmp(sp, "const ", 6) == 0)
-                        sp += 6;
-
-                    while ((gch = *sp++) != '\0')
-                        if (gch == ':' && *sp == ':')
-                        {
-                            *dp++ = '_';
-                            ++sp;
-                        }
-                        else
-                            *dp++ = gch;
-
-                    *dp = '\0';
-                }
-                else
-                    strcpy(dp, sp);
-
-                /* Move past the replaced text. */
-                at = first + strlen(nam_first->name);
-
-                if (*at == '\n')
-                    start_of_line = TRUE;
-            }
-        }
-        while (at != NULL && *at != '\0');
-
-        ocbl = ocbl->next;
-    }
-
-    return ncbl;
-}
-
-
-/*
- * Return TRUE if the text at the end of a string matches the target string.
- */
-static int search_back(const char *end, const char *start, const char *target)
-{
-    size_t tlen = strlen(target);
-
-    if (start + tlen >= end)
-        return FALSE;
-
-    return (strncmp(end - tlen, target, tlen) == 0);
-}
-
-
-/*
- * Add any needed interface files based on handwritten code.
- */
-static void addUsedFromCode(sipSpec *pt, ifaceFileList **used, const char *sname)
-{
-    ifaceFileDef *iff;
-    enumDef *ed;
-
-    for (iff = pt->ifacefiles; iff != NULL; iff = iff->next)
-    {
-        if (iff->type != class_iface && iff->type != exception_iface)
-            continue;
-
-        if (sameName(iff->fqcname, sname))
-        {
-            appendToIfaceFileList(used, iff);
-            return;
-        }
-    }
-
-    for (ed = pt->enums; ed != NULL; ed = ed->next)
-    {
-        if (ed->ecd == NULL)
-            continue;
-
-        if (sameName(ed->fqcname, sname))
-        {
-            appendToIfaceFileList(used, ed->ecd->iff);
-            return;
-        }
-    }
-}
-
-
-/*
- * Compare a scoped name with its string equivalent.
- */
-static int sameName(scopedNameDef *snd, const char *sname)
-{
-    /* Handle any explicit scopes. */
-    if (sname[0] == ':' && sname[1] == ':')
-    {
-        if (snd->name[0] != '\0')
-            return FALSE;
-
-        sname += 2;
-    }
-
-    snd = removeGlobalScope(snd);
-
-    while (snd != NULL && *sname != '\0')
-    {
-        const char *sp = snd->name;
-
-        while (*sp != '\0' && *sname != ':' && *sname != '\0')
-            if (*sp++ != *sname++)
-                return FALSE;
-
-        if (*sp != '\0' || (*sname != ':' && *sname != '\0'))
-            return FALSE;
-
-        snd = snd->next;
-
-        if (*sname == ':')
-            sname += 2;
-    }
-
-    return (snd == NULL && *sname == '\0');
-}
-
-
-/*
  * Compare a (possibly) relative scoped name with a fully qualified scoped name
  * while taking the current scope into account.
  */
@@ -6567,54 +5757,6 @@ static void resolveAnyTypedef(sipSpec *pt, argDef *ad)
             break;
         }
     }
-}
-
-
-/*
- * Return TRUE if the template signatures are the same.  A deep comparison is
- * used for mapped type templates where we want to recurse into any nested
- * templates.
- */
-int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
-        int deep)
-{
-    int a;
-
-    if (tmpl_sd->nrArgs != args_sd->nrArgs)
-        return FALSE;
-
-    for (a = 0; a < tmpl_sd->nrArgs; ++a)
-    {
-        argDef *tmpl_ad = &tmpl_sd->args[a];
-        argDef *args_ad = &args_sd->args[a];
-
-        /*
-         * If we are doing a shallow comparision (ie. for class templates) then
-         * a type name in the template signature matches anything in the
-         * argument signature.
-         */
-        if (tmpl_ad->atype == defined_type && !deep)
-            continue;
-
-        /*
-         * For type names only compare the references and pointers, and do the
-         * same for any nested templates.
-         */
-        if (tmpl_ad->atype == defined_type && args_ad->atype == defined_type)
-        {
-            if (isReference(tmpl_ad) != isReference(args_ad) || tmpl_ad->nrderefs != args_ad->nrderefs)
-                return FALSE;
-        }
-        else if (tmpl_ad->atype == template_type && args_ad->atype == template_type)
-        {
-            if (!sameTemplateSignature(&tmpl_ad->u.td->types, &args_ad->u.td->types, deep))
-                return FALSE;
-        }
-        else if (!sameBaseType(tmpl_ad, args_ad))
-            return FALSE;
-    }
-
-    return TRUE;
 }
 
 
@@ -7334,45 +6476,6 @@ static const char *getPythonName(moduleDef *mod, optFlags *optflgs,
 
 
 /*
- * Cache a name in a module.  Entries in the cache are stored in order of
- * decreasing length.
- */
-nameDef *cacheName(sipSpec *pt, const char *name)
-{
-    nameDef *nd, **ndp;
-    size_t len;
-
-    /* Allow callers to be lazy about checking if there is really a name. */
-    if (name == NULL)
-        return NULL;
-
-    /* Skip entries that are too large. */
-    ndp = &pt->namecache;
-    len = strlen(name);
-
-    while (*ndp != NULL && (*ndp)->len > len)
-        ndp = &(*ndp)->next;
-
-    /* Check entries that are the right length. */
-    for (nd = *ndp; nd != NULL && nd->len == len; nd = nd->next)
-        if (memcmp(nd->text, name, len) == 0)
-            return nd;
-
-    /* Create a new one. */
-    nd = sipMalloc(sizeof (nameDef));
-
-    nd->nameflags = 0;
-    nd->text = name;
-    nd->len = len;
-    nd->next = *ndp;
-
-    *ndp = nd;
-
-    return nd;
-}
-
-
-/*
  * Find (or create) an overloaded function name.
  */
 static memberDef *findFunction(sipSpec *pt, moduleDef *mod, classDef *c_scope,
@@ -7632,29 +6735,6 @@ static optFlag *getOptFlag(optFlags *flgs, const char *name, flagType ft)
 
 
 /*
- * Append a string to a list of them.
- */
-void appendString(stringList **headp, const char *s)
-{
-    stringList *sl;
-
-    /* Create the new entry. */
-
-    sl = sipMalloc(sizeof (stringList));
-
-    sl -> s = s;
-    sl -> next = NULL;
-
-    /* Append it to the list. */
-
-    while (*headp != NULL)
-        headp = &(*headp) -> next;
-
-    *headp = sl;
-}
-
-
-/*
  * A name is going to be used as a Python attribute name within a Python scope
  * (ie. a Python dictionary), so check against what we already know is going in
  * the same scope in case there is a clash.
@@ -7794,47 +6874,6 @@ static void checkAttributes(sipSpec *pt, moduleDef *mod, classDef *py_c_scope,
 
 
 /*
- * Append a code block to a list of them.
- */
-static void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
-{
-    codeBlockList *cbl;
-
-    /* Handle the trivial case. */
-    if (cb == NULL)
-        return;
-
-    /* Find the end of the list. */
-    while (*headp != NULL)
-    {
-        /* Ignore if the block is already in the list. */
-        if ((*headp)->block == cb)
-            return;
-
-        headp = &(*headp)->next;
-    }
-
-    cbl = sipMalloc(sizeof (codeBlockList));
-    cbl->block = cb;
-
-    *headp = cbl;
-}
-
-
-/*
- * Append a code block list to an existing list.
- */
-void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
-{
-    while (cbl != NULL)
-    {
-        appendCodeBlock(headp, cbl->block);
-        cbl = cbl->next;
-    }
-}
-
-
-/*
  * Handle the end of a fully parsed a file.
  */
 static void handleEOF()
@@ -7950,69 +6989,6 @@ static const char *getInt(const char *cp, int *ip)
 
 
 /*
- * Return a copy of a scoped name.
- */
-scopedNameDef *copyScopedName(scopedNameDef *snd)
-{
-    scopedNameDef *head;
-
-    head = NULL;
-
-    while (snd != NULL)
-    {
-        appendScopedName(&head,text2scopePart(snd -> name));
-        snd = snd -> next;
-    }
-
-    return head;
-}
-
-
-/*
- * Append a name to a list of scopes.
- */
-void appendScopedName(scopedNameDef **headp,scopedNameDef *newsnd)
-{
-    while (*headp != NULL)
-        headp = &(*headp) -> next;
-
-    *headp = newsnd;
-}
-
-
-/*
- * Free a scoped name - but not the text itself.
- */
-void freeScopedName(scopedNameDef *snd)
-{
-    while (snd != NULL)
-    {
-        scopedNameDef *next = snd -> next;
-
-        free(snd);
-
-        snd = next;
-    }
-}
-
-
-/*
- * Convert a text string to a scope part structure.
- */
-scopedNameDef *text2scopePart(char *text)
-{
-    scopedNameDef *snd;
-
-    snd = sipMalloc(sizeof (scopedNameDef));
-
-    snd->name = text;
-    snd->next = NULL;
-
-    return snd;
-}
-
-
-/*
  * Convert a text string to a fully scoped name.
  */
 static scopedNameDef *text2scopedName(ifaceFileDef *scope, char *text)
@@ -8033,21 +7009,6 @@ static scopedNameDef *scopeScopedName(ifaceFileDef *scope, scopedNameDef *name)
     appendScopedName(&snd, name);
 
     return snd;
-}
-
-
-/*
- * Return a pointer to the tail part of a scoped name.
- */
-char *scopedNameTail(scopedNameDef *snd)
-{
-    if (snd == NULL)
-        return NULL;
-
-    while (snd->next != NULL)
-        snd = snd->next;
-
-    return snd->name;
 }
 
 
@@ -8231,38 +7192,6 @@ static int platOrFeature(char *name, int optnot)
         this = !this;
 
     return this;
-}
-
-
-/*
- * Return TRUE if the given qualifier is excluded.
- */
-int excludedFeature(stringList *xsl, qualDef *qd)
-{
-    while (xsl != NULL)
-    {
-        if (strcmp(qd->name, xsl->s) == 0)
-            return TRUE;
-
-        xsl = xsl->next;
-    }
-
-    return !qd->default_enabled;
-}
-
-
-/*
- * Return TRUE if the given qualifier is needed.
- */
-int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
-{
-    stringList *sl;
-
-    for (sl = needed_qualifiers; sl != NULL; sl = sl->next)
-        if (strcmp(qd->name, sl->s) == 0)
-            return qd->default_enabled;
-
-    return FALSE;
 }
 
 
@@ -8515,41 +7444,6 @@ static void getTypeHints(optFlags *optflgs, typeHintDef **in,
 static int getNoTypeHint(optFlags *optflgs)
 {
     return (getOptFlag(optflgs, "NoTypeHint", bool_flag) != NULL);
-}
-
-
-/*
- * Return TRUE if the PyQt5 plugin was specified.
- */
-int pluginPyQt5(sipSpec *pt)
-{
-    return stringFind(pt->plugins, "PyQt5");
-}
-
-
-/*
- * Return TRUE if the PyQt6 plugin was specified.
- */
-int pluginPyQt6(sipSpec *pt)
-{
-    return stringFind(pt->plugins, "PyQt6");
-}
-
-
-/*
- * Return TRUE if a list of strings contains a given entry.
- */
-static int stringFind(stringList *sl, const char *s)
-{
-    while (sl != NULL)
-    {
-        if (strcmp(sl->s, s) == 0)
-            return TRUE;
-
-        sl = sl->next;
-    }
-
-    return FALSE;
 }
 
 

@@ -1,3 +1,10 @@
+v6.5.1 25th January 2022
+  - Added the --no-compile command line option to sip-build.
+  - Added the --no-version-info command line option to sip-build.
+  - The latest version of ABI v13 is v13.2.1.
+  - The latest version of ABI v12 is v12.9.1.
+  - Bug fixes.
+
 v6.5.0 25th November 2021
   - Added 'UIntEnum' as a value of the /BaseType/ enum annotation to support
     enum.IntEnum types with unsigned values.

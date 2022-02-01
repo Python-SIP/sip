@@ -111,8 +111,15 @@ list options may contain environment markers as defined in `PEP 508
 
 **builder-factory**
     The value is a callable that will return an object that is a sub-class
-    of :class:`~sipbuild.AbstractBuilder`.  The default builder factory is
+    of :class:`~sipbuild.AbstractBuilder`.  For Python v3.10 and later the
+    default builder factory is :class:`~sipbuild.SetuptoolsBuilder`.  For
+    earlier versions of Python the default builder factory is
     :class:`~sipbuild.DistutilsBuilder`.
+
+**compile**
+    The boolean value specifies if the generated code is to be compiled.
+    By default it is compiled.  There is also a corresponding command line
+    option.
 
 **console-scripts**
     The value is a list of entry points that defines one or more console
@@ -234,6 +241,11 @@ list options may contain environment markers as defined in `PEP 508
     The boolean value enables or disables the display of verbose progress
     messages.  By default verbose progress messages are not displayed.  There
     is also a corresponding command line option.
+
+**version-info**
+    The boolean value determines if the generated code includes a reference to
+    the SIP version number.  By default a reference is included.  There is also
+    a corresponding command line option.
 
 **wheel-includes**
     The values is a list of files and directories, specified as *glob* patterns

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -47,7 +47,9 @@ class Builder(AbstractBuilder):
 
         self._generate_bindings()
         self._generate_scripts()
-        self.build_project(self.project.target_dir)
+
+        if self.project.compile:
+            self.build_project(self.project.target_dir)
 
     @abstractmethod
     def build_executable(self, buildable, *, fatal=True):
@@ -254,10 +256,12 @@ class Builder(AbstractBuilder):
 
             # Generate the sip.h file for the shared sip module.
             copy_sip_h(abi_major_version, project.build_dir,
-                    project.sip_module)
+                    project.sip_module, version_info=project.version_info)
 
-        set_globals(SIP_VERSION, SIP_VERSION_STR, int(abi_major_version),
-                int(abi_minor_version), project.sip_module, UserException,
+        set_globals(SIP_VERSION,
+                SIP_VERSION_STR if project.version_info else None,
+                int(abi_major_version), int(abi_minor_version),
+                project.sip_module, UserException,
                 [d.replace('\\', '/') for d in sip_include_dirs])
 
         # Generate the code for each set of bindings.

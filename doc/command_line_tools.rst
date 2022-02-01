@@ -83,10 +83,18 @@ The full set of command line options is:
 
     A build with debugging symbols is performed.
 
+.. option:: --no-compile
+
+    The compilation of the generated code is disabled.
+
 .. option:: --no-docstrings
 
     The generation of docstrings that describe the signature of all functions,
     methods and constructors is disabled.
+
+.. option:: --no-version-info
+
+    No reference the SIP version number is included in any generated code.
 
 .. option:: --pep484-pyi
 

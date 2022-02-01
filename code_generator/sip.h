@@ -340,13 +340,10 @@
 /* Handle hierarchy flags. */
 
 #define HIER_BEING_SET      0x0001      /* The MRO is being set. */
-#define IN_A_DIAMOND        0x0002      /* The class is in a diamond. */
 
 #define hierBeingSet(m)     ((m)->mroflags & HIER_BEING_SET)
 #define setHierBeingSet(m)  ((m)->mroflags |= HIER_BEING_SET)
 #define resetHierBeingSet(m)    ((m)->mroflags &= ~HIER_BEING_SET)
-#define inADiamond(m)       ((m)->mroflags & IN_A_DIAMOND)
-#define setInADiamond(m)    ((m)->mroflags |= IN_A_DIAMOND)
 
 
 /* Handle overload flags.  These are combined with the section flags. */
@@ -794,13 +791,6 @@ typedef struct _qualDef {
     int default_enabled;                /* Enabled by default. */
     struct _qualDef *next;              /* Next in the list. */
 } qualDef;
-
-
-/* A platform. */
-typedef struct _platformDef {
-    struct _qualDef *qualifier;         /* The platform qualifier. */
-    struct _platformDef *next;          /* Next in the list. */
-} platformDef;
 
 
 /* A scoped name. */
@@ -1415,7 +1405,9 @@ scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 scopedNameDef *text2scopePart(char *text);
 void freeScopedName(scopedNameDef *);
+char *scopedNameToString(scopedNameDef *name);
 void appendToClassList(classList **,classDef *);
+void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
@@ -1431,9 +1423,11 @@ int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isInplaceNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type);
+mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name);
 void appendString(stringList **headp, const char *s);
-void appendTypeStrings(scopedNameDef *ename, signatureDef *patt, signatureDef *src, signatureDef *known, scopedNameDef **names, scopedNameDef **values);
+void templateExpansions(signatureDef *patt, signatureDef *src,
+        signatureDef *declared_names, scopedNameDef **names,
+        scopedNameDef **values);
 codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
         codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
 ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
@@ -1447,7 +1441,6 @@ nameDef *cacheName(sipSpec *pt, const char *name);
 scopedNameDef *encodedTemplateName(templateDef *td);
 memberDef *findMethod(classDef *cd, const char *name);
 typeHintDef *newTypeHint(char *raw_hint);
-int isPyKeyword(const char *word);
 char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
@@ -1464,6 +1457,7 @@ void normaliseArgs(signatureDef *sd);
 void restoreArgs(signatureDef *sd);
 void initialiseLexer(void);
 int usedInCode(codeBlockList *cbl, const char *str);
+int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
 
 
 /* These are only here because bison publically references them. */
