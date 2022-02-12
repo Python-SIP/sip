@@ -245,18 +245,16 @@ def _template_code_block(spec, used, proto_code, expansions):
         # Don't do any substitution in lines that appear to be preprocessor
         # directives.  This prevents #include'd file names being broken.
         if not proto_line.lstrip().startswith('#'):
-            at = 0
-
             # Go through each expansion.
             for name, value in expansions.items():
                 # Look for the name at the current position in the current
                 # line.
-                pos = i_line.find(name, at)
-                if pos >= 0:
+                pos = i_line.find(name)
+                while pos >= 0:
                     # See if the name is referring to a generated type
                     # structure.
                     for gen_type in ('sipType_', 'sipException_'):
-                        if i_line[at:pos].endswith(gen_type):
+                        if i_line[:pos].endswith(gen_type):
                             value = _strip_const(value)
 
                             # Add the interface file for any outer scope to the
@@ -272,8 +270,8 @@ def _template_code_block(spec, used, proto_code, expansions):
                                 if iface_file is not None and iface_file not in used:
                                     used.append(iface_file)
 
-                            # Converted the value to the rest of the name of
-                            # the generated type structure.
+                            # Convert the value to the rest of the name of the
+                            # generated type structure.
                             if value.startswith('::'):
                                 value = value[2:]
 
@@ -282,8 +280,8 @@ def _template_code_block(spec, used, proto_code, expansions):
                             break
 
                     # Perform the substitution and update the current position.
-                    i_line = i_line[0:at] + i_line[at:].replace(name, value)
-                    at += len(value)
+                    i_line = i_line[0:pos] + value + i_line[pos + len(name):]
+                    pos = i_line.find(name, pos + len(value))
 
         i_lines.append(i_line)
 
