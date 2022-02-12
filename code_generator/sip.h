@@ -1361,7 +1361,6 @@ extern unsigned sipVersion;             /* The version of SIP. */
 extern const char *sipVersionStr;       /* The version of SIP as a string. */
 extern char *sipName;                   /* The name of the sip module. */
 extern unsigned abiVersion;             /* The encoded ABI version number. */
-extern stringList *includeDirList;      /* The include directory list for SIP files. */
 
 
 void parse(sipSpec *, FILE *, char *, int, stringList **, stringList *,
