@@ -584,6 +584,9 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
     if (bool_attr(obj, "is_opaque"))
         setIsOpaque(value);
 
+    if (bool_attr(obj, "is_protected"))
+        setIsProtectedClass(value);
+
     if (bool_attr(obj, "is_incomplete"))
         setIsIncomplete(value);
 
@@ -622,7 +625,7 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
 
     if ((dtor_access = enum_attr(obj, "dtor")) != -1)
         value->classflags |= enum_attr(obj, "dtor");
-    else
+    else if (!isOpaque(value))
         setIsPublicDtor(value);
 
     if (bool_attr(obj, "is_template_arg"))
