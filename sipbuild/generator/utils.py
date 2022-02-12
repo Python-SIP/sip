@@ -200,11 +200,11 @@ def same_base_type(type1, type2):
         td1 = type1.definition
         td2 = type2.definition
 
-        if td1.fq_cpp_name != td2.fq_cpp_name:
+        if td1.cpp_name != td2.cpp_name:
             return False
 
         try:
-            for ad1, ad2 in zip(td1.args, td2.args, strict=True):
+            for ad1, ad2 in zip(td1.types.args, td2.types.args, strict=True):
                 if len(ad1.derefs) != len(ad2.derefs):
                     return False
 
