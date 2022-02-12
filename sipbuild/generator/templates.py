@@ -203,20 +203,20 @@ def template_string(proto_str, expansions, scope_replacement=None):
     return proto_str
 
 
-def _find_iface_file(spec, fq_cpp_name):
+def _find_iface_file(spec, name):
     """ Return the interface file corresponding to the given C++ name or None
     if one couldn't be found.
     """
 
     for iff in spec.iface_files:
         if iff.type in (IfaceFileType.CLASS, IfaceFileType.EXCEPTION):
-            if iff.fq_cpp_name == fq_cpp_name:
+            if len(iff.fq_cpp_name) == 1 and iff.fq_cpp_name[0] == name:
                 return iff
 
     for w_enum in spec.enums:
         if w_enum.scope is not None:
             iff = w_enum.scope.iface_file
-            if iff.fq_cpp_name == fq_cpp_name:
+            if len(iff.fq_cpp_name) == 1 and iff.fq_cpp_name[0] == name:
                 return iff
 
     return None
@@ -259,13 +259,18 @@ def _template_code_block(spec, used, proto_code, expansions):
                         if i_line[at:pos].endswith(gen_type):
                             value = _strip_const(value)
 
-                            # Add the corresponding interface file to the used
-                            # list.
-                            iface_file = _find_iface_file(spec,
-                                    ScopedName.parse(value))
+                            # Add the interface file for any outer scope to the
+                            # used list.  (Note: this is a bit strange and may
+                            # be a bug but it is needed to re-create the output
+                            # of the old parser.)
+                            fq_value = ScopedName.parse(value)
 
-                            if iface_file is not None:
-                                used.append(iface_file)
+                            if len(fq_value) > 0:
+                                iface_file = _find_iface_file(spec,
+                                        fq_value[0])
+
+                                if iface_file is not None and iface_file not in used:
+                                    used.append(iface_file)
 
                             # Converted the value to the rest of the name of
                             # the generated type structure.
