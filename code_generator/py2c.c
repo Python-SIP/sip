@@ -25,6 +25,7 @@
 #include <Python.h>
 
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
 
 #include "sip.h"
@@ -356,7 +357,7 @@ static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
 
     key = int_attr(obj, "key");
 
-    if (key >= 0)
+    if (key != INT_MIN)
     {
         setKeepReference(value);
         value->key = key;
@@ -1279,7 +1280,7 @@ static int int_attr(PyObject *obj, const char *name)
     assert(attr != NULL);
 
     if (attr == Py_None)
-        value = -1;
+        value = INT_MIN;
     else
         value = PyLong_AsLong(attr);
 
