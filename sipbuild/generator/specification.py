@@ -453,7 +453,7 @@ class PySlot(Enum):
     IAND = 28
 
     # tp_as_number.nb_inplace_or
-    IOR = 20
+    IOR = 29
 
     # tp_as_number.nb_inplace_xor
     IXOR = 30
