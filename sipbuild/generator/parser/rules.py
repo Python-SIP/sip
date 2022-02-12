@@ -2589,12 +2589,13 @@ def p_expr(p):
         | expr binop value"""
 
     if len(p) == 2:
-        p[0] = [p[1]]
+        expr = [p[1]]
     else:
         expr = p[1]
         expr[-1].binary_operator = p[2]
         expr.append(p[3])
-        p[0] = expr
+
+    p[0] = expr
 
 
 def p_value(p):
@@ -2681,10 +2682,10 @@ def p_expr_list(p):
         | expr_list ',' expr"""
 
     if len(p) == 2:
-        value = p[1]
+        value = [p[1]]
     else:
         value = p[1]
-        value.extend(p[3])
+        value.append(p[3])
 
     p[0] = value
 

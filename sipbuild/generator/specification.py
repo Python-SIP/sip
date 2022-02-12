@@ -951,7 +951,7 @@ class FunctionCall:
     result: Argument
 
     # The list of arguments.
-    args: List['Value']
+    args: List[List['Value']]
 
 
 @dataclass
@@ -1462,7 +1462,7 @@ class TypeHints:
 
 @dataclass
 class Value:
-    """ Encapsulate a literal value (actually an expression). """
+    """ Encapsulate a literal value. """
 
     # The type of the value.
     value_type: ValueType

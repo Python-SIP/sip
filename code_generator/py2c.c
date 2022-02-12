@@ -144,9 +144,9 @@ static exceptionDef *exception_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static exceptionDef *exception_list_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
-static valueDef *exprvalue(sipSpec *pt, PyObject *obj, const char *encoding);
-static valueDef *exprvalue_list_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding);
+static valueDef *expr(sipSpec *pt, PyObject *obj, const char *encoding);
+static valueDef *expr_attr(sipSpec *pt, PyObject *obj, const char *name,
+        const char *encoding);
 static void extract_list_attr(sipSpec *pt, PyObject *obj, const char *name,
         const char *encoding);
 static fcallDef *functioncall(sipSpec *pt, PyObject *obj,
@@ -214,6 +214,7 @@ static throwArgs *throw_arguments_attr(sipSpec *pt, PyObject *obj,
 static void typehints_attr(PyObject *obj, const char *name,
         const char *encoding, typeHintDef **th_in, typeHintDef **th_out,
         const char **th_value);
+static valueDef *value(sipSpec *pt, PyObject *obj, const char *encoding);
 static virtErrorHandler *virtualerrorhandler(sipSpec *pt, PyObject *obj,
         const char *encoding);
 static virtErrorHandler *virtualerrorhandler_list_attr(sipSpec *pt,
@@ -352,7 +353,7 @@ static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
 
     value->nrderefs = i;
 
-    value->defval = exprvalue_list_attr(pt, obj, "default_value", encoding);
+    value->defval = expr_attr(pt, obj, "default_value", encoding);
     value->scopes_stripped = int_attr(obj, "scopes_stripped");
 
     key = int_attr(obj, "key");
@@ -1149,7 +1150,7 @@ static fcallDef *functioncall(sipSpec *pt, PyObject *obj, const char *encoding)
     assert(PyList_Check(args_obj));
 
     for (i = 0; i < PyList_Size(args_obj) && i < MAX_NR_ARGS; ++i)
-        value->args[i] = exprvalue(pt, PyList_GetItem(args_obj, i), encoding);
+        value->args[i] = expr(pt, PyList_GetItem(args_obj, i), encoding);
 
     value->nrArgs = i;
 
@@ -2262,7 +2263,7 @@ static void typehints_attr(PyObject *obj, const char *name,
 /*
  * Convert a Value object.
  */
-static valueDef *exprvalue(sipSpec *pt, PyObject *obj, const char *encoding)
+static valueDef *value(sipSpec *pt, PyObject *obj, const char *encoding)
 {
     valueDef *value = sipMalloc(sizeof (valueDef));
     char *op;
@@ -2333,34 +2334,44 @@ static valueDef *exprvalue(sipSpec *pt, PyObject *obj, const char *encoding)
 
 
 /*
- * Convert an optional Value list attribute.
+ * Convert an expression.
  */
-static valueDef *exprvalue_list_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding)
+static valueDef *expr(sipSpec *pt, PyObject *obj, const char *encoding)
+{
+    valueDef *head = NULL;
+    valueDef **tail = &head;
+    Py_ssize_t i;
+
+    assert (PyList_Check(obj));
+
+    for (i = 0; i < PyList_Size(obj); ++i)
+    {
+        valueDef *item = value(pt, PyList_GetItem(obj, i), encoding);
+        *tail = item;
+        tail = &item->next;
+    }
+
+    return head;
+}
+
+
+/*
+ * Convert an optional expression attribute.
+ */
+static valueDef *expr_attr(sipSpec *pt, PyObject *obj, const char *name,
+        const char *encoding)
 {
     PyObject *attr = PyObject_GetAttrString(obj, name);
-    valueDef *head = NULL;
+    valueDef *value = NULL;
 
     assert(attr != NULL);
 
     if (attr != Py_None)
-    {
-        valueDef **tail = &head;
-        Py_ssize_t i;
-
-        assert (PyList_Check(attr));
-
-        for (i = 0; i < PyList_Size(attr); ++i)
-        {
-            valueDef *item = exprvalue(pt, PyList_GetItem(attr, i), encoding);
-            *tail = item;
-            tail = &item->next;
-        }
-    }
+        value = expr(pt, attr, encoding);
 
     Py_DECREF(attr);
 
-    return head;
+    return value;
 }
 
 
