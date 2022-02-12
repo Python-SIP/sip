@@ -2532,7 +2532,6 @@ def p_arg_type(p):
         arg.name = pm.cached_name(p[2])
 
     pm.apply_common_argument_annotations(p, 3, arg, annotations)
-    pm.apply_type_annotations(p, 3, arg, annotations)
 
     has_array = 'Array' in annotations
     has_array_size = 'ArraySize' in annotations
@@ -2545,6 +2544,8 @@ def p_arg_type(p):
         arg.array = ArrayArgument.ARRAY
     elif has_array_size:
         arg.array = ArrayArgument.ARRAY_SIZE
+
+    pm.apply_type_annotations(p, 3, arg, annotations)
 
     if 'Constrained' in annotations:
         arg.is_constrained = True
