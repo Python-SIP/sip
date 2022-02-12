@@ -1501,11 +1501,11 @@ def p_cpp_type(p):
     if len(p) == 5:
         value = p[2]
         value.is_const = True
-        value.derefs = p[3]
+        value.derefs.extend(p[3])
         value.is_reference = p[4]
     else:
         value = p[1]
-        value.derefs = p[2]
+        value.derefs.extend(p[2])
         value.is_reference = p[3]
 
     p[0] = value
