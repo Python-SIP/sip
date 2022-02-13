@@ -682,10 +682,12 @@ def p_ifstart(p):
 def p_ifend(p):
     "ifend : END"
 
-    try:
-        p.parser.pm.skip_stack.pop()
-    except IndexError:
-        p.parser.pm.parser_error(p, 1, "too many '%End' directives")
+    pm = p.parser.pm
+
+    if len(pm.skip_stack) >= 2:
+        pm.skip_stack.pop()
+    else:
+        pm.parser_error(p, 1, "too many '%End' directives")
 
 
 # %Import #####################################################################
