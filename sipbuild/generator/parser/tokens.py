@@ -300,21 +300,6 @@ def t_ccomment_CH(t):
     return None
 
 
-# Handle a signed decimal number.
-def t_NUMBER(t):
-    r'-?\d+[lLuU]?'
-
-    # Remove any suffix character.
-    value = t.value
-    if not value[-1].isdigit():
-        value = value[:-1]
-
-    t.type = 'NUMBER'
-    t.value = int(value)
-
-    return t
-
-
 # Handle an unsigned hexadecimal number.
 def t_HEXNUMBER(t):
     r'0x[\da-fA-F]+'
@@ -325,17 +310,21 @@ def t_HEXNUMBER(t):
     return t
 
 
-# Handle a real number.
-def t_REAL(t):
-    r'-?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?[fF]?'
+# Handle a number.
+def t_NUMBER(t):
+    r'-?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?[fFlLuU]?'
 
     # Remove any suffix character.
     value = t.value
     if not value[-1].isdigit():
         value = value[:-1]
 
-    t.type = 'REAL'
-    t.value = float(value)
+    try:
+        t.type = 'NUMBER'
+        t.value = int(value)
+    except ValueError:
+        t.type = 'REAL'
+        t.value = float(value)
 
     return t
 
