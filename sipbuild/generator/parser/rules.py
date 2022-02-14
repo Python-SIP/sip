@@ -56,7 +56,8 @@ def p_error(t):
     t.lexer.pm.set_lexer_state()
 
     t = parser.token()
-    while t is not None and t.type not in ('}', ';', 'END'):
+    # ZZZ - check the single characters work.
+    while t is not None and t.type not in ('}', ';', 'End'):
         t = parser.token()
 
     parser.restart()
@@ -70,7 +71,7 @@ def p_specification(p):
 
 
 def p_statement(p):
-    """statement : ns_statement
+    """statement : namespace_statement
         | composite_module
         | copying
         | defdocstringfmt
@@ -103,18 +104,18 @@ def p_statement(p):
         | virtual_error_handler"""
 
 
-def p_ns_statement(p):
-    """ns_statement : ifstart
-        | ifend
-        | class
+def p_namespace_statement(p):
+    """namespace_statement : if_start
+        | if_end
+        | class_decl
         | class_template
-        | enum
+        | enum_decl
         | exception
         | function
-        | namespace
-        | struct
-        | typedef
-        | union
+        | namespace_decl
+        | struct_decl
+        | typedef_decl
+        | union_decl
         | variable
         | type_header_code"""
 
@@ -142,7 +143,7 @@ def p_need_eol(p):
 # %AutoPyName #################################################################
 
 def p_autopyname(p):
-    "autopyname : AUTOPYNAME begin_args '(' REMOVELEADING '=' STRING end_args ')'"
+    "autopyname : AutoPyName begin_args '(' remove_leading '=' STRING end_args ')'"
 
     if p.parser.pm.skipping:
         return
@@ -153,7 +154,7 @@ def p_autopyname(p):
 # %BIGetBufferCode ############################################################
 
 def p_get_buffer_code(p):
-    "get_buffer_code : GETBUFFERCODE CODEBLOCK"
+    "get_buffer_code : BIGetBufferCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -169,7 +170,7 @@ def p_get_buffer_code(p):
 # %BIReleaseBufferCode ########################################################
 
 def p_release_buffer_code(p):
-    "release_buffer_code : RELEASEBUFFERCODE CODEBLOCK"
+    "release_buffer_code : BIReleaseBufferCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -186,8 +187,8 @@ def p_release_buffer_code(p):
 # %CompositeModule ############################################################
 
 def p_composite_module(p):
-    """composite_module : COMPOMODULE dotted_name c_module_body
-        | COMPOMODULE begin_args '(' c_module_args end_args ')' c_module_body"""
+    """composite_module : CompositeModule dotted_name c_module_body
+        | CompositeModule begin_args '(' c_module_args end_args ')' c_module_body"""
 
     pm = p.parser.pm
 
@@ -198,7 +199,7 @@ def p_composite_module(p):
         name = p[2]
         body = p[3]
     else:
-        name = p[4]['NAMEKW']
+        name = p[4]['name']
         body = p[7]
 
     module = pm.module_state.module
@@ -229,7 +230,7 @@ def p_c_module_args(p):
 
 
 def p_c_module_arg(p):
-    "c_module_arg : NAMEKW '=' dotted_name"
+    "c_module_arg : name '=' dotted_name"
 
     p[0] = {p[1]: p[3]}
 
@@ -259,8 +260,8 @@ def p_c_module_body_directives(p):
 
 
 def p_c_module_body_directive(p):
-    """c_module_body_directive : ifstart
-        | ifend
+    """c_module_body_directive : if_start
+        | if_end
         | docstring"""
 
     p[0] = p[1]
@@ -269,7 +270,7 @@ def p_c_module_body_directive(p):
 # %ConvertFromTypeCode ########################################################
 
 def p_convert_from_type_code(p):
-    "convert_from_type_code : FROMTYPE CODEBLOCK"
+    "convert_from_type_code : ConvertFromTypeCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -286,7 +287,7 @@ def p_convert_from_type_code(p):
 # %ConvertToSubClassCode ######################################################
 
 def p_convert_to_subclass_code(p):
-    "convert_to_subclass_code : TOSUBCLASS CODEBLOCK"
+    "convert_to_subclass_code : ConvertToSubClassCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -303,7 +304,7 @@ def p_convert_to_subclass_code(p):
 # %ConvertToTypeCode ##########################################################
 
 def p_convert_to_type_code(p):
-    "convert_to_type_code : TOTYPE CODEBLOCK"
+    "convert_to_type_code : ConvertToTypeCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -319,7 +320,7 @@ def p_convert_to_type_code(p):
 # %Copying ####################################################################
 
 def p_copying(p):
-    "copying : COPYING CODEBLOCK"
+    "copying : Copying CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -332,8 +333,8 @@ def p_copying(p):
 # %DefaultDocstringFormat #####################################################
 
 def p_defdocstringfmt(p):
-    """defdocstringfmt : DEFDOCSTRFMT STRING
-        | DEFDOCSTRFMT begin_args '(' NAMEKW '=' STRING end_args ')'"""
+    """defdocstringfmt : DefaultDocstringFormat STRING
+        | DefaultDocstringFormat begin_args '(' name '=' STRING end_args ')'"""
 
     pm = p.parser.pm
 
@@ -348,8 +349,8 @@ def p_defdocstringfmt(p):
 # %DefaultDocstringSignature ##################################################
 
 def p_defdocstringsig(p):
-    """defdocstringsig : DEFDOCSTRSIG STRING
-        | DEFDOCSTRSIG begin_args '(' NAMEKW '=' STRING end_args ')'"""
+    """defdocstringsig : DefaultDocstringSignature STRING
+        | DefaultDocstringSignature begin_args '(' name '=' STRING end_args ')'"""
 
     pm = p.parser.pm
 
@@ -364,8 +365,8 @@ def p_defdocstringsig(p):
 # %DefaultEncoding ############################################################
 
 def p_defencoding(p):
-    """defencoding : DEFENCODING STRING
-        |  DEFENCODING begin_args '(' NAMEKW '=' STRING end_args ')'"""
+    """defencoding : DefaultEncoding STRING
+        |  DefaultEncoding begin_args '(' name '=' STRING end_args ')'"""
 
     pm = p.parser.pm
 
@@ -380,8 +381,8 @@ def p_defencoding(p):
 # %DefaultMetatype ############################################################
 
 def p_defmetatype(p):
-    """defmetatype : DEFMETATYPE dotted_name
-        | DEFMETATYPE begin_args '(' NAMEKW '=' dotted_name end_args ')'"""
+    """defmetatype : DefaultMetatype dotted_name
+        | DefaultMetatype begin_args '(' name '=' dotted_name end_args ')'"""
 
     pm = p.parser.pm
 
@@ -402,8 +403,8 @@ def p_defmetatype(p):
 # %DefaultSupertype ###########################################################
 
 def p_defsupertype(p):
-    """defsupertype : DEFSUPERTYPE dotted_name
-        | DEFSUPERTYPE begin_args '(' NAMEKW '=' dotted_name end_args ')'"""
+    """defsupertype : DefaultSupertype dotted_name
+        | DefaultSupertype begin_args '(' name '=' dotted_name end_args ')'"""
 
     pm = p.parser.pm
 
@@ -424,7 +425,7 @@ def p_defsupertype(p):
 # %Docstring ##################################################################
 
 def p_docstring(p):
-    "docstring : DOCSTRING docstring_args CODEBLOCK"
+    "docstring : Docstring docstring_args CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -433,7 +434,7 @@ def p_docstring(p):
 
     module = pm.module_state.module
 
-    ds_format = p[2].get('FORMAT', module.default_docstring_format)
+    ds_format = p[2].get('format', module.default_docstring_format)
 
     if ds_format == DocstringFormat.DEINDENTED:
         from textwrap import dedent
@@ -442,7 +443,7 @@ def p_docstring(p):
     else:
         text = p[3].text
 
-    p[0] = Docstring(p[2].get('SIGNATURE', module.default_docstring_signature),
+    p[0] = Docstring(p[2].get('signature', module.default_docstring_signature),
             text)
 
 
@@ -457,7 +458,7 @@ def p_docstring_args(p):
         if p[1] is None:
             value = {}
         else:
-            value = {'FORMAT': pm.convert_docstring_format(p, 1)}
+            value = {'format': pm.convert_docstring_format(p, 1)}
     else:
         value = p[3]
 
@@ -475,12 +476,12 @@ def p_docstring_arg_list(p):
 
 
 def p_docstring_arg(p):
-    """docstring_arg : FORMAT '=' STRING
-    | SIGNATURE '=' STRING"""
+    """docstring_arg : format '=' STRING
+    | signature '=' STRING"""
 
     pm = p.parser.pm
 
-    if p[1] == 'FORMAT':
+    if p[1] == 'format':
         value = pm.convert_docstring_format(p, 3)
     else:
         value = pm.convert_docstring_signature(p, 3)
@@ -491,7 +492,7 @@ def p_docstring_arg(p):
 # %ExportedHeaderCode #########################################################
 
 def p_exported_header_code(p):
-    "exported_header_code : EXPHEADERCODE CODEBLOCK"
+    "exported_header_code : ExportedHeaderCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -504,7 +505,7 @@ def p_exported_header_code(p):
 # %ExportedTypeHintCode #######################################################
 
 def p_exported_type_hint_code(p):
-    "exported_type_hint_code : EXPTYPEHINTCODE CODEBLOCK"
+    "exported_type_hint_code : ExportedTypeHintCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -518,8 +519,8 @@ def p_exported_type_hint_code(p):
 # %Extract ####################################################################
 
 def p_extract(p):
-    """extract : EXTRACT NAME CODEBLOCK
-        | EXTRACT begin_args '(' extract_args end_args ')' CODEBLOCK"""
+    """extract : Extract NAME CODE_BLOCK
+        | Extract begin_args '(' extract_args end_args ')' CODE_BLOCK"""
 
     pm = p.parser.pm
 
@@ -534,12 +535,12 @@ def p_extract(p):
         args = p[4]
 
         try:
-            id = args['ID']
+            id = args['id']
         except KeyError:
             pm.parser_error(p, 1, "%Extract must specify 'id'")
             id = ''
 
-        order = args.get('ORDER', -1)
+        order = args.get('order', -1)
         part = p[7]
 
     pm.module_state.module.extracts.append(Extract(id, order, part))
@@ -556,8 +557,8 @@ def p_extract_args(p):
 
 
 def p_extract_arg(p):
-    """extract_arg : ID '=' NAME
-        | ORDER '=' NUMBER"""
+    """extract_arg : id '=' NAME
+        | order '=' NUMBER"""
 
     p[0] = {p[1]: p[3]}
 
@@ -565,8 +566,8 @@ def p_extract_arg(p):
 # %Feature ####################################################################
 
 def p_feature(p):
-    """feature : FEATURE NAME
-        | FEATURE begin_args '(' NAMEKW '=' NAME end_args ')'"""
+    """feature : Feature NAME
+        | Feature begin_args '(' name '=' NAME end_args ')'"""
 
     symbol = 2 if len(p) == 3 else 6
 
@@ -577,7 +578,7 @@ def p_feature(p):
 # %FinalisationCode ###########################################################
 
 def p_finalisation_code(p):
-    "finalisation_code : FINALCODE CODEBLOCK"
+    "finalisation_code : FinalisationCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -593,7 +594,7 @@ def p_finalisation_code(p):
 # %GCClearCode ################################################################
 
 def p_gc_clear_code(p):
-    "gc_clear_code : CLEARCODE CODEBLOCK"
+    "gc_clear_code : GCClearCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -609,7 +610,7 @@ def p_gc_clear_code(p):
 # %GCTraverseCode #############################################################
 
 def p_gc_traverse_code(p):
-    "gc_traverse_code : TRAVERSECODE CODEBLOCK"
+    "gc_traverse_code : GCTraverseCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -625,8 +626,8 @@ def p_gc_traverse_code(p):
 # %HiddenNamespace ############################################################
 
 def p_hidden_ns(p):
-    """hidden_ns : HIDE_NS scoped_name
-        | HIDE_NS begin_args '(' hidden_ns_args end_args ')'"""
+    """hidden_ns : HideNamespace scoped_name
+        | HideNamespace begin_args '(' hidden_ns_args end_args ')'"""
 
     pm = p.parser.pm
 
@@ -637,7 +638,7 @@ def p_hidden_ns(p):
         name = p[2]
     else:
         try:
-            name = p[4]['NAMEKW']
+            name = p[4]['name']
         except KeyError:
             pm.parser_error(p, 1,
                     "the name of the namespace has not been specified")
@@ -659,15 +660,15 @@ def p_hidden_ns_args(p):
 
 
 def p_hidden_ns_arg(p):
-    "hidden_ns_arg : NAMEKW '=' scoped_name"
+    "hidden_ns_arg : name '=' scoped_name"
 
     p[0] = {p[1]: p[3]}
 
 
 # %If/%End ####################################################################
 
-def p_ifstart(p):
-    "ifstart : IF '(' qualifiers ')'"
+def p_if_start(p):
+    "if_start : If '(' qualifiers ')'"
 
     pm = p.parser.pm
 
@@ -679,8 +680,8 @@ def p_ifstart(p):
     pm.skip_stack.append(skipping)
 
 
-def p_ifend(p):
-    "ifend : END"
+def p_if_end(p):
+    "if_end : End"
 
     pm = p.parser.pm
 
@@ -693,8 +694,8 @@ def p_ifend(p):
 # %Import #####################################################################
 
 def p_import(p):
-    """import : IMPORT need_eol import_simple EOL
-        | IMPORT begin_args '(' import_compound end_args ')'"""
+    """import : Import need_eol import_simple EOL
+        | Import begin_args '(' import_compound end_args ')'"""
 
 
 def p_import_simple(p):
@@ -717,7 +718,7 @@ def p_import_compound(p):
         return
 
     try:
-        sip_file = p[1]['NAMEKW']
+        sip_file = p[1]['name']
     except KeyError:
         pm.parser_error(p, 1, "the name of the file has not been specified")
 
@@ -735,7 +736,7 @@ def p_import_args(p):
 
 
 def p_import_arg(p):
-    "import_arg : NAMEKW '=' file_path"
+    "import_arg : name '=' file_path"
 
     p[0] = {p[1]: p[3]}
 
@@ -743,8 +744,8 @@ def p_import_arg(p):
 # %Include ####################################################################
 
 def p_include(p):
-    """include : INCLUDE need_eol include_simple EOL
-        | INCLUDE begin_args '(' include_compound end_args ')'"""
+    """include : Include need_eol include_simple EOL
+        | Include begin_args '(' include_compound end_args ')'"""
 
 
 def p_include_simple(p):
@@ -767,11 +768,11 @@ def p_include_compund(p):
         return
 
     try:
-        sip_file = p[1]['NAMEKW']
+        sip_file = p[1]['name']
     except KeyError:
         pm.parser_error(p, 1, "the name of the file has not been specified")
 
-    pm.push_file(p, 1, sip_file, optional=p[1].get('OPTIONAL', False))
+    pm.push_file(p, 1, sip_file, optional=p[1].get('optional', False))
 
 
 def p_include_args(p):
@@ -785,8 +786,8 @@ def p_include_args(p):
 
 
 def p_include_arg(p):
-    """include_arg : NAMEKW '=' file_path
-        | OPTIONAL '=' bool_value"""
+    """include_arg : name '=' file_path
+        | optional '=' bool_value"""
 
     p[0] = {p[1]: p[3]}
 
@@ -794,7 +795,7 @@ def p_include_arg(p):
 # %InitialisationCode #########################################################
 
 def p_init_code(p):
-    "init_code : INITCODE CODEBLOCK"
+    "init_code : InitialisationCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -807,7 +808,7 @@ def p_init_code(p):
 # %InstanceCode ###############################################################
 
 def p_instance_code(p):
-    "instance_code : INSTANCECODE CODEBLOCK"
+    "instance_code : InstanceCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -823,8 +824,8 @@ def p_instance_code(p):
 # %License ####################################################################
 
 def p_license(p):
-    """license : LICENSE STRING
-        | LICENSE begin_args '(' license_args end_args ')'"""
+    """license : License STRING
+        | License begin_args '(' license_args end_args ')'"""
 
     pm = p.parser.pm
 
@@ -840,16 +841,16 @@ def p_license(p):
         args = p[4]
 
         try:
-            license_type = args['TYPE']
+            license_type = args['type']
         except KeyError:
             pm.parser_error(p, 1, "%License must specify 'type'")
             license_type = ''
 
         license = License(license_type)
 
-        license.licensee = args.get('LICENSEE')
-        license.signature = args.get('SIGNATURE')
-        license.timestamp = args.get('TIMESTAMP')
+        license.licensee = args.get('licensee')
+        license.signature = args.get('signature')
+        license.timestamp = args.get('timestamp')
 
     pm.module_state.module.license = license
 
@@ -865,10 +866,10 @@ def p_license_args(p):
 
 
 def p_license_arg(p):
-    """license_arg : LICENSEE '=' STRING
-        | SIGNATURE '=' STRING
-        | TIMESTAMP '=' STRING
-        | TYPE '=' STRING"""
+    """license_arg : licensee '=' STRING
+        | signature '=' STRING
+        | timestamp '=' STRING
+        | type '=' STRING"""
 
     p[0] = {p[1]: p[3]}
 
@@ -889,7 +890,7 @@ _MAPPED_TYPE_ANNOTATIONS = (
 
 
 def p_mapped_type(p):
-    "mapped_type : mapped_type_decl '{' mapped_type_body '}' ';'"
+    "mapped_type : mapped_type_head '{' mapped_type_body '}' ';'"
 
     pm = p.parser.pm
 
@@ -902,7 +903,7 @@ def p_mapped_type(p):
 
 
 def p_mapped_type_template(p):
-    "mapped_type_template : mapped_type_template_decl '{' mapped_type_body '}' ';'"
+    "mapped_type_template : mapped_type_template_head '{' mapped_type_body '}' ';'"
 
     pm = p.parser.pm
 
@@ -914,8 +915,8 @@ def p_mapped_type_template(p):
     pm.pop_scope()
 
 
-def p_mapped_type_decl(p):
-    "mapped_type_decl : MAPPEDTYPE base_type opt_annos"
+def p_mapped_type_head(p):
+    "mapped_type_head : MappedType base_type opt_annos"
 
     pm = p.parser.pm
 
@@ -927,8 +928,8 @@ def p_mapped_type_decl(p):
     pm.add_mapped_type(p, 1, p[2], p[3])
 
 
-def p_mapped_type_template_decl(p):
-    "mapped_type_template_decl : template MAPPEDTYPE base_type opt_annos"
+def p_mapped_type_template_head(p):
+    "mapped_type_template_head : template_decl MappedType base_type opt_annos"
 
     # Note that we only use the template arguments to confirm that any simple
     # (ie. unscoped) names in the base type are to be substituted when the
@@ -967,11 +968,11 @@ def p_mapped_type_body(p):
 
 
 def p_mapped_type_line(p):
-    """mapped_type_line : ifstart
-        | ifend
+    """mapped_type_line : if_start
+        | if_end
         | convert_from_type_code
         | convert_to_type_code
-        | enum
+        | enum_decl
         | instance_code
         | mapped_type_function
         | release_code
@@ -980,7 +981,7 @@ def p_mapped_type_line(p):
 
 
 def p_mapped_type_function(p):
-    "mapped_type_function : STATIC cpp_type NAME '(' opt_arg_list ')' opt_const opt_exceptions opt_annos opt_signature ';' opt_docstring premethod_code method_code"
+    "mapped_type_function : static cpp_type NAME '(' opt_arg_list ')' opt_const opt_exceptions opt_annos opt_signature ';' opt_docstring premethod_code method_code"
 
     pm = p.parser.pm
 
@@ -1002,7 +1003,7 @@ def p_mapped_type_function(p):
 # %ModuleHeaderCode ###########################################################
 
 def p_module_header_code(p):
-    "module_header_code : MODHEADERCODE CODEBLOCK"
+    "module_header_code : ModuleHeaderCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1015,8 +1016,8 @@ def p_module_header_code(p):
 # %Module #####################################################################
 
 def p_module(p):
-    """module : MODULE dotted_name module_body
-        | MODULE begin_args '(' module_args end_args ')' module_body"""
+    """module : Module dotted_name module_body
+        | Module begin_args '(' module_args end_args ')' module_body"""
 
     pm = p.parser.pm
 
@@ -1041,14 +1042,14 @@ def p_module(p):
         return
 
     if len(p) == 4:
-        args = {'NAMEKW': p[2]}
+        args = {'name': p[2]}
         body = p[3]
     else:
         args = p[4]
         body = p[7]
 
     try:
-        module.fq_py_name = pm.cached_name(str(args['NAMEKW']))
+        module.fq_py_name = pm.cached_name(str(args['name']))
 
         if pm.in_main_module:
             module.fq_py_name.used = True
@@ -1056,26 +1057,28 @@ def p_module(p):
         pm.parser_error(p, 1, "the name of the module has not been specified")
 
     # Configure the current module.
-    module_state.all_raise_py_exception = args.get('ALLRAISEPYEXC', False)
-    module.default_virtual_error_handler = args.get('DEFERRORHANDLER')
-    module_state.call_super_init = args.get('CALLSUPERINIT')
-    module_state.kw_args = args.get('KWARGS', KwArgs.NONE)
+    module_state.all_raise_py_exception = args.get('all_raise_py_exception',
+            False)
+    module.default_virtual_error_handler = args.get(
+            'default_VirtualErrorHandler')
+    module_state.call_super_init = args.get('call_super_init')
+    module_state.kw_args = args.get('keyword_arguments', KwArgs.NONE)
 
-    c_bindings = args.get('LANGUAGE')
+    c_bindings = args.get('language')
     if c_bindings is not None:
         if pm.c_bindings is None:
             pm.c_bindings = c_bindings
         elif pm.c_bindings != c_bindings:
             pm.parser_error(p, 1, "cannot mix 'C' and 'C++' modules")
 
-    if 'PYSSIZETCLEAN' in args:
-        module.py_ssize_t_clean = args['PYSSIZETCLEAN']
+    if 'py_ssize_t_clean' in args:
+        module.py_ssize_t_clean = args['py_ssize_t_clean']
 
-    if 'USEARGNAMES' in args:
-        module.use_arg_names = args['USEARGNAMES']
+    if 'use_argument_names' in args:
+        module.use_arg_names = args['use_argument_names']
 
-    if 'USELIMITEDAPI' in args:
-        module.use_limited_api = args['USELIMITEDAPI']
+    if 'use_limited_api' in args:
+        module.use_limited_api = args['use_limited_api']
 
     for directive in body:
         if isinstance(directive, tuple):
@@ -1095,21 +1098,21 @@ def p_module_args(p):
 
 
 def p_module_arg(p):
-    """module_arg : ALLRAISEPYEXC '=' bool_value
-        | CALLSUPERINIT '=' bool_value
-        | DEFERRORHANDLER '=' NAME
-        | KWARGS '=' STRING
-        | LANGUAGE '=' STRING
-        | NAMEKW '=' dotted_name
-        | PYSSIZETCLEAN '=' bool_value
-        | USEARGNAMES '=' bool_value
-        | USELIMITEDAPI '=' bool_value"""
+    """module_arg : all_raise_py_exception '=' bool_value
+        | call_super_init '=' bool_value
+        | default_VirtualErrorHandler '=' NAME
+        | keyword_arguments '=' STRING
+        | language '=' STRING
+        | name '=' dotted_name
+        | py_ssize_t_clean '=' bool_value
+        | use_argument_names '=' bool_value
+        | use_limited_api '=' bool_value"""
 
     pm = p.parser.pm
 
-    if p[1] == 'KWARGS':
+    if p[1] == 'keyword_arguments':
         value = pm.convert_kw_args(p, 3)
-    elif p[1] == 'LANGUAGE':
+    elif p[1] == 'language':
         if p[3] == 'C':
             value = True
         elif p[3] == 'C++':
@@ -1144,8 +1147,8 @@ def p_module_body_directives(p):
 
 
 def p_module_body_directive(p):
-    """module_body_directive : ifstart
-        | ifend
+    """module_body_directive : if_start
+        | if_end
         | autopyname
         | docstring"""
 
@@ -1155,7 +1158,7 @@ def p_module_body_directive(p):
 # %ModuleCode #################################################################
 
 def p_module_code(p):
-    "module_code : MODCODE CODEBLOCK"
+    "module_code : ModuleCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1168,7 +1171,7 @@ def p_module_code(p):
 # %PickleCode #################################################################
 
 def p_pickle_code(p):
-    "pickle_code : PICKLECODE CODEBLOCK"
+    "pickle_code : PickleCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1184,7 +1187,7 @@ def p_pickle_code(p):
 # %Platforms ##################################################################
 
 def p_platforms(p):
-    "platforms : PLATFORMS '{' qualifier_list '}'"
+    "platforms : Platforms '{' qualifier_list '}'"
 
     pm = p.parser.pm
 
@@ -1208,7 +1211,7 @@ def p_platforms(p):
 # %Plugin #####################################################################
 
 def p_plugin(p):
-    "plugin : PLUGIN NAME"
+    "plugin : Plugin NAME"
 
     pm = p.parser.pm
 
@@ -1221,7 +1224,7 @@ def p_plugin(p):
 # %PostInitialisationCode #####################################################
 
 def p_postinit_code(p):
-    "postinit_code : POSTINITCODE CODEBLOCK"
+    "postinit_code : PostInitialisationCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1234,7 +1237,7 @@ def p_postinit_code(p):
 # %PreInitialisationCode ######################################################
 
 def p_preinit_code(p):
-    "preinit_code : PREINITCODE CODEBLOCK"
+    "preinit_code : PreInitialisationCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1247,14 +1250,14 @@ def p_preinit_code(p):
 # %Property ###################################################################
 
 def p_property(p):
-    "property : PROPERTY '(' property_args ')' '{' property_body '}' ';'"
+    "property : Property '(' property_args ')' '{' property_body '}' ';'"
 
     pm = p.parser.pm
 
     if pm.skipping:
         return
 
-    name = p[3].get('NAMEKW')
+    name = p[3].get('name')
     if name is None:
         p.parser.pm.parser_error(p, 1,
                 "a name must be specified for %Property")
@@ -1266,13 +1269,13 @@ def p_property(p):
     if pm.in_main_module:
         name.used = True
 
-    getter = p[3].get('GET')
+    getter = p[3].get('get')
     if getter is None:
         p.parser.pm.parser_error(p, 1,
                 "a getter must be specified for %Property")
         return
 
-    prop = Property(name=name, getter=getter, setter=p[3].get('SET'))
+    prop = Property(name=name, getter=getter, setter=p[3].get('set'))
 
     for directive in body:
         if isinstance(directive, Docstring):
@@ -1292,9 +1295,9 @@ def p_property_args(p):
 
 
 def p_property_arg(p):
-    """property_arg : GET '=' NAME
-        | NAMEKW '=' NAME
-        | SET '=' NAME"""
+    """property_arg : get '=' NAME
+        | name '=' NAME
+        | set '=' NAME"""
 
     p[0] = {p[1]: p[3]}
 
@@ -1317,8 +1320,8 @@ def p_property_body(p):
 
 
 def p_property_line(p):
-    """property_line : ifstart
-        | ifend
+    """property_line : if_start
+        | if_end
         | docstring"""
 
     p[0] = p[1]
@@ -1327,7 +1330,7 @@ def p_property_line(p):
 # %ReleaseCode ################################################################
 
 def p_release_code(p):
-    "release_code : RELEASE CODEBLOCK"
+    "release_code : ReleaseCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1343,7 +1346,7 @@ def p_release_code(p):
 # %Timeline ###################################################################
 
 def p_timeline(p):
-    "timeline : TIMELINE '{' qualifier_list '}'"
+    "timeline : Timeline '{' qualifier_list '}'"
 
     pm = p.parser.pm
 
@@ -1373,7 +1376,7 @@ def p_timeline(p):
 # %TypeCode ###################################################################
 
 def p_type_code(p):
-    "type_code : TYPECODE CODEBLOCK"
+    "type_code : TypeCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1386,7 +1389,7 @@ def p_type_code(p):
 # %TypeHeaderCode #############################################################
 
 def p_type_header_code(p):
-    "type_header_code : TYPEHEADERCODE CODEBLOCK"
+    "type_header_code : TypeHeaderCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1399,7 +1402,7 @@ def p_type_header_code(p):
 # %TypeHintCode ###############################################################
 
 def p_type_hint_code(p):
-    "type_hint_code : TYPEHINTCODE CODEBLOCK"
+    "type_hint_code : TypeHintCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1422,7 +1425,7 @@ def p_type_hint_code(p):
 # %UnitCode ###################################################################
 
 def p_unit_code(p):
-    "unit_code : UNITCODE CODEBLOCK"
+    "unit_code : UnitCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1435,7 +1438,7 @@ def p_unit_code(p):
 # %UnitPostIncludeCode ########################################################
 
 def p_unit_postinclude_code(p):
-    "unit_postinclude_code : UNITPOSTINCLUDECODE CODEBLOCK"
+    "unit_postinclude_code : UnitPostIncludeCode CODE_BLOCK"
 
     pm = p.parser.pm
 
@@ -1448,8 +1451,8 @@ def p_unit_postinclude_code(p):
 # %VirtualErrorHandler ########################################################
 
 def p_virtual_error_handler(p):
-    """virtual_error_handler : VIRTERRORHANDLER NAME CODEBLOCK
-        | VIRTERRORHANDLER begin_args '(' veh_args end_args ')' CODEBLOCK"""
+    """virtual_error_handler : VirtualErrorHandler NAME CODE_BLOCK
+        | VirtualErrorHandler begin_args '(' veh_args end_args ')' CODE_BLOCK"""
 
     pm = p.parser.pm
 
@@ -1460,7 +1463,7 @@ def p_virtual_error_handler(p):
         name = p[2]
         code = p[3]
     else:
-        name = p[4].get('NAMEKW')
+        name = p[4].get('name')
         if name is None:
             pm.parser_error(p, 1,
                     "a name must be specified for %VirtualErrorHandler")
@@ -1489,7 +1492,7 @@ def p_veh_args(p):
 
 
 def p_veh_arg(p):
-    "veh_arg : NAMEKW '=' NAME"
+    "veh_arg : name '=' NAME"
 
     p[0] = {p[1]: p[3]}
 
@@ -1497,7 +1500,7 @@ def p_veh_arg(p):
 # A C/C++ type. ###############################################################
 
 def p_cpp_type(p):
-    """cpp_type : CONST base_type derefs opt_ref
+    """cpp_type : const base_type derefs opt_ref
         | base_type derefs opt_ref"""
 
     if len(p) == 5:
@@ -1517,8 +1520,8 @@ def p_base_type(p):
     """base_type : pod_type
         | scoped_name
         | scoped_name '<' cpp_types '>'
-        | STRUCT scoped_name
-        | UNION scoped_name"""
+        | struct scoped_name
+        | union scoped_name"""
 
     if isinstance(p[1], ArgumentType):
         p[0] = Argument(p[1])
@@ -1544,7 +1547,7 @@ def p_base_type(p):
         # In a C module all structs and unions must be defined.
         if bool(p.parser.pm.c_bindings):
             type = ArgumentType.DEFINED
-        elif p[1] == 'STRUCT':
+        elif p[1] == 'struct':
             type = ArgumentType.STRUCT
         else:
             type = ArgumentType.UNION
@@ -1557,78 +1560,80 @@ def p_base_type(p):
 
 # Map unsigned two-word POD types.
 _UNSIGNED_MAP = {
-    'CHAR':     ArgumentType.USTRING,
-    'INT':      ArgumentType.UINT,
-    'LONG':     ArgumentType.ULONG,
-    'SHORT':    ArgumentType.USHORT,
+    'char':     ArgumentType.USTRING,
+    'int':      ArgumentType.UINT,
+    'long':     ArgumentType.ULONG,
+    'short':    ArgumentType.USHORT,
 }
 
 # Map one-word POD types.
 _ONE_WORD_MAP = {
-    '...':          ArgumentType.ELLIPSIS,
-    'BOOL':         ArgumentType.BOOL,
-    'CHAR':         ArgumentType.STRING,
-    'DOUBLE':       ArgumentType.DOUBLE,
-    'FLOAT':        ArgumentType.FLOAT,
-    'INT':          ArgumentType.INT,
-    'LONG':         ArgumentType.LONG,
-    'PYBUFFER':     ArgumentType.PYBUFFER,
-    'PYCALLABLE':   ArgumentType.PYCALLABLE,
-    'PYDICT':       ArgumentType.PYDICT,
-    'PYENUM':       ArgumentType.PYENUM,
-    'PYHASHT':      ArgumentType.HASH,
-    'PYLIST':       ArgumentType.PYLIST,
-    'PYOBJECT':     ArgumentType.PYOBJECT,
-    'PYSLICE':      ArgumentType.PYSLICE,
-    'PYTUPLE':      ArgumentType.PYTUPLE,
-    'PYTYPE':       ArgumentType.PYTYPE,
-    'PYSSIZET':     ArgumentType.SSIZE,
-    'SHORT':        ArgumentType.SHORT,
-    'SIZET':        ArgumentType.SIZE,
-    'UNSIGNED':     ArgumentType.UINT,
-    'VOID':         ArgumentType.VOID,
-    'WCHAR_T':      ArgumentType.WSTRING,
+    '...':              ArgumentType.ELLIPSIS,
+    'void':             ArgumentType.VOID,
+    'bool':             ArgumentType.BOOL,
+    'char':             ArgumentType.STRING,
+    'double':           ArgumentType.DOUBLE,
+    'float':            ArgumentType.FLOAT,
+    'short':            ArgumentType.SHORT,
+    'int':              ArgumentType.INT,
+    'unsigned':         ArgumentType.UINT,
+    'long':             ArgumentType.LONG,
+    'size_t':           ArgumentType.SIZE,
+    'wchar_t':          ArgumentType.WSTRING,
+    'Py_hash_t':        ArgumentType.HASH,
+    'Py_ssize_t':       ArgumentType.SSIZE,
+    'SIP_PYBUFFER':     ArgumentType.PYBUFFER,
+    'SIP_PYCALLABLE':   ArgumentType.PYCALLABLE,
+    'SIP_PYDICT':       ArgumentType.PYDICT,
+    'SIP_PYENUM':       ArgumentType.PYENUM,
+    'SIP_PYLIST':       ArgumentType.PYLIST,
+    'SIP_PYOBJECT':     ArgumentType.PYOBJECT,
+    'SIP_PYSLICE':      ArgumentType.PYSLICE,
+    'SIP_PYTUPLE':      ArgumentType.PYTUPLE,
+    'SIP_PYTYPE':       ArgumentType.PYTYPE,
+    'SIP_SSIZE_T':      ArgumentType.SSIZE,
 }
 
 
 def p_pod_type(p):
-    """pod_type : UNSIGNED LONG LONG
-        | SIGNED CHAR
-        | LONG LONG
-        | UNSIGNED CHAR
-        | UNSIGNED SHORT
-        | UNSIGNED INT
-        | UNSIGNED LONG
-        | UNSIGNED
-        | SHORT
-        | INT
-        | LONG
-        | FLOAT
-        | DOUBLE
-        | BOOL
-        | CHAR
-        | WCHAR_T
-        | VOID
-        | PYOBJECT
-        | PYTUPLE
-        | PYLIST
-        | PYDICT
-        | PYCALLABLE
-        | PYSLICE
-        | PYTYPE
-        | PYBUFFER
-        | PYENUM
-        | PYHASHT
-        | PYSSIZET
-        | SIZET
+    """pod_type : unsigned long long
+        | signed char
+        | long long
+        | unsigned char
+        | unsigned short
+        | unsigned int
+        | unsigned long
+        | unsigned
+        | short
+        | int
+        | long
+        | float
+        | double
+        | bool
+        | char
+        | wchar_t
+        | void
+        | SIP_PYOBJECT
+        | SIP_PYTUPLE
+        | SIP_PYLIST
+        | SIP_PYDICT
+        | SIP_PYCALLABLE
+        | SIP_PYSLICE
+        | SIP_PYTYPE
+        | SIP_PYBUFFER
+        | SIP_PYENUM
+        | SIP_SSIZE_T
+        | Py_hash_t
+        | Py_ssize_t
+        | size_t
         | ELLIPSIS"""
 
     if len(p) == 4:
         p[0] = ArgumentType.ULONGLONG
     elif len(p) == 3:
-        if p[1] == 'SIGNED':
+        if p[1] == 'signed':
             p[0] = ArgumentType.SSTRING
-        elif p[1] == 'LONG':
+        elif p[1] == 'long':
             p[0] = ArgumentType.LONGLONG
         else:
             p[0] = _UNSIGNED_MAP[p[2]]
@@ -1654,7 +1659,7 @@ def p_cpp_types(p):
 def p_derefs(p):
     """derefs : empty
         | derefs '*'
-        | derefs '*' CONST"""
+        | derefs '*' const"""
 
     if len(p) == 2:
         p[0] = []
@@ -1705,7 +1710,7 @@ _CLASS_ANNOTATIONS = (
 
 
 def p_class_template(p):
-    "class_template : template class"
+    "class_template : template_decl class_decl"
 
     pm = p.parser.pm
 
@@ -1717,8 +1722,8 @@ def p_class_template(p):
     pm.class_templates.append((p[1], p[2]))
 
 
-def p_class(p):
-    "class : CLASS class_decl opt_class_body ';'"
+def p_class_decl(p):
+    "class_decl : class class_head opt_class_body ';'"
 
     pm = p.parser.pm
 
@@ -1729,8 +1734,8 @@ def p_class(p):
     p[0] = pm.complete_class(p, 2, p[2], p[3])
 
 
-def p_class_decl(p):
-    "class_decl : scoped_name superclasses opt_annos"
+def p_class_head(p):
+    "class_head : scoped_name superclasses opt_annos"
 
     pm = p.parser.pm
 
@@ -1748,8 +1753,8 @@ def p_class_decl(p):
     p[0] = p[3]
 
 
-def p_struct(p):
-    "struct : STRUCT struct_decl opt_class_body ';'"
+def p_struct_decl(p):
+    "struct_decl : struct struct_head opt_class_body ';'"
 
     pm = p.parser.pm
 
@@ -1759,8 +1764,8 @@ def p_struct(p):
     pm.complete_class(p, 2, p[2], p[3])
 
 
-def p_struct_decl(p):
-    "struct_decl : scoped_name superclasses opt_annos"
+def p_struct_head(p):
+    "struct_head : scoped_name superclasses opt_annos"
 
     pm = p.parser.pm
 
@@ -1807,7 +1812,7 @@ def p_superclass(p):
     if pm.skipping:
         return
 
-    if p[1] != 'PUBLIC':
+    if p[1] != 'public':
         p[0] = None
         return
 
@@ -1829,12 +1834,12 @@ def p_superclass(p):
 
 def p_class_access(p):
     """class_access : empty
-        | PUBLIC
-        | PROTECTED
-        | PRIVATE"""
+        | public
+        | protected
+        | private"""
 
     if p[1] is None:
-        p[1] = 'PUBLIC'
+        p[1] = 'public'
 
     p[0] = p[1]
 
@@ -1861,18 +1866,18 @@ def p_class_body(p):
 
 
 def p_class_line(p):
-    """class_line : ifstart
-        | ifend
-        | class
+    """class_line : if_start
+        | if_end
+        | class_decl
         | ctor
         | dtor
-        | enum
+        | enum_decl
         | exception
-        | typedef
+        | typedef_decl
         | method_variable
-        | namespace
-        | struct
-        | union
+        | namespace_decl
+        | struct_decl
+        | union_decl
         | public_specifier
         | protected_specifier
         | private_specifier
@@ -1891,10 +1896,10 @@ def p_class_line(p):
         | type_code
         | type_header_code
         | type_hint_code
-        | READBUFFERCODE CODEBLOCK
-        | WRITEBUFFERCODE CODEBLOCK
-        | SEGCOUNTCODE CODEBLOCK
-        | CHARBUFFERCODE CODEBLOCK"""
+        | BIGetReadBufferCode CODE_BLOCK
+        | BIGetWriteBufferCode CODE_BLOCK
+        | BIGetSegCountCode CODE_BLOCK
+        | BIGetCharBufferCode CODE_BLOCK"""
 
 
 # The ctor annotations.
@@ -1915,7 +1920,7 @@ _CTOR_ANNOTATIONS = (
 
 
 def p_ctor(p):
-    """ctor : EXPLICIT ctor_decl
+    """ctor : explicit ctor_decl
         | ctor_decl"""
 
     pm = p.parser.pm
@@ -1976,8 +1981,8 @@ def p_dtor(p):
 
 
 def p_method_variable(p):
-    """method_variable : SIGNAL_METHOD simple_method_variable
-        | SLOT_METHOD simple_method_variable
+    """method_variable : Q_SIGNAL simple_method_variable
+        | Q_SLOT simple_method_variable
         | simple_method_variable"""
 
     pm = p.parser.pm
@@ -1986,7 +1991,7 @@ def p_method_variable(p):
         item = p[2]
 
         if isinstance(item, Overload):
-            item.pyqt_method_specifier = PyQtMethodSpecifier.SIGNAL if p[1] == 'SIGNAL_METHOD' else PyQtMethodSpecifier.SLOT
+            item.pyqt_method_specifier = PyQtMethodSpecifier.SIGNAL if p[1] == 'Q_SIGNAL' else PyQtMethodSpecifier.SLOT
         else:
             pm.parser_error(p, 1,
                     "a PyQt method specifier can only be applied to member functions")
@@ -2000,15 +2005,15 @@ def p_method_variable(p):
 
 
 def p_simple_method_variable(p):
-    """simple_method_variable : VIRTUAL function
-        | STATIC plain_method_variable
+    """simple_method_variable : virtual function
+        | static plain_method_variable
         | plain_method_variable"""
 
     if len(p) == 3:
         item = p[2]
 
         if item is not None:
-            if p[1] == 'STATIC':
+            if p[1] == 'static':
                 item.is_static = True
             elif not item.is_final:
                 item.is_virtual = True
@@ -2027,7 +2032,7 @@ def p_plain_method_variable(p):
 
 
 def p_public_specifier(p):
-    "public_specifier : PUBLIC opt_slots ':'"
+    "public_specifier : public opt_slots ':'"
 
     pm = p.parser.pm
 
@@ -2039,7 +2044,7 @@ def p_public_specifier(p):
 
 
 def p_protected_specifier(p):
-    "protected_specifier : PROTECTED opt_slots ':'"
+    "protected_specifier : protected opt_slots ':'"
 
     pm = p.parser.pm
 
@@ -2051,7 +2056,7 @@ def p_protected_specifier(p):
 
 
 def p_private_specifier(p):
-    "private_specifier : PRIVATE opt_slots ':'"
+    "private_specifier : private opt_slots ':'"
 
     pm = p.parser.pm
 
@@ -2063,7 +2068,8 @@ def p_private_specifier(p):
 
 
 def p_signals_specifier(p):
-    "signals_specifier : SIGNALS ':'"
+    """signals_specifier : signals ':'
+        | Q_SIGNALS ':'"""
 
     pm = p.parser.pm
 
@@ -2075,7 +2081,8 @@ def p_signals_specifier(p):
 
 
 def p_opt_slots(p):
-    """opt_slots : SLOTS
+    """opt_slots : slots
+        | Q_SLOTS
         | empty"""
 
     p[0] = None if p[1] is None else PyQtMethodSpecifier.SLOT
@@ -2098,8 +2105,8 @@ _ENUM_MEMBER_ANNOTATIONS = (
 )
 
 
-def p_enum(p):
-    "enum : ENUM opt_enum_key opt_name opt_annos '{' opt_enum_body '}' ';'"
+def p_enum_decl(p):
+    "enum_decl : enum opt_enum_key opt_name opt_annos '{' opt_enum_body '}' ';'"
 
     pm = p.parser.pm
 
@@ -2112,9 +2119,9 @@ def p_enum(p):
 
 
 def p_opt_enum_key(p):
-    """opt_enum_key : CLASS
-        | STRUCT
-        | UNION
+    """opt_enum_key : class
+        | struct
+        | union
         | empty"""
 
     # Return True if the enum is scoped.
@@ -2144,8 +2151,8 @@ def p_enum_body(p):
 
 
 def p_enum_line(p):
-    """enum_line : ifstart
-        | ifend
+    """enum_line : if_start
+        | if_end
         | NAME opt_enum_assign opt_annos opt_comma"""
 
     pm = p.parser.pm
@@ -2183,7 +2190,7 @@ _EXCEPTION_ANNOTATIONS = (
 
 
 def p_exception(p):
-    "exception : EXCEPTION scoped_name opt_base_exception opt_annos '{' exception_body '}' ';'"
+    "exception : Exception scoped_name opt_base_exception opt_annos '{' exception_body '}' ';'"
 
     pm = p.parser.pm
 
@@ -2269,10 +2276,10 @@ def p_exception_body(p):
 
 
 def p_exception_line(p):
-    """exception_line : ifstart
-        | ifend
-        | RAISECODE CODEBLOCK
-        | TYPEHEADERCODE CODEBLOCK"""
+    """exception_line : if_start
+        | if_end
+        | RaiseCode CODE_BLOCK
+        | TypeHeaderCode CODE_BLOCK"""
 
     p[0] = {} if len(p) == 2 or p.parser.pm.skipping else {p[1]: p[2]}
 
@@ -2344,7 +2351,7 @@ def p_function_decl(p):
 
 
 def p_assignment_operator_decl(p):
-    "assignment_operator_decl : cpp_type OPERATOR '=' '(' cpp_type ')' ';'"
+    "assignment_operator_decl : cpp_type operator '=' '(' cpp_type ')' ';'"
 
     pm = p.parser.pm
 
@@ -2359,7 +2366,7 @@ def p_assignment_operator_decl(p):
 
 
 def p_operator_decl(p):
-    "operator_decl : cpp_type OPERATOR operator_name '(' opt_arg_list ')' opt_const opt_final opt_exceptions opt_abstract opt_annos opt_signature ';' premethod_code method_code virtual_catcher_code virtual_call_code"
+    "operator_decl : cpp_type operator operator_name '(' opt_arg_list ')' opt_const opt_final opt_exceptions opt_abstract opt_annos opt_signature ';' premethod_code method_code virtual_catcher_code virtual_call_code"
 
     pm = p.parser.pm
 
@@ -2411,7 +2418,7 @@ _FLOAT_TYPES = (
 )
 
 def p_operator_cast_decl(p):
-    "operator_cast_decl : OPERATOR cpp_type '(' opt_arg_list ')' opt_const opt_final opt_exceptions opt_abstract opt_annos opt_signature ';' premethod_code method_code virtual_catcher_code virtual_call_code"
+    "operator_cast_decl : operator cpp_type '(' opt_arg_list ')' opt_const opt_final opt_exceptions opt_abstract opt_annos opt_signature ';' premethod_code method_code virtual_catcher_code virtual_call_code"
 
     pm = p.parser.pm
 
@@ -2615,7 +2622,7 @@ def p_simple_value(p):
         | function_call_value
         | null_value
         | number_value
-        | qchar_value
+        | quoted_char_value
         | real_value
         | scoped_name_value
         | string_value"""
@@ -2648,8 +2655,8 @@ def p_number_value(p):
     p[0] = Value(ValueType.NUMERIC, p[1])
 
 
-def p_qchar_value(p):
-    "qchar_value : QCHAR"
+def p_quoted_char_value(p):
+    "quoted_char_value : QUOTED_CHAR"
 
     p[0] = Value(ValueType.QCHAR, p[1])
 
@@ -2724,12 +2731,12 @@ def p_opt_unop(p):
 
 def p_opt_exceptions(p):
     """opt_exceptions : empty
-        | NOEXCEPT
-        | THROW '(' opt_exception_list ')'"""
+        | noexcept
+        | throw '(' opt_exception_list ')'"""
 
-    if p[1] == 'THROW':
+    if p[1] == 'throw':
         p[0] = p[3]
-    elif p[1] == 'NOEXCEPT':
+    elif p[1] == 'noexcept':
         p[0] = ThrowArguments()
     else:
         p[0] = None
@@ -2848,28 +2855,28 @@ def p_operator_name(p):
 
 
 def p_method_code(p):
-    """method_code : METHODCODE CODEBLOCK
+    """method_code : MethodCode CODE_BLOCK
         | empty"""
 
     p[0] = p[2] if len(p) == 3 else None
 
 
 def p_premethod_code(p):
-    """premethod_code : PREMETHODCODE CODEBLOCK
+    """premethod_code : PreMethodCode CODE_BLOCK
         | empty"""
 
     p[0] = p[2] if len(p) == 3 else None
 
 
 def p_virtual_call_code(p):
-    """virtual_call_code : VIRTUALCALLCODE CODEBLOCK
+    """virtual_call_code : VirtualCallCode CODE_BLOCK
         | empty"""
 
     p[0] = p[2] if len(p) == 3 else None
 
 
 def p_virtual_catcher_code(p):
-    """virtual_catcher_code : VIRTUALCATCHERCODE CODEBLOCK
+    """virtual_catcher_code : VirtualCatcherCode CODE_BLOCK
         | empty"""
 
     p[0] = p[2] if len(p) == 3 else None
@@ -2883,8 +2890,8 @@ _NAMESPACE_ANNOTATIONS = (
 )
 
 
-def p_namespace(p):
-    "namespace : NAMESPACE namespace_decl opt_ns_body ';'"
+def p_namespace_decl(p):
+    "namespace_decl : namespace namespace_head opt_namespace_body ';'"
 
     pm = p.parser.pm
 
@@ -2898,8 +2905,8 @@ def p_namespace(p):
     pm.pop_scope()
 
 
-def p_namespace_decl(p):
-    "namespace_decl : scoped_name opt_annos"
+def p_namespace_head(p):
+    "namespace_head : scoped_name opt_annos"
 
     pm = p.parser.pm
 
@@ -2916,14 +2923,14 @@ def p_namespace_decl(p):
 
     pm.push_scope(namespace)
 
-def p_opt_ns_body(p):
-    """opt_ns_body : '{' ns_body '}'
+def p_opt_namespace_body(p):
+    """opt_namespace_body : '{' namespace_body '}'
         | empty"""
 
 
-def p_ns_body(p):
-    """ns_body : ns_statement
-        | ns_body ns_statement"""
+def p_namespace_body(p):
+    """namespace_body : namespace_statement
+        | namespace_body namespace_statement"""
 
 
 # C/C++ typedefs. #############################################################
@@ -2941,9 +2948,9 @@ _TYPEDEF_ANNOTATIONS = (
 )
 
 
-def p_typedef(p):
-    """typedef : TYPEDEF cpp_type NAME opt_annos ';' opt_docstring
-        | TYPEDEF cpp_type '(' '*' NAME ')' '(' cpp_types ')' opt_annos ';' opt_docstring"""
+def p_typedef_decl(p):
+    """typedef_decl : typedef cpp_type NAME opt_annos ';' opt_docstring
+        | typedef cpp_type '(' '*' NAME ')' '(' cpp_types ')' opt_annos ';' opt_docstring"""
 
     pm = p.parser.pm
 
@@ -3021,8 +3028,8 @@ _UNION_ANNOTATIONS = (
 )
 
 
-def p_union(p):
-    "union : UNION union_decl opt_class_body ';'"
+def p_union_decl(p):
+    "union_decl : union union_head opt_class_body ';'"
 
     pm = p.parser.pm
 
@@ -3032,8 +3039,8 @@ def p_union(p):
     pm.complete_class(p, 2, p[2], p[3])
 
 
-def p_union_decl(p):
-    "union_decl : scoped_name opt_annos"
+def p_union_head(p):
+    "union_head : scoped_name opt_annos"
 
     pm = p.parser.pm
 
@@ -3120,11 +3127,11 @@ def p_variable_body_directives(p):
 
 
 def p_variable_body_directive(p):
-    """variable_body_directive : ifstart
-        | ifend
-        | ACCESSCODE CODEBLOCK
-        | GETCODE CODEBLOCK
-        | SETCODE CODEBLOCK"""
+    """variable_body_directive : if_start
+        | if_end
+        | AccessCode CODE_BLOCK
+        | GetCode CODE_BLOCK
+        | SetCode CODE_BLOCK"""
 
     p[0] = {} if len(p) == 2 or p.parser.pm.skipping else {p[1]: p[2]}
 
@@ -3202,8 +3209,8 @@ def p_relative_scoped_name(p):
 
 # The remaining value productions. ############################################
 
-def p_template(p):
-    "template : TEMPLATE '<' cpp_types '>'"
+def p_template_decl(p):
+    "template_decl : template '<' cpp_types '>'"
 
     pm = p.parser.pm
 
@@ -3214,8 +3221,10 @@ def p_template(p):
 
 
 def p_bool_value(p):
-    """bool_value : TRUE
-        | FALSE"""
+    """bool_value : true
+        | True
+        | false
+        | False"""
 
     p[0] = (p[1].lower() == 'true')
 
@@ -3257,7 +3266,7 @@ def p_file_path(p):
 
 
 def p_opt_const(p):
-    """opt_const : CONST
+    """opt_const : const
         | empty"""
 
     p[0] = p[1] is not None
@@ -3271,7 +3280,7 @@ def p_opt_docstring(p):
 
 
 def p_opt_final(p):
-    """opt_final : FINAL
+    """opt_final : final
         | empty"""
 
     p[0] = p[1] is not None
@@ -3285,7 +3294,7 @@ def p_opt_name(p):
 
 
 def p_opt_virtual(p):
-    """opt_virtual : VIRTUAL
+    """opt_virtual : virtual
         | empty"""
 
     pm = p.parser.pm
@@ -3300,8 +3309,8 @@ def p_opt_virtual(p):
 def p_ored_qualifiers(p):
     """ored_qualifiers : NAME
         | '!' NAME
-        | ored_qualifiers LOGICALOR NAME
-        | ored_qualifiers LOGICALOR '!' NAME"""
+        | ored_qualifiers LOGICAL_OR NAME
+        | ored_qualifiers LOGICAL_OR '!' NAME"""
 
     pm = p.parser.pm
 

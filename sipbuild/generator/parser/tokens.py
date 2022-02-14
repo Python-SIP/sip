@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -37,180 +37,74 @@ states = (
 literals = '(){}.,;:=!-+*/&|~<>[]%^'
 
 
-# The map of non-code directives and corresponding tokens.
+# The non-code directives.
 directives = {
-    'AutoPyName':                   'AUTOPYNAME',
-    'CompositeModule':              'COMPOMODULE',
-    'DefaultDocstringFormat':       'DEFDOCSTRFMT',
-    'DefaultDocstringSignature':    'DEFDOCSTRSIG',
-    'DefaultEncoding':              'DEFENCODING',
-    'DefaultMetatype':              'DEFMETATYPE',
-    'DefaultSupertype':             'DEFSUPERTYPE',
-    'End':                          'END',
-    'Exception':                    'EXCEPTION',
-    'Feature':                      'FEATURE',
-    'HideNamespace':                'HIDE_NS',
-    'If':                           'IF',
-    'Import':                       'IMPORT',
-    'Include':                      'INCLUDE',
-    'License':                      'LICENSE',
-    'MappedType':                   'MAPPEDTYPE',
-    'Module':                       'MODULE',
-    'Platforms':                    'PLATFORMS',
-    'Plugin':                       'PLUGIN',       # Remove in SIP v7.
-    'Property':                     'PROPERTY',
-    'Timeline':                     'TIMELINE',
+    'AutoPyName', 'CompositeModule', 'DefaultDocstringFormat',
+    'DefaultDocstringSignature', 'DefaultEncoding', 'DefaultMetatype',
+    'DefaultSupertype', 'End', 'Exception', 'Feature', 'HideNamespace', 'If',
+    'Import', 'Include', 'License', 'MappedType', 'Module', 'Platforms',
+    'Property', 'Timeline',
+
+    # Remove in SIP v7.
+    'Plugin',
 }
 
 
-# The map of code directives and corresponding tokens.
+# The code directives.
 code_directives = {
-    'AccessCode':               'ACCESSCODE',
-    'BIGetBufferCode':          'GETBUFFERCODE',
-    'BIGetCharBufferCode':      'CHARBUFFERCODE',   # Remove in SIP v7.
-    'BIGetReadBufferCode':      'READBUFFERCODE',   # Remove in SIP v7.
-    'BIGetSegCountCode':        'SEGCOUNTCODE',     # Remove in SIP v7.
-    'BIGetWriteBufferCode':     'WRITEBUFFERCODE',  # Remove in SIP v7.
-    'BIReleaseBufferCode':      'RELEASEBUFFERCODE',
-    'ConvertFromTypeCode':      'FROMTYPE',
-    'ConvertToSubClassCode':    'TOSUBCLASS',
-    'ConvertToTypeCode':        'TOTYPE',
-    'Copying':                  'COPYING',
-    'Docstring':                'DOCSTRING',
-    'ExportedHeaderCode':       'EXPHEADERCODE',
-    'ExportedTypeHintCode':     'EXPTYPEHINTCODE',
-    'Extract':                  'EXTRACT',
-    'FinalisationCode':         'FINALCODE',
-    'GCClearCode':              'CLEARCODE',
-    'GCTraverseCode':           'TRAVERSECODE',
-    'GetCode':                  'GETCODE',
-    'InitialisationCode':       'INITCODE',
-    'InstanceCode':             'INSTANCECODE',
-    'MethodCode':               'METHODCODE',
-    'ModuleCode':               'MODCODE',
-    'ModuleHeaderCode':         'MODHEADERCODE',
-    'PickleCode':               'PICKLECODE',
-    'PostInitialisationCode':   'POSTINITCODE',
-    'PreInitialisationCode':    'PREINITCODE',
-    'PreMethodCode':            'PREMETHODCODE',
-    'RaiseCode':                'RAISECODE',
-    'ReleaseCode':              'RELEASE',
-    'SetCode':                  'SETCODE',
-    'TypeCode':                 'TYPECODE',
-    'TypeHeaderCode':           'TYPEHEADERCODE',
-    'TypeHintCode':             'TYPEHINTCODE',
-    'UnitCode':                 'UNITCODE',
-    'UnitPostIncludeCode':      'UNITPOSTINCLUDECODE',
-    'VirtualCallCode':          'VIRTUALCALLCODE',
-    'VirtualCatcherCode':       'VIRTUALCATCHERCODE',
-    'VirtualErrorHandler':      'VIRTERRORHANDLER',
+    'AccessCode', 'BIGetBufferCode', 'BIReleaseBufferCode',
+    'ConvertFromTypeCode', 'ConvertToSubClassCode', 'ConvertToTypeCode',
+    'Copying', 'Docstring', 'ExportedHeaderCode', 'ExportedTypeHintCode',
+    'Extract', 'FinalisationCode', 'GCClearCode', 'GCTraverseCode', 'GetCode',
+    'InitialisationCode', 'InstanceCode', 'MethodCode', 'ModuleCode',
+    'ModuleHeaderCode', 'PickleCode', 'PostInitialisationCode',
+    'PreInitialisationCode', 'PreMethodCode', 'RaiseCode', 'ReleaseCode',
+    'SetCode', 'TypeCode', 'TypeHeaderCode', 'TypeHintCode', 'UnitCode',
+    'UnitPostIncludeCode', 'VirtualCallCode', 'VirtualCatcherCode',
+    'VirtualErrorHandler',
+
+    # Remove in SIP v7.
+    'BIGetCharBufferCode', 'BIGetReadBufferCode', 'BIGetSegCountCode',
+    'BIGetWriteBufferCode',
 }
 
 
-# The map of plain keywords and corresponding tokens.
+# The plain keywords.
 keywords = {
-    'bool':             'BOOL',
-    'char':             'CHAR',
-    'class':            'CLASS',
-    'const':            'CONST',
-    'double':           'DOUBLE',
-    'enum':             'ENUM',
-    'explicit':         'EXPLICIT',
-    'false':            'FALSE',
-    'final':            'FINAL',
-    'float':            'FLOAT',
-    'int':              'INT',
-    'long':             'LONG',
-    'namespace':        'NAMESPACE',
-    'noexcept':         'NOEXCEPT',
-    'NULL':             'NULL',
-    'operator':         'OPERATOR',
-    'private':          'PRIVATE',
-    'protected':        'PROTECTED',
-    'public':           'PUBLIC',
-    'Py_hash_t':        'PYHASHT',
-    'Py_ssize_t':       'PYSSIZET',
-    'Q_SIGNAL':         'SIGNAL_METHOD',
-    'Q_SIGNALS':        'SIGNALS',
-    'Q_SLOT':           'SLOT_METHOD',
-    'Q_SLOTS':          'SLOTS',
-    'short':            'SHORT',
-    'signals':          'SIGNALS',
-    'signed':           'SIGNED',
-    'SIP_PYBUFFER':     'PYBUFFER',
-    'SIP_PYCALLABLE':   'PYCALLABLE',
-    'SIP_PYDICT':       'PYDICT',
-    'SIP_PYENUM':       'PYENUM',
-    'SIP_PYLIST':       'PYLIST',
-    'SIP_PYOBJECT':     'PYOBJECT',
-    'SIP_PYSLICE':      'PYSLICE',
-    'SIP_PYTUPLE':      'PYTUPLE',
-    'SIP_PYTYPE':       'PYTYPE',
-    'SIP_SSIZE_T':      'PYSSIZET',         # Remove in SIP v7.
-    'size_t':           'SIZET',
-    'slots':            'SLOTS',
-    'static':           'STATIC',
-    'struct':           'STRUCT',
-    'template':         'TEMPLATE',
-    'throw':            'THROW',
-    'true':             'TRUE',
-    'typedef':          'TYPEDEF',
-    'union':            'UNION',
-    'unsigned':         'UNSIGNED',
-    'virtual':          'VIRTUAL',
-    'void':             'VOID',
-    'wchar_t':          'WCHAR_T',
+    'bool', 'char', 'class', 'const', 'double', 'enum', 'explicit', 'false',
+    'final', 'float', 'int', 'long', 'namespace', 'noexcept', 'NULL',
+    'operator', 'private', 'protected', 'public', 'Py_hash_t', 'Py_ssize_t',
+    'Q_SIGNAL', 'Q_SIGNALS', 'Q_SLOT', 'Q_SLOTS', 'short', 'signals', 'signed',
+    'SIP_PYBUFFER', 'SIP_PYCALLABLE', 'SIP_PYDICT', 'SIP_PYENUM', 'SIP_PYLIST',
+    'SIP_PYOBJECT', 'SIP_PYSLICE', 'SIP_PYTUPLE', 'SIP_PYTYPE', 'size_t',
+    'slots', 'static', 'struct', 'template', 'throw', 'true', 'typedef',
+    'union', 'unsigned', 'virtual', 'void', 'wchar_t',
+
+    # Remove in SIP v7.
+    'SIP_SSIZE_T',
 }
 
 
-# The map of directive keywords and corresponding tokens.
+# The directive keywords.
 directive_keywords = {
-    'all_raise_py_exception':       'ALLRAISEPYEXC',
-    'call_super_init':              'CALLSUPERINIT',
-    'default_VirtualErrorHandler':  'DEFERRORHANDLER',
-    'False':                        'FALSE',
-    'format':                       'FORMAT',
-    'get':                          'GET',
-    'id':                           'ID',
-    'keyword_arguments':            'KWARGS',
-    'language':                     'LANGUAGE',
-    'licensee':                     'LICENSEE',
-    'name':                         'NAMEKW',
-    'optional':                     'OPTIONAL',
-    'order':                        'ORDER',
-    'remove_leading':               'REMOVELEADING',
-    'set':                          'SET',
-    'signature':                    'SIGNATURE',
-    'timestamp':                    'TIMESTAMP',
-    'True':                         'TRUE',
-    'type':                         'TYPE',
-    'py_ssize_t_clean':             'PYSSIZETCLEAN',
-    'use_argument_names':           'USEARGNAMES',
-    'use_limited_api':              'USELIMITEDAPI',
+    'all_raise_py_exception', 'call_super_init', 'default_VirtualErrorHandler',
+    'False', 'format', 'get', 'id', 'keyword_arguments', 'language',
+    'licensee', 'name', 'optional', 'order', 'remove_leading', 'set',
+    'signature', 'timestamp', 'True', 'type', 'py_ssize_t_clean',
+    'use_argument_names', 'use_limited_api',
 }
 
 
 # The lexer tokens.
 tokens = [
-    'CODEBLOCK',
-    'ELLIPSIS',
-    'END',
-    'EOL',
-    'LOGICALOR',
-    'NAME',
-    'NUMBER',
-    'QCHAR',
-    'REAL',
-    'SCOPE',
-    'STRING',
+    'CODE_BLOCK', 'ELLIPSIS', 'EOL', 'LOGICAL_OR', 'NAME', 'NUMBER',
+    'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
 ]
 
-tokens = set(tokens)
-tokens.update(directives.values())
-tokens.update(code_directives.values())
-tokens.update(keywords.values())
-tokens.update(directive_keywords.values())
-tokens = list(tokens)
+tokens.extend(directives)
+tokens.extend(code_directives)
+tokens.extend(keywords)
+tokens.extend(directive_keywords)
 
 
 # Handle EOF.
@@ -276,14 +170,14 @@ def t_RPAREN(t):
 def t_DIRECTIVE(t):
     r'(?m)^\s*%[a-zA-Z][a-zA-Z]*'
 
-    # Get the name of the directive.
+    # The name of the directive is used as its type.
     name = t.value[t.value.index('%') + 1:]
 
-    t.type = code_directives.get(name)
-    if t.type is not None:
+    if name in code_directives:
         t.lexer.pm.code_block = CodeBlock(t.lexer.pm.sip_file)
-    else:
-        t.type = directives.get(name)
+        t.type = name
+    elif name in directives:
+        t.type = name
 
     return t
 
@@ -292,7 +186,7 @@ def t_DIRECTIVE(t):
 def t_code_END(t):
     r'%End'
 
-    t.type = 'CODEBLOCK'
+    t.type = 'CODE_BLOCK'
     t.value = t.lexer.pm.code_block
     t.lexer.pm.code_block = None
     t.lexer.begin('INITIAL')
@@ -340,12 +234,7 @@ def t_code_CH(t):
 def t_KEYWORD(t):
     r'[_A-Za-z][_A-Za-z\d]*'
 
-    t.type = keywords.get(t.value)
-
-    if t.type is None:
-        t.type = 'NAME'
-    else:
-        t.value = t.type
+    t.type = t.value if t.value in keywords else 'NAME'
 
     return t
 
@@ -355,12 +244,7 @@ def t_KEYWORD(t):
 def t_directive_KEYWORD(t):
     r'[_A-Za-z][_A-Za-z\d]*'
 
-    t.type = directive_keywords.get(t.value)
-
-    if t.type is None:
-        t.type = 'NAME'
-    else:
-        t.value = t.type
+    t.type = t.value if t.value in directive_keywords else 'NAME'
 
     return t
 
@@ -477,7 +361,7 @@ def t_STRING(t):
 def t_QHEXCH(t):
     r"'\\x[\da-fA-F]+'"
 
-    t.type = 'QCHAR'
+    t.type = 'QUOTED_CHAR'
     t.value = int(t.value.strip("'")[2:], base=16)
 
     return t
@@ -498,7 +382,7 @@ def t_QCH(t):
         if n_ch == 0:
             t.value = '?'
 
-    t.type = 'QCHAR'
+    t.type = 'QUOTED_CHAR'
     t.value = t.value[1]
 
     return t
@@ -506,5 +390,5 @@ def t_QCH(t):
 
 # The remaining trivial token definitions.
 t_ELLIPSIS = r'\.\.\.'
-t_LOGICALOR = r'\|\|'
+t_LOGICAL_OR = r'\|\|'
 t_SCOPE = r'::'
