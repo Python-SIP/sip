@@ -1772,7 +1772,11 @@ class ParserManager:
 
         overload = Overload(AccessSpecifier.PUBLIC, member, py_name,
                 cpp_signature, py_signature, method_code=method_code)
-        self.scope.overloads.append(overload)
+
+        if self.scope is None:
+            self.module_state.module.overloads.append(overload)
+        else:
+            self.scope.overloads.append(overload)
 
     def _check_ellipsis(self, p, symbol, signature):
         """ Check any ellipsis in a signature. """
