@@ -97,6 +97,7 @@ class ParserManager:
         self._errors = []
         self._file_stack = []
         self._input = None
+        self._all_sip_files = []
         self._sip_files = []
         self._name_cache = {}
 
@@ -1549,12 +1550,18 @@ class ParserManager:
 
         sip_file = os.path.abspath(sip_file)
 
-        # Check we haven't already read the file.
+        # Check we aren't reading the file recursively.
         for detail in self._file_stack:
             if detail[0] == sip_file:
                 self.parser_error(p, symbol,
-                        "'{0}' has already been read".format(sip_file))
+                        "'{0}' is being read recursively".format(sip_file))
                 return
+
+        # Ignore the file if we have already read it. This replicates the
+        # behaviour of the old parser but shouldn't be required for a well
+        # specified project.
+        if sip_file in self._all_sip_files:
+            return
 
         if new_module:
             module = Module()
@@ -2060,6 +2067,7 @@ class ParserManager:
                     detail=str(e))
 
         self.sip_file = sip_file
+        self._all_sip_files.append(sip_file)
 
         if self.in_main_module:
             self._sip_files.append(sip_file)

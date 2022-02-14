@@ -56,7 +56,6 @@ def p_error(t):
     t.lexer.pm.set_lexer_state()
 
     t = parser.token()
-    # ZZZ - check the single characters work.
     while t is not None and t.type not in ('}', ';', 'End'):
         t = parser.token()
 
