@@ -68,7 +68,65 @@ typedef struct _objectCache {
 } objectCache;
 
 static void cache(objectCache **head, PyObject *py_obj, void *c_struct);
+static void clear_cache(objectCache **head);
+static void clear_caches(void);
 static void *search_cache(const objectCache *cache, PyObject *py_obj);
+
+
+/*
+ * The object caches.
+ */
+static objectCache *cache_cachedname = NULL;
+static objectCache *cache_class = NULL;
+static objectCache *cache_constructor = NULL;
+static objectCache *cache_exception = NULL;
+static objectCache *cache_ifacefile = NULL;
+static objectCache *cache_mappedtype = NULL;
+static objectCache *cache_member = NULL;
+static objectCache *cache_module = NULL;
+static objectCache *cache_qual = NULL;
+static objectCache *cache_wrappedenum = NULL;
+static objectCache *cache_wrappedtypedef = NULL;
+
+
+/*
+ * Clear all the object caches.
+ */
+static void clear_caches(void)
+{
+    clear_cache(&cache_cachedname);
+    clear_cache(&cache_class);
+    clear_cache(&cache_constructor);
+    clear_cache(&cache_exception);
+    clear_cache(&cache_ifacefile);
+    clear_cache(&cache_mappedtype);
+    clear_cache(&cache_member);
+    clear_cache(&cache_module);
+    clear_cache(&cache_qual);
+    clear_cache(&cache_wrappedenum);
+    clear_cache(&cache_wrappedtypedef);
+}
+
+
+/*
+ * Clear an object cache.
+ */
+static void clear_cache(objectCache **head)
+{
+    objectCache *entry = *head;
+
+    while (entry != NULL)
+    {
+        objectCache *next = entry->next;
+
+        free(entry->c_struct);
+        free(entry);
+
+        entry = next;
+    }
+
+    *head = NULL;
+}
 
 
 /*
@@ -246,7 +304,11 @@ static varDef *wrappedvariable_list_attr(sipSpec *pt, PyObject *obj,
  */
 sipSpec *py2c(PyObject *spec, const char *encoding)
 {
-    sipSpec *pt = sipMalloc(sizeof (sipSpec));
+    sipSpec *pt;
+
+    clear_caches();
+
+    pt = sipMalloc(sizeof (sipSpec));
 
     pt->modules = module_list_attr(pt, spec, "modules", encoding);
     pt->module = pt->modules;
@@ -480,19 +542,17 @@ static int bool_attr(PyObject *obj, const char *name)
  */
 static nameDef *cachedname(PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     nameDef *value;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_cachedname, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (nameDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_cachedname, obj, value);
 
     value->text = str_attr(obj, "name", encoding);
     value->len = strlen(value->text);
@@ -558,15 +618,13 @@ static nameDef *cachedname_list_attr(PyObject *obj, const char *name,
 static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
         int create)
 {
-    static objectCache *object_cache = NULL;
-
     classDef *value;
     int gil_action, class_key, dtor_access;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_class, obj)) != NULL)
         return value;
 
     if (!create)
@@ -574,7 +632,7 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
 
     value = sipMalloc(sizeof (classDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_class, obj, value);
 
     value->docstring = docstring_attr(obj, "docstring", encoding);
 
@@ -847,8 +905,6 @@ static codeBlockList *codeblock_list_attr(PyObject *obj, const char *name,
  */
 static ctorDef *constructor(sipSpec *pt, PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     ctorDef *value;
     int gil_action;
     PyObject *py_sig_obj, *cpp_sig_obj;
@@ -856,12 +912,12 @@ static ctorDef *constructor(sipSpec *pt, PyObject *obj, const char *encoding)
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_constructor, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (ctorDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_constructor, obj, value);
 
     value->docstring = docstring_attr(obj, "docstring", encoding);
 
@@ -1033,19 +1089,17 @@ static int enum_attr(PyObject *obj, const char *name)
 static exceptionDef *exception(sipSpec *pt, PyObject *obj,
         const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     exceptionDef *value;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_exception, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (exceptionDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_exception, obj, value);
 
     value->exceptionnr = -1;
     value->iff = ifacefile_attr(pt, obj, "iface_file", encoding);
@@ -1169,19 +1223,17 @@ static fcallDef *functioncall(sipSpec *pt, PyObject *obj, const char *encoding)
 static ifaceFileDef *ifacefile(sipSpec *pt, PyObject *obj,
         const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     ifaceFileDef *value;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_ifacefile, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (ifaceFileDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_ifacefile, obj, value);
 
     value->name = cachedname_attr(obj, "cpp_name", encoding);
     value->needed = bool_attr(obj, "needed");
@@ -1327,14 +1379,12 @@ static licenseDef *license_attr(PyObject *obj, const char *name,
 static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
         const char *encoding, int create)
 {
-    static objectCache *object_cache = NULL;
-
     mappedTypeDef *value;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_mappedtype, obj)) != NULL)
         return value;
 
     if (!create)
@@ -1342,7 +1392,7 @@ static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
 
     value = sipMalloc(sizeof (mappedTypeDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_mappedtype, obj, value);
 
     if (bool_attr(obj, "no_release"))
         setNoRelease(value);
@@ -1475,17 +1525,15 @@ static mappedTypeTmplDef *mappedtypetemplate_list_attr(sipSpec *pt,
  */
 static memberDef *member(sipSpec *pt, PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     memberDef *value;
     int slot;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_member, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (memberDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_member, obj, value);
 
     value->pyname = cachedname_attr(obj, "py_name", encoding);
 
@@ -1571,20 +1619,18 @@ static memberDef *member_list_attr(sipSpec *pt, PyObject *obj,
  */
 static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     moduleDef *value;
     char *basename;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_module, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (moduleDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_module, obj, value);
 
     value->fullname = cachedname_attr(obj, "fq_py_name", encoding);
 
@@ -1925,16 +1971,14 @@ static propertyDef *property_list_attr(PyObject *obj, const char *name,
  */
 static qualDef *qual(sipSpec *pt, PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     qualDef *value;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_qual, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (qualDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_qual, obj, value);
 
     value->name = str_attr(obj, "name", encoding);
     value->qtype = (qualType)enum_attr(obj, "type");
@@ -2429,18 +2473,16 @@ static virtErrorHandler *virtualerrorhandler_list_attr(sipSpec *pt,
  */
 static enumDef *wrappedenum(sipSpec *pt, PyObject *obj, const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     enumDef *value;
     int base_type;
     PyObject *scope_obj;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_wrappedenum, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (enumDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_wrappedenum, obj, value);
 
     if (bool_attr(obj, "is_protected"))
         setIsProtectedEnum(value);
@@ -2591,19 +2633,17 @@ static enumMemberDef *wrappedenummember_list_attr(sipSpec *pt, PyObject *obj,
 static typedefDef *wrappedtypedef(sipSpec *pt, PyObject *obj,
         const char *encoding)
 {
-    static objectCache *object_cache = NULL;
-
     typedefDef *value;
 
     if (obj == Py_None)
         return NULL;
 
-    if ((value = search_cache(object_cache, obj)) != NULL)
+    if ((value = search_cache(cache_wrappedtypedef, obj)) != NULL)
         return value;
 
     value = sipMalloc(sizeof (typedefDef));
 
-    cache(&object_cache, obj, value);
+    cache(&cache_wrappedtypedef, obj, value);
 
     if (bool_attr(obj, "no_type_name"))
         setNoTypeName(value);
