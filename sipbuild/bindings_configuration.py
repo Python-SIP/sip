@@ -31,13 +31,14 @@ from .module import resolve_abi_version
 def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
     """ Get the configuration of a set of bindings. """
 
+    # We make no assumption about the name of the .sip file but we assume that
+    # the directory it is in is the name of the bindings.
+    bindings_name = os.path.basename(os.path.dirname(sip_file))
+
     # See if there is a .toml file.
     for sip_dir in sip_include_dirs:
-        # We make no assumption about the name of the .sip file but we assume
-        # that the directory it is in is the name of the bindings.
-        bindings_dir = os.path.dirname(os.path.join(sip_dir, sip_file))
-        bindings_name = os.path.basename(bindings_dir)
-        toml_file = os.path.join(bindings_dir, bindings_name + '.toml')
+        toml_file = os.path.join(sip_dir, bindings_name,
+                bindings_name + '.toml')
 
         if os.path.isfile(toml_file):
             break
