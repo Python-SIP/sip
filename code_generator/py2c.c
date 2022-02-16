@@ -634,6 +634,7 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
 
     cache(&cache_class, obj, value);
 
+    value->iff = ifacefile_attr(pt, obj, "iface_file", encoding);
     value->docstring = docstring_attr(obj, "docstring", encoding);
 
     if (bool_attr(obj, "is_abstract"))
@@ -683,7 +684,7 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
 
     if ((dtor_access = enum_attr(obj, "dtor")) != -1)
         value->classflags |= enum_attr(obj, "dtor");
-    else if (!isOpaque(value))
+    else if (value->iff->type == class_iface && !isOpaque(value))
         setIsPublicDtor(value);
 
     if (bool_attr(obj, "is_template_arg"))
@@ -713,7 +714,6 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding,
     value->pyqt_interface = str_attr(obj, "pyqt_interface", encoding);
     value->pyname = cachedname_attr(obj, "py_name", encoding);
     value->no_typehint = bool_attr(obj, "no_type_hint");
-    value->iff = ifacefile_attr(pt, obj, "iface_file", encoding);
     value->ecd = class_attr(pt, obj, "scope", encoding);
     value->real = class_attr(pt, obj, "real_class", encoding);
     value->supers = classlist_attr(pt, obj, "superclasses", encoding);
