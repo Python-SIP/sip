@@ -1999,8 +1999,6 @@ def p_method_variable(p):
 
     if isinstance(item, Overload):
         pm.validate_function(p, 1, item)
-    elif isinstance(item, WrappedVariable):
-        pm.validate_variable(p, 1, item)
 
 
 def p_simple_method_variable(p):
@@ -3102,6 +3100,8 @@ def p_variable(p):
     variable.access_code = body.get('%AccessCode')
     variable.get_code = body.get('%GetCode')
     variable.set_code = body.get('%SetCode')
+
+    pm.validate_variable(p, 1, variable)
 
     pm.spec.variables.append(variable)
 

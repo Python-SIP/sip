@@ -1776,6 +1776,9 @@ class ParserManager:
                 self.parser_error(p, symbol,
                         "%GetCode or %SetCode cannot be specified for global variables")
 
+        if self.scope is not None and self.scope.iface_file.type is IfaceFileType.NAMESPACE:
+            variable.is_static = True
+
         self.check_attributes(p, symbol, variable.py_name)
 
     def _add_auto_slot(self, p, symbol, annotations, py_name, py_signature,
