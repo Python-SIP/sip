@@ -203,20 +203,20 @@ def template_string(proto_str, expansions, scope_replacement=None):
     return proto_str
 
 
-def _find_iface_file(spec, name):
+def _find_iface_file(spec, fq_cpp_name):
     """ Return the interface file corresponding to the given C++ name or None
     if one couldn't be found.
     """
 
     for iff in spec.iface_files:
         if iff.type in (IfaceFileType.CLASS, IfaceFileType.EXCEPTION):
-            if len(iff.fq_cpp_name) == 1 and iff.fq_cpp_name[0] == name:
+            if iff.fq_cpp_name == fq_cpp_name:
                 return iff
 
     for w_enum in spec.enums:
         if w_enum.scope is not None:
             iff = w_enum.scope.iface_file
-            if len(iff.fq_cpp_name) == 1 and iff.fq_cpp_name[0] == name:
+            if iff.fq_cpp_name == fq_cpp_name:
                 return iff
 
     return None
@@ -261,11 +261,11 @@ def _template_code_block(spec, used, proto_code, expansions):
                             # used list.  (Note: this is a bit strange and may
                             # be a bug but it is needed to re-create the output
                             # of the old parser.)
-                            fq_value = ScopedName.parse(value)
+                            fq_scope = ScopedName.parse(value).scope
+                            fq_scope.make_absolute()
 
-                            if len(fq_value) > 0:
-                                iface_file = _find_iface_file(spec,
-                                        fq_value[0])
+                            if fq_scope is not None:
+                                iface_file = _find_iface_file(spec, fq_scope)
 
                                 if iface_file is not None and iface_file not in used:
                                     used.append(iface_file)
