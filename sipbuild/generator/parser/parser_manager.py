@@ -216,12 +216,10 @@ class ParserManager:
                 if md.py_slot in (PySlot.GETITEM, PySlot.SETITEM, PySlot.DELITEM):
                     # This might be a sequence.
                     seq_might = True
-                    break
 
                 if md.py_slot in (PySlot.SUB, PySlot.ISUB, PySlot.MOD, PySlot.IMOD, PySlot.FLOORDIV, PySlot.IFLOORDIV, PySlot.TRUEDIV, PySlot.ITRUEDIV, PySlot.POS, PySlot.NEG):
                     # This is definately not a sequence.
                     seq_not = True
-                    break
 
             default_to_sequence = (not seq_not and seq_might)
 
