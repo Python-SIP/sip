@@ -210,7 +210,7 @@ def p_composite_module(p):
         pm.parser_error(p, 1,
                 "%CompositeModule must appear before any %Module directive")
 
-    module.fq_py_name = pm.cached_name(name)
+    module.fq_py_name = pm.cached_name(str(name))
     module.is_composite = True
 
     for directive in body:
