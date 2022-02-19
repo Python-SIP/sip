@@ -589,9 +589,8 @@ class ParserManager:
                 py_name=py_name, scope=self.scope)
 
         if self.scope_access_specifier is AccessSpecifier.PROTECTED:
-            if self._protected_is_public:
+            if not self._protected_is_public:
                 w_enum.is_protected = True
-            else:
                 self.scope.needs_shadow = True
 
         w_enum.no_scope = annotations.get('NoScope', False)
