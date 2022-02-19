@@ -1650,7 +1650,10 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
         setHasDelayedDtors(value);
 
     if (bool_attr(obj, "is_composite"))
+    {
         setIsComposite(value);
+        value->modflags &= ~MOD_SUPER_INIT_MASK;
+    }
 
     if (bool_attr(obj, "use_arg_names"))
         setUseArgNames(value);
