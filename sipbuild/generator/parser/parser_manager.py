@@ -1576,8 +1576,6 @@ class ParserManager:
                 if tag not in self.tags:
                     self.tags.append(tag)
 
-            self._disabled_features.extend(mod_disabled)
-
             for feature in mod_disabled:
                 if feature not in self._disabled_features:
                     self._disabled_features.append(feature)
