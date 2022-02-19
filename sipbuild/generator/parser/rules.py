@@ -1031,9 +1031,13 @@ def p_module(p):
         # Historically we %Include modules although conceptually we actually
         # %Import them.  Ensure that the scopes etc. are correct in either
         # case.
-        module_state = pm.ensure_import()
+        pm.ensure_import()
+
+        # The module state may have changed.
+        module_state = pm.module_state
 
         module_state.module.composite = module if module.is_composite else module.composite
+
         module = module_state.module
 
     if module.fq_py_name is not None:

@@ -1152,18 +1152,16 @@ class ParserManager:
         sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
 
         if module_state is None:
+            module_state = self.module_state
+
             # The current file was %Included so create a new Module and
             # ModuleState as if it had been %Imported.
             module = Module()
             self.spec.modules.append(module)
-
-            module_state = self.module_state
             self.module_state = ModuleState(module)
 
         self._file_stack.append(
                 (sip_file, input, lineno, lexpos, module_state))
-
-        return module_state
 
     def evaluate_feature_or_platform(self, p, symbol, name=None,
             inverted=False):
@@ -1584,6 +1582,7 @@ class ParserManager:
                 if feature not in self._disabled_features:
                     self._disabled_features.append(feature)
         else:
+            # This means that the file was %Included rather than %Imported.
             old_module_state = None
 
         # Save the state of the current .sip file.
