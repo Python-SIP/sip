@@ -921,24 +921,18 @@ class ParserManager:
                 type.type = ArgumentType.SBYTE
             elif type.type is ArgumentType.USTRING:
                 type.type = ArgumentType.UBYTE
-            else:
-                self.parser_error(p, symbol,
-                        "'PyInt' cannot specified for this type")
 
         # The Encoding annotation.
         can_be_encoded = type.type is ArgumentType.STRING and type.array is ArrayArgument.NONE and not type.is_reference
 
-        encoding = annotations.get('Encoding')
-        if encoding is not None:
-            if can_be_encoded:
-                type.type = self.convert_encoding(p, symbol, encoding)
+        if can_be_encoded:
+            encoding = annotations.get('Encoding')
+            if encoding is None:
+                default_encoding = self.module_state.default_encoding
+                if default_encoding is not None:
+                    type.type = default_encoding
             else:
-                self.parser_error(p, symbol,
-                        "'Encoding' cannot specified for this type")
-        elif can_be_encoded:
-            default_encoding = self.module_state.default_encoding
-            if default_encoding is not None:
-                type.type = default_encoding
+                type.type = self.convert_encoding(p, symbol, encoding)
 
     def check_annotations(self, p, symbol, context, annotations):
         """ Check that all the annotations provided as a dict of name/values
