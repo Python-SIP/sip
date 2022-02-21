@@ -355,7 +355,7 @@ def t_QHEXCH(t):
     r"'\\x[\da-fA-F]+'"
 
     t.type = 'QUOTED_CHAR'
-    t.value = int(t.value.strip("'")[2:], base=16)
+    t.value = chr(int(t.value.strip("'")[2:], base=16))
 
     return t
 
