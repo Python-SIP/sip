@@ -1048,7 +1048,7 @@ class MappedType:
     pyqt_flags: int = 0
 
     # The %ReleaseCode.
-    release_code: List[CodeBlock] = field(default_factory=list)
+    release_code: Optional[CodeBlock] = None
 
     # The %TypeCode.
     type_code: List[CodeBlock] = field(default_factory=list)
