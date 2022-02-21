@@ -97,7 +97,7 @@ directive_keywords = {
 
 # The lexer tokens.
 tokens = [
-    'CODE_BLOCK', 'ELLIPSIS', 'EOL', 'LOGICAL_OR', 'NAME', 'NUMBER',
+    'CODE_BLOCK', 'ELLIPSIS', 'EOF', 'EOL', 'LOGICAL_OR', 'NAME', 'NUMBER',
     'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
 ]
 
@@ -115,7 +115,11 @@ def t_eof(t):
     except IndexError:
         return None
 
-    return t.lexer.token()
+    # Return an explicit EOF token.  This stops the parser looking too far into
+    # the popped file.
+    t.type = 'EOF'
+
+    return t
 
 
 # Handle errors.

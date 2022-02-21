@@ -70,7 +70,8 @@ def p_specification(p):
 
 
 def p_statement(p):
-    """statement : namespace_statement
+    """statement : EOF
+        | namespace_statement
         | composite_module
         | copying
         | defdocstringfmt
