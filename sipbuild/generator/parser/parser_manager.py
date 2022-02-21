@@ -638,8 +638,12 @@ class ParserManager:
         overload = Overload(self.scope_access_specifier, member, cpp_name,
                 cpp_signature, py_signature)
 
-        overloads = self.module_state.module.overloads if self.scope is None else self.scope.overloads
-        overloads.append(overload)
+        for m in self.module_state.module.global_functions:
+            if m is member:
+                self.module_state.module.overloads.append(overload)
+                break
+        else:
+            self.scope.overloads.append(overload)
 
         overload.pyqt_method_specifier = self.scope_pyqt_method_specifier
 
@@ -1920,7 +1924,17 @@ class ParserManager:
         # Create a new member if necessary.
         no_arg_parser = annotations.get('NoArgParser', False)
 
-        members = self.module_state.module.global_functions if self.scope is None else self.scope.members
+        if self.scope is None:
+            members = self.module_state.module.global_functions
+            namespace_iface_file = None
+        elif self.scope.iface_file.type is IfaceFileType.NAMESPACE and py_slot is not None:
+            # The scope is a namespace and the function is an operator so
+            # handle it as a global, but remember it's C++ scope.
+            members = self.module_state.module.global_functions
+            namespace_iface_file = self.scope.iface_file
+        else:
+            members = self.scope.members
+            namespace_iface_file = None
 
         for member in members:
             if member.py_name.name == py_name:
@@ -1934,16 +1948,12 @@ class ParserManager:
         else:
             member = Member(self.module_state.module,
                     self.cached_name(py_name))
+            member.namespace_iface_file = namespace_iface_file
             member.no_arg_parser = no_arg_parser
             member.py_slot = py_slot
 
             if self.in_main_module:
                 member.py_name.used = True
-
-            # If the scope is a namespace then make sure the function is
-            # handled as a global, but remember it's C++ scope.
-            if self.scope is not None and self.scope.iface_file.type is IfaceFileType.NAMESPACE:
-                member.namespace_iface_file = self.scope.iface_file
 
             members.insert(0, member)
 
