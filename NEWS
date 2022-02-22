@@ -1,6 +1,6 @@
-v6.6.0 1st February 2022
+v6.6.0 22nd February 2022
   - The .sip file parser (created using flex and bison) has been replaced with
-    a pure Python implementation using ply.
+    a pure Python implementation using PLY.
 
 v6.5.1 25th January 2022
   - Added the --no-compile command line option to sip-build.
