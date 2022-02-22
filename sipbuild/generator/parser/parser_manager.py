@@ -1323,7 +1323,7 @@ class ParserManager:
 
         # Fix any Python keywords.
         if py_name in self._PYTHON_KEYWORDS:
-            py_name += '-'
+            py_name += '_'
 
         return py_name
 
