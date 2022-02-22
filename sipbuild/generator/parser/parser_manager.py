@@ -1743,6 +1743,8 @@ class ParserManager:
             if convert_to_us != release_us:
                 self.parser_error(p, symbol,
                         "both %ConvertToTypeCode and %ReleaseCode must use user state or neither must")
+
+            mapped_type.needs_user_state = convert_to_us or release_us
         else:
             if mapped_type.convert_to_type_code is None:
                 self.parser_error(p, symbol,
