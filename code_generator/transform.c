@@ -769,7 +769,7 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
 
     while ((od = *odp) != NULL)
     {
-        int second;
+        int second, inject_equality_slot;
         argDef *arg0, *arg1;
         memberDef *md, **mdhead;
         overDef **odhead;
@@ -921,6 +921,8 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             if (md->slot == gmd->slot)
                 break;
 
+        inject_equality_slot = FALSE;
+
         if (md == NULL)
         {
             md = sipMalloc(sizeof (memberDef));
@@ -931,6 +933,16 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             md->next = *mdhead;
 
             *mdhead = md;
+
+            /*
+             * Legacy enum members, when accessed as scoped values, are created
+             * on the fly.  By default these members compare for equality
+             * correctly (ie. 'E.M == E.M' works as expected).  However if
+             * there is another equality operator defined then it will fail so
+             * we have to explicitly inject the comparison.
+             */
+            if (abiVersion < ABI_13_0 && arg0->atype == enum_type && md->slot == eq_slot && !second)
+                inject_equality_slot = TRUE;
         }
 
         /* Move the overload to the end of the destination list. */
@@ -946,6 +958,20 @@ static void moveGlobalSlot(sipSpec *pt, moduleDef *mod, memberDef *gmd)
             odhead = &(*odhead)->next;
 
         *odhead = od;
+
+        /* Inject an additional equality slot if necessary. */
+        if (inject_equality_slot)
+        {
+            overDef *eq;
+
+            eq = sipMalloc(sizeof (overDef));
+
+            *eq = *od;
+            eq->pysig.args[0].nrderefs = 1;
+            eq->pysig.nrArgs = 1;
+
+            od->next = eq;
+        }
 
         /*
          * Remove the first argument of inplace numeric operators and
