@@ -152,8 +152,24 @@ def normalised_scoped_name(scoped_name, scope):
         pass
     elif scope is None:
         fq_scoped_name.make_absolute()
-    else:
+    elif fq_scoped_name.is_simple:
         fq_scoped_name.prepend(scope.iface_file.fq_cpp_name)
+    else:
+        # The relative name has a scope and appears within a scope so we need
+        # lookup the name's scope within the current scope.
+        names_scope = fq_scoped_name[0]
+        scope_fq_cpp_name = scope.iface_file.fq_cpp_name
+
+        while scope_fq_cpp_name is not None:
+            if scope_fq_cpp_name.base_name == names_scope:
+                del fq_scoped_name[0]
+                fq_scoped_name.prepend(scope_fq_cpp_name)
+                break
+
+            scope_fq_cpp_name = scope_fq_cpp_name.scope
+        else:
+            # The lookup failed so just make the name absolute.
+            fq_scoped_name.make_absolute()
 
     return fq_scoped_name
 

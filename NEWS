@@ -1,4 +1,4 @@
-v6.6.0 26th February 2022
+v6.6.0 27th February 2022
   - The .sip file parser (created using flex and bison) has been replaced with
     a pure Python implementation using PLY.
   - Bug fixes.
