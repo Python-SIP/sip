@@ -50,11 +50,14 @@ extern "C" {
 
 
 /*
- * The changes to this version of the ABI.
+ * The change history of the ABI.
  *
  * v13.2
  *  - Added support for SIP_ENUM_UINT_ENUM to represent IntEnums with unsigned
  *    members.
+ *
+ * v13.1
+ *  - Added sipNextExceptionHandler().
  */
 
 
