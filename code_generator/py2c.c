@@ -1238,6 +1238,7 @@ static ifaceFileDef *ifacefile(sipSpec *pt, PyObject *obj,
     value->name = cachedname_attr(obj, "cpp_name", encoding);
     value->needed = bool_attr(obj, "needed");
     value->type = (ifaceFileType)enum_attr(obj, "type");
+    value->ifacenr = -1;
     value->fqcname = scopedname_attr(obj, "fq_cpp_name", encoding);
     value->module = module_attr(pt, obj, "module", encoding);
     value->hdrcode = codeblock_list_attr(obj, "type_header_code", encoding);
