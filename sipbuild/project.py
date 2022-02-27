@@ -47,7 +47,7 @@ class Project(AbstractProject, Configurable):
 
     # The configurable options.
     _options = (
-        # The ABI version that the sip module should use.
+        # The minimum required ABI version of the sip module.
         Option('abi_version'),
 
         # The callable that will return an Bindings instance.  This is used for

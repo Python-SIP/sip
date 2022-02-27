@@ -2051,12 +2051,12 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
     prcode(fp,
 "    /* Export the module and publish it's API. */\n"
-"    if (sipExportModule(&sipModuleAPI_%s, SIP_ABI_MAJOR_VERSION, SIP_ABI_MINOR_VERSION, 0) < 0)\n"
+"    if (sipExportModule(&sipModuleAPI_%s, %d, %d, 0) < 0)\n"
 "    {\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
 "    }\n"
-        , mname);
+        , mname, abiVersion >> 8, abiVersion & 0xff);
 
     if (pluginPyQt5(pt) || pluginPyQt6(pt))
     {
