@@ -2019,7 +2019,7 @@ def p_simple_method_variable(p):
                 item.is_static = True
             elif not item.is_final:
                 item.is_virtual = True
-                item.needs_shadow = True
+                p.parser.pm.scope.needs_shadow = True
     else:
         item = p[1]
 
