@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -393,7 +393,7 @@ static PyObject *sip_api_from_datetime(const sipDateDef *date,
 static int sip_api_get_time(PyObject *obj, sipTimeDef *time);
 static PyObject *sip_api_from_time(const sipTimeDef *time);
 static int sip_api_is_user_type(const sipWrapperType *wt);
-static struct _frame *sip_api_get_frame(int);
+static PyFrameObject *sip_api_get_frame(int);
 static int sip_api_check_plugin_for_type(const sipTypeDef *td,
         const char *name);
 static PyObject *sip_api_unicode_new(Py_ssize_t len, unsigned maxchar,
@@ -1039,18 +1039,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 
     PyObject *obj;
     PyMethodDef *md;
-
-    /*
-     * Remind ourselves to add support for capsule variables when we have
-     * another reason to move to the next major version number.
-     */
-#if SIP_API_MAJOR_NR > 12
-#error "Add support for capsule variables"
-#endif
-
-#if PY_VERSION_HEX < 0x03070000 && defined(WITH_THREAD)
-    PyEval_InitThreads();
-#endif
 
     /* Add the SIP version number. */
     obj = PyLong_FromLong(SIP_VERSION);
@@ -12709,17 +12697,24 @@ static int sip_api_is_user_type(const sipWrapperType *wt)
 /*
  * Return a frame from the execution stack.
  */
-static struct _frame *sip_api_get_frame(int depth)
+static PyFrameObject *sip_api_get_frame(int depth)
 {
 #if defined(PYPY_VERSION)
     /* PyPy only supports a depth of 0. */
     return NULL;
 #else
-    struct _frame *frame = PyEval_GetFrame();
+    PyFrameObject *frame = PyEval_GetFrame();
 
     while (frame != NULL && depth > 0)
     {
+#if PY_VERSION_HEX < 0x03090000
         frame = frame->f_back;
+#else
+        frame = PyFrame_GetBack(frame);
+
+        /* Historically we return a borrowed reference. */
+        Py_XDECREF(frame);
+#endif
         --depth;
     }
 
@@ -13217,16 +13212,12 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength)
 {
-#if PY_VERSION_HEX >= 0x03070000
     if (PySlice_Unpack(slice, start, stop, step) < 0)
         return -1;
 
     *slicelength = PySlice_AdjustIndices(length, start, stop, *step);
 
     return 0;
-#else
-    return PySlice_GetIndicesEx(slice, length, start, stop, step, slicelength);
-#endif
 }
 
 

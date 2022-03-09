@@ -499,10 +499,8 @@ module, that can be used by handwritten code in specification files.
 
 .. c:function:: int sipConvertFromSliceObject(PyObject *slice, Py_ssize_t length, Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step, Py_ssize_t *slicelength)
 
-    For Python v3.6 and earlier this is a thin wrapper around Python's
-    :c:func:`PySlice_GetIndicesEx()` function.  For Python v3.7 and later it
-    implements the same functionality using the preferred
-    :c:func:`PySlice_Unpack()` and :c:func:`PySlice_AdjustIndices()` functions.
+    This is a thin wrapper around Python's :c:func:`PySlice_Unpack()` and
+    :c:func:`PySlice_AdjustIndices()` functions.
 
 
 .. c:function:: PyObject *sipConvertFromType(void *cpp, const sipTypeDef *td, PyObject *transferObj)
@@ -965,7 +963,7 @@ module, that can be used by handwritten code in specification files.
         a non-zero value if the object is a Python datetime object.
 
 
-.. c:function:: struct _frame sipGetFrame(int depth)
+.. c:function:: PyFrameObject *sipGetFrame(int depth)
 
     This retrieves a frame object from the current execution stack.
 

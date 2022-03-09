@@ -24,8 +24,8 @@
 #include <Python.h>
 
 /* Sanity check on the Python version. */
-#if PY_VERSION_HEX < 0x03050000
-#error "This version of SIP requires Python v3.5 or later"
+#if PY_VERSION_HEX < 0x03070000
+#error "This version of SIP requires Python v3.7 or later"
 #endif
 
 
@@ -45,12 +45,16 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       12
-#define SIP_ABI_MINOR_VERSION       9
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_ABI_MINOR_VERSION       10
+#define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v12.10
+ *  - Python v3.7 or later is required.
+ *  - Added support for Python v3.11.
  *
  * v12.9
  *  - Added sipNextExceptionHandler().
@@ -1487,7 +1491,7 @@ typedef struct _sipAPIDef {
     int (*api_get_time)(PyObject *, sipTimeDef *);
     PyObject *(*api_from_time)(const sipTimeDef *);
     int (*api_is_user_type)(const sipWrapperType *);
-    struct _frame *(*api_get_frame)(int);
+    PyFrameObject *(*api_get_frame)(int);
     int (*api_check_plugin_for_type)(const sipTypeDef *, const char *);
     PyObject *(*api_unicode_new)(Py_ssize_t, unsigned, int *, void **);
     void (*api_unicode_write)(int, void *, int, unsigned);

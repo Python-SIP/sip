@@ -19,7 +19,6 @@
 
 #include <Python.h>
 #include <datetime.h>
-#include <frameobject.h>
 
 #include <assert.h>
 #include <stdio.h>
