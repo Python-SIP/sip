@@ -19,7 +19,7 @@
 
 
 #if !defined(Py_LIMITED_API)
-#define Py_LIMITED_API      0x03060000
+#define Py_LIMITED_API      0x03070000
 #endif
 
 #include <Python.h>

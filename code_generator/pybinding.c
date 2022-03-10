@@ -24,7 +24,7 @@
 #include <string.h>
 
 #if !defined(Py_LIMITED_API)
-#define Py_LIMITED_API      0x03030000
+#define Py_LIMITED_API      0x03070000
 #endif
 
 #include <Python.h>
