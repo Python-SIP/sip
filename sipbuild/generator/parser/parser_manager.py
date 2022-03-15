@@ -841,21 +841,30 @@ class ParserManager:
     def add_qualifier(self, p, symbol, name, type, order=0, timeline=0):
         """ Create a Qualifier and add it to the current module. """
 
-        # Check that it doesn't already exist.
-        if self.find_qualifier(p, symbol, name, required=False) is None:
-            module = self.module_state.module
+        module = self.module_state.module
 
-            qualifier = Qualifier(module, name, type, order=order,
-                    timeline=timeline)
+        # See if it already exists.
+        qualifier = self.find_qualifier(p, symbol, name, required=False)
 
-            if type is QualifierType.TIME or not self.skipping:
-                qualifier.enabled_by_default = True
+        if qualifier is not None:
+            # We allow versions to be defined more than once so long as they
+            # are in different timelines.  It is sometimes necessary to define
+            # the same timeline in multiple modules if a module that others
+            # depend on is added during the timeline.
+            if qualifier.type is not QualifierType.TIME or type is not QualifierType.TIME or (qualifier.module is module and qualifier.timeline == timeline):
+                self.parser_error(p, symbol,
+                        "'{0}' has already been defined as a qualifier".format(
+                                name))
 
-            module.qualifiers.insert(0, qualifier)
-        else:
-            self.parser_error(p, symbol,
-                    "'{0}' has already been defined as a qualifier".format(
-                            name))
+                return
+
+        qualifier = Qualifier(module, name, type, order=order,
+                timeline=timeline)
+
+        if type is QualifierType.TIME or not self.skipping:
+            qualifier.enabled_by_default = True
+
+        module.qualifiers.insert(0, qualifier)
 
     def add_typedef(self, p, symbol, typedef):
         """ Add a typedef to the current scope. """
