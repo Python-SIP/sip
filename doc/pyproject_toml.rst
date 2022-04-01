@@ -40,9 +40,15 @@ The key/values in this section apply to the build system as a whole.  Unless
 stated otherwise, all values are strings.
 
 **project-factory**
-    The value is a callable that will return an object that is a sub-class
-    of :class:`~sipbuild.AbstractProject`.  The default builder factory is
-    :file:`project.py`.
+    The value is used to identify a callable that will return an object that is
+    a sub-class of :class:`~sipbuild.AbstractProject`.  If the value is the
+    name of a :file:`.py` file then that file is evaluated and the resulting
+    module is searched for a type object that is sub-classed from
+    :class:`~sipbuild.AbstractProject`.  Otherwise the value must be the name
+    of a module to be imported which is then searched for an appropriate type
+    object.  The name of the module may have the name of the callable appended
+    (and separated by ``:``) in which case the type of the object is ignored.
+    The default project factory is :file:`project.py`.
 
 
 ``[tool.sip.builder]`` Section

@@ -1,4 +1,4 @@
-v6.6.0 15th March 2022
+v6.6.0 1st April 2022
   - Python v3.6 is no longer supported.
   - The .sip file parser (created using flex and bison) has been replaced with
     a pure Python implementation using PLY.
