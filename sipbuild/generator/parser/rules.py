@@ -2250,7 +2250,7 @@ def p_opt_base_exception(p):
         base = p[2]
 
         # See if it is a project-defined exception.
-        for xd in p.parser_manager.spec.exceptions:
+        for xd in p.parser.pm.spec.exceptions:
             if xd.iface_file.fq_cpp_name == base:
                 defined_base = xd
                 break
