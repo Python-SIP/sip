@@ -22,7 +22,7 @@
 
 
 from dataclasses import dataclass, field
-from enum import auto, Enum
+from enum import Enum
 from typing import Any, List, Optional, Union
 
 

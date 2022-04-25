@@ -36,7 +36,7 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
         PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, ScopedName,
         Signature, Specification, Transfer, TypeHints, WrappedClass,
-        WrappedEnum, WrappedEnumMember)
+        WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import argument_as_str, normalised_scoped_name, same_base_type
 
@@ -329,7 +329,7 @@ class ParserManager:
             if self.scope_access_specifier is AccessSpecifier.PROTECTED and not self._protected_is_public:
                 scope.is_protected = True
 
-                if iface_file_type is IFaceFileType.CLASS:
+                if iface_file_type is IfaceFileType.CLASS:
                     scope.needs_shadow = True
 
             # Header code from outer scopes is also included.
@@ -1767,7 +1767,7 @@ class ParserManager:
         """ Validate a completed variable. """
 
         if variable.type.type is ArgumentType.CAPSULE:
-            pm.parser_error(p, symbol,
+            self.parser_error(p, symbol,
                     "capsule variables are not yet supported")
 
         access_specifier = self.scope_access_specifier

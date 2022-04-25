@@ -23,7 +23,7 @@
 
 from copy import copy
 
-from .specification import ArgumentType, CodeBlock, IfaceFileType, ScopedName
+from .specification import ArgumentType, IfaceFileType, ScopedName
 from .utils import argument_as_str, same_base_type
 
 
@@ -180,7 +180,7 @@ def template_expansions(template_names, instantiation_values,
             if value_arg.type is ArgumentType.TEMPLATE and len(name_arg.definiton.types.args) == len(value_arg.definition.types.args):
                 expansions.update(
                         template_expansions(name_arg.definition.types,
-                                value_arg.definition.types, known))
+                                value_arg.definition.types, declared_names))
 
     return expansions
 

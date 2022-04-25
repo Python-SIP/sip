@@ -24,10 +24,9 @@
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
         FunctionCall, IfaceFile, IfaceFileType, KwArgs, License, MappedType,
-        MappedTypeTemplate, Module, Overload, Property, PyQtMethodSpecifier,
+        MappedTypeTemplate, Overload, Property, PyQtMethodSpecifier,
         QualifierType, ScopedName, Signature, Template, ThrowArguments, Value,
-        ValueType, VirtualErrorHandler, WrappedClass, WrappedTypedef,
-        WrappedVariable)
+        ValueType, VirtualErrorHandler, WrappedTypedef, WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import normalised_scoped_name, search_typedefs
 
@@ -1281,7 +1280,7 @@ def p_property(p):
 
     prop = Property(name=name, getter=getter, setter=p[3].get('set'))
 
-    for directive in body:
+    for directive in p[6]:
         if isinstance(directive, Docstring):
             prop.docstring = directive
 

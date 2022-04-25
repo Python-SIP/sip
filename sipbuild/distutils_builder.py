@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -27,7 +27,6 @@ from distutils.extension import Extension
 from distutils.log import ERROR, INFO, set_threshold
 
 import os
-import sys
 
 from .buildable import BuildableModule
 from .builder import Builder

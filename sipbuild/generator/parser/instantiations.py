@@ -180,7 +180,7 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
 
     # Descend into any sub-templates.
     if proto_arg.type is ArgumentType.TEMPLATE:
-        proto_template = proto_args.definition
+        proto_template = proto_arg.definition
         i_template = copy(proto_template)
         i_template.types = _instantiate_signature(proto_template.types,
                 proto_class, template, i_class, expansions, pm)
@@ -416,10 +416,10 @@ def _instantiate_typedefs(p, symbol, tmpl_names, proto_class, template,
         i_typedef.fq_cpp_name = normalised_scoped_name(
                 proto_typedef.fq_cpp_name, i_class)
         i_typedef.scope = i_class
-        i_typedef.module = iclass.iface_file.module
+        i_typedef.module = i_class.iface_file.module
 
-        i_template.type = _instantiate_argument(proto_template.type,
-                proto_class, tmpl_names, template, i_class, expansions, pm)
+        i_typedef.type = _instantiate_argument(proto_typedef.type, proto_class,
+                tmpl_names, template, i_class, expansions, pm)
 
         pm.add_typedef(p, symbol, i_typedef)
 

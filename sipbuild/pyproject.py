@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -24,7 +24,7 @@
 from collections import OrderedDict
 import toml
 
-from .exceptions import UserFileException, UserParseException
+from .exceptions import UserFileException
 from .py_versions import OLDEST_SUPPORTED_MINOR
 
 

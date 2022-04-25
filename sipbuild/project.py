@@ -38,8 +38,7 @@ from .configurable import Configurable, Option
 from .exceptions import UserException
 from .module import resolve_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
-from .pyproject import (PyProjectException, PyProjectOptionException,
-        PyProjectUndefinedOptionException)
+from .pyproject import PyProjectException, PyProjectOptionException
 
 
 class Project(AbstractProject, Configurable):
