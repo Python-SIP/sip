@@ -1740,17 +1740,17 @@ class WrappedException:
     raise_code: CodeBlock
 
     # The base exception if it is a builtin.
-    builtin_base_exception: Optional[str]
+    builtin_base_exception: Optional[str] = None
 
     # The class that implements the exception (if the exception is not a Python
     # exception).
-    class_exception: Optional[WrappedClass]
+    class_exception: Optional[WrappedClass] = None
 
     # The base exception if it is defined in the specification.
-    defined_base_exception: Optional['WrappedException']
+    defined_base_exception: Optional['WrappedException'] = None
 
     # The Python name.
-    py_name: Optional[str]
+    py_name: Optional[str] = None
 
 
 @dataclass

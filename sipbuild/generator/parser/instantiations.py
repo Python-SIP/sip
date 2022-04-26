@@ -183,7 +183,7 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
         proto_template = proto_arg.definition
         i_template = copy(proto_template)
         i_template.types = _instantiate_signature(proto_template.types,
-                proto_class, template, i_class, expansions, pm)
+                proto_class, tmpl_names, template, i_class, expansions, pm)
         i_arg.definition = i_template
 
     # Handle any default value.
@@ -375,11 +375,10 @@ def _instantiate_signature(proto_signature, proto_class, tmpl_names, template,
             if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and i_arg.default_value is not None):
                 i_arg.name.used = True
 
-    if proto_signature.result.type is not ArgumentType.NONE:
+    if proto_signature.result is not None:
         i_signature.result = _instantiate_argument(proto_signature.result,
                 proto_class, tmpl_names, template, i_class, expansions, pm)
 
-    assert not isinstance(i_signature.result, list)
     return i_signature
 
 
