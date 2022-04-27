@@ -1253,34 +1253,34 @@ def p_preinit_code(p):
 # %Property ###################################################################
 
 def p_property(p):
-    "property : Property '(' property_args ')' '{' property_body '}' ';'"
+    "property : Property begin_args '(' property_args end_args ')' opt_property_body"
 
     pm = p.parser.pm
 
     if pm.skipping:
         return
 
-    name = p[3].get('name')
+    name = p[4].get('name')
     if name is None:
         p.parser.pm.parser_error(p, 1,
                 "a name must be specified for %Property")
         return
 
-    pm.check_attributes(p, 3, name)
+    pm.check_attributes(p, 4, name)
 
     name = pm.cached_name(name)
     if pm.in_main_module:
         name.used = True
 
-    getter = p[3].get('get')
+    getter = p[4].get('get')
     if getter is None:
         p.parser.pm.parser_error(p, 1,
                 "a getter must be specified for %Property")
         return
 
-    prop = Property(name=name, getter=getter, setter=p[3].get('set'))
+    prop = Property(name=name, getter=getter, setter=p[4].get('set'))
 
-    for directive in p[6]:
+    for directive in p[7]:
         if isinstance(directive, Docstring):
             prop.docstring = directive
 
@@ -1303,6 +1303,13 @@ def p_property_arg(p):
         | set '=' NAME"""
 
     p[0] = {p[1]: p[3]}
+
+
+def p_opt_property_body(p):
+    """opt_property_body : empty
+        | '{' property_body '}' ';'"""
+
+    p[0] = [] if len(p) == 2 else p[2]
 
 
 def p_property_body(p):
