@@ -1732,6 +1732,21 @@ def p_class_template(p):
     pm.class_templates.append((p[1], p[2]))
 
 
+def p_class_docstring(p):
+    "class_docstring : docstring"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    if pm.scope.docstring is None:
+        pm.scope.docstring = p[1]
+    else:
+        pm.parser_error(p, 1,
+                "%Docstring has already been defined for this class")
+
+
 def p_class_decl(p):
     "class_decl : class class_head opt_class_body ';'"
 
@@ -1855,7 +1870,7 @@ def p_class_access(p):
 
 
 def p_opt_class_body(p):
-    """opt_class_body : '{' opt_docstring class_body '}'
+    """opt_class_body : '{' class_body '}'
         | empty"""
 
     pm = p.parser.pm
@@ -1863,11 +1878,7 @@ def p_opt_class_body(p):
     if pm.skipping:
         return
 
-    if len(p) == 5:
-        pm.scope.docstring = p[2]
-        p[0] = True
-    else:
-        p[0] = False
+    p[0] = (len(p) == 4)
 
 
 def p_class_body(p):
@@ -1879,6 +1890,8 @@ def p_class_line(p):
     """class_line : if_start
         | if_end
         | class_decl
+        | class_docstring
+        | class_template
         | ctor
         | dtor
         | enum_decl
