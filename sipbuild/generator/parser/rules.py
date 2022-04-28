@@ -3276,7 +3276,7 @@ def p_empty(p):
 
 def p_file_name(p):
     """file_name : '.'
-        | '..'
+        | PARENT_DIR
         | dotted_name
         | file_name '-' dotted_name"""
 
