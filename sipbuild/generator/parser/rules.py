@@ -3275,7 +3275,9 @@ def p_empty(p):
 
 
 def p_file_name(p):
-    """file_name : dotted_name
+    """file_name : '.'
+        | '..'
+        | dotted_name
         | file_name '-' dotted_name"""
 
     p[0] = str(p[1]) if len(p) == 2 else p[1] + '-' + str(p[3])
