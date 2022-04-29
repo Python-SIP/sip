@@ -698,7 +698,7 @@ def p_import(p):
 
 
 def p_import_simple(p):
-    "import_simple : file_path"
+    "import_simple : FILE_PATH"
 
     pm = p.parser.pm
 
@@ -735,7 +735,7 @@ def p_import_args(p):
 
 
 def p_import_arg(p):
-    "import_arg : name '=' file_path"
+    "import_arg : name '=' FILE_PATH"
 
     p[0] = {p[1]: p[3]}
 
@@ -748,7 +748,7 @@ def p_include(p):
 
 
 def p_include_simple(p):
-    "include_simple : file_path"
+    "include_simple : FILE_PATH"
 
     pm = p.parser.pm
 
@@ -785,7 +785,7 @@ def p_include_args(p):
 
 
 def p_include_arg(p):
-    """include_arg : name '=' file_path
+    """include_arg : name '=' FILE_PATH
         | optional '=' bool_value"""
 
     p[0] = {p[1]: p[3]}
@@ -3272,22 +3272,6 @@ def p_empty(p):
     "empty :"
 
     p[0] = None
-
-
-def p_file_name(p):
-    """file_name : '.'
-        | PARENT_DIR
-        | dotted_name
-        | file_name '-' dotted_name"""
-
-    p[0] = str(p[1]) if len(p) == 2 else p[1] + '-' + str(p[3])
-
-
-def p_file_path(p):
-    """file_path : file_name
-        | file_path '/' file_name"""
-
-    p[0] = p[1] if len(p) == 2 else p[1] + '/' + p[3]
 
 
 def p_opt_const(p):

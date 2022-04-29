@@ -97,8 +97,8 @@ directive_keywords = {
 
 # The lexer tokens.
 tokens = [
-    'CODE_BLOCK', 'ELLIPSIS', 'EOF', 'EOL', 'LOGICAL_OR', 'NAME', 'NUMBER',
-    'PARENT_DIR', 'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
+    'CODE_BLOCK', 'ELLIPSIS', 'EOF', 'EOL', 'FILE_PATH', 'LOGICAL_OR', 'NAME',
+    'NUMBER', 'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
 ]
 
 tokens.extend(directives)
@@ -382,7 +382,7 @@ def t_QCH(t):
 
 
 # The remaining trivial token definitions.
-t_PARENT_DIR = r'\.\.'
+t_FILE_PATH = r'[\._A-Za-z][\._/A-Za-z0-9\-]*[\._A-Za-z0-9]'
 t_ELLIPSIS = r'\.\.\.'
 t_LOGICAL_OR = r'\|\|'
 t_SCOPE = r'::'
