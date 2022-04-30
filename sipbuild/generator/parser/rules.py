@@ -698,7 +698,7 @@ def p_import(p):
 
 
 def p_import_simple(p):
-    "import_simple : FILE_PATH"
+    "import_simple : file_path"
 
     pm = p.parser.pm
 
@@ -735,7 +735,7 @@ def p_import_args(p):
 
 
 def p_import_arg(p):
-    "import_arg : name '=' FILE_PATH"
+    "import_arg : name '=' file_path"
 
     p[0] = {p[1]: p[3]}
 
@@ -748,7 +748,7 @@ def p_include(p):
 
 
 def p_include_simple(p):
-    "include_simple : FILE_PATH"
+    "include_simple : file_path"
 
     pm = p.parser.pm
 
@@ -785,7 +785,7 @@ def p_include_args(p):
 
 
 def p_include_arg(p):
-    """include_arg : name '=' FILE_PATH
+    """include_arg : name '=' file_path
         | optional '=' bool_value"""
 
     p[0] = {p[1]: p[3]}
@@ -3254,18 +3254,17 @@ def p_bool_value(p):
 
 def p_dotted_name(p):
     """dotted_name : NAME
-        | dotted_name '.' NAME"""
+        | DOTTED_NAME"""
 
-    if len(p) == 2:
-        value = DottedName()
-        symbol = 1
-    else:
-        value = p[1]
-        symbol = 3
+    p[0] = DottedName(p[1].split('.'))
 
-    value.append(p[symbol])
 
-    p[0] = value
+def p_file_path(p):
+    """file_path : NAME
+        | DOTTED_NAME
+        | FILE_PATH"""
+
+    p[0] = p[1]
 
 
 def p_empty(p):

@@ -267,6 +267,35 @@ class ParserManager:
         self.push_scope(klass,
                 AccessSpecifier.PRIVATE if class_key is ClassKey.CLASS else AccessSpecifier.PUBLIC)
 
+    def disambiguate_token(self, value, keywords):
+        """ Disambiguate a token by inspecting its value. """
+
+        # This seems to be needed because it's not possible to get lex() to do
+        # it.  The problem seems to be that you can't control the order in
+        # which lex() applies its regular expressions despite what the
+        # documentation says.  It seems that tokens that are specific to a
+        # state are always added after everything else no matter where they
+        # appear in the file.
+
+        if value in keywords:
+            token_type = value
+        elif value == '...':
+            token_type = 'ELLIPSIS'
+        elif value.startswith('.'):
+            token_type = 'FILE_PATH'
+        else:
+            for marker in ('/', '..', '-'):
+                if marker in value:
+                    token_type = 'FILE_PATH'
+                    break
+            else:
+                if '.' in value:
+                    token_type = 'DOTTED_NAME'
+                else:
+                    token_type = 'NAME'
+
+        return token_type
+
     def find_class(self, p, symbol, iface_file_type, fq_cpp_name):
         """ Return a WrappedClass object for a C++ name creating it if
         necessary.

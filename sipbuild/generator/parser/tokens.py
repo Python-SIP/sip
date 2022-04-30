@@ -97,8 +97,8 @@ directive_keywords = {
 
 # The lexer tokens.
 tokens = [
-    'CODE_BLOCK', 'ELLIPSIS', 'EOF', 'EOL', 'FILE_PATH', 'LOGICAL_OR', 'NAME',
-    'NUMBER', 'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
+    'CODE_BLOCK', 'DOTTED_NAME', 'ELLIPSIS', 'EOF', 'EOL', 'FILE_PATH',
+    'LOGICAL_OR', 'NAME', 'NUMBER', 'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
 ]
 
 tokens.extend(directives)
@@ -234,21 +234,21 @@ def t_code_CH(t):
     return None
 
 
-# Handle keywords and simple identifiers.
-def t_KEYWORD(t):
-    r'[_A-Za-z][_A-Za-z\d]*'
+# Handle keywords, ellipsis, names, dotted name and file paths.
+def t_AMBIGUOUS(t):
+    r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
 
-    t.type = t.value if t.value in keywords else 'NAME'
+    t.type = t.lexer.pm.disambiguate_token(t.value, keywords)
 
     return t
 
 
-# Handle directive keywords, ie. keywords that are only recognised in the
-# context of a directive.
-def t_directive_KEYWORD(t):
-    r'[_A-Za-z][_A-Za-z\d]*'
+# Handle directive keywords (ie. keywords that are only recognised in the
+# context of a directive), ellipsis, names, dotted name and file paths.
+def t_directive_AMBIGUOUS(t):
+    r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
 
-    t.type = t.value if t.value in directive_keywords else 'NAME'
+    t.type = t.lexer.pm.disambiguate_token(t.value, directive_keywords)
 
     return t
 
@@ -382,7 +382,9 @@ def t_QCH(t):
 
 
 # The remaining trivial token definitions.
-t_FILE_PATH = r'[\._A-Za-z][\._/A-Za-z0-9\-]*[\._A-Za-z0-9]'
-t_ELLIPSIS = r'\.\.\.'
 t_LOGICAL_OR = r'\|\|'
 t_SCOPE = r'::'
+
+# We only deal with a single character as everything else is handled by
+# AMBIGUOUS.
+t_NAME = r'[A-Za-z]'
