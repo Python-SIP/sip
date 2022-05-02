@@ -307,7 +307,7 @@ class ParserManager:
     def find_exception(self, p, symbol, fq_cpp_name, raise_code=None):
         """ Find an exception, optionally creating a new one. """
 
-        fq_cpp_name = normalised_scoped_name(fq_cpp_name, self.scope)
+        # Note that we don't normalise the name.
         iface_file = self.find_iface_file(p, symbol, fq_cpp_name,
                 IfaceFileType.EXCEPTION)
 
