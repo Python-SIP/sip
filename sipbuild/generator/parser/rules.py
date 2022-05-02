@@ -3262,7 +3262,7 @@ def p_dotted_name(p):
     """dotted_name : NAME
         | DOTTED_NAME"""
 
-    p[0] = DottedName(p[1].split('.'))
+    p[0] = DottedName(p[1])
 
 
 def p_file_path(p):

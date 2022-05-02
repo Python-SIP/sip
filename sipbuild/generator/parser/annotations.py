@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,16 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-class DottedName(list):
+class DottedName(str):
     """ Encapsulate a dotted name.  A dedicated type is used (rather than a
     str) because we need to be able to distinguish it from a quoted string when
     used as the value of an annotation.
     """
 
-    def __str__(self):
-        """ Return the string version. """
-
-        return '.'.join(self)
+    pass
 
 
 class InvalidAnnotation(Exception):
