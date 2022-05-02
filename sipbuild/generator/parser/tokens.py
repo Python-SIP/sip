@@ -174,7 +174,7 @@ def t_RPAREN(t):
 
 # Handle directives.
 def t_DIRECTIVE(t):
-    r'(?m)^\s*%[a-zA-Z][a-zA-Z]*'
+    r'%[a-zA-Z][a-zA-Z]*'
 
     # The name of the directive is used as its type.
     name = t.value[t.value.index('%') + 1:]
