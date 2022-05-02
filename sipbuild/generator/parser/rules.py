@@ -1523,6 +1523,12 @@ def p_cpp_type(p):
         value.derefs.extend(p[2])
         value.is_reference = p[3]
 
+        # PyObject * is a synonym for SIP_PYOBJECT.
+        if value.type is ArgumentType.DEFINED and len(value.definition) == 1 and value.definition.base_name == 'PyObject' and len(value.derefs) == 1 and not value.is_reference:
+            value.type = ArgumentType.PYOBJECT
+            value.definition = None
+            value.derefs = []
+
     p[0] = value
 
 
