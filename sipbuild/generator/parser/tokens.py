@@ -21,6 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ply.lex import TOKEN
+
 from ..specification import CodeBlock
 
 
@@ -235,8 +237,10 @@ def t_code_CH(t):
 
 
 # Handle keywords, ellipsis, names, dotted name and file paths.
+ambiguous = r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
+
+@TOKEN(ambiguous)
 def t_AMBIGUOUS(t):
-    r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
 
     t.type = t.lexer.pm.disambiguate_token(t.value, keywords)
 
@@ -245,8 +249,8 @@ def t_AMBIGUOUS(t):
 
 # Handle directive keywords (ie. keywords that are only recognised in the
 # context of a directive), ellipsis, names, dotted name and file paths.
+@TOKEN(ambiguous)
 def t_directive_AMBIGUOUS(t):
-    r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
 
     t.type = t.lexer.pm.disambiguate_token(t.value, directive_keywords)
 
