@@ -135,10 +135,10 @@ def validate_name(pm, p, symbol, name, value, *, allow_dots, optional):
     if not isinstance(value, DottedName):
         raise InvalidAnnotation(name, "must be an unquoted name", use='')
 
-    if len(value) > 1 and not allow_dots:
+    if '.' in value and not allow_dots:
         raise InvalidAnnotation(name, "cannot contain '.'", use='')
 
-    return str(value)
+    return value
 
 name = bind(validate_name, allow_dots=False, optional=False)
 
