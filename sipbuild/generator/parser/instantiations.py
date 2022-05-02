@@ -204,11 +204,11 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
             if name == arg.definition.base_name:
                 tad = template.types.args[a]
 
-                proto_arg.type = tad.type
-                proto_arg.definition = tad.definition
+                i_arg.type = tad.type
+                i_arg.definition = tad.definition
 
                 # We take the constrained flag from the real type.
-                proto_arg.is_constrained = tad.is_constrained
+                i_arg.is_constrained = tad.is_constrained
 
                 break
         else:
