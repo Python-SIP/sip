@@ -45,12 +45,15 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       12
-#define SIP_ABI_MINOR_VERSION       10
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_ABI_MINOR_VERSION       11
+#define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v12.11
+ *  - Published the 'array' type.
  *
  * v12.10
  *  - Python v3.7 or later is required.

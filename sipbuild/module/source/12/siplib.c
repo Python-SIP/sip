@@ -1122,6 +1122,9 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
     if (PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type) < 0)
         return NULL;
 
+    if (PyDict_SetItemString(mod_dict, "array", (PyObject *)&sipArray_Type) < 0)
+        return NULL;
+
     /* These will always be needed. */
     if (objectify("__init__", &init_name) < 0)
         return NULL;

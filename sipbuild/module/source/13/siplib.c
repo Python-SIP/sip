@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -1002,6 +1002,9 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
         return NULL;
 
     if (PyDict_SetItemString(mod_dict, "voidptr", (PyObject *)&sipVoidPtr_Type) < 0)
+        return NULL;
+
+    if (PyDict_SetItemString(mod_dict, "array", (PyObject *)&sipArray_Type) < 0)
         return NULL;
 
     /* These will always be needed. */
