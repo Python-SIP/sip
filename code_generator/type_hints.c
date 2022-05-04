@@ -796,8 +796,6 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int overloaded, int is_method, ifaceFileList *defined,
         int indent, int pep484, FILE *fp)
 {
-    int need_self;
-
     if (overloaded)
     {
         prIndent(indent, fp);
@@ -813,10 +811,18 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
     prIndent(indent, fp);
     fprintf(fp, "%s%s", (pep484 ? "def " : ""), od->common->pyname->text);
 
-    need_self = (is_method && !isStatic(od));
+    if (pep484 && (od->common->slot == eq_slot || od->common->slot == ne_slot))
+    {
+        /* mypy recommends using 'object' as the argument type. */
+        fprintf(fp, "(self, other: object)");
+    }
+    else
+    {
+        int need_self = (is_method && !isStatic(od));
 
-    pyiPythonSignature(pt, mod, &od->pysig, need_self, defined, od->kwargs,
-            pep484, fp);
+        pyiPythonSignature(pt, mod, &od->pysig, need_self, defined, od->kwargs,
+                pep484, fp);
+    }
 
     if (pep484)
         fprintf(fp, ": ...\n");
