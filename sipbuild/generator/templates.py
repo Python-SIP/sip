@@ -233,7 +233,7 @@ def _strip_const(s):
 
 def _template_code_block(spec, used, proto_code, expansions):
     """ Return a copy of a CodeBlock object with sub-strings replaced by
-    corresponding values.
+    corresponding values or the original if there were no substitutions.
     """
 
     i_code = copy(proto_code)
@@ -286,5 +286,9 @@ def _template_code_block(spec, used, proto_code, expansions):
         i_lines.append(i_line)
 
     i_code.text = '\n'.join(i_lines)
+
+    # Return the prototype itself if nothing changed.
+    if proto_code.text == i_code.text:
+        return proto_code
 
     return i_code

@@ -81,7 +81,7 @@ class ParserManager:
         self.module_states = []
         self.paren_depth = 0
         self.parsing_virtual = False
-        self.sip_file = None
+        self.raw_sip_file = None
         self.skip_stack = [False]
 
         # Private state.
@@ -98,6 +98,7 @@ class ParserManager:
         self._file_stack = []
         self._input = None
         self._all_sip_files = []
+        self._sip_file = None
         self._sip_files = []
         self._name_cache = {}
 
@@ -698,7 +699,7 @@ class ParserManager:
         overload.virtual_call_code = virtual_call_code
         overload.virtual_catcher_code = virtual_catcher_code
 
-        overload.source_file = self.sip_file
+        overload.source_file = self._sip_file
         overload.source_line = p.lineno(symbol)
 
         # See if the function is a non-lazy method.  These are methods that
@@ -1184,7 +1185,7 @@ class ParserManager:
         things so that it appears like the former.
         """
 
-        sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
+        sip_file, raw_sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
 
         if module_state is None:
             module_state = self.module_state
@@ -1193,10 +1194,10 @@ class ParserManager:
             # ModuleState as if it had been %Imported.
             module = Module()
             self.spec.modules.append(module)
-            self.module_state = ModuleState(module, self.sip_file, self)
+            self.module_state = ModuleState(module, self._sip_file, self)
 
         self._file_stack.append(
-                (sip_file, input, lineno, lexpos, module_state))
+                (sip_file, raw_sip_file, input, lineno, lexpos, module_state))
 
     def evaluate_feature_or_platform(self, p, symbol, name=None,
             inverted=False):
@@ -1467,7 +1468,7 @@ class ParserManager:
         """ Record an error caused by a token. """
 
         self._errors.append(
-                self._format_error(self.sip_file, t.lineno, t.lexpos, text))
+                self._format_error(self._sip_file, t.lineno, t.lexpos, text))
 
     def parse(self, sip_file):
         """ Parse a .sip file and return a Specification object and a list of
@@ -1475,13 +1476,18 @@ class ParserManager:
         UserException is raised if there was an error.
         """
 
+        # Note that the retention of the 'raw' filename, ie. that which was
+        # specified by the user is only done so that generated '#line'
+        # directives match those from older versions of SIP.
+
+        raw_sip_file = sip_file
         sip_file = os.path.abspath(sip_file)
 
         self.module_state = ModuleState(self.spec.modules[0], sip_file, self)
 
         try:
-            self._parser.parse(self._read(sip_file), lexer=self._lexer,
-                    tracking=True)
+            self._parser.parse(self._read(sip_file, raw_sip_file),
+                    lexer=self._lexer, tracking=True)
         except UnexpectedEOF:
             self._unexpected_eof_error()
 
@@ -1509,7 +1515,7 @@ class ParserManager:
         """ Record an error caused by a symbol in a production. """
 
         self._errors.append(
-                self._format_error(self.sip_file, p.lineno(symbol),
+                self._format_error(self._sip_file, p.lineno(symbol),
                         p.lexpos(symbol), text))
 
     def pop_file(self):
@@ -1518,7 +1524,7 @@ class ParserManager:
         """
 
         # Restore the state of the previous .sip file.
-        sip_file, self._input, self._lexer.lineno, lexpos, old_module_state = self._file_stack.pop()
+        sip_file, raw_sip_file, self._input, self._lexer.lineno, lexpos, old_module_state = self._file_stack.pop()
         self._lexer.input(self._input)
         self._lexer.lexpos = lexpos
 
@@ -1535,7 +1541,8 @@ class ParserManager:
 
             self.module_state = old_module_state
 
-        self.sip_file = sip_file
+        self._sip_file = sip_file
+        self.raw_sip_file = raw_sip_file
 
     def pop_scope(self):
         """ Pop the current scope. """
@@ -1552,6 +1559,8 @@ class ParserManager:
         if sip_file is None:
             sip_file = p[symbol]
 
+        raw_sip_file = sip_file
+
         # Make the name platform-native.
         sip_file = sip_file.replace('/', os.sep)
 
@@ -1564,7 +1573,7 @@ class ParserManager:
             # If the name is relative then check the directory containing the
             # current file and any include directories.
             if not os.path.isabs(sip_file):
-                inc_dirs = [os.path.dirname(self.sip_file)]
+                inc_dirs = [os.path.dirname(self._sip_file)]
                 inc_dirs.extend(self._include_dirs)
 
                 for inc_dir in inc_dirs:
@@ -1576,11 +1585,12 @@ class ParserManager:
             if found is None:
                 if not optional:
                     self.parser_error(p, symbol,
-                            "'{0}' could not be found".format(sip_file))
+                            "'{0}' could not be found".format(raw_sip_file))
 
                 return
 
-            sip_file = found
+            # For historic reasons we keep the absolute name for the raw name.
+            raw_sip_file = sip_file = found
 
         sip_file = os.path.abspath(sip_file)
 
@@ -1634,12 +1644,13 @@ class ParserManager:
 
         # Save the state of the current .sip file.
         self._file_stack.append(
-                (self.sip_file, self._input, self._lexer.lineno,
-                        self._lexer.lexpos, old_module_state))
+                (self._sip_file, self.raw_sip_file, self._input,
+                        self._lexer.lineno, self._lexer.lexpos,
+                        old_module_state))
 
         # Make the new one current and give it's content to the lexer.
         self._lexer.lineno = 1
-        self._lexer.input(self._read(sip_file))
+        self._lexer.input(self._read(sip_file, raw_sip_file))
 
     def push_scope(self, scope, access_specifier=None):
         """ Push a new scope. """
@@ -2110,12 +2121,12 @@ class ParserManager:
         if module.fq_py_name is None:
             self._errors.append(
                     "{0}: %Module has not been specified".format(
-                            self.sip_file))
+                            self._sip_file))
 
         # call_super_init defaults to False if it wasn't specified.
         module.call_super_init = bool(module_state.call_super_init)
 
-    def _read(self, sip_file):
+    def _read(self, sip_file, raw_sip_file):
         """ Return the contents of the current .sip file. """
 
         try:
@@ -2129,7 +2140,8 @@ class ParserManager:
                             sip_file, self._encoding),
                     detail=str(e))
 
-        self.sip_file = sip_file
+        self.raw_sip_file = raw_sip_file
+        self._sip_file = sip_file
         self._all_sip_files.append(sip_file)
 
         if self.in_main_module:
@@ -2147,7 +2159,7 @@ class ParserManager:
         """ Record an error caused by an unexpected EOF. """
 
         self._errors.append(
-                "{0}: unexpected end of file".format(self.sip_file))
+                "{0}: unexpected end of file".format(self._sip_file))
 
 
 class ModuleState:

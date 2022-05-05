@@ -1,4 +1,4 @@
-v6.6.2 4th May 2022
+v6.6.2 5th May 2022
   - The 'array' type is now accessible from the sip module.
   - The latest version of ABI v13 is v13.4.0.
   - The latest version of ABI v12 is v12.11.0.

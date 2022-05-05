@@ -180,7 +180,7 @@ def t_DIRECTIVE(t):
     name = t.value[t.value.index('%') + 1:]
 
     if name in code_directives:
-        t.lexer.pm.code_block = CodeBlock(t.lexer.pm.sip_file)
+        t.lexer.pm.code_block = CodeBlock(t.lexer.pm.raw_sip_file)
         t.type = name
     elif name in directives:
         t.type = name
