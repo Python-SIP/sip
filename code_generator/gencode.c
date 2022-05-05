@@ -10674,8 +10674,12 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 {
     scopedNameDef *ename = xd->iff->fqcname;
 
+    /*
+     * The global scope is stripped from the exception name to be consistent
+     * with older versions of SIP.
+     */
     prcode(fp,
-"            catch (%S &%s)\n"
+"            catch (%V &%s)\n"
 "            {\n"
         ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
 
