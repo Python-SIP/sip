@@ -154,15 +154,14 @@ class Project(AbstractProject, Configurable):
                 metavar="NAME"),
     )
 
-    def __init__(self, arguments, **kwargs):
+    def __init__(self, **kwargs):
         """ Initialise the project. """
 
         super().__init__()
 
-        self._arguments = arguments
-
         # The current directory should contain the .toml file.
         self.root_dir = os.getcwd()
+        self.arguments = None
         self.bindings = collections.OrderedDict()
         self.bindings_factories = []
         self.builder = None
@@ -737,7 +736,7 @@ class Project(AbstractProject, Configurable):
             bindings.add_command_line_options(parser, tool, all_options)
 
         # Parse the arguments and update the corresponding configurables.
-        args = parser.parse_args(self._arguments)
+        args = parser.parse_args(self.arguments)
 
         for option, configurables in all_options.items():
             for configurable in configurables:

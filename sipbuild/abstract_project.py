@@ -72,12 +72,16 @@ class AbstractProject(ABC):
         else:
             project_factory = cls.import_callable(project_factory_name, cls)
 
-        project = project_factory(arguments)
+        project = project_factory()
 
         if not isinstance(project, cls):
             raise UserException(
                     "The project factory did not return an AbstractProject "
                     "object")
+
+        # We set this as an attribute rather than change the API of the ctor or
+        # setup().
+        project.arguments = arguments
 
         # Complete the configuration of the project.
         project.setup(pyproject, tool, tool_description)
