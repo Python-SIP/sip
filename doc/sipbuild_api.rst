@@ -128,7 +128,7 @@ build systems.
 
         :param PyProject pyproject: is the parsed :file:`pyproject.toml` file.
         :param str tool: is the name of the tool, either ``'build'``,
-            ``'install'``, ``'pep517'``, ``'sdist'`` or ``'wheel'``.
+            ``'install'``, ``'sdist'`` or ``'wheel'``.
         :param str tool_description: is a short description of the tool.
 
 
@@ -529,7 +529,7 @@ build systems.
         line option, the name should be preceded by ``no-``.
     :param list[str] tools: is the list of tools that use the option as a
         command line option.  If it isn't specified then the list of build
-        tools is used, i.e. ``['build', 'install', 'pep517', 'wheel']``.
+        tools is used, i.e. ``['build', 'install', 'wheel']``.
 
 
 :py:class:`~sipbuild.Project`

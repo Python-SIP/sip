@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -34,7 +34,7 @@ class AbstractProject(ABC):
     """ This specifies the API of a project. """
 
     @classmethod
-    def bootstrap(cls, tool, tool_description=''):
+    def bootstrap(cls, tool, tool_description='', arguments=None):
         """ Return an AbstractProject instance fully configured for a
         particular command line tool.
         """
@@ -72,7 +72,7 @@ class AbstractProject(ABC):
         else:
             project_factory = cls.import_callable(project_factory_name, cls)
 
-        project = project_factory()
+        project = project_factory(arguments)
 
         if not isinstance(project, cls):
             raise UserException(

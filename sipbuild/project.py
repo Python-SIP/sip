@@ -154,10 +154,12 @@ class Project(AbstractProject, Configurable):
                 metavar="NAME"),
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, arguments, **kwargs):
         """ Initialise the project. """
 
         super().__init__()
+
+        self._arguments = arguments
 
         # The current directory should contain the .toml file.
         self.root_dir = os.getcwd()
@@ -209,11 +211,6 @@ class Project(AbstractProject, Configurable):
 
     def apply_user_defaults(self, tool):
         """ Set default values for user options that haven't been set yet. """
-
-        # If we are the backend to a 3rd-party frontend (most probably pip)
-        # then let it handle the verbosity of messages.
-        if self.verbose is None and tool == '':
-            self.verbose = True
 
         # This is only used when creating sdist and wheel files.
         if self.name is None:
@@ -575,14 +572,9 @@ class Project(AbstractProject, Configurable):
         # Set the initial configuration from the pyproject.toml file.
         self._set_initial_configuration(pyproject, tool)
 
-        # Add any tool-specific command line options for (so far unspecified)
+        # Add any tool-specific command line arguments for (so far unspecified)
         # parts of the configuration.
-        if tool != 'pep517':
-            self._configure_from_command_line(tool, tool_description)
-        else:
-            # Until pip improves it's error reporting we give the user all the
-            # help we can.
-            self.verbose = True
+        self._configure_from_arguments(tool, tool_description)
 
         # Now that any help has been given we can report a problematic
         # pyproject.toml file.
@@ -718,8 +710,8 @@ class Project(AbstractProject, Configurable):
         for bindings in self.bindings.values():
             bindings.verify_configuration(tool)
 
-    def _configure_from_command_line(self, tool, tool_description):
-        """ Update the configuration from the user supplied command line. """
+    def _configure_from_arguments(self, tool, tool_description):
+        """ Update the configuration from any user supplied arguments. """
 
         from argparse import SUPPRESS
         from .argument_parser import ArgumentParser
@@ -745,7 +737,7 @@ class Project(AbstractProject, Configurable):
             bindings.add_command_line_options(parser, tool, all_options)
 
         # Parse the arguments and update the corresponding configurables.
-        args = parser.parse_args()
+        args = parser.parse_args(self._arguments)
 
         for option, configurables in all_options.items():
             for configurable in configurables:

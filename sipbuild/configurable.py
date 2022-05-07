@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -244,7 +244,7 @@ class Option:
     """
 
     # The tools that will build a set of bindings.
-    BUILD_TOOLS = ('build', 'install', 'pep517', 'wheel')
+    BUILD_TOOLS = ('build', 'install', 'wheel')
 
     # All the valid tools.
     _ALL_TOOLS = BUILD_TOOLS + ('sdist', )
