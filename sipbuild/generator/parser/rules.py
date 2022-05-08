@@ -69,7 +69,7 @@ def p_specification(p):
 
 
 def p_statement(p):
-    """statement : EOF
+    """statement : eof
         | namespace_statement
         | composite_module
         | copying
@@ -117,6 +117,12 @@ def p_namespace_statement(p):
         | union_decl
         | variable
         | type_header_code"""
+
+
+def p_eof(p):
+    "eof : EOF"
+
+    p.parser.pm.pop_module_state()
 
 
 # State changing productions. #################################################

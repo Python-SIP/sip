@@ -96,6 +96,7 @@ class ParserManager:
         self._scope_stack = []
         self._errors = []
         self._file_stack = []
+        self._pending_module_state = None
         self._input = None
         self._all_sip_files = []
         self._sip_file = None
@@ -1523,26 +1524,31 @@ class ParserManager:
         An IndexError is raised if the stack is empty.
         """
 
-        # Restore the state of the previous .sip file.
-        sip_file, raw_sip_file, self._input, self._lexer.lineno, lexpos, old_module_state = self._file_stack.pop()
+        # Restore the state of the previous .sip file.  Note that we don't
+        # restore the module state until after the EOF has been seen.
+        self._sip_file, self.raw_sip_file, self._input, self._lexer.lineno, lexpos, self._pending_module_state = self._file_stack.pop()
+
         self._lexer.input(self._input)
         self._lexer.lexpos = lexpos
 
-        if old_module_state is not None:
-            self._handle_eom()
+    def pop_module_state(self):
+        """ Restore the current module state. """
 
-            # Inherit any default encoding.
-            if old_module_state.default_encoding is None:
-                old_module_state.default_encoding = self.module_state.default_encoding
+        if self._pending_module_state is None:
+            return
 
-            # Inherit any call_super_init.
-            if old_module_state.call_super_init is None:
-                old_module_state.call_super_init = self.module_state.call_super_init
+        self._handle_eom()
 
-            self.module_state = old_module_state
+        # Inherit any default encoding.
+        if self._pending_module_state.default_encoding is None:
+            self._pending_module_state.default_encoding = self.module_state.default_encoding
 
-        self._sip_file = sip_file
-        self.raw_sip_file = raw_sip_file
+        # Inherit any call_super_init.
+        if self._pending_module_state.call_super_init is None:
+            self._pending_module_state.call_super_init = self.module_state.call_super_init
+
+        self.module_state = self._pending_module_state
+        self._pending_module_state = None
 
     def pop_scope(self):
         """ Pop the current scope. """
