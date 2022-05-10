@@ -63,4 +63,16 @@ def _convert_config_settings(config_settings):
     if config_settings is None:
         config_settings = {}
 
-    return [k + '=' + v if v else k for k, v in config_settings.items()]
+    args = []
+
+    for name, value in config_settings.items():
+        if value:
+            if not isinstance(value, list):
+                value = [value]
+
+            for m_value in value:
+                args.append(name + '=' + m_value)
+        else:
+            args.append(name)
+
+    return args
