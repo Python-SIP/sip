@@ -1139,7 +1139,7 @@ def p_module_body(p):
     """module_body : '{' module_body_directives '}' ';'
         | empty"""
 
-    p[0] = p[2] if len(p) == 4 else []
+    p[0] = p[2] if len(p) == 5 else []
 
 
 def p_module_body_directives(p):
@@ -1147,12 +1147,16 @@ def p_module_body_directives(p):
         | module_body_directives module_body_directive"""
 
     if len(p) == 2:
-        value = [p[1]]
-    else:
+        body = []
         value = p[1]
-        value.append(p[2])
+    else:
+        body = p[1]
+        value = p[2]
 
-    p[0] = value
+    if value is not None:
+        body.append(value)
+
+    p[0] = body
 
 
 def p_module_body_directive(p):

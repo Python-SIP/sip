@@ -1,4 +1,4 @@
-v6.6.2 10th May 2022
+v6.6.2 11th May 2022
   - Any config settings passed by a PEP 571 frontend are now used.
   - The 'array' type is now accessible from the sip module.
   - The latest version of ABI v13 is v13.4.0.
