@@ -7668,10 +7668,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,
 "    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ");
 
-    saved = *vhd->pysig;
-    fakeProtectedArgs(vhd->pysig);
     generateTupleBuilder(mod, vhd->pysig, fp);
-    *vhd->pysig = saved;
 
     if (nrvals == 0)
     {
