@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the array type.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,6 +17,7 @@
  */
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <stddef.h>

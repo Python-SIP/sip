@@ -2,7 +2,7 @@
  * The SIP library code that implements the interface to the optional module
  * supplied Qt support.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -18,7 +18,9 @@
  */
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <assert.h>
 #include <string.h>
 
