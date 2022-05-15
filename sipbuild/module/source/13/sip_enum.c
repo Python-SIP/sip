@@ -30,15 +30,19 @@
 #define IS_UNSIGNED_ENUM(etd)   ((etd)->etd_base_type == SIP_ENUM_UINT_ENUM || (etd)->etd_base_type == SIP_ENUM_INT_FLAG || (etd)->etd_base_type == SIP_ENUM_FLAG)
 
 
-static PyObject *enum_type = NULL;      /* The enum.Enum type. */
-static PyObject *int_enum_type = NULL;  /* The enum.IntEnum type. */
-static PyObject *flag_type = NULL;      /* The enum.Flag type. */
-static PyObject *int_flag_type = NULL;  /* The enum.IntFlag type. */
+static PyObject *enum_type = NULL;              /* The enum.Enum type. */
+static PyObject *int_enum_type = NULL;          /* The enum.IntEnum type. */
+static PyObject *flag_type = NULL;              /* The enum.Flag type. */
+static PyObject *int_flag_type = NULL;          /* The enum.IntFlag type. */
 
-static PyObject *str_dunder_sip = NULL; /* '__sip__' */
-static PyObject *str_module = NULL;     /* 'module' */
-static PyObject *str_qualname = NULL;   /* 'qualname' */
-static PyObject *str_value = NULL;      /* 'value' */
+static PyObject *str_dunder_sip = NULL;         /* '__sip__' */
+static PyObject *str_sunder_missing = NULL;     /* '_missing_' */
+static PyObject *str_sunder_name = NULL;        /* '_name_' */
+static PyObject *str_sunder_sip_missing = NULL; /* '_sip_missing_' */
+static PyObject *str_sunder_value = NULL;       /* '_value_' */
+static PyObject *str_module = NULL;             /* 'module' */
+static PyObject *str_qualname = NULL;           /* 'qualname' */
+static PyObject *str_value = NULL;              /* 'value' */
 
 
 /* Forward references. */
@@ -46,6 +50,7 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, sipIntInstanceDef **next_int_p, PyObject *name);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static PyObject *get_enum_type(const sipTypeDef *td);
+static PyObject *missing(PyObject *cls, PyObject *value);
 
 
 /*
@@ -201,6 +206,18 @@ int sip_enum_init(void)
     if (sip_objectify("__sip__", &str_dunder_sip) < 0)
         return -1;
 
+    if (sip_objectify("_missing_", &str_sunder_missing) < 0)
+        return -1;
+
+    if (sip_objectify("_name_", &str_sunder_name) < 0)
+        return -1;
+
+    if (sip_objectify("_sip_missing_", &str_sunder_sip_missing) < 0)
+        return -1;
+
+    if (sip_objectify("_value_", &str_sunder_value) < 0)
+        return -1;
+
     if (sip_objectify("module", &str_module) < 0)
         return -1;
 
@@ -289,10 +306,6 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
             goto rel_kw_args;
     }
 
-    /* Wrap the type definition in a capsule. */
-    if ((etd_cap = PyCapsule_New(etd, NULL, NULL)) == NULL)
-        goto rel_kw_args;
-
     if (etd->etd_base_type == SIP_ENUM_INT_FLAG)
         enum_factory = int_flag_type;
     else if (etd->etd_base_type == SIP_ENUM_FLAG)
@@ -309,8 +322,39 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
     Py_DECREF(args);
     Py_DECREF(members);
 
-    /* Note that it isn't actually a PyTypeObject. */
     etd->etd_base.td_py_type = (PyTypeObject *)enum_obj;
+
+    /* Monkey patch _missing_ for Enum and IntEnum. */
+    if (enum_factory == enum_type || enum_factory == int_enum_type)
+    {
+        static PyMethodDef missing_md = {
+            "_missing_", missing, METH_O|METH_CLASS, NULL
+        };
+
+        PyObject *missing_cfunc;
+
+        if ((missing_cfunc = PyCFunction_New(&missing_md, enum_obj)) == NULL)
+        {
+            Py_DECREF(enum_obj);
+            return NULL;
+        }
+
+        if (PyObject_SetAttr(enum_obj, str_sunder_missing, missing_cfunc) < 0)
+        {
+            Py_DECREF(missing_cfunc);
+            Py_DECREF(enum_obj);
+            return NULL;
+        }
+
+        Py_DECREF(missing_cfunc);
+    }
+
+    /* Wrap the generated type definition in a capsule. */
+    if ((etd_cap = PyCapsule_New(etd, NULL, NULL)) == NULL)
+    {
+        Py_DECREF(enum_obj);
+        return NULL;
+    }
 
     if (PyObject_SetAttr(enum_obj, str_dunder_sip, etd_cap) < 0)
     {
@@ -371,4 +415,98 @@ static PyObject *get_enum_type(const sipTypeDef *td)
     }
 
     return type_obj;
+}
+
+
+/*
+ * The replacment implementation of _missing_ that handles missing members.
+ */
+static PyObject *missing(PyObject *cls, PyObject *value)
+{
+    PyObject *sip_missing, *member, *value_str;
+
+    /* Get the dict of previously missing members. */
+    if ((sip_missing = PyObject_GetAttr(cls, str_sunder_sip_missing)) != NULL)
+    {
+        if ((member = PyDict_GetItemWithError(sip_missing, value)) != NULL)
+        {
+            /* Return the already missing member. */
+            Py_INCREF(member);
+            return member;
+        }
+
+        /* A missing key will not raise an exception. */
+        if (PyErr_Occurred())
+        {
+            Py_DECREF(sip_missing);
+            return NULL;
+        }
+    }
+    else if (PyErr_ExceptionMatches(PyExc_AttributeError))
+    {
+        PyErr_Clear();
+
+        /* Create the dict and save it in the class. */
+        if ((sip_missing = PyDict_New()) == NULL)
+            return NULL;
+
+        if (PyObject_SetAttr(cls, str_sunder_sip_missing, sip_missing) < 0)
+        {
+            Py_DECREF(sip_missing);
+            return NULL;
+        }
+    }
+    else
+    {
+        /* The exception is unexpected. */
+        return NULL;
+    }
+
+    /*
+     * Create a member for the missing value.  Strictly speaking we should be
+     * calling object.__new__() but we know this just calls tp_alloc() and we
+     * avoid creating an args tuple.
+     */
+    if ((member = ((PyTypeObject *)cls)->tp_alloc(cls, 0)) == NULL)
+    {
+        Py_DECREF(sip_missing);
+        return NULL;
+    }
+
+    /* Set the member's attributes. */
+    if ((value_str = PyObject_Str(value)) == NULL)
+    {
+        Py_DECREF(member);
+        Py_DECREF(sip_missing);
+        return NULL;
+    }
+
+    if (PyObject_SetAttr(member, str_sunder_name, value_str) < 0)
+    {
+        Py_DECREF(value_str);
+        Py_DECREF(member);
+        Py_DECREF(sip_missing);
+        return NULL;
+    }
+
+    Py_DECREF(value_str);
+
+    if (PyObject_SetAttr(member, str_sunder_value, value) < 0)
+    {
+        Py_DECREF(member);
+        Py_DECREF(sip_missing);
+        return NULL;
+    }
+
+    /* Save the member so that it is a singleton. */
+    if (PyDict_SetItem(sip_missing, value, member) < 0)
+    {
+        Py_DECREF(member);
+        Py_DECREF(sip_missing);
+        return NULL;
+    }
+
+    Py_DECREF(sip_missing);
+
+    return member;
 }
