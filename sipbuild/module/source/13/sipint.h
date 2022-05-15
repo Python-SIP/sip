@@ -125,11 +125,18 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength);
 int sip_api_deprecated(const char *classname, const char *method);
+const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 
 
 /*
  * These are not part of the SIP API but are used within the SIP module.
  */
+int sip_add_all_lazy_attrs(const sipTypeDef *td);
+void sip_add_type_slots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
+int sip_dict_set_and_discard(PyObject *dict, const char *name, PyObject *obj);
+PyObject *sip_get_qualname(const sipTypeDef *td, PyObject *name);
+int sip_objectify(const char *s, PyObject **objp);
+
 sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd);
 int sipGetPending(void **pp, sipWrapper **op, int *fp);
