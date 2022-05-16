@@ -432,7 +432,7 @@ static PyBufferProcs sipVoidPtr_BufferProcs = {
 /*
  * Implement __new__ for the type.
  */
-static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
+static PyObject *sipVoidPtr_new(PyTypeObject *cls, PyObject *args,
         PyObject *kw)
 {
     static char *kwlist[] = {"address", "size", "writeable", NULL};
@@ -454,7 +454,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
         vp_conversion.rw = rw;
 
     /* Create the instance. */
-    if ((obj = subtype->tp_alloc(subtype, 0)) == NULL)
+    if ((obj = cls->tp_alloc(cls, 0)) == NULL)
         return NULL;
 
     /* Save the values. */

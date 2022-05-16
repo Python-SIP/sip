@@ -6289,7 +6289,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
-    /* The array allocation helper. */
+    /* The array allocation helpers. */
     if (generating_c || arrayHelper(cd))
     {
         prcode(fp,
@@ -6319,6 +6319,37 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "}\n"
             );
+
+        if (abiVersion >= ABI_13_4)
+        {
+            prcode(fp,
+"\n"
+"\n"
+                );
+
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void array_delete_%L(void *);}\n"
+                    , cd->iff);
+
+            prcode(fp,
+"static void array_delete_%L(void *sipCpp)\n"
+"{\n"
+                , cd->iff);
+
+            if (generating_c)
+                prcode(fp,
+"    sipFree(sipCpp);\n"
+                    );
+            else
+                prcode(fp,
+"    delete[] reinterpret_cast<%U *>(sipCpp);\n"
+                    , cd);
+
+            prcode(fp,
+"}\n"
+                );
+        }
     }
 
     /* The copy and assignment helpers. */
@@ -9961,12 +9992,33 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     if (isMixin(cd))
         prcode(fp,
-"    mixin_%C\n"
+"    mixin_%C,\n"
             , classFQCName(cd));
     else
         prcode(fp,
-"    SIP_NULLPTR\n"
+"    SIP_NULLPTR,\n"
             );
+
+    if (abiVersion >= ABI_13_4)
+    {
+        if (generating_c || arrayHelper(cd))
+            prcode(fp,
+"    array_delete_%L,\n"
+                , cd->iff);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
+
+        if (canCreate(cd))
+            prcode(fp,
+"    sizeof (%U),\n"
+                , cd);
+        else
+            prcode(fp,
+"    0,\n"
+                );
+    }
 
     prcode(fp,
 "};\n"

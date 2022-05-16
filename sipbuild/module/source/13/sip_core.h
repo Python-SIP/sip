@@ -105,6 +105,7 @@ unsigned long long sip_api_long_as_unsigned_long_long(PyObject *o);
 size_t sip_api_long_as_size_t(PyObject *o);
 
 
+extern PyTypeObject sipWrapperType_Type;        /* The wrapper type type. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 
 

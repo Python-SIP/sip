@@ -55,6 +55,7 @@ extern "C" {
  * v13.4
  *  - The enum implementation now supports missing members.
  *  - Published the 'array' type.
+ *  - Added the ctd_sizeof, ctd_array_delete members to sipClassTypeDef.
  *
  * v13.3
  *  - Python v3.7 or later is required.
@@ -240,6 +241,7 @@ typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
         sipSimpleWrapper *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, Py_ssize_t, void *);
 typedef void *(*sipArrayFunc)(Py_ssize_t);
+typedef void (*sipArrayDeleteFunc)(void *);
 typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef void (*sipReleaseUSFunc)(void *, int, void *);
@@ -824,6 +826,12 @@ typedef struct _sipClassTypeDef {
 
     /* The mixin initialisation function. */
     initproc ctd_init_mixin;
+
+    /* The optional array delete function. */
+    sipArrayDeleteFunc ctd_array_delete;
+
+    /* The sizeof the class. */
+    size_t ctd_sizeof;
 } sipClassTypeDef;
 
 
@@ -1428,8 +1436,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 
 
 /*
- * These are flags that can be passed to sipConvertToArray().  These are held
- * in sw_flags.
+ * These are flags that can be passed to sipConvertToArray().
  */
 #define SIP_READ_ONLY       0x01    /* The array is read-only. */
 #define SIP_OWNS_MEMORY     0x02    /* The array owns its memory. */

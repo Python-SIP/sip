@@ -24,8 +24,9 @@
 #include <sys/types.h>
 
 
-/* Use symbolic names for ABI versions. */
+/* Use symbolic names for (significant) ABI versions. */
 
+#define ABI_13_4    0x0d04
 #define ABI_13_1    0x0d01
 #define ABI_13_0    0x0d00
 #define ABI_12_9    0x0c09
