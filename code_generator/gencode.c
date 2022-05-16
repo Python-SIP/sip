@@ -1868,12 +1868,13 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "/* This defines this module. */\n"
 "sipExportedModuleDef sipModuleAPI_%s = {\n"
 "    0,\n"
-"    SIP_ABI_MINOR_VERSION,\n"
+"    %d,\n"
 "    %n,\n"
 "    0,\n"
 "    sipStrings_%s,\n"
 "    %s,\n"
         , mname
+        , abiVersion & 0xff
         , mod->fullname
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "SIP_NULLPTR");
