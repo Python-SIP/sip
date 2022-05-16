@@ -31,7 +31,7 @@ from setuptools import Extension, setup
 module_src = sorted(glob.glob('*.c'))
 
 if sys.platform == 'win32':
-    module_src.append('bool.cpp')
+    module_src.append('sip_bool.cpp')
 
 module = Extension('@_SIP_MODULE_FQ_NAME@', module_src)
 

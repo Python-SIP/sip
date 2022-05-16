@@ -1,5 +1,5 @@
 /*
- * This file defines the SIP library internal interfaces.
+ * This file defines the core sip module internal interfaces.
  *
  * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
@@ -17,8 +17,8 @@
  */
 
 
-#ifndef _SIPINT_H
-#define _SIPINT_H
+#ifndef _SIP_CORE_H
+#define _SIP_CORE_H
 
 
 #define PY_SSIZE_T_CLEAN
@@ -153,7 +153,7 @@ void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define sipSetBool(p, v)    (*(_Bool *)(p) = (v))
+#define sip_set_bool(p, v)    (*(_Bool *)(p) = (v))
 #endif
 
 

@@ -23,9 +23,9 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "sipint.h"
+#include "sip_core.h"
 
-#include "array.h"
+#include "sip_array.h"
 
 
 /* The object data structure. */

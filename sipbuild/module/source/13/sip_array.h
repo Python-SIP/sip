@@ -17,14 +17,14 @@
  */
 
 
-#ifndef _ARRAY_H
-#define _ARRAY_H
+#ifndef _SIP_ARRAY_H
+#define _SIP_ARRAY_H
 
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include "sipint.h"
+#include "sip.h"
 
 
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 /*
- * SIP library code.
+ * This file implements the API for the voidptr type.
  *
  * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
@@ -23,8 +23,8 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "sipint.h"
-#include "array.h"
+#include "sip_array.h"
+#include "sip_core.h"
 
 
 /* The object data structure. */

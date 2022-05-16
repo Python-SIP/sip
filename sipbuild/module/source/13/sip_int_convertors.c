@@ -22,7 +22,7 @@
 
 #include <limits.h>
 
-#include "sipint.h"
+#include "sip_core.h"
 
 
 static long long long_as_long_long(PyObject *o, long long min, long long max);

@@ -1,5 +1,5 @@
 /*
- * SIP library code.
+ * The core sip module code.
  *
  * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
@@ -28,9 +28,10 @@
 #include <string.h>
 
 #include "sip.h"
-#include "sipint.h"
-#include "array.h"
+#include "sip_array.h"
 #include "sip_enum.h"
+
+#include "sip_core.h"
 
 
 /* There doesn't seem to be a standard way of checking for C99 support. */
@@ -2590,7 +2591,7 @@ static int parseResult(PyObject *method, PyObject *res,
                     if (v < 0)
                         invalid = TRUE;
                     else if (p != NULL)
-                        sipSetBool(p, v);
+                        sip_set_bool(p, v);
                 }
 
                 break;
@@ -4186,7 +4187,7 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
                     if (v < 0)
                         handle_failed_type_conversion(&failure, arg);
                     else
-                        sipSetBool(p, v);
+                        sip_set_bool(p, v);
                 }
 
                 break;
@@ -4497,7 +4498,7 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
                                 /* Boolean. */
 
                                 if (PyBool_Check(arg))
-                                    sipSetBool(p, (arg == Py_True));
+                                    sip_set_bool(p, (arg == Py_True));
                                 else
                                     handle_failed_type_conversion(&failure,
                                             arg);

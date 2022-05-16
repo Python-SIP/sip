@@ -22,7 +22,7 @@
 
 #include <assert.h>
 
-#include "sipint.h"
+#include "sip_core.h"
 
 #include "sip_enum.h"
 

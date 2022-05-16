@@ -53,6 +53,7 @@ extern "C" {
  * The change history of the ABI.
  *
  * v13.4
+ *  - The enum implementation now supports missing members.
  *  - Published the 'array' type.
  *
  * v13.3
