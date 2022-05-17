@@ -30,11 +30,15 @@
 #define IS_UNSIGNED_ENUM(etd)   ((etd)->etd_base_type == SIP_ENUM_UINT_ENUM || (etd)->etd_base_type == SIP_ENUM_INT_FLAG || (etd)->etd_base_type == SIP_ENUM_FLAG)
 
 
+static PyObject *int_type = NULL;               /* The int type. */
+static PyObject *object_type = NULL;            /* The object type. */
+
 static PyObject *enum_type = NULL;              /* The enum.Enum type. */
 static PyObject *int_enum_type = NULL;          /* The enum.IntEnum type. */
 static PyObject *flag_type = NULL;              /* The enum.Flag type. */
 static PyObject *int_flag_type = NULL;          /* The enum.IntFlag type. */
 
+static PyObject *str_dunder_new = NULL;         /* '__new__' */
 static PyObject *str_dunder_sip = NULL;         /* '__sip__' */
 static PyObject *str_sunder_missing = NULL;     /* '_missing_' */
 static PyObject *str_sunder_name = NULL;        /* '_name_' */
@@ -50,7 +54,9 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
         sipEnumTypeDef *etd, sipIntInstanceDef **next_int_p, PyObject *name);
 static void enum_expected(PyObject *obj, const sipTypeDef *td);
 static PyObject *get_enum_type(const sipTypeDef *td);
-static PyObject *missing(PyObject *cls, PyObject *value);
+static PyObject *missing(PyObject *cls, PyObject *value, int int_enum);
+static PyObject *missing_enum(PyObject *cls, PyObject *value);
+static PyObject *missing_int_enum(PyObject *cls, PyObject *value);
 
 
 /*
@@ -179,18 +185,27 @@ const sipTypeDef *sip_enum_get_generated_type(PyObject *obj)
  */
 int sip_enum_init(void)
 {
-    PyObject *obj;
+    PyObject *builtins, *enum_module;
 
-    /* Get the enum types. */
-    if ((obj = PyImport_ImportModule("enum")) == NULL)
+    /* Get the builtin types. */
+    builtins = PyEval_GetBuiltins();
+
+    if ((int_type = PyDict_GetItemString(builtins, "int")) == NULL)
         return -1;
 
-    enum_type = PyObject_GetAttrString(obj, "Enum");
-    int_enum_type = PyObject_GetAttrString(obj, "IntEnum");
-    flag_type = PyObject_GetAttrString(obj, "Flag");
-    int_flag_type = PyObject_GetAttrString(obj, "IntFlag");
+    if ((object_type = PyDict_GetItemString(builtins, "object")) == NULL)
+        return -1;
 
-    Py_DECREF(obj);
+    /* Get the enum types. */
+    if ((enum_module = PyImport_ImportModule("enum")) == NULL)
+        return -1;
+
+    enum_type = PyObject_GetAttrString(enum_module, "Enum");
+    int_enum_type = PyObject_GetAttrString(enum_module, "IntEnum");
+    flag_type = PyObject_GetAttrString(enum_module, "Flag");
+    int_flag_type = PyObject_GetAttrString(enum_module, "IntFlag");
+
+    Py_DECREF(enum_module);
 
     if (enum_type == NULL || int_enum_type == NULL || flag_type == NULL || int_flag_type == NULL)
     {
@@ -203,6 +218,9 @@ int sip_enum_init(void)
     }
 
     /* Objectify the strings. */
+    if (sip_objectify("__new__", &str_dunder_new) < 0)
+        return -1;
+
     if (sip_objectify("__sip__", &str_dunder_sip) < 0)
         return -1;
 
@@ -249,6 +267,7 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
 {
     int i;
     PyObject *members, *enum_factory, *enum_obj, *args, *kw_args, *etd_cap;
+    PyMethodDef *missing_md;
     sipIntInstanceDef *next_int;
 
     /* Create a dict of the members. */
@@ -306,14 +325,34 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
             goto rel_kw_args;
     }
 
+    missing_md = NULL;
+
     if (etd->etd_base_type == SIP_ENUM_INT_FLAG)
+    {
         enum_factory = int_flag_type;
+    }
     else if (etd->etd_base_type == SIP_ENUM_FLAG)
+    {
         enum_factory = flag_type;
+    }
     else if (etd->etd_base_type == SIP_ENUM_INT_ENUM || etd->etd_base_type == SIP_ENUM_UINT_ENUM)
+    {
+        static PyMethodDef missing_int_enum_md = {
+            "_missing_", missing_int_enum, METH_O|METH_CLASS, NULL
+        };
+
         enum_factory = int_enum_type;
+        missing_md = &missing_int_enum_md;
+    }
     else
+    {
+        static PyMethodDef missing_enum_md = {
+            "_missing_", missing_enum, METH_O|METH_CLASS, NULL
+        };
+
         enum_factory = enum_type;
+        missing_md = &missing_enum_md;
+    }
 
     if ((enum_obj = PyObject_Call(enum_factory, args, kw_args)) == NULL)
         goto rel_kw_args;
@@ -324,16 +363,12 @@ static PyObject *create_enum_object(sipExportedModuleDef *client,
 
     etd->etd_base.td_py_type = (PyTypeObject *)enum_obj;
 
-    /* Monkey patch _missing_ for Enum and IntEnum. */
-    if (enum_factory == enum_type || enum_factory == int_enum_type)
+    /* Inject _missing_. */
+    if (missing_md != NULL)
     {
-        static PyMethodDef missing_md = {
-            "_missing_", missing, METH_O|METH_CLASS, NULL
-        };
-
         PyObject *missing_cfunc;
 
-        if ((missing_cfunc = PyCFunction_New(&missing_md, enum_obj)) == NULL)
+        if ((missing_cfunc = PyCFunction_New(missing_md, enum_obj)) == NULL)
         {
             Py_DECREF(enum_obj);
             return NULL;
@@ -419,9 +454,9 @@ static PyObject *get_enum_type(const sipTypeDef *td)
 
 
 /*
- * The replacment implementation of _missing_ that handles missing members.
+ * The bulk of the implementation of _missing_ that handles missing members.
  */
-static PyObject *missing(PyObject *cls, PyObject *value)
+static PyObject *missing(PyObject *cls, PyObject *value, int int_enum)
 {
     PyObject *sip_missing, *member, *value_str;
 
@@ -462,12 +497,15 @@ static PyObject *missing(PyObject *cls, PyObject *value)
         return NULL;
     }
 
-    /*
-     * Create a member for the missing value.  Strictly speaking we should be
-     * calling object.__new__() but we know this just calls tp_alloc() and we
-     * avoid creating an args tuple.
-     */
-    if ((member = ((PyTypeObject *)cls)->tp_alloc(cls, 0)) == NULL)
+    /* Create a member for the missing value. */
+    if (int_enum)
+        member = PyObject_CallMethodObjArgs(int_type, str_dunder_new, cls,
+                value, NULL);
+    else
+        member = PyObject_CallMethodObjArgs(object_type, str_dunder_new, cls,
+                NULL);
+
+    if (member == NULL)
     {
         Py_DECREF(sip_missing);
         return NULL;
@@ -509,4 +547,24 @@ static PyObject *missing(PyObject *cls, PyObject *value)
     Py_DECREF(sip_missing);
 
     return member;
+}
+
+
+/*
+ * The replacment implementation of _missing_ that handles missing members in
+ * Enums.
+ */
+static PyObject *missing_enum(PyObject *cls, PyObject *value)
+{
+    return missing(cls, value, FALSE);
+}
+
+
+/*
+ * The replacment implementation of _missing_ that handles missing members in
+ * IntEnums.
+ */
+static PyObject *missing_int_enum(PyObject *cls, PyObject *value)
+{
+    return missing(cls, value, TRUE);
 }
