@@ -1867,7 +1867,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "\n"
 "/* This defines this module. */\n"
 "sipExportedModuleDef sipModuleAPI_%s = {\n"
-"    0,\n"
+"    SIP_NULLPTR,\n"
 "    %d,\n"
 "    %n,\n"
 "    0,\n"
