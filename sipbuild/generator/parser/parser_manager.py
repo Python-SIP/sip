@@ -1980,6 +1980,9 @@ class ParserManager:
 
             # __delattr__ is implemented as __setattr__.
             if py_slot is PySlot.DELATTR:
+                if self.in_main_module:
+                    self.cached_name(py_name).used = True
+
                 py_slot = PySlot.SETATTR
                 py_name = '__setattr__'
 
