@@ -120,6 +120,7 @@ size_t sip_api_long_as_size_t(PyObject *o);
 
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
+extern PyTypeObject sipWrapperType_Type;        /* The wrapper type type. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
 

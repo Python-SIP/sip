@@ -6320,7 +6320,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "}\n"
             );
 
-        if (abiVersion >= ABI_13_4)
+        if (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
         {
             prcode(fp,
 "\n"
@@ -9999,7 +9999,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 "    SIP_NULLPTR,\n"
             );
 
-    if (abiVersion >= ABI_13_4)
+    if (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
     {
         if (generating_c || arrayHelper(cd))
             prcode(fp,

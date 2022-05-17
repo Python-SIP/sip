@@ -30,7 +30,7 @@
 
 #include "sip.h"
 #include "sipint.h"
-#include "array.h"
+#include "sip_array.h"
 
 
 /* There doesn't seem to be a standard way of checking for C99 support. */
@@ -53,7 +53,7 @@ static int sipWrapperType_init(sipWrapperType *self, PyObject *args,
 static int sipWrapperType_setattro(PyObject *self, PyObject *name,
         PyObject *value);
 
-static PyTypeObject sipWrapperType_Type = {
+PyTypeObject sipWrapperType_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "sip.wrappertype",      /* tp_name */
     sizeof (sipWrapperType),    /* tp_basicsize */
