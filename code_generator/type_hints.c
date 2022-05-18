@@ -874,6 +874,14 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         }
     }
 
+    if (isArray(ad))
+    {
+        if (pep484)
+            fprintf(fp, "typing.");
+
+        fprintf(fp, "Sequence[");
+    }
+
     pyiType(pt, mod, ad, out, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
@@ -884,6 +892,9 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         else
             fprintf(fp, "a%d", arg_nr);
     }
+
+    if (isArray(ad))
+        fprintf(fp, "]");
 
     if (optional)
     {
