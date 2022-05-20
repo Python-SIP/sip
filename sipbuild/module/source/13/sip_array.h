@@ -39,6 +39,9 @@ PyObject *sip_api_convert_to_array(void *data, const char *format,
 PyObject *sip_api_convert_to_typed_array(void *data, const sipTypeDef *td,
         const char *format, size_t stride, Py_ssize_t len, int flags);
 
+int sip_array_can_convert(PyObject *obj, const sipTypeDef *td);
+void sip_array_convert(PyObject *obj, void **data, Py_ssize_t *size);
+
 
 #ifdef __cplusplus
 }

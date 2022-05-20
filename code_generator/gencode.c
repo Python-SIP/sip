@@ -6320,7 +6320,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 "}\n"
             );
 
-        if (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
+        if (abiSupportsArray())
         {
             prcode(fp,
 "\n"
@@ -9290,7 +9290,13 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
         switch (atype)
         {
         case class_type:
-            if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
+            if (isArray(ad) && abiSupportsArray())
+            {
+                prcode(fp,
+"        int %aIsTemp = 0;\n"
+                    , mod, ad, argnr);
+            }
+            else if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
             {
                 prcode(fp,
 "        int %aState = 0;\n"
@@ -9999,7 +10005,7 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 "    SIP_NULLPTR,\n"
             );
 
-    if (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
+    if (abiSupportsArray())
     {
         if (generating_c || arrayHelper(cd))
             prcode(fp,
@@ -13148,7 +13154,10 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
                     fatal(" does not support /Array/\n");
                 }
 
-                fmt = "r";
+                if (ad->atype == class_type && abiSupportsArray())
+                    fmt = ">";
+                else
+                    fmt = "r";
             }
             else
             {
@@ -13262,6 +13271,9 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
             if (isArray(ad))
             {
                 prcode(fp, ", &%a", mod, arraylenarg_ad, arraylenarg);
+
+                if (abiSupportsArray())
+                    prcode(fp, ", &%aIsTemp", mod, ad, a);
             }
             else
             {
@@ -13445,14 +13457,24 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
         {
             if (!isTransferred(ad))
             {
+                const char *extra_indent = "";
+
+                if (ad->atype == class_type && abiSupportsArray())
+                {
+                    prcode(fp,
+"            if (%aIsTemp)\n"
+                        , mod, ad, a);
+                    extra_indent = "    ";
+                }
+
                 if (generating_c)
                     prcode(fp,
-"            sipFree(%a);\n"
-                        , mod, ad, a);
+"            %ssipFree(%a);\n"
+                        , extra_indent, mod, ad, a);
                 else
                     prcode(fp,
-"            delete[] %a;\n"
-                        , mod, ad, a);
+"            %sdelete[] %a;\n"
+                        , extra_indent, mod, ad, a);
             }
 
             continue;

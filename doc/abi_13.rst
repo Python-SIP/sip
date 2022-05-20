@@ -548,9 +548,6 @@ module, that can be used by handwritten code in specification files.
     buffer protocol and so can be passed to other modules, again without the
     underlying memory being copied.
 
-    :class:`sip.array` objects are not supported by the code generator.  They
-    can only be created by handwritten code or by :func:`sip.voidptr.asarray`.
-
     :param data:
         the address of the start of the C/C++ array.
     :param format:
@@ -683,9 +680,6 @@ module, that can be used by handwritten code in specification files.
     copied and may be modified in situ.  Arrays support the buffer protocol and
     so can be passed to other modules, again without the underlying memory
     being copied.
-
-    :class:`sip.array` objects are not supported by the code generator.  They
-    can only be created by handwritten code.
 
     :param data:
         the address of the start of the C/C++ array.

@@ -55,6 +55,7 @@ extern "C" {
  * v12.11
  *  - Published the 'array' type.
  *  - Added the ctd_sizeof, ctd_array_delete members to sipClassTypeDef.
+ *  - Added the '>' conversion character to sipParseArgs().
  *
  * v12.10
  *  - Python v3.7 or later is required.

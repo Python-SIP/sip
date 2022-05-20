@@ -483,6 +483,31 @@ PyTypeObject sipArray_Type = {
 
 
 /*
+ * Return TRUE if an object is a sip.array with elements of a given type.
+ */
+int sip_array_can_convert(PyObject *obj, const sipTypeDef *td)
+{
+    if (!PyObject_TypeCheck(Py_TYPE(obj), &sipArray_Type))
+        return FALSE;
+
+    return (((sipArrayObject *)obj)->td == td);
+}
+
+
+/*
+ * Return the address and number of elements of a sip.array for which
+ * sip_array_can_convert has already returned TRUE.
+ */
+void sip_array_convert(PyObject *obj, void **data, Py_ssize_t *size)
+{
+    sipArrayObject *array = (sipArrayObject *)obj;
+
+    *data = array->data;
+    *size = array->len;
+}
+
+
+/*
  * Check that an array is writable.
  */
 static int check_writable(sipArrayObject *array)

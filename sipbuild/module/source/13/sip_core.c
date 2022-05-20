@@ -3912,7 +3912,10 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
 
         case 'r':
             {
-                /* Sequence of class or mapped type instances. */
+                /*
+                 * Sequence of mapped type instances.  For ABI v13.3 and
+                 * earlier this is also used for class instances.
+                 */
 
                 const sipTypeDef *td;
 
@@ -3921,6 +3924,26 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
                 va_arg(va, Py_ssize_t *);
 
                 if (arg != NULL && !canConvertFromSequence(arg, td))
+                    handle_failed_type_conversion(&failure, arg);
+
+                break;
+            }
+
+        case '>':
+            {
+                /*
+                 * Sequence or sip.array of class instances.  This is only used
+                 * by ABI v13.4 and later.
+                 */
+
+                const sipTypeDef *td;
+
+                td = va_arg(va, const sipTypeDef *);
+                va_arg(va, void **);
+                va_arg(va, Py_ssize_t *);
+                va_arg(va, int *);
+
+                if (arg != NULL && !sip_array_can_convert(arg, td) && !canConvertFromSequence(arg, td))
                     handle_failed_type_conversion(&failure, arg);
 
                 break;
@@ -4825,7 +4848,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
 
         case 'r':
             {
-                /* Sequence of class or mapped type instances. */
+                /* Sequence of mapped type instances. */
 
                 const sipTypeDef *td;
                 void **array;
@@ -4837,6 +4860,44 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL && !convertFromSequence(arg, td, array, nr_elem))
                     return FALSE;
+
+                break;
+            }
+
+        case '>':
+            {
+                /* Sequence or sip.array of class instances. */
+
+                const sipTypeDef *td;
+                void **array;
+                Py_ssize_t *nr_elem;
+                int *is_temp;
+
+                td = va_arg(va, const sipTypeDef *);
+                array = va_arg(va, void **);
+                nr_elem = va_arg(va, Py_ssize_t *);
+                is_temp = va_arg(va, int *);
+
+                if (arg != NULL)
+                {
+                    if (sip_array_can_convert(arg, td))
+                    {
+                        sip_array_convert(arg, array, nr_elem);
+                        *is_temp = FALSE;
+                    }
+                    else if (convertFromSequence(arg, td, array, nr_elem))
+                    {
+                        /*
+                         * Note that this will leak if there is a subsequent
+                         * error.
+                         */
+                        *is_temp = TRUE;
+                    }
+                    else
+                    {
+                        return FALSE;
+                    }
+                }
 
                 break;
             }
@@ -5065,6 +5126,12 @@ static int canConvertFromSequence(PyObject *seq, const sipTypeDef *td)
     if (size < 0)
         return FALSE;
 
+    /*
+     * Check the type of each element.  Note that this is inconsistent with how
+     * similiar situations are handled elsewhere.  We should instead just check
+     * we have an iterator and assume (until the second pass) that the type is
+     * correct.
+     */
     for (i = 0; i < size; ++i)
     {
         int ok;

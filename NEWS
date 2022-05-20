@@ -1,10 +1,12 @@
-v6.6.2 17th May 2022
+v6.6.2 20th May 2022
   - Enums created with ABI v13 now handle unexpected values by creating
     corresponding pseudo-members.
   - Any config settings passed by a PEP 571 frontend are now used.
   - The 'array' type is now accessible from the sip module.
   - 'array' can now create one dimensional arrays of wrapped types that can be
     modified in situ.
+  - Arguments using the /Array/ (and /ArraySize/) annotations will now accept
+    'array' objects of the corresponding type.
   - The latest version of ABI v13 is v13.4.0.
   - The latest version of ABI v12 is v12.11.0.
   - Bug fixes.

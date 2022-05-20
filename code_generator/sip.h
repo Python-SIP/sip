@@ -74,6 +74,9 @@
 #define classBaseName(cd)   scopedNameTail((cd)->iff->fqcname)
 #define classFQCName(cd)    ((cd)->iff->fqcname)
 
+/* Return TRUE if the ABI supports sip.array. */
+#define abiSupportsArray()  (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
+
 /* Return the Python scope corresponding to a C/C++ scope. */
 #define pyScope(c)          ((c) != NULL && isHiddenNamespace(c) ? NULL : (c))
 

@@ -6,14 +6,60 @@ some functionality that can be used by applications.
 
 .. py:class:: @SIP_MODULE_FQ_NAME@.array
 
-    This is the type object for the type SIP uses to represent an array of a
-    limited number of C/C++ types.  Typically the memory is not owned by Python
-    so that it is not freed when the object is garbage collected.  An
-    :py:class:`~@SIP_MODULE_FQ_NAME@.array` object can be created from a
-    :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr` object by calling
-    :py:func:`~@SIP_MODULE_FQ_NAME@.voidptr.asarray`.  This allows the
-    underlying memory (interpreted as a sequence of unsigned bytes) to be
-    processed much more quickly.
+    This is the type object for the type SIP uses to represent an array of
+    wrapped C/C++ instances.  (It can also present an array of a limited number
+    of basic C/C++ types but such arrays cannot, at the moment, be created from
+    Python.)
+
+    Arrays can be indexed and elements can be modified in situ.  Arrays cannot
+    be resized.  Arrays support the buffer protocol.
+
+    .. py:method:: __init__(type, nr_elements)
+
+        :param type:
+            the type of an array element.
+        :param nr_elements:
+            the number of elements in the array.
+
+        For a C++ class each element of the array is created by calling the 
+        class's argumentless constructor.  For a C structure then the memory is
+        simply allocated on the heap.
+
+    .. py:method:: __getitem__(idx)
+
+        This returns the element at a given index.  It is not a copy of the
+        element.  If this is called a number of times for the same index then a
+        different Python object will be returned each time but each will refer
+        to the same C/C++ instance.
+
+        :param idx:
+            is the index which may either be an integer, an object that
+            implements ``__index__()`` or a slice object.
+        :return:
+            the element.  If the index is an integer then the item will be a
+            single object of the type of the array.  If the index is a slice
+            object then the item will be a new
+            :py:class:`~@SIP_MODULE_FQ_NAME@.array` object containing the
+            chosen subset of the original array.
+
+    .. py:method:: __len__()
+
+        This returns the length of the array.
+        
+        :return:
+            the number of elements in the array.
+
+    .. py:method:: __setitem__(idx, item)
+
+        This updates the array at a given index.
+
+        :param idx:
+            is the index which may either be an integer, an object that
+            implements ``__index__()`` or a slice object.
+        :param item:
+            is the item that will be assigned to the element currently at the
+            index.  It must have the same type as the element it is being
+            assigned to.
 
 
 .. py:function:: @SIP_MODULE_FQ_NAME@.assign(obj, other)
@@ -245,13 +291,6 @@ some functionality that can be used by applications.
             slice object then the item will be a new
             :py:class:`~@SIP_MODULE_FQ_NAME@.voidptr` object defining the
             subset of the memory corresponding to the slice.
-
-    .. py:method:: __hex__()
-
-        This returns the address as a hexadecimal string.
-
-        :return:
-            the hexadecimal string address.
 
     .. py:method:: __int__()
 

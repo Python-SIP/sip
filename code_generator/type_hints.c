@@ -875,12 +875,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     }
 
     if (isArray(ad))
-    {
-        if (pep484)
-            fprintf(fp, "typing.");
-
-        fprintf(fp, "Sequence[");
-    }
+        fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
 
     pyiType(pt, mod, ad, out, defined, pep484, fp);
 
