@@ -548,7 +548,7 @@ def p_extract(p):
         order = args.get('order', -1)
         part = p[7]
 
-    pm.module_state.module.extracts.append(Extract(id, order, part))
+    pm.spec.extracts.append(Extract(id, order, part))
 
 
 def p_extract_args(p):
