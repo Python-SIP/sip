@@ -257,7 +257,7 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
         for (i = 0; i < len; ++i)
         {
             assign(array->data, start + i, value_data);
-            (char *)value_data += array->stride;
+            value_data = (char *)value_data + array->stride;
         }
     }
     else
