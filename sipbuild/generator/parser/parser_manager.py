@@ -124,7 +124,6 @@ class ParserManager:
         # Get the Python name and see if it is different to the C++ name.
         py_name = self.get_py_name(klass.iface_file.fq_cpp_name.base_name,
                 annotations)
-        self.check_attributes(p, symbol, py_name)
         klass.py_name = self.cached_name(py_name)
 
         klass.no_type_hint = annotations.get('NoTypeHint', False)
@@ -245,6 +244,9 @@ class ParserManager:
             klass.py_name.used = True
 
         self.pop_scope()
+
+        # Check the name in the current scope (ie. the class's parent scope).
+        self.check_attributes(p, symbol, py_name, ignore=klass)
 
         # Check that external classes have only been declared at the global
         # scope.
@@ -1004,8 +1006,9 @@ class ParserManager:
 
         return nd
 
-    def check_attributes(self, p, symbol, py_name, is_function=False):
-        """ Check that a Python name will not class with another object in the
+    def check_attributes(self, p, symbol, py_name, is_function=False,
+            ignore=None):
+        """ Check that a Python name will not clash with another object in the
         same Python scope.
         """
 
@@ -1066,6 +1069,11 @@ class ParserManager:
         # Check the classes.
         for cd in self.spec.classes:
             if cd.scope is not self.scope:
+                continue
+
+            # A class will have already been added to the scope and this will
+            # tell us to ignore it.
+            if cd is ignore:
                 continue
 
             if cd.external:
