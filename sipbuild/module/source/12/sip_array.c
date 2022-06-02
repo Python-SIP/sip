@@ -485,7 +485,7 @@ PyTypeObject sipArray_Type = {
  */
 int sip_array_can_convert(PyObject *obj, const sipTypeDef *td)
 {
-    if (!PyObject_TypeCheck(Py_TYPE(obj), &sipArray_Type))
+    if (!PyObject_TypeCheck(obj, &sipArray_Type))
         return FALSE;
 
     return (((sipArrayObject *)obj)->td == td);
