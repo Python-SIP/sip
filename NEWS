@@ -1,4 +1,4 @@
-v6.6.2 2nd June 2022
+v6.6.2 4th June 2022
   - Enums created with ABI v13 now handle unexpected values by creating
     corresponding pseudo-members.
   - Any config settings passed by a PEP 571 frontend are now used.

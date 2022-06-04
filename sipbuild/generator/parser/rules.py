@@ -917,6 +917,8 @@ def p_mapped_type_template(p):
 
     pm.validate_mapped_type(p, 1, pm.scope)
 
+    pm.parsing_template = False
+
     pm.pop_scope()
 
 
@@ -1746,6 +1748,8 @@ def p_class_template(p):
     pm.cpp_only(p, 1, "class templates")
 
     pm.class_templates.append((p[1], p[2]))
+
+    pm.parsing_template = False
 
 
 def p_class_docstring(p):
@@ -3257,6 +3261,8 @@ def p_template_decl(p):
         return
 
     p[0] = Signature(args=p[3])
+
+    pm.parsing_template = True
 
 
 def p_bool_value(p):

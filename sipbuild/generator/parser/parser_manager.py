@@ -80,6 +80,7 @@ class ParserManager:
         self.module_state = None
         self.module_states = []
         self.paren_depth = 0
+        self.parsing_template = False
         self.parsing_virtual = False
         self.raw_sip_file = None
         self.skip_stack = [False]
@@ -419,11 +420,17 @@ class ParserManager:
         # See if it already exists.
         for klass in self.spec.classes:
             if klass.iface_file is iface_file:
+                if klass.is_template_arg and not self.parsing_template:
+                    klass.is_template_arg = False
+
                 return klass
 
         # Create a new one.
         klass = WrappedClass(iface_file,
                 self.cached_name(iface_file.fq_cpp_name.base_name), None)
+
+        if self.parsing_template:
+            klass.is_template_arg = True
 
         # Use the same ordering as the old parser.
         self.spec.classes.insert(0, klass)
