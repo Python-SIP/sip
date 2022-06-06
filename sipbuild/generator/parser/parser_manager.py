@@ -301,13 +301,15 @@ class ParserManager:
 
         return token_type
 
-    def find_class(self, p, symbol, iface_file_type, fq_cpp_name):
+    def find_class(self, p, symbol, iface_file_type, fq_cpp_name,
+            tmpl_arg=False):
         """ Return a WrappedClass object for a C++ name creating it if
         necessary.
         """
 
         return self._find_class_with_iface_file(
-                self.find_iface_file(p, symbol, fq_cpp_name, iface_file_type))
+                self.find_iface_file(p, symbol, fq_cpp_name, iface_file_type),
+                tmpl_arg=tmpl_arg)
 
     def find_exception(self, p, symbol, fq_cpp_name, raise_code=None):
         """ Find an exception, optionally creating a new one. """
@@ -412,7 +414,7 @@ class ParserManager:
 
         return klass
 
-    def _find_class_with_iface_file(self, iface_file):
+    def _find_class_with_iface_file(self, iface_file, tmpl_arg=False):
         """ Return a WrappedClass object for an interface file creating it if
         necessary.
         """
@@ -429,7 +431,7 @@ class ParserManager:
         klass = WrappedClass(iface_file,
                 self.cached_name(iface_file.fq_cpp_name.base_name), None)
 
-        if self.parsing_template:
+        if tmpl_arg:
             klass.is_template_arg = True
 
         # Use the same ordering as the old parser.

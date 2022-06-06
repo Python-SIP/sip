@@ -1874,7 +1874,8 @@ def p_superclass(p):
         pm.parser_error(p, 2, "super-class list contains an invalid type")
 
     # Find the actual class.
-    p[0] = pm.find_class(p, 2, IfaceFileType.CLASS, ad.definition)
+    p[0] = pm.find_class(p, 2, IfaceFileType.CLASS, ad.definition,
+            tmpl_arg=pm.parsing_template)
 
 
 def p_class_access(p):
