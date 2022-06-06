@@ -1768,7 +1768,7 @@ def p_class_docstring(p):
 
 
 def p_class_decl(p):
-    "class_decl : class class_head opt_class_body ';'"
+    "class_decl : class class_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
@@ -1799,7 +1799,7 @@ def p_class_head(p):
 
 
 def p_struct_decl(p):
-    "struct_decl : struct struct_head opt_class_body ';'"
+    "struct_decl : struct struct_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
@@ -1889,8 +1889,8 @@ def p_class_access(p):
     p[0] = p[1]
 
 
-def p_opt_class_body(p):
-    """opt_class_body : '{' class_body '}'
+def p_opt_class_definition(p):
+    """opt_class_definition : '{' opt_class_body '}'
         | empty"""
 
     pm = p.parser.pm
@@ -1899,6 +1899,11 @@ def p_opt_class_body(p):
         return
 
     p[0] = (len(p) == 4)
+
+
+def p_opt_class_body(p):
+    """opt_class_body : class_body
+        | empty"""
 
 
 def p_class_body(p):
@@ -3070,7 +3075,7 @@ _UNION_ANNOTATIONS = (
 
 
 def p_union_decl(p):
-    "union_decl : union union_head opt_class_body ';'"
+    "union_decl : union union_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
