@@ -391,4 +391,4 @@ t_SCOPE = r'::'
 
 # We only deal with a single character as everything else is handled by
 # AMBIGUOUS.
-t_NAME = r'[A-Za-z]'
+t_NAME = r'[_A-Za-z]'
