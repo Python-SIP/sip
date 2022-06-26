@@ -2293,6 +2293,7 @@ def p_opt_base_exception(p):
 
     if len(p) == 4:
         base = p[2]
+        base.make_absolute()
 
         # See if it is a project-defined exception.
         for xd in p.parser.pm.spec.exceptions:
