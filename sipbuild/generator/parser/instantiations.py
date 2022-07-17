@@ -434,7 +434,8 @@ def _instantiate_value(proto_value, expansions):
         proto_name = proto_value.value.result.definition
 
         if proto_name.is_simple:
-            i_name = ScopedName.parse(template_string(proto_name, expansions))
+            i_name = ScopedName.parse(
+                    template_string(proto_name.base_name, expansions))
             i_result = Argument(type=ArgumentType.DEFINED, definition=i_name)
             i_fcall = FunctionCall(result=i_result,
                     args=proto_value.value.args)
