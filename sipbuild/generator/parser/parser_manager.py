@@ -36,7 +36,7 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
         PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, ScopedName,
         Signature, Specification, Transfer, TypeHints, WrappedClass,
-        WrappedEnum, WrappedEnumMember)
+        WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import argument_as_str, normalised_scoped_name, same_base_type
 
@@ -80,8 +80,9 @@ class ParserManager:
         self.module_state = None
         self.module_states = []
         self.paren_depth = 0
+        self.parsing_template = False
         self.parsing_virtual = False
-        self.sip_file = None
+        self.raw_sip_file = None
         self.skip_stack = [False]
 
         # Private state.
@@ -96,8 +97,10 @@ class ParserManager:
         self._scope_stack = []
         self._errors = []
         self._file_stack = []
+        self._pending_module_state = None
         self._input = None
         self._all_sip_files = []
+        self._sip_file = None
         self._sip_files = []
         self._name_cache = {}
 
@@ -122,7 +125,6 @@ class ParserManager:
         # Get the Python name and see if it is different to the C++ name.
         py_name = self.get_py_name(klass.iface_file.fq_cpp_name.base_name,
                 annotations)
-        self.check_attributes(p, symbol, py_name)
         klass.py_name = self.cached_name(py_name)
 
         klass.no_type_hint = annotations.get('NoTypeHint', False)
@@ -244,6 +246,9 @@ class ParserManager:
 
         self.pop_scope()
 
+        # Check the name in the current scope (ie. the class's parent scope).
+        self.check_attributes(p, symbol, py_name, ignore=klass)
+
         # Check that external classes have only been declared at the global
         # scope.
         if klass.external and self.scope is not None:
@@ -267,18 +272,49 @@ class ParserManager:
         self.push_scope(klass,
                 AccessSpecifier.PRIVATE if class_key is ClassKey.CLASS else AccessSpecifier.PUBLIC)
 
-    def find_class(self, p, symbol, iface_file_type, fq_cpp_name):
+    def disambiguate_token(self, value, keywords):
+        """ Disambiguate a token by inspecting its value. """
+
+        # This seems to be needed because it's not possible to get lex() to do
+        # it.  The problem seems to be that you can't control the order in
+        # which lex() applies its regular expressions despite what the
+        # documentation says.  It seems that tokens that are specific to a
+        # state are always added after everything else no matter where they
+        # appear in the file.
+
+        if value in keywords:
+            token_type = value
+        elif value == '...':
+            token_type = 'ELLIPSIS'
+        elif value.startswith('.'):
+            token_type = 'FILE_PATH'
+        else:
+            for marker in ('/', '..', '-'):
+                if marker in value:
+                    token_type = 'FILE_PATH'
+                    break
+            else:
+                if '.' in value:
+                    token_type = 'DOTTED_NAME'
+                else:
+                    token_type = 'NAME'
+
+        return token_type
+
+    def find_class(self, p, symbol, iface_file_type, fq_cpp_name,
+            tmpl_arg=False):
         """ Return a WrappedClass object for a C++ name creating it if
         necessary.
         """
 
         return self._find_class_with_iface_file(
-                self.find_iface_file(p, symbol, fq_cpp_name, iface_file_type))
+                self.find_iface_file(p, symbol, fq_cpp_name, iface_file_type),
+                tmpl_arg=tmpl_arg)
 
     def find_exception(self, p, symbol, fq_cpp_name, raise_code=None):
         """ Find an exception, optionally creating a new one. """
 
-        fq_cpp_name = normalised_scoped_name(fq_cpp_name, self.scope)
+        # Note that we don't normalise the name.
         iface_file = self.find_iface_file(p, symbol, fq_cpp_name,
                 IfaceFileType.EXCEPTION)
 
@@ -329,7 +365,7 @@ class ParserManager:
             if self.scope_access_specifier is AccessSpecifier.PROTECTED and not self._protected_is_public:
                 scope.is_protected = True
 
-                if iface_file_type is IFaceFileType.CLASS:
+                if iface_file_type is IfaceFileType.CLASS:
                     scope.needs_shadow = True
 
             # Header code from outer scopes is also included.
@@ -378,7 +414,7 @@ class ParserManager:
 
         return klass
 
-    def _find_class_with_iface_file(self, iface_file):
+    def _find_class_with_iface_file(self, iface_file, tmpl_arg=False):
         """ Return a WrappedClass object for an interface file creating it if
         necessary.
         """
@@ -386,11 +422,17 @@ class ParserManager:
         # See if it already exists.
         for klass in self.spec.classes:
             if klass.iface_file is iface_file:
+                if klass.is_template_arg and not self.parsing_template:
+                    klass.is_template_arg = False
+
                 return klass
 
         # Create a new one.
         klass = WrappedClass(iface_file,
                 self.cached_name(iface_file.fq_cpp_name.base_name), None)
+
+        if tmpl_arg:
+            klass.is_template_arg = True
 
         # Use the same ordering as the old parser.
         self.spec.classes.insert(0, klass)
@@ -669,7 +711,7 @@ class ParserManager:
         overload.virtual_call_code = virtual_call_code
         overload.virtual_catcher_code = virtual_catcher_code
 
-        overload.source_file = self.sip_file
+        overload.source_file = self._sip_file
         overload.source_line = p.lineno(symbol)
 
         # See if the function is a non-lazy method.  These are methods that
@@ -973,8 +1015,9 @@ class ParserManager:
 
         return nd
 
-    def check_attributes(self, p, symbol, py_name, is_function=False):
-        """ Check that a Python name will not class with another object in the
+    def check_attributes(self, p, symbol, py_name, is_function=False,
+            ignore=None):
+        """ Check that a Python name will not clash with another object in the
         same Python scope.
         """
 
@@ -1035,6 +1078,11 @@ class ParserManager:
         # Check the classes.
         for cd in self.spec.classes:
             if cd.scope is not self.scope:
+                continue
+
+            # A class will have already been added to the scope and this will
+            # tell us to ignore it.
+            if cd is ignore:
                 continue
 
             if cd.external:
@@ -1155,7 +1203,7 @@ class ParserManager:
         things so that it appears like the former.
         """
 
-        sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
+        sip_file, raw_sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
 
         if module_state is None:
             module_state = self.module_state
@@ -1164,10 +1212,10 @@ class ParserManager:
             # ModuleState as if it had been %Imported.
             module = Module()
             self.spec.modules.append(module)
-            self.module_state = ModuleState(module, self.sip_file, self)
+            self.module_state = ModuleState(module, self._sip_file, self)
 
         self._file_stack.append(
-                (sip_file, input, lineno, lexpos, module_state))
+                (sip_file, raw_sip_file, input, lineno, lexpos, module_state))
 
     def evaluate_feature_or_platform(self, p, symbol, name=None,
             inverted=False):
@@ -1438,7 +1486,7 @@ class ParserManager:
         """ Record an error caused by a token. """
 
         self._errors.append(
-                self._format_error(self.sip_file, t.lineno, t.lexpos, text))
+                self._format_error(self._sip_file, t.lineno, t.lexpos, text))
 
     def parse(self, sip_file):
         """ Parse a .sip file and return a Specification object and a list of
@@ -1446,13 +1494,18 @@ class ParserManager:
         UserException is raised if there was an error.
         """
 
+        # Note that the retention of the 'raw' filename, ie. that which was
+        # specified by the user is only done so that generated '#line'
+        # directives match those from older versions of SIP.
+
+        raw_sip_file = sip_file
         sip_file = os.path.abspath(sip_file)
 
         self.module_state = ModuleState(self.spec.modules[0], sip_file, self)
 
         try:
-            self._parser.parse(self._read(sip_file), lexer=self._lexer,
-                    tracking=True)
+            self._parser.parse(self._read(sip_file, raw_sip_file),
+                    lexer=self._lexer, tracking=True)
         except UnexpectedEOF:
             self._unexpected_eof_error()
 
@@ -1480,7 +1533,7 @@ class ParserManager:
         """ Record an error caused by a symbol in a production. """
 
         self._errors.append(
-                self._format_error(self.sip_file, p.lineno(symbol),
+                self._format_error(self._sip_file, p.lineno(symbol),
                         p.lexpos(symbol), text))
 
     def pop_file(self):
@@ -1488,25 +1541,31 @@ class ParserManager:
         An IndexError is raised if the stack is empty.
         """
 
-        # Restore the state of the previous .sip file.
-        sip_file, self._input, self._lexer.lineno, lexpos, old_module_state = self._file_stack.pop()
+        # Restore the state of the previous .sip file.  Note that we don't
+        # restore the module state until after the EOF has been seen.
+        self._sip_file, self.raw_sip_file, self._input, self._lexer.lineno, lexpos, self._pending_module_state = self._file_stack.pop()
+
         self._lexer.input(self._input)
         self._lexer.lexpos = lexpos
 
-        if old_module_state is not None:
-            self._handle_eom()
+    def pop_module_state(self):
+        """ Restore the current module state. """
 
-            # Inherit any default encoding.
-            if old_module_state.default_encoding is None:
-                old_module_state.default_encoding = self.module_state.default_encoding
+        if self._pending_module_state is None:
+            return
 
-            # Inherit any call_super_init.
-            if old_module_state.call_super_init is None:
-                old_module_state.call_super_init = self.module_state.call_super_init
+        self._handle_eom()
 
-            self.module_state = old_module_state
+        # Inherit any default encoding.
+        if self._pending_module_state.default_encoding is None:
+            self._pending_module_state.default_encoding = self.module_state.default_encoding
 
-        self.sip_file = sip_file
+        # Inherit any call_super_init.
+        if self._pending_module_state.call_super_init is None:
+            self._pending_module_state.call_super_init = self.module_state.call_super_init
+
+        self.module_state = self._pending_module_state
+        self._pending_module_state = None
 
     def pop_scope(self):
         """ Pop the current scope. """
@@ -1523,6 +1582,8 @@ class ParserManager:
         if sip_file is None:
             sip_file = p[symbol]
 
+        raw_sip_file = sip_file
+
         # Make the name platform-native.
         sip_file = sip_file.replace('/', os.sep)
 
@@ -1535,7 +1596,7 @@ class ParserManager:
             # If the name is relative then check the directory containing the
             # current file and any include directories.
             if not os.path.isabs(sip_file):
-                inc_dirs = [os.path.dirname(self.sip_file)]
+                inc_dirs = [os.path.dirname(self._sip_file)]
                 inc_dirs.extend(self._include_dirs)
 
                 for inc_dir in inc_dirs:
@@ -1547,11 +1608,12 @@ class ParserManager:
             if found is None:
                 if not optional:
                     self.parser_error(p, symbol,
-                            "'{0}' could not be found".format(sip_file))
+                            "'{0}' could not be found".format(raw_sip_file))
 
                 return
 
-            sip_file = found
+            # For historic reasons we keep the absolute name for the raw name.
+            raw_sip_file = sip_file = found
 
         sip_file = os.path.abspath(sip_file)
 
@@ -1605,12 +1667,13 @@ class ParserManager:
 
         # Save the state of the current .sip file.
         self._file_stack.append(
-                (self.sip_file, self._input, self._lexer.lineno,
-                        self._lexer.lexpos, old_module_state))
+                (self._sip_file, self.raw_sip_file, self._input,
+                        self._lexer.lineno, self._lexer.lexpos,
+                        old_module_state))
 
         # Make the new one current and give it's content to the lexer.
         self._lexer.lineno = 1
-        self._lexer.input(self._read(sip_file))
+        self._lexer.input(self._read(sip_file, raw_sip_file))
 
     def push_scope(self, scope, access_specifier=None):
         """ Push a new scope. """
@@ -1767,7 +1830,7 @@ class ParserManager:
         """ Validate a completed variable. """
 
         if variable.type.type is ArgumentType.CAPSULE:
-            pm.parser_error(p, symbol,
+            self.parser_error(p, symbol,
                     "capsule variables are not yet supported")
 
         access_specifier = self.scope_access_specifier
@@ -1934,6 +1997,9 @@ class ParserManager:
 
             # __delattr__ is implemented as __setattr__.
             if py_slot is PySlot.DELATTR:
+                if self.in_main_module:
+                    self.cached_name(py_name).used = True
+
                 py_slot = PySlot.SETATTR
                 py_name = '__setattr__'
 
@@ -2081,12 +2147,12 @@ class ParserManager:
         if module.fq_py_name is None:
             self._errors.append(
                     "{0}: %Module has not been specified".format(
-                            self.sip_file))
+                            self._sip_file))
 
         # call_super_init defaults to False if it wasn't specified.
         module.call_super_init = bool(module_state.call_super_init)
 
-    def _read(self, sip_file):
+    def _read(self, sip_file, raw_sip_file):
         """ Return the contents of the current .sip file. """
 
         try:
@@ -2100,7 +2166,8 @@ class ParserManager:
                             sip_file, self._encoding),
                     detail=str(e))
 
-        self.sip_file = sip_file
+        self.raw_sip_file = raw_sip_file
+        self._sip_file = sip_file
         self._all_sip_files.append(sip_file)
 
         if self.in_main_module:
@@ -2118,7 +2185,7 @@ class ParserManager:
         """ Record an error caused by an unexpected EOF. """
 
         self._errors.append(
-                "{0}: unexpected end of file".format(self.sip_file))
+                "{0}: unexpected end of file".format(self._sip_file))
 
 
 class ModuleState:

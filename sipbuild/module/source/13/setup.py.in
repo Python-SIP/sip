@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -31,7 +31,7 @@ from setuptools import Extension, setup
 module_src = sorted(glob.glob('*.c'))
 
 if sys.platform == 'win32':
-    module_src.append('bool.cpp')
+    module_src.append('sip_bool.cpp')
 
 module = Extension('@_SIP_MODULE_FQ_NAME@', module_src)
 
@@ -40,6 +40,6 @@ setup(
         name='@SIP_MODULE_PROJECT_NAME@',
         version='@SIP_MODULE_VERSION@',
         license='SIP',
-        python_requires='>=3.6',
+        python_requires='>=3.7',
         ext_modules=[module]
      )

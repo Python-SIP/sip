@@ -3,7 +3,7 @@
  * C++ classes that provide a thread interface to interact properly with the
  * Python threading infrastructure.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -19,7 +19,7 @@
  */
 
 
-#include "sipint.h"
+#include "sip_core.h"
 
 
 /*

@@ -309,7 +309,14 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         }
         else if (cd->supertype != NULL)
         {
-            fprintf(fp, "%s", cd->supertype->text);
+            /*
+             * This is a hack to correct the .pyi file when the supertype
+             * hasn't been given a fully qualified name (ie. with ABI v12).
+             */
+            if (sipName != NULL && strncmp(cd->supertype->text, "sip.", 4) == 0)
+                fprintf(fp, "%s.%s", sipName, &cd->supertype->text[4]);
+            else
+                fprintf(fp, "%s", cd->supertype->text);
         }
         else
         {
@@ -507,7 +514,7 @@ static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
     {
         separate(TRUE, indent, fp);
         prIndent(indent, fp);
-        fprintf(fp, "class %s(sip.wrapper):\n", mtd->pyname->text);
+        fprintf(fp, "class %s(%s.wrapper):\n", mtd->pyname->text, (sipName != NULL ? sipName : "sip"));
 
         ++indent;
 
@@ -789,8 +796,6 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
         int overloaded, int is_method, ifaceFileList *defined,
         int indent, int pep484, FILE *fp)
 {
-    int need_self;
-
     if (overloaded)
     {
         prIndent(indent, fp);
@@ -806,10 +811,18 @@ static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
     prIndent(indent, fp);
     fprintf(fp, "%s%s", (pep484 ? "def " : ""), od->common->pyname->text);
 
-    need_self = (is_method && !isStatic(od));
+    if (pep484 && (od->common->slot == eq_slot || od->common->slot == ne_slot))
+    {
+        /* mypy recommends using 'object' as the argument type. */
+        fprintf(fp, "(self, other: object)");
+    }
+    else
+    {
+        int need_self = (is_method && !isStatic(od));
 
-    pyiPythonSignature(pt, mod, &od->pysig, need_self, defined, od->kwargs,
-            pep484, fp);
+        pyiPythonSignature(pt, mod, &od->pysig, need_self, defined, od->kwargs,
+                pep484, fp);
+    }
 
     if (pep484)
         fprintf(fp, ": ...\n");
@@ -861,6 +874,9 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         }
     }
 
+    if (isArray(ad))
+        fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
+
     pyiType(pt, mod, ad, out, defined, pep484, fp);
 
     if (names && ad->atype == ellipsis_type)
@@ -871,6 +887,9 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         else
             fprintf(fp, "a%d", arg_nr);
     }
+
+    if (isArray(ad))
+        fprintf(fp, "]");
 
     if (optional)
     {

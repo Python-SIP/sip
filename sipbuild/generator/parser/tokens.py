@@ -21,6 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ply.lex import TOKEN
+
 from ..specification import CodeBlock
 
 
@@ -97,8 +99,8 @@ directive_keywords = {
 
 # The lexer tokens.
 tokens = [
-    'CODE_BLOCK', 'ELLIPSIS', 'EOF', 'EOL', 'LOGICAL_OR', 'NAME', 'NUMBER',
-    'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
+    'CODE_BLOCK', 'DOTTED_NAME', 'ELLIPSIS', 'EOF', 'EOL', 'FILE_PATH',
+    'LOGICAL_OR', 'NAME', 'NUMBER', 'QUOTED_CHAR', 'REAL', 'SCOPE', 'STRING',
 ]
 
 tokens.extend(directives)
@@ -172,13 +174,13 @@ def t_RPAREN(t):
 
 # Handle directives.
 def t_DIRECTIVE(t):
-    r'(?m)^\s*%[a-zA-Z][a-zA-Z]*'
+    r'%[a-zA-Z][a-zA-Z]*'
 
     # The name of the directive is used as its type.
     name = t.value[t.value.index('%') + 1:]
 
     if name in code_directives:
-        t.lexer.pm.code_block = CodeBlock(t.lexer.pm.sip_file)
+        t.lexer.pm.code_block = CodeBlock(t.lexer.pm.raw_sip_file)
         t.type = name
     elif name in directives:
         t.type = name
@@ -234,21 +236,23 @@ def t_code_CH(t):
     return None
 
 
-# Handle keywords and simple identifiers.
-def t_KEYWORD(t):
-    r'[_A-Za-z][_A-Za-z\d]*'
+# Handle keywords, ellipsis, names, dotted name and file paths.
+ambiguous = r'[._A-Za-z][._/A-Za-z\d\-]*[._A-Za-z\d]'
 
-    t.type = t.value if t.value in keywords else 'NAME'
+@TOKEN(ambiguous)
+def t_AMBIGUOUS(t):
+
+    t.type = t.lexer.pm.disambiguate_token(t.value, keywords)
 
     return t
 
 
-# Handle directive keywords, ie. keywords that are only recognised in the
-# context of a directive.
-def t_directive_KEYWORD(t):
-    r'[_A-Za-z][_A-Za-z\d]*'
+# Handle directive keywords (ie. keywords that are only recognised in the
+# context of a directive), ellipsis, names, dotted name and file paths.
+@TOKEN(ambiguous)
+def t_directive_AMBIGUOUS(t):
 
-    t.type = t.value if t.value in directive_keywords else 'NAME'
+    t.type = t.lexer.pm.disambiguate_token(t.value, directive_keywords)
 
     return t
 
@@ -382,6 +386,9 @@ def t_QCH(t):
 
 
 # The remaining trivial token definitions.
-t_ELLIPSIS = r'\.\.\.'
 t_LOGICAL_OR = r'\|\|'
 t_SCOPE = r'::'
+
+# We only deal with a single character as everything else is handled by
+# AMBIGUOUS.
+t_NAME = r'[_A-Za-z]'

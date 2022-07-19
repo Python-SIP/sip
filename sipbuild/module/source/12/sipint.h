@@ -1,7 +1,7 @@
 /*
  * This file defines the SIP library internal interfaces.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -21,6 +21,7 @@
 #define _SIPINT_H
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include "sip.h"
@@ -119,6 +120,7 @@ size_t sip_api_long_as_size_t(PyObject *o);
 
 
 extern sipQtAPI *sipQtSupport;  /* The Qt support API. */
+extern PyTypeObject sipWrapperType_Type;        /* The wrapper type type. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 extern sipTypeDef *sipQObjectType;  /* The QObject type. */
 

@@ -1,7 +1,7 @@
 /*
  * The implementation of the different descriptors.
  *
- * Copyright (c) 2019 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,9 +17,10 @@
  */
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include "sipint.h"
+#include "sip_core.h"
 
 
 /*****************************************************************************

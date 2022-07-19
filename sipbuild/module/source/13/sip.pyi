@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,7 +21,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import Generic, overload, TypeVar, Union
+from typing import Any, Generic, Iterable, overload, Sequence, TypeVar, Union
+
+
+# PEP 484 has no explicit support for the buffer protocol so we just name types
+# we know that implement it.
+Buffer = Union[bytes, bytearray, memoryview, 'array', 'voidptr']
 
 
 # Constants.
@@ -30,21 +35,34 @@ SIP_VERSION_STR = ...   # type: str
 
 
 # The bases for SIP generated types.
-class wrappertype: ...
-class simplewrapper: ...
+class wrappertype:
+    def __init__(self, *args, **kwargs) -> None: ...
+
+class simplewrapper:
+    def __init__(self, *args, **kwargs) -> None: ...
+
 class wrapper(simplewrapper): ...
 
 
 # The array type.
-T = TypeVar('T')
+_T = TypeVar('_T')
 
-class array(Generic[T]):
-
-    @overload
-    def __getitem__(self, i: int) -> T: ...
+class array(Sequence[_T], Generic[_T]):
 
     @overload
-    def __getitem__(self, s: slice) -> array[T]: ...
+    def __getitem__(self, key: int) -> _T: ...
+    @overload
+    def __getitem__(self, key: slice) -> 'array[_T]': ...
+
+    @overload
+    def __setitem__(self, key: int, value: _T) -> None: ...
+    @overload
+    def __setitem__(self, key: slice, value: Iterable[_T]) -> None: ...
+
+    @overload
+    def __delitem__(self, key: int) -> None: ...
+    @overload
+    def __delitem__(self, key: slice) -> None: ...
 
     def __len__(self) -> int: ...
 
@@ -52,7 +70,7 @@ class array(Generic[T]):
 # The voidptr type.
 class voidptr:
 
-    def __init__(addr: Union[int, Buffer], size: int = -1, writeable: bool = True) -> None: ...
+    def __init__(self, addr: Union[int, Buffer], size: int = -1, writeable: bool = True) -> None: ...
 
     def __int__(self) -> int: ...
 
@@ -60,9 +78,7 @@ class voidptr:
     def __getitem__(self, i: int) -> bytes: ...
 
     @overload
-    def __getitem__(self, s: slice) -> voidptr: ...
-
-    def __hex__(self) -> str: ...
+    def __getitem__(self, s: slice) -> 'voidptr': ...
 
     def __len__(self) -> int: ...
 
@@ -71,7 +87,7 @@ class voidptr:
     def asarray(self, size: int = -1) -> array: ...
 
     # Python doesn't expose the capsule type.
-    #def ascapsule(self) -> capsule: ...
+    def ascapsule(self) -> Any: ...
 
     def asstring(self, size: int = -1) -> bytes: ...
 
@@ -81,12 +97,7 @@ class voidptr:
 
     def setsize(self, size: int) -> None: ...
 
-    def setwriteable(self, bool) -> None: ...
-
-
-# PEP 484 has no explicit support for the buffer protocol so we just name types
-# we know that implement it.
-Buffer = Union[bytes, bytearray, memoryview, array, voidptr]
+    def setwriteable(self, writeable: bool) -> None: ...
 
 
 # Remaining functions.

@@ -23,7 +23,7 @@
 
 from copy import copy
 
-from .specification import ArgumentType, CodeBlock, IfaceFileType, ScopedName
+from .specification import ArgumentType, IfaceFileType, ScopedName
 from .utils import argument_as_str, same_base_type
 
 
@@ -180,7 +180,7 @@ def template_expansions(template_names, instantiation_values,
             if value_arg.type is ArgumentType.TEMPLATE and len(name_arg.definiton.types.args) == len(value_arg.definition.types.args):
                 expansions.update(
                         template_expansions(name_arg.definition.types,
-                                value_arg.definition.types, known))
+                                value_arg.definition.types, declared_names))
 
     return expansions
 
@@ -233,7 +233,7 @@ def _strip_const(s):
 
 def _template_code_block(spec, used, proto_code, expansions):
     """ Return a copy of a CodeBlock object with sub-strings replaced by
-    corresponding values.
+    corresponding values or the original if there were no substitutions.
     """
 
     i_code = copy(proto_code)
@@ -286,5 +286,9 @@ def _template_code_block(spec, used, proto_code, expansions):
         i_lines.append(i_line)
 
     i_code.text = '\n'.join(i_lines)
+
+    # Return the prototype itself if nothing changed.
+    if proto_code.text == i_code.text:
+        return proto_code
 
     return i_code

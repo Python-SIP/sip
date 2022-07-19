@@ -78,6 +78,7 @@ static void *search_cache(const objectCache *cache, PyObject *py_obj);
  */
 static objectCache *cache_cachedname = NULL;
 static objectCache *cache_class = NULL;
+static objectCache *cache_codeblock = NULL;
 static objectCache *cache_constructor = NULL;
 static objectCache *cache_exception = NULL;
 static objectCache *cache_ifacefile = NULL;
@@ -96,6 +97,7 @@ static void clear_caches(void)
 {
     clear_cache(&cache_cachedname);
     clear_cache(&cache_class);
+    clear_cache(&cache_codeblock);
     clear_cache(&cache_constructor);
     clear_cache(&cache_exception);
     clear_cache(&cache_ifacefile);
@@ -839,7 +841,14 @@ static classList *classlist_attr(sipSpec *pt, PyObject *obj, const char *name,
  */
 static codeBlock *codeblock(PyObject *obj, const char *encoding)
 {
-    codeBlock *value = sipMalloc(sizeof (codeBlock));
+    codeBlock *value;
+
+    if ((value = search_cache(cache_codeblock, obj)) != NULL)
+        return value;
+
+    value = sipMalloc(sizeof (codeBlock));
+
+    cache(&cache_codeblock, obj, value);
 
     value->frag = str_attr(obj, "text", encoding);
     value->filename = str_attr(obj, "sip_file", encoding);

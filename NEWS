@@ -1,3 +1,24 @@
+v6.6.3 17th July 2022
+  - Bug fixes.
+
+v6.6.2 6th June 2022
+  - Enums created with ABI v13 now handle unexpected values by creating
+    corresponding pseudo-members.
+  - Any config settings passed by a PEP 571 frontend are now used.
+  - The 'array' type is now accessible from the sip module.
+  - 'array' can now create one dimensional arrays of wrapped types that can be
+    modified in situ.
+  - Arguments using the /Array/ (and /ArraySize/) annotations will now accept
+    'array' objects of the corresponding type.
+  - The latest version of ABI v13 is v13.4.0.
+  - The latest version of ABI v12 is v12.11.0.
+  - Bug fixes.
+
+v6.6.1 13th April 2022
+  - The latest version of ABI v13 is v13.3.1.
+  - The latest version of ABI v12 is v12.10.1.
+  - Bug fixes.
+
 v6.6.0 1st April 2022
   - Python v3.6 is no longer supported.
   - The .sip file parser (created using flex and bison) has been replaced with

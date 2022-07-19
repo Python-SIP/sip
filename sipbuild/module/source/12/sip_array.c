@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the array type.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,6 +17,7 @@
  */
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <stddef.h>
@@ -24,7 +25,7 @@
 
 #include "sipint.h"
 
-#include "array.h"
+#include "sip_array.h"
 
 
 /* The object data structure. */
@@ -40,13 +41,17 @@ typedef struct {
 } sipArrayObject;
 
 
-static int check_writable(sipArrayObject *array);
-static int check_index(sipArrayObject *array, Py_ssize_t idx);
-static void *get_value(sipArrayObject *array, PyObject *value);
-static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len);
 static void bad_key(PyObject *key);
+static int check_index(sipArrayObject *array, Py_ssize_t idx);
+static int check_writable(sipArrayObject *array);
+static PyObject *create_array(void *data, const sipTypeDef *td,
+        const char *format, size_t stride, Py_ssize_t len, int flags,
+        PyObject *owner);
 static void *element(sipArrayObject *array, Py_ssize_t idx);
-static PyObject *make_array(void *data, const sipTypeDef *td,
+static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len);
+static const char *get_type_name(sipArrayObject *array);
+static void *get_value(sipArrayObject *array, PyObject *value);
+static void init_array(sipArrayObject *array, void *data, const sipTypeDef *td,
         const char *format, size_t stride, Py_ssize_t len, int flags,
         PyObject *owner);
 
@@ -171,7 +176,7 @@ static PyObject *sipArray_subscript(PyObject *self, PyObject *key)
             return NULL;
         }
 
-        return make_array(element(array->data, start), array->td,
+        return create_array(element(array->data, start), array->td,
                 array->format, array->stride, slicelength,
                 (array->flags & ~SIP_OWNS_MEMORY), array->owner);
     }
@@ -236,7 +241,29 @@ static int sipArray_ass_subscript(PyObject *self, PyObject *key,
         return -1;
     }
 
-    memmove(element(array, start), value_data, len * array->stride);
+    if (array->td != NULL)
+    {
+        const sipClassTypeDef *ctd = (const sipClassTypeDef *)(array->td);
+        sipAssignFunc assign;
+        Py_ssize_t i;
+
+        if ((assign = ctd->ctd_assign) == NULL)
+        {
+            PyErr_Format(PyExc_TypeError, "a sip.array cannot copy '%s'",
+                Py_TYPE(self)->tp_name);
+            return -1;
+        }
+
+        for (i = 0; i < len; ++i)
+        {
+            assign(array->data, start + i, value_data);
+            value_data = (char *)value_data + array->stride;
+        }
+    }
+    else
+    {
+        memmove(element(array, start), value_data, len * array->stride);
+    }
 
     return 0;
 }
@@ -262,7 +289,7 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     if (((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE) && (array->flags & SIP_READ_ONLY))
     {
-        PyErr_SetString(PyExc_BufferError, "object is not writable.");
+        PyErr_SetString(PyExc_BufferError, "object is not writable");
         return -1;
     }
 
@@ -276,7 +303,16 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
+    {
+        if (array->format == NULL)
+        {
+            PyErr_SetString(PyExc_BufferError,
+                    "format has not been specified");
+            return -1;
+        }
+
         view->format = (char *)array->format;
+    }
 
     view->ndim = 1;
 
@@ -302,22 +338,92 @@ static PyBufferProcs sipArray_BufferProcs = {
 };
 
 
-/* The instance deallocation function. */
+/*
+ * The instance deallocation function.
+ */
 static void sipArray_dealloc(PyObject *self)
 {
     sipArrayObject *array = (sipArrayObject *)self;
 
     if (array->flags & SIP_OWNS_MEMORY)
-        sip_api_free(array->data);
+    {
+        if (array->td != NULL)
+            ((const sipClassTypeDef *)(array->td))->ctd_array_delete(array->data);
+        else
+            PyMem_Free(array->data);
+    }
     else
+    {
         Py_XDECREF(array->owner);
+    }
+}
+
+
+/*
+ * Implement __repr__ for the type.
+ */
+static PyObject *sipArray_repr(PyObject *self)
+{
+    sipArrayObject *array = (sipArrayObject *)self;
+
+    return PyUnicode_FromFormat("sip.array(%s, %zd)", get_type_name(array),
+            array->len);
+}
+
+
+/*
+ * Implement __new__ for the type.
+ */
+static PyObject *sipArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
+{
+    static char *kwlist[] = {"", "", NULL};
+
+    Py_ssize_t length;
+    PyObject *array, *type;
+    const sipClassTypeDef *ctd;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "O!n:array", kwlist, &sipWrapperType_Type, &type, &length))
+        return NULL;
+
+    ctd = (const sipClassTypeDef *)((sipWrapperType *)type)->wt_td;
+
+    /* We require the array delete helper which was added in ABI v12.11. */
+    if (ctd->ctd_base.td_module->em_api_minor < 11)
+    {
+        PyErr_SetString(PyExc_TypeError,
+                "a sip.array can only be created for types using ABI v12.11 or later");
+        return NULL;
+    }
+
+    if (ctd->ctd_array == NULL || ctd->ctd_sizeof == 0)
+    {
+        PyErr_Format(PyExc_TypeError, "a sip.array cannot be created for '%s'",
+                Py_TYPE(type)->tp_name);
+        return NULL;
+    }
+
+    if (length < 0)
+    {
+        PyErr_SetString(PyExc_ValueError,
+                "a sip.array length cannot be negative");
+        return NULL;
+    }
+
+    /* Create the instance. */
+    if ((array = cls->tp_alloc(cls, 0)) == NULL)
+        return NULL;
+
+    init_array((sipArrayObject *)array, ctd->ctd_array(length), &ctd->ctd_base,
+            NULL, ctd->ctd_sizeof, length, SIP_OWNS_MEMORY, NULL);
+
+    return array;
 }
 
 
 /* The type data structure. */
 PyTypeObject sipArray_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    _SIP_MODULE_FQ_NAME ".array",   /* tp_name */
+    "sip.array",            /* tp_name */
     sizeof (sipArrayObject),    /* tp_basicsize */
     0,                      /* tp_itemsize */
     sipArray_dealloc,       /* tp_dealloc */
@@ -325,7 +431,7 @@ PyTypeObject sipArray_Type = {
     0,                      /* tp_getattr */
     0,                      /* tp_setattr */
     0,                      /* tp_reserved */
-    0,                      /* tp_repr */
+    sipArray_repr,          /* tp_repr */
     0,                      /* tp_as_number */
     &sipArray_SequenceMethods,  /* tp_as_sequence */
     &sipArray_MappingMethods,   /* tp_as_mapping */
@@ -357,7 +463,7 @@ PyTypeObject sipArray_Type = {
     0,                      /* tp_dictoffset */
     0,                      /* tp_init */
     0,                      /* tp_alloc */
-    0,                      /* tp_new */
+    sipArray_new,           /* tp_new */
     0,                      /* tp_free */
     0,                      /* tp_is_gc */
     0,                      /* tp_bases */
@@ -375,14 +481,38 @@ PyTypeObject sipArray_Type = {
 
 
 /*
+ * Return TRUE if an object is a sip.array with elements of a given type.
+ */
+int sip_array_can_convert(PyObject *obj, const sipTypeDef *td)
+{
+    if (!PyObject_TypeCheck(obj, &sipArray_Type))
+        return FALSE;
+
+    return (((sipArrayObject *)obj)->td == td);
+}
+
+
+/*
+ * Return the address and number of elements of a sip.array for which
+ * sip_array_can_convert has already returned TRUE.
+ */
+void sip_array_convert(PyObject *obj, void **data, Py_ssize_t *size)
+{
+    sipArrayObject *array = (sipArrayObject *)obj;
+
+    *data = array->data;
+    *size = array->len;
+}
+
+
+/*
  * Check that an array is writable.
  */
 static int check_writable(sipArrayObject *array)
 {
     if (array->flags & SIP_READ_ONLY)
     {
-        PyErr_SetString(PyExc_TypeError,
-                _SIP_MODULE_FQ_NAME ".array object is read-only");
+        PyErr_SetString(PyExc_TypeError, "sip.array object is read-only");
         return -1;
     }
 
@@ -409,8 +539,7 @@ static int check_index(sipArrayObject *array, Py_ssize_t idx)
  */
 static void bad_key(PyObject *key)
 {
-    PyErr_Format(PyExc_TypeError,
-            "cannot index a " _SIP_MODULE_FQ_NAME ".array object using '%s'",
+    PyErr_Format(PyExc_TypeError, "cannot index a sip.array object using '%s'",
             Py_TYPE(key)->tp_name);
 }
 
@@ -446,8 +575,8 @@ static void *get_value(sipArrayObject *array, PyObject *value)
     {
         int iserr = FALSE;
 
-        data = sip_api_force_convert_to_type_us(value, array->td, NULL,
-                SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, NULL, &iserr);
+        data = sip_api_force_convert_to_type(value, array->td, NULL,
+                SIP_NOT_NONE|SIP_NO_CONVERTORS, NULL, &iserr);
     }
     else
     {
@@ -516,56 +645,9 @@ static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len)
 
     if (!PyObject_IsInstance(value, (PyObject *)&sipArray_Type) || array->td != other->td || strcmp(array->format, other->format) != 0)
     {
-        const char *type;
-
-        if (array->td != NULL)
-        {
-            type = sipTypeName(array->td);
-        }
-        else
-        {
-            switch (*array->format)
-            {
-            case 'b':
-                type = "char";
-                break;
-
-            case 'B':
-                type = "unsigned char";
-                break;
-
-            case 'h':
-                type = "short";
-                break;
-
-            case 'H':
-                type = "unsigned short";
-                break;
-
-            case 'i':
-                type = "int";
-                break;
-
-            case 'I':
-                type = "unsigned int";
-                break;
-
-            case 'f':
-                type = "float";
-                break;
-
-            case 'd':
-                type = "double";
-                break;
-
-            default:
-                type = "";
-            }
-        }
-
         PyErr_Format(PyExc_TypeError,
-                "can only assign another array of %s to the slice", type);
-
+                "can only assign another array of %s to the slice",
+                get_type_name(array));
         return NULL;
     }
 
@@ -573,7 +655,6 @@ static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len)
     {
         PyErr_Format(PyExc_TypeError,
                 "the array being assigned must have length %zd", len);
-
         return NULL;
     }
 
@@ -582,7 +663,6 @@ static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len)
         PyErr_Format(PyExc_TypeError,
                 "the array being assigned must have stride %zu",
                 array->stride);
-
         return NULL;
     }
 
@@ -591,9 +671,66 @@ static void *get_slice(sipArrayObject *array, PyObject *value, Py_ssize_t len)
 
 
 /*
- * Do the work of creating an array.
+ * Get the name of the type of an element of an array.
  */
-static PyObject *make_array(void *data, const sipTypeDef *td,
+static const char *get_type_name(sipArrayObject *array)
+{
+    const char *type_name;
+
+    if (array->td != NULL)
+    {
+        type_name = sipTypeName(array->td);
+    }
+    else
+    {
+        switch (*array->format)
+        {
+        case 'b':
+            type_name = "char";
+            break;
+
+        case 'B':
+            type_name = "unsigned char";
+            break;
+
+        case 'h':
+            type_name = "short";
+            break;
+
+        case 'H':
+            type_name = "unsigned short";
+            break;
+
+        case 'i':
+            type_name = "int";
+            break;
+
+        case 'I':
+            type_name = "unsigned int";
+            break;
+
+        case 'f':
+            type_name = "float";
+            break;
+
+        case 'd':
+            type_name = "double";
+            break;
+
+        default:
+            type_name = "";
+        }
+    }
+
+    return type_name;
+}
+
+
+
+/*
+ * Create an array for the C API.
+ */
+static PyObject *create_array(void *data, const sipTypeDef *td,
         const char *format, size_t stride, Py_ssize_t len, int flags,
         PyObject *owner)
 {
@@ -602,6 +739,19 @@ static PyObject *make_array(void *data, const sipTypeDef *td,
     if ((array = PyObject_NEW(sipArrayObject, &sipArray_Type)) == NULL)
         return NULL;
 
+    init_array(array, data, td, format, stride, len, flags, owner);
+
+    return (PyObject *)array;
+}
+
+
+/*
+ * Initialise an array.
+ */
+static void init_array(sipArrayObject *array, void *data, const sipTypeDef *td,
+        const char *format, size_t stride, Py_ssize_t len, int flags,
+        PyObject *owner)
+{
     array->data = data;
     array->td = td;
     array->format = format;
@@ -619,8 +769,6 @@ static PyObject *make_array(void *data, const sipTypeDef *td,
         Py_XINCREF(owner);
         array->owner = owner;
     }
-
-    return (PyObject *)array;
 }
 
 
@@ -633,6 +781,8 @@ PyObject *sip_api_convert_to_array(void *data, const char *format,
         Py_ssize_t len, int flags)
 {
     size_t stride;
+
+    assert(len >= 0);
 
     if (data == NULL)
     {
@@ -675,13 +825,12 @@ PyObject *sip_api_convert_to_array(void *data, const char *format,
         break;
 
     default:
-        stride = 0;
+        PyErr_Format(PyExc_ValueError, "'%c' is not a supported format",
+                format);
+        return NULL;
     }
 
-    assert(stride > 0);
-    assert(len >= 0);
-
-    return make_array(data, NULL, format, stride, len, flags, NULL);
+    return create_array(data, NULL, format, stride, len, flags, NULL);
 }
 
 
@@ -700,5 +849,5 @@ PyObject *sip_api_convert_to_typed_array(void *data, const sipTypeDef *td,
     assert(stride > 0);
     assert(len >= 0);
 
-    return make_array(data, td, format, stride, len, flags, NULL);
+    return create_array(data, td, format, stride, len, flags, NULL);
 }

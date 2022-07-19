@@ -198,7 +198,7 @@ class Bindings(Configurable):
 
         # Generate any extracts.
         if self.generate_extracts:
-            generateExtracts(pt, extracts)
+            generateExtracts(pt, self.generate_extracts)
 
         # Generate any type hints file.
         if self.pep484_pyi and not self.internal:

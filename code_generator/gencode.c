@@ -1867,13 +1867,14 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "\n"
 "/* This defines this module. */\n"
 "sipExportedModuleDef sipModuleAPI_%s = {\n"
-"    0,\n"
-"    SIP_ABI_MINOR_VERSION,\n"
+"    SIP_NULLPTR,\n"
+"    %d,\n"
 "    %n,\n"
 "    0,\n"
 "    sipStrings_%s,\n"
 "    %s,\n"
         , mname
+        , abiVersion & 0xff
         , mod->fullname
         , pt->module->name
         , mod->allimports != NULL ? "importsTable" : "SIP_NULLPTR");
@@ -6288,7 +6289,7 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             );
     }
 
-    /* The array allocation helper. */
+    /* The array allocation helpers. */
     if (generating_c || arrayHelper(cd))
     {
         prcode(fp,
@@ -6318,6 +6319,37 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         prcode(fp,
 "}\n"
             );
+
+        if (abiSupportsArray())
+        {
+            prcode(fp,
+"\n"
+"\n"
+                );
+
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void array_delete_%L(void *);}\n"
+                    , cd->iff);
+
+            prcode(fp,
+"static void array_delete_%L(void *sipCpp)\n"
+"{\n"
+                , cd->iff);
+
+            if (generating_c)
+                prcode(fp,
+"    sipFree(sipCpp);\n"
+                    );
+            else
+                prcode(fp,
+"    delete[] reinterpret_cast<%U *>(sipCpp);\n"
+                    , cd);
+
+            prcode(fp,
+"}\n"
+                );
+        }
     }
 
     /* The copy and assignment helpers. */
@@ -7668,10 +7700,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         prcode(fp,
 "    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ");
 
-    saved = *vhd->pysig;
-    fakeProtectedArgs(vhd->pysig);
     generateTupleBuilder(mod, vhd->pysig, fp);
-    *vhd->pysig = saved;
 
     if (nrvals == 0)
     {
@@ -9261,7 +9290,13 @@ static void generateVariable(moduleDef *mod, ifaceFileDef *scope, argDef *ad,
         switch (atype)
         {
         case class_type:
-            if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
+            if (isArray(ad) && abiSupportsArray())
+            {
+                prcode(fp,
+"        int %aIsTemp = 0;\n"
+                    , mod, ad, argnr);
+            }
+            else if (!isArray(ad) && ad->u.cd->convtocode != NULL && !isConstrained(ad))
             {
                 prcode(fp,
 "        int %aState = 0;\n"
@@ -9963,12 +9998,33 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     if (isMixin(cd))
         prcode(fp,
-"    mixin_%C\n"
+"    mixin_%C,\n"
             , classFQCName(cd));
     else
         prcode(fp,
-"    SIP_NULLPTR\n"
+"    SIP_NULLPTR,\n"
             );
+
+    if (abiSupportsArray())
+    {
+        if (generating_c || arrayHelper(cd))
+            prcode(fp,
+"    array_delete_%L,\n"
+                , cd->iff);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
+
+        if (canCreate(cd))
+            prcode(fp,
+"    sizeof (%U),\n"
+                , cd);
+        else
+            prcode(fp,
+"    0,\n"
+                );
+    }
 
     prcode(fp,
 "};\n"
@@ -10674,8 +10730,12 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 {
     scopedNameDef *ename = xd->iff->fqcname;
 
+    /*
+     * The global scope is stripped from the exception name to be consistent
+     * with older versions of SIP.
+     */
     prcode(fp,
-"            catch (%S &%s)\n"
+"            catch (%V &%s)\n"
 "            {\n"
         ,ename,(xd->cd != NULL || usedInCode(xd->raisecode, "sipExceptionRef")) ? "sipExceptionRef" : "");
 
@@ -13094,7 +13154,10 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
                     fatal(" does not support /Array/\n");
                 }
 
-                fmt = "r";
+                if (ad->atype == class_type && abiSupportsArray())
+                    fmt = ">";
+                else
+                    fmt = "r";
             }
             else
             {
@@ -13208,6 +13271,9 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
             if (isArray(ad))
             {
                 prcode(fp, ", &%a", mod, arraylenarg_ad, arraylenarg);
+
+                if (abiSupportsArray())
+                    prcode(fp, ", &%aIsTemp", mod, ad, a);
             }
             else
             {
@@ -13391,14 +13457,24 @@ static void deleteTemps(moduleDef *mod, signatureDef *sd, FILE *fp)
         {
             if (!isTransferred(ad))
             {
+                const char *extra_indent = "";
+
+                if (ad->atype == class_type && abiSupportsArray())
+                {
+                    prcode(fp,
+"            if (%aIsTemp)\n"
+                        , mod, ad, a);
+                    extra_indent = "    ";
+                }
+
                 if (generating_c)
                     prcode(fp,
-"            sipFree(%a);\n"
-                        , mod, ad, a);
+"            %ssipFree(%a);\n"
+                        , extra_indent, mod, ad, a);
                 else
                     prcode(fp,
-"            delete[] %a;\n"
-                        , mod, ad, a);
+"            %sdelete[] %a;\n"
+                        , extra_indent, mod, ad, a);
             }
 
             continue;

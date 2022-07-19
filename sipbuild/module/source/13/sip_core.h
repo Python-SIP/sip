@@ -1,7 +1,7 @@
 /*
- * This file defines the SIP library internal interfaces.
+ * This file defines the core sip module internal interfaces.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,10 +17,11 @@
  */
 
 
-#ifndef _SIPINT_H
-#define _SIPINT_H
+#ifndef _SIP_CORE_H
+#define _SIP_CORE_H
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include "sip.h"
@@ -104,6 +105,7 @@ unsigned long long sip_api_long_as_unsigned_long_long(PyObject *o);
 size_t sip_api_long_as_size_t(PyObject *o);
 
 
+extern PyTypeObject sipWrapperType_Type;        /* The wrapper type type. */
 extern sipWrapperType sipSimpleWrapper_Type;    /* The simple wrapper type. */
 
 
@@ -125,11 +127,18 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength);
 int sip_api_deprecated(const char *classname, const char *method);
+const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 
 
 /*
  * These are not part of the SIP API but are used within the SIP module.
  */
+int sip_add_all_lazy_attrs(const sipTypeDef *td);
+void sip_add_type_slots(PyHeapTypeObject *heap_to, sipPySlotDef *slots);
+int sip_dict_set_and_discard(PyObject *dict, const char *name, PyObject *obj);
+PyObject *sip_get_qualname(const sipTypeDef *td, PyObject *name);
+int sip_objectify(const char *s, PyObject **objp);
+
 sipClassTypeDef *sipGetGeneratedClassType(const sipEncodedTypeDef *enc,
         const sipClassTypeDef *ctd);
 int sipGetPending(void **pp, sipWrapper **op, int *fp);
@@ -145,7 +154,7 @@ void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define sipSetBool(p, v)    (*(_Bool *)(p) = (v))
+#define sip_set_bool(p, v)    (*(_Bool *)(p) = (v))
 #endif
 
 

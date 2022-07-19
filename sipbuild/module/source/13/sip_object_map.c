@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include "sipint.h"
+#include "sip_core.h"
 
 
 #define hash_1(k,s) (((unsigned long)(k)) % (s))

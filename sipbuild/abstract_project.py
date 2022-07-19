@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -34,7 +34,7 @@ class AbstractProject(ABC):
     """ This specifies the API of a project. """
 
     @classmethod
-    def bootstrap(cls, tool, tool_description=''):
+    def bootstrap(cls, tool, tool_description='', arguments=None):
         """ Return an AbstractProject instance fully configured for a
         particular command line tool.
         """
@@ -78,6 +78,10 @@ class AbstractProject(ABC):
             raise UserException(
                     "The project factory did not return an AbstractProject "
                     "object")
+
+        # We set this as an attribute rather than change the API of the ctor or
+        # setup().
+        project.arguments = arguments
 
         # Complete the configuration of the project.
         project.setup(pyproject, tool, tool_description)

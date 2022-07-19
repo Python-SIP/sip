@@ -180,10 +180,10 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
 
     # Descend into any sub-templates.
     if proto_arg.type is ArgumentType.TEMPLATE:
-        proto_template = proto_args.definition
+        proto_template = proto_arg.definition
         i_template = copy(proto_template)
         i_template.types = _instantiate_signature(proto_template.types,
-                proto_class, template, i_class, expansions, pm)
+                proto_class, tmpl_names, template, i_class, expansions, pm)
         i_arg.definition = i_template
 
     # Handle any default value.
@@ -204,11 +204,11 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
             if name == arg.definition.base_name:
                 tad = template.types.args[a]
 
-                proto_arg.type = tad.type
-                proto_arg.definition = tad.definition
+                i_arg.type = tad.type
+                i_arg.definition = tad.definition
 
                 # We take the constrained flag from the real type.
-                proto_arg.is_constrained = tad.is_constrained
+                i_arg.is_constrained = tad.is_constrained
 
                 break
         else:
@@ -375,11 +375,10 @@ def _instantiate_signature(proto_signature, proto_class, tmpl_names, template,
             if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and i_arg.default_value is not None):
                 i_arg.name.used = True
 
-    if proto_signature.result.type is not ArgumentType.NONE:
+    if proto_signature.result is not None:
         i_signature.result = _instantiate_argument(proto_signature.result,
                 proto_class, tmpl_names, template, i_class, expansions, pm)
 
-    assert not isinstance(i_signature.result, list)
     return i_signature
 
 
@@ -416,10 +415,10 @@ def _instantiate_typedefs(p, symbol, tmpl_names, proto_class, template,
         i_typedef.fq_cpp_name = normalised_scoped_name(
                 proto_typedef.fq_cpp_name, i_class)
         i_typedef.scope = i_class
-        i_typedef.module = iclass.iface_file.module
+        i_typedef.module = i_class.iface_file.module
 
-        i_template.type = _instantiate_argument(proto_template.type,
-                proto_class, tmpl_names, template, i_class, expansions, pm)
+        i_typedef.type = _instantiate_argument(proto_typedef.type, proto_class,
+                tmpl_names, template, i_class, expansions, pm)
 
         pm.add_typedef(p, symbol, i_typedef)
 
@@ -435,7 +434,8 @@ def _instantiate_value(proto_value, expansions):
         proto_name = proto_value.value.result.definition
 
         if proto_name.is_simple:
-            i_name = ScopedName.parse(template_string(proto_name, expansions))
+            i_name = ScopedName.parse(
+                    template_string(proto_name.base_name, expansions))
             i_result = Argument(type=ArgumentType.DEFINED, definition=i_name)
             i_fcall = FunctionCall(result=i_result,
                     args=proto_value.value.args)

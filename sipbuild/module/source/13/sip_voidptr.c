@@ -1,7 +1,7 @@
 /*
- * SIP library code.
+ * This file implements the API for the voidptr type.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,13 +17,14 @@
  */
 
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <stddef.h>
 #include <string.h>
 
-#include "sipint.h"
-#include "array.h"
+#include "sip_array.h"
+#include "sip_core.h"
 
 
 /* The object data structure. */
@@ -431,7 +432,7 @@ static PyBufferProcs sipVoidPtr_BufferProcs = {
 /*
  * Implement __new__ for the type.
  */
-static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
+static PyObject *sipVoidPtr_new(PyTypeObject *cls, PyObject *args,
         PyObject *kw)
 {
     static char *kwlist[] = {"address", "size", "writeable", NULL};
@@ -453,7 +454,7 @@ static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
         vp_conversion.rw = rw;
 
     /* Create the instance. */
-    if ((obj = subtype->tp_alloc(subtype, 0)) == NULL)
+    if ((obj = cls->tp_alloc(cls, 0)) == NULL)
         return NULL;
 
     /* Save the values. */

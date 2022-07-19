@@ -45,12 +45,18 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
-#define SIP_ABI_MINOR_VERSION       3
+#define SIP_ABI_MINOR_VERSION       4
 #define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v13.4
+ *  - The enum implementation now supports missing members.
+ *  - Published the 'array' type.
+ *  - Added the ctd_sizeof, ctd_array_delete members to sipClassTypeDef.
+ *  - Added the '>' conversion character to sipParseArgs().
  *
  * v13.3
  *  - Python v3.7 or later is required.
@@ -236,6 +242,7 @@ typedef int (*sipVirtHandlerFunc)(sip_gilstate_t, sipVirtErrorHandlerFunc,
         sipSimpleWrapper *, PyObject *, ...);
 typedef void (*sipAssignFunc)(void *, Py_ssize_t, void *);
 typedef void *(*sipArrayFunc)(Py_ssize_t);
+typedef void (*sipArrayDeleteFunc)(void *);
 typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef void (*sipReleaseUSFunc)(void *, int, void *);
@@ -820,6 +827,12 @@ typedef struct _sipClassTypeDef {
 
     /* The mixin initialisation function. */
     initproc ctd_init_mixin;
+
+    /* The optional array delete function. */
+    sipArrayDeleteFunc ctd_array_delete;
+
+    /* The sizeof the class. */
+    size_t ctd_sizeof;
 } sipClassTypeDef;
 
 
@@ -1424,8 +1437,7 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 
 
 /*
- * These are flags that can be passed to sipConvertToArray().  These are held
- * in sw_flags.
+ * These are flags that can be passed to sipConvertToArray().
  */
 #define SIP_READ_ONLY       0x01    /* The array is read-only. */
 #define SIP_OWNS_MEMORY     0x02    /* The array owns its memory. */

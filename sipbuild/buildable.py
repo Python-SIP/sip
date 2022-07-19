@@ -23,7 +23,6 @@
 
 import importlib
 import os
-import sys
 
 from .exceptions import UserException
 from .installable import Installable

@@ -24,10 +24,9 @@
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
         FunctionCall, IfaceFile, IfaceFileType, KwArgs, License, MappedType,
-        MappedTypeTemplate, Module, Overload, Property, PyQtMethodSpecifier,
+        MappedTypeTemplate, Overload, Property, PyQtMethodSpecifier,
         QualifierType, ScopedName, Signature, Template, ThrowArguments, Value,
-        ValueType, VirtualErrorHandler, WrappedClass, WrappedTypedef,
-        WrappedVariable)
+        ValueType, VirtualErrorHandler, WrappedTypedef, WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import normalised_scoped_name, search_typedefs
 
@@ -70,7 +69,7 @@ def p_specification(p):
 
 
 def p_statement(p):
-    """statement : EOF
+    """statement : eof
         | namespace_statement
         | composite_module
         | copying
@@ -118,6 +117,12 @@ def p_namespace_statement(p):
         | union_decl
         | variable
         | type_header_code"""
+
+
+def p_eof(p):
+    "eof : EOF"
+
+    p.parser.pm.pop_module_state()
 
 
 # State changing productions. #################################################
@@ -543,7 +548,7 @@ def p_extract(p):
         order = args.get('order', -1)
         part = p[7]
 
-    pm.module_state.module.extracts.append(Extract(id, order, part))
+    pm.spec.extracts.append(Extract(id, order, part))
 
 
 def p_extract_args(p):
@@ -912,6 +917,8 @@ def p_mapped_type_template(p):
 
     pm.validate_mapped_type(p, 1, pm.scope)
 
+    pm.parsing_template = False
+
     pm.pop_scope()
 
 
@@ -1134,7 +1141,7 @@ def p_module_body(p):
     """module_body : '{' module_body_directives '}' ';'
         | empty"""
 
-    p[0] = p[2] if len(p) == 4 else []
+    p[0] = p[2] if len(p) == 5 else []
 
 
 def p_module_body_directives(p):
@@ -1142,12 +1149,16 @@ def p_module_body_directives(p):
         | module_body_directives module_body_directive"""
 
     if len(p) == 2:
-        value = [p[1]]
-    else:
+        body = []
         value = p[1]
-        value.append(p[2])
+    else:
+        body = p[1]
+        value = p[2]
 
-    p[0] = value
+    if value is not None:
+        body.append(value)
+
+    p[0] = body
 
 
 def p_module_body_directive(p):
@@ -1254,34 +1265,34 @@ def p_preinit_code(p):
 # %Property ###################################################################
 
 def p_property(p):
-    "property : Property '(' property_args ')' '{' property_body '}' ';'"
+    "property : Property begin_args '(' property_args end_args ')' opt_property_body"
 
     pm = p.parser.pm
 
     if pm.skipping:
         return
 
-    name = p[3].get('name')
+    name = p[4].get('name')
     if name is None:
         p.parser.pm.parser_error(p, 1,
                 "a name must be specified for %Property")
         return
 
-    pm.check_attributes(p, 3, name)
+    pm.check_attributes(p, 4, name)
 
     name = pm.cached_name(name)
     if pm.in_main_module:
         name.used = True
 
-    getter = p[3].get('get')
+    getter = p[4].get('get')
     if getter is None:
         p.parser.pm.parser_error(p, 1,
                 "a getter must be specified for %Property")
         return
 
-    prop = Property(name=name, getter=getter, setter=p[3].get('set'))
+    prop = Property(name=name, getter=getter, setter=p[4].get('set'))
 
-    for directive in body:
+    for directive in p[7]:
         if isinstance(directive, Docstring):
             prop.docstring = directive
 
@@ -1304,6 +1315,13 @@ def p_property_arg(p):
         | set '=' NAME"""
 
     p[0] = {p[1]: p[3]}
+
+
+def p_opt_property_body(p):
+    """opt_property_body : empty
+        | '{' property_body '}' ';'"""
+
+    p[0] = [] if len(p) == 2 else p[2]
 
 
 def p_property_body(p):
@@ -1517,6 +1535,12 @@ def p_cpp_type(p):
         value.derefs.extend(p[2])
         value.is_reference = p[3]
 
+        # PyObject * is a synonym for SIP_PYOBJECT.
+        if value.type is ArgumentType.DEFINED and len(value.definition) == 1 and value.definition.base_name == 'PyObject' and len(value.derefs) == 1 and not value.is_reference:
+            value.type = ArgumentType.PYOBJECT
+            value.definition = None
+            value.derefs = []
+
     p[0] = value
 
 
@@ -1725,9 +1749,26 @@ def p_class_template(p):
 
     pm.class_templates.append((p[1], p[2]))
 
+    pm.parsing_template = False
+
+
+def p_class_docstring(p):
+    "class_docstring : docstring"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    if pm.scope.docstring is None:
+        pm.scope.docstring = p[1]
+    else:
+        pm.parser_error(p, 1,
+                "%Docstring has already been defined for this class")
+
 
 def p_class_decl(p):
-    "class_decl : class class_head opt_class_body ';'"
+    "class_decl : class class_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
@@ -1758,7 +1799,7 @@ def p_class_head(p):
 
 
 def p_struct_decl(p):
-    "struct_decl : struct struct_head opt_class_body ';'"
+    "struct_decl : struct struct_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
@@ -1833,7 +1874,8 @@ def p_superclass(p):
         pm.parser_error(p, 2, "super-class list contains an invalid type")
 
     # Find the actual class.
-    p[0] = pm.find_class(p, 2, IfaceFileType.CLASS, ad.definition)
+    p[0] = pm.find_class(p, 2, IfaceFileType.CLASS, ad.definition,
+            tmpl_arg=pm.parsing_template)
 
 
 def p_class_access(p):
@@ -1848,8 +1890,8 @@ def p_class_access(p):
     p[0] = p[1]
 
 
-def p_opt_class_body(p):
-    """opt_class_body : '{' opt_docstring class_body '}'
+def p_opt_class_definition(p):
+    """opt_class_definition : '{' opt_class_body '}'
         | empty"""
 
     pm = p.parser.pm
@@ -1857,11 +1899,12 @@ def p_opt_class_body(p):
     if pm.skipping:
         return
 
-    if len(p) == 5:
-        pm.scope.docstring = p[2]
-        p[0] = True
-    else:
-        p[0] = False
+    p[0] = (len(p) == 4)
+
+
+def p_opt_class_body(p):
+    """opt_class_body : class_body
+        | empty"""
 
 
 def p_class_body(p):
@@ -1873,6 +1916,8 @@ def p_class_line(p):
     """class_line : if_start
         | if_end
         | class_decl
+        | class_docstring
+        | class_template
         | ctor
         | dtor
         | enum_decl
@@ -2248,9 +2293,10 @@ def p_opt_base_exception(p):
 
     if len(p) == 4:
         base = p[2]
+        base.make_absolute()
 
         # See if it is a project-defined exception.
-        for xd in p.parser_manager.spec.exceptions:
+        for xd in p.parser.pm.spec.exceptions:
             if xd.iface_file.fq_cpp_name == base:
                 defined_base = xd
                 break
@@ -3031,7 +3077,7 @@ _UNION_ANNOTATIONS = (
 
 
 def p_union_decl(p):
-    "union_decl : union union_head opt_class_body ';'"
+    "union_decl : union union_head opt_class_definition ';'"
 
     pm = p.parser.pm
 
@@ -3223,6 +3269,8 @@ def p_template_decl(p):
 
     p[0] = Signature(args=p[3])
 
+    pm.parsing_template = True
+
 
 def p_bool_value(p):
     """bool_value : true
@@ -3235,38 +3283,23 @@ def p_bool_value(p):
 
 def p_dotted_name(p):
     """dotted_name : NAME
-        | dotted_name '.' NAME"""
+        | DOTTED_NAME"""
 
-    if len(p) == 2:
-        value = DottedName()
-        symbol = 1
-    else:
-        value = p[1]
-        symbol = 3
+    p[0] = DottedName(p[1])
 
-    value.append(p[symbol])
 
-    p[0] = value
+def p_file_path(p):
+    """file_path : NAME
+        | DOTTED_NAME
+        | FILE_PATH"""
+
+    p[0] = p[1]
 
 
 def p_empty(p):
     "empty :"
 
     p[0] = None
-
-
-def p_file_name(p):
-    """file_name : dotted_name
-        | file_name '-' dotted_name"""
-
-    p[0] = str(p[1]) if len(p) == 2 else p[1] + '-' + str(p[3])
-
-
-def p_file_path(p):
-    """file_path : file_name
-        | file_path '/' file_name"""
-
-    p[0] = p[1] if len(p) == 2 else p[1] + '/' + p[3]
 
 
 def p_opt_const(p):

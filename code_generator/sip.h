@@ -24,13 +24,14 @@
 #include <sys/types.h>
 
 
-/* Use symbolic names for ABI versions. */
+/* Use symbolic names for (significant) ABI versions. */
 
+#define ABI_13_4    0x0d04
 #define ABI_13_1    0x0d01
 #define ABI_13_0    0x0d00
+#define ABI_12_11   0x0c0b
 #define ABI_12_9    0x0c09
 #define ABI_12_8    0x0c08
-#define ABI_12_7    0x0c07
 
 
 #ifdef TRUE
@@ -72,6 +73,9 @@
 
 #define classBaseName(cd)   scopedNameTail((cd)->iff->fqcname)
 #define classFQCName(cd)    ((cd)->iff->fqcname)
+
+/* Return TRUE if the ABI supports sip.array. */
+#define abiSupportsArray()  (abiVersion >= ABI_13_4 || (abiVersion >= ABI_12_11 && abiVersion < ABI_13_0))
 
 /* Return the Python scope corresponding to a C/C++ scope. */
 #define pyScope(c)          ((c) != NULL && isHiddenNamespace(c) ? NULL : (c))

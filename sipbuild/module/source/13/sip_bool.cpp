@@ -1,6 +1,6 @@
-// This contains all the C++ code that is needed by the sip module.
+// This contains the support for C++ bools.
 //
-// Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+// Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
 //
 // This file is part of SIP.
 //
@@ -15,8 +15,9 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-// Set a C++ bool for the main C implementation of the module.
-extern "C" void sipSetBool(void *ptr, int val)
+// Set a C++ bool for the main C implementation of the module.  This is only
+// used on Windows.
+extern "C" void sip_set_bool(void *ptr, int val)
 {
     *reinterpret_cast<bool *>(ptr) = !!val;
 }

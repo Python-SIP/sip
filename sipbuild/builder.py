@@ -315,7 +315,7 @@ class Builder(AbstractBuilder):
 
                     # Create a PEP 561 marker file.
                     py_typed_path = os.path.join(project.build_dir, 'py.typed')
-                    with open(py_typed_path, 'w') as f:
+                    with open(py_typed_path, 'w') as _:
                         pass
 
                     installable = Installable('py_typed',
