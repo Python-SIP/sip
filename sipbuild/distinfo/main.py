@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -41,6 +41,10 @@ def main():
             help="the name of the program generating the directory",
             metavar="NAME")
 
+    parser.add_argument('--generator-version',
+            help="the version of the program generating the directory",
+            metavar="VERSION")
+
     parser.add_argument('--gui-script', dest='gui_scripts', action='append',
             help="the entry point of a GUI script", metavar='ENTRY-POINT')
 
@@ -73,6 +77,7 @@ def main():
     try:
         distinfo(name=args.names[0], console_scripts=args.console_scripts,
                 gui_scripts=args.gui_scripts, generator=args.generator,
+                generator_version=args.generator_version,
                 inventory=args.inventory,
                 metadata_overrides=args.metadata_overrides, prefix=args.prefix,
                 project_root=args.project_root,

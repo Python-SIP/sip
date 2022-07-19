@@ -168,9 +168,15 @@ The full set of command line options is:
 .. option:: --generator NAME
 
     If the :option:`--wheel-tag` option is specified then ``NAME`` is written
-    as the ``Generator`` in the :file:`WHEEL` file in the :file:`.dist-info`
-    directory.  Otherwise ``NAME`` is written to the :file:`INSTALLER` file.
-    By default ``sip-distinfo`` is written.
+    as part of the ``Generator`` in the :file:`WHEEL` file in the
+    :file:`.dist-info` directory.  Otherwise ``NAME`` is written to the
+    :file:`INSTALLER` file.  By default ``sipbuild`` is written.
+
+.. option:: --generator-version VERSION
+
+    ``VERSION`` is written as part of the ``Generator`` in the :file:`WHEEL`
+    file in the :file:`.dist-info` directory.  By default the SIP version
+    number is written.
 
 .. option:: --gui-script ENTRY-POINT
 

@@ -637,7 +637,7 @@ build systems.
 
         :return: the list of ``requires-dist`` expressions.
 
-    .. py:method:: get_sip_distinfo_command_line(sip_distinfo, inventory, generator=None, wheel_tag=None)
+    .. py:method:: get_sip_distinfo_command_line(sip_distinfo, inventory, generator=None, wheel_tag=None, generator_version=None)
 
         Get a sequence of command line arguments to invoke
         :program:`sip-distinfo`.  The :option:`sip-distinfo --console-script`,
@@ -645,7 +645,7 @@ build systems.
         :option:`sip-distinfo --prefix`, :option:`sip-distinfo --project-root`
         and :option:`sip-distinfo --requires-dist` command line options are
         handled automatically.  The arguments do not contain the name of the
-        :file:``.dist-info`` directory to create.
+        :file:`.dist-info` directory to create.
 
         :param str sip_distinfo: is the name of the :program:`sip-distinfo`
             executable.
@@ -655,6 +655,8 @@ build systems.
             :option:`sip-distinfo --generator` command line option.
         :param str wheel_tag: is the value of the
             :option:`sip-distinfo --wheel-tag` command line option.
+        :param str generator_version: is the value of the
+            :option:`sip-distinfo --generator-version` command line option.
         :return: the sequence of command line arguments.
 
     .. py:attribute:: installables

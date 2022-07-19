@@ -384,7 +384,7 @@ class Project(AbstractProject, Configurable):
                 next_abi_major)]
 
     def get_sip_distinfo_command_line(self, sip_distinfo, inventory,
-            generator=None, wheel_tag=None):
+            generator=None, wheel_tag=None, generator_version=None):
         """ Return a sequence of command line arguments to invoke sip-distinfo.
         """
 
@@ -404,6 +404,10 @@ class Project(AbstractProject, Configurable):
         if generator is not None:
             args.append('--generator')
             args.append(generator)
+
+        if generator_version is not None:
+            args.append('--generator-version')
+            args.append(generator_version)
 
         if wheel_tag is not None:
             args.append('--wheel-tag')
