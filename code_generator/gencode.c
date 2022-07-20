@@ -2126,7 +2126,13 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    sipExportedExceptions_%s[%d] = SIP_NULLPTR;\n"
             , mname, mod->nrexceptions);
 
-    /* Generate the enum meta-type registrations for PyQt6. */
+    /*
+     * Generate the enum meta-type registrations for PyQt6.  Qt6 registers
+     * these as and when it needs them which means that PyQt6 might handle them
+     * differently at different times.  It can be a particular problem with
+     * QMetaObject.invokeMethod().  The safest option is to register them all
+     * at the start.
+     */
     if (pluginPyQt6(pt))
     {
         for (ed = pt->enums; ed != NULL; ed = ed->next)

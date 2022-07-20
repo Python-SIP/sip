@@ -1,4 +1,4 @@
-v6.7.0 19th July 2022
+v6.7.0 20th July 2022
   - Added the --generator-version command line option to sip-distinfo.
   - Added the 'generator_version' argument to
     Project.get_sip_distinfo_command_line().
