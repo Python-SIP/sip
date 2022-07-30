@@ -1,7 +1,7 @@
 /*
  * The parse tree transformation module for SIP.
  *
- * Copyright (c) 2021 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -27,7 +27,6 @@
 
 static int samePythonSignature(signatureDef *sd1, signatureDef *sd2);
 static int nextSignificantArg(signatureDef *sd, int a);
-static int sameArgType(argDef *a1, argDef *a2, int strict);
 static int supportedType(classDef *,overDef *,argDef *,int);
 static int sameCppOverload(overDef *od1, overDef *od2);
 static void setAllImports(moduleDef *mod);
@@ -107,6 +106,25 @@ static int search_back(const char *end, const char *start, const char *target);
 static void addUsedFromCode(sipSpec *pt, ifaceFileList **used,
         const char *sname);
 static int sameName(scopedNameDef *snd, const char *sname);
+static void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
+static mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name);
+static char *scopedNameToString(scopedNameDef *name);
+static char *templateString(const char *src, scopedNameDef *names,
+        scopedNameDef *values);
+static void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
+static scopedNameDef *copyScopedName(scopedNameDef *);
+static void appendToClassList(classList **,classDef *);
+static void templateExpansions(signatureDef *patt, signatureDef *src,
+        signatureDef *declared_names, scopedNameDef **names,
+        scopedNameDef **values);
+static nameDef *cacheName(sipSpec *pt, const char *name);
+static scopedNameDef *encodedTemplateName(templateDef *td);
+static ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
+        scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
+static int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
+        int deep);
+static codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
+        codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
 
 
 /*
@@ -2455,23 +2473,6 @@ static void defaultOutput(argDef *ad)
 
 
 /*
- * Put a scoped name to stderr.
- */
-void fatalScopedName(scopedNameDef *snd)
-{
-    while (snd != NULL)
-    {
-        fatalAppend("%s", snd->name);
-
-        snd = snd -> next;
-
-        if (snd != NULL)
-            fatalAppend("::");
-    }
-}
-
-
-/*
  * Compare two overloads and return TRUE if they are the same.
  */
 static int sameCppOverload(overDef *od1, overDef *od2)
@@ -2481,254 +2482,6 @@ static int sameCppOverload(overDef *od1, overDef *od2)
         return FALSE;
 
     return sameSignature(od1->cppsig, od2->cppsig, TRUE);
-}
-
-
-/*
- * Compare two signatures and return TRUE if they are the same.
- */
-int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
-{
-    int a;
-
-    if (strict)
-    {
-        /* The number of arguments must be the same. */
-        if (sd1 -> nrArgs != sd2 -> nrArgs)
-            return FALSE;
-    }
-    else
-    {
-        int na1, na2;
-
-        /* We only count the compulsory arguments. */
-        na1 = 0;
-
-        for (a = 0; a < sd1 -> nrArgs; ++a)
-        {
-            if (sd1 -> args[a].defval != NULL)
-                break;
-
-            ++na1;
-        }
-
-        na2 = 0;
-
-        for (a = 0; a < sd2 -> nrArgs; ++a)
-        {
-            if (sd2 -> args[a].defval != NULL)
-                break;
-
-            ++na2;
-        }
-
-        if (na1 != na2)
-            return FALSE;
-    }
-
-    /* The arguments must be the same. */
-    for (a = 0; a < sd1 -> nrArgs; ++a)
-    {
-        if (!strict && sd1 -> args[a].defval != NULL)
-            break;
-
-        if (!sameArgType(&sd1 -> args[a],&sd2 -> args[a],strict))
-            return FALSE;
-    }
-
-    /* Must be the same if we've got this far. */
-    return TRUE;
-}
-
-
-#define pyAsString(t)   ((t) == ustring_type || (t) == sstring_type || \
-            (t) == string_type || (t) == ascii_string_type || \
-            (t) == latin1_string_type || (t) == utf8_string_type)
-#define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
-            (t) == cdouble_type || (t) == double_type)
-#define pyAsInt(t)  ((t) == bool_type || (t) == hash_type || \
-            (t) == ssize_type || (t) == size_type || (t) == byte_type || \
-            (t) == sbyte_type || (t) == ubyte_type || (t) == short_type || \
-            (t) == ushort_type || (t) == cint_type || (t) == int_type || \
-            (t) == uint_type)
-#define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
-#define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
-#define pyAsAuto(t) ((t) == bool_type || \
-            (t) == byte_type || (t) == sbyte_type || (t) == ubyte_type || \
-            (t) == short_type || (t) == ushort_type || \
-            (t) == int_type || (t) == uint_type || \
-            (t) == float_type || (t) == double_type)
-#define pyIsConstrained(t)  ((t) == cbool_type || (t) == cint_type || \
-            (t) == cfloat_type || (t) == cdouble_type)
-
-/*
- * Compare two argument types and return TRUE if they are the same.  "strict"
- * means as C++ would see it, rather than Python.
- */
-static int sameArgType(argDef *a1, argDef *a2, int strict)
-{
-    /* The references must be the same. */
-    if (isReference(a1) != isReference(a2) || a1->nrderefs != a2->nrderefs)
-        return FALSE;
-
-    if (strict)
-    {
-        /* The const should be the same. */
-        if (isConstArg(a1) != isConstArg(a2))
-            return FALSE;
-
-        return sameBaseType(a1,a2);
-    }
-
-    /* If both are constrained fundamental types then the types must match. */
-    if (pyIsConstrained(a1->atype) && pyIsConstrained(a2->atype))
-        return (a1->atype == a2->atype);
-
-    if (abiVersion >= ABI_13_0)
-    {
-        /* Anonymous enums are ints. */
-        if ((pyAsInt(a1->atype) && a2->atype == enum_type && a2->u.ed->fqcname == NULL) ||
-            (a1->atype == enum_type && a1->u.ed->fqcname == NULL && pyAsInt(a2->atype)))
-            return TRUE;
-    }
-    else
-    {
-        /* An unconstrained enum also acts as a (very) constrained int. */
-        if ((pyAsInt(a1->atype) && a2->atype == enum_type && !isConstrained(a2)) ||
-            (a1->atype == enum_type && !isConstrained(a1) && pyAsInt(a2->atype)))
-            return TRUE;
-    }
-
-    /* Python will see all these as strings. */
-    if (pyAsString(a1->atype) && pyAsString(a2->atype))
-        return TRUE;
-
-    /* Python will see all these as floats. */
-    if (pyAsFloat(a1->atype) && pyAsFloat(a2->atype))
-        return TRUE;
-
-    /* Python will see all these as ints. */
-    if (pyAsInt(a1->atype) && pyAsInt(a2->atype))
-        return TRUE;
-
-    /* Python will see all these as longs. */
-    if (pyAsLong(a1->atype) && pyAsLong(a2->atype))
-        return TRUE;
-
-    /* Python will see all these as unsigned longs. */
-    if (pyAsULong(a1->atype) && pyAsULong(a2->atype))
-        return TRUE;
-
-    /* Python will automatically convert between these. */
-    if (pyAsAuto(a1->atype) && pyAsAuto(a2->atype))
-        return TRUE;
-
-    /* All the special cases have been handled. */
-    return sameBaseType(a1, a2);
-}
-
-
-/*
- * Compare two basic types and return TRUE if they are the same.
- */
-int sameBaseType(argDef *a1, argDef *a2)
-{
-    /* The types must be the same. */
-    if (a1->atype != a2->atype)
-    {
-        /*
-         * If we are comparing a template with those that have already been
-         * used to instantiate a class or mapped type then we need to compare
-         * with the class or mapped type name.
-         */
-        if (a1->atype == class_type && a2->atype == defined_type)
-            return compareScopedNames(a1->u.cd->iff->fqcname, a2->u.snd) == 0;
-
-        if (a1->atype == defined_type && a2->atype == class_type)
-            return compareScopedNames(a2->u.cd->iff->fqcname, a1->u.snd) == 0;
-
-        if (a1->atype == mapped_type && a2->atype == defined_type)
-            return compareScopedNames(a1->u.mtd->iff->fqcname, a2->u.snd) == 0;
-
-        if (a1->atype == defined_type && a2->atype == mapped_type)
-            return compareScopedNames(a2->u.mtd->iff->fqcname, a1->u.snd) == 0;
-
-        if (a1->atype == enum_type && a2->atype == defined_type)
-            return compareScopedNames(a1->u.ed->fqcname, a2->u.snd) == 0;
-
-        if (a1->atype == defined_type && a2->atype == enum_type)
-            return compareScopedNames(a2->u.ed->fqcname, a1->u.snd) == 0;
-
-        return FALSE;
-    }
-
-    switch (a1->atype)
-    {
-    case class_type:
-        if (a1->u.cd != a2->u.cd)
-            return FALSE;
-
-        break;
-
-    case enum_type:
-        if (a1->u.ed != a2->u.ed)
-            return FALSE;
-
-        break;
-
-    case template_type:
-        {
-            int a;
-            templateDef *td1, *td2;
-
-            td1 = a1->u.td;
-            td2 = a2->u.td;
-
-            if (compareScopedNames(td1->fqname, td2->fqname) != 0 ||
-                    td1->types.nrArgs != td2->types.nrArgs)
-                return FALSE;
-
-            for (a = 0; a < td1->types.nrArgs; ++a)
-            {
-                argDef *td1ad = &td1->types.args[a];
-                argDef *td2ad = &td2->types.args[a];
-
-                if (td1ad->nrderefs != td2ad->nrderefs)
-                    return FALSE;
-
-                if (!sameBaseType(td1ad, td2ad))
-                    return FALSE;
-            }
-
-            break;
-        }
-
-    case struct_type:
-    case union_type:
-        if (compareScopedNames(a1->u.sname, a2->u.sname) != 0)
-            return FALSE;
-
-        break;
-
-    case defined_type:
-        if (compareScopedNames(a1->u.snd, a2->u.snd) != 0)
-            return FALSE;
-
-        break;
-
-    case mapped_type:
-        if (a1->u.mtd != a2->u.mtd)
-            return FALSE;
-
-        break;
-
-    /* Suppress a compiler warning. */
-    default:
-        ;
-    }
-
-    /* Must be the same if we've got this far. */
-    return TRUE;
 }
 
 
@@ -2773,33 +2526,6 @@ static int nextSignificantArg(signatureDef *sd, int a)
     }
 
     return -1;
-}
-
-
-/*
- * The equivalent of strcmp() for scoped names.
- */
-int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2)
-{
-    /* Strip the global scope if the target doesn't specify it. */
-    if (snd2->name[0] != '\0')
-        snd1 = removeGlobalScope(snd1);
-
-    while (snd1 != NULL && snd2 != NULL)
-    {
-        int res = strcmp(snd1->name, snd2->name);
-
-        if (res != 0)
-            return res;
-
-        snd1 = snd1->next;
-        snd2 = snd2->next;
-    }
-
-    if (snd1 == NULL)
-        return (snd2 == NULL ? 0 : -1);
-
-    return 1;
 }
 
 
@@ -3153,37 +2879,9 @@ static void instantiateMappedTypeTemplate(sipSpec *pt, moduleDef *mod,
 
 
 /*
- * Append a code block to a list of them.
- */
-void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
-{
-    codeBlockList *cbl;
-
-    /* Handle the trivial case. */
-    if (cb == NULL)
-        return;
-
-    /* Find the end of the list. */
-    while (*headp != NULL)
-    {
-        /* Ignore if the block is already in the list. */
-        if ((*headp)->block == cb)
-            return;
-
-        headp = &(*headp)->next;
-    }
-
-    cbl = sipMalloc(sizeof (codeBlockList));
-    cbl->block = cb;
-
-    *headp = cbl;
-}
-
-
-/*
  * Append a code block list to an existing list.
  */
-void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
+static void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
 {
     while (cbl != NULL)
     {
@@ -3196,7 +2894,7 @@ void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl)
 /*
  * Allocate, initialise and return a mapped type structure.
  */
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name)
+static mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name)
 {
     mappedTypeDef *mtd;
 
@@ -3389,7 +3087,7 @@ static char *type2string(argDef *ad)
 /*
  * Convert a scoped name to a string on the heap.
  */
-char *scopedNameToString(scopedNameDef *name)
+static char *scopedNameToString(scopedNameDef *name)
 {
     static const char scope_string[] = "::";
     size_t len;
@@ -3445,7 +3143,7 @@ char *scopedNameToString(scopedNameDef *name)
  * Return a string based on an original with names replaced by corresponding
  * values.
  */
-char *templateString(const char *src, scopedNameDef *names,
+static char *templateString(const char *src, scopedNameDef *names,
         scopedNameDef *values)
 {
     char *dst = sipStrdup(src);
@@ -3672,7 +3370,7 @@ static mappedTypeDef *copyTemplateType(mappedTypeDef *mtd, argDef *ad)
 /*
  * Search the typedefs for a name and return the type.
  */
-void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
+static void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad)
 {
     typedefDef *td;
 
@@ -4086,36 +3784,6 @@ static int compareTypes(const void *t1, const void *t2)
 
 
 /*
- * Return the fully qualified C/C++ name for a generated type.
- */
-scopedNameDef *getFQCNameOfType(argDef *ad)
-{
-    scopedNameDef *snd;
-
-    switch (ad->atype)
-    {
-    case class_type:
-        snd = classFQCName(ad->u.cd);
-        break;
-
-    case mapped_type:
-        snd = ad->u.mtd->iff->fqcname;
-        break;
-
-    case enum_type:
-        snd = ad->u.ed->fqcname;
-        break;
-
-    default:
-        /* Suppress a compiler warning. */
-        snd = NULL;
-    }
-
-    return snd;
-}
-
-
-/*
  * Return TRUE if we are generating code for a module, ie. we are the main
  * module.
  */
@@ -4146,36 +3814,9 @@ static void checkProperties(classDef *cd)
 
 
 /*
- * Return the method of a class with a given name.
- */
-memberDef *findMethod(classDef *cd, const char *name)
-{
-    memberDef *md;
-
-    for (md = cd->members; md != NULL; md = md->next)
-        if (strcmp(md->pyname->text, name) == 0)
-            break;
-
-    return md;
-}
-
-
-/*
- * Append a name to a list of scopes.
- */
-void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd)
-{
-    while (*headp != NULL)
-        headp = &(*headp)->next;
-
-    *headp = newsnd;
-}
-
-
-/*
  * Return a copy of a scoped name.
  */
-scopedNameDef *copyScopedName(scopedNameDef *snd)
+static scopedNameDef *copyScopedName(scopedNameDef *snd)
 {
     scopedNameDef *head;
 
@@ -4192,27 +3833,11 @@ scopedNameDef *copyScopedName(scopedNameDef *snd)
 
 
 /*
- * Free a scoped name - but not the text itself.
- */
-void freeScopedName(scopedNameDef *snd)
-{
-    while (snd != NULL)
-    {
-        scopedNameDef *next = snd->next;
-
-        free(snd);
-
-        snd = next;
-    }
-}
-
-
-/*
  * Append a class definition to a class list if it doesn't already appear.
  * Append is needed specifically for the list of super-classes because the
  * order is important to Python.
  */
-void appendToClassList(classList **clp, classDef *cd)
+static void appendToClassList(classList **clp, classDef *cd)
 {
     classList *new;
 
@@ -4235,39 +3860,10 @@ void appendToClassList(classList **clp, classDef *cd)
 
 
 /*
- * Add an interface file to an interface file list if it isn't already there.
- */
-void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
-{
-    /* Make sure we don't try to add an interface file to its own list. */
-    if (&iff->used != ifflp)
-    {
-        ifaceFileList *iffl;
-
-        while ((iffl = *ifflp) != NULL)
-        {
-            /* Don't bother if it is already there. */
-            if (iffl->iff == iff)
-                return;
-
-            ifflp = &iffl -> next;
-        }
-
-        iffl = sipMalloc(sizeof (ifaceFileList));
-
-        iffl->iff = iff;
-        iffl->next = NULL;
-
-        *ifflp = iffl;
-    }
-}
-
-
-/*
  * Get the type values and (optionally) the type names for substitution in
  * handwritten code.
  */
-void templateExpansions(signatureDef *patt, signatureDef *src,
+static void templateExpansions(signatureDef *patt, signatureDef *src,
         signatureDef *declared_names, scopedNameDef **names,
         scopedNameDef **values)
 {
@@ -4367,7 +3963,7 @@ void templateExpansions(signatureDef *patt, signatureDef *src,
  * Cache a name in a module.  Entries in the cache are stored in order of
  * decreasing length.
  */
-nameDef *cacheName(sipSpec *pt, const char *name)
+static nameDef *cacheName(sipSpec *pt, const char *name)
 {
     nameDef *nd, **ndp;
     size_t len;
@@ -4410,7 +4006,7 @@ nameDef *cacheName(sipSpec *pt, const char *name)
  * Return the encoded name of a template (ie. including its argument types) as
  * a scoped name.
  */
-scopedNameDef *encodedTemplateName(templateDef *td)
+static scopedNameDef *encodedTemplateName(templateDef *td)
 {
     int a;
     scopedNameDef *snd;
@@ -4472,8 +4068,8 @@ scopedNameDef *encodedTemplateName(templateDef *td)
 /*
  * Find an interface file, or create a new one.
  */
-ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
-        ifaceFileType iftype, argDef *ad)
+static ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
+        scopedNameDef *fqname, ifaceFileType iftype, argDef *ad)
 {
     ifaceFileDef *iff;
 
@@ -4566,7 +4162,7 @@ ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod, scopedNameDef *fqname,
  * used for mapped type templates where we want to recurse into any nested
  * templates.
  */
-int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
+static int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
         int deep)
 {
     int a;
@@ -4612,7 +4208,7 @@ int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
 /*
  * Replace any template arguments in a literal code block.
  */
-codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
+static codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
         codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values)
 {
     codeBlockList *ncbl = NULL;
@@ -4851,20 +4447,4 @@ static int sameName(scopedNameDef *snd, const char *sname)
     }
 
     return (snd == NULL && *sname == '\0');
-}
-
-
-/*
- * Convert a text string to a scope part structure.
- */
-scopedNameDef *text2scopePart(char *text)
-{
-    scopedNameDef *snd;
-
-    snd = sipMalloc(sizeof (scopedNameDef));
-
-    snd->name = text;
-    snd->next = NULL;
-
-    return snd;
 }

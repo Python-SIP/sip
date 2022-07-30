@@ -2772,3 +2772,47 @@ static varDef *wrappedvariable_list_attr(sipSpec *pt, PyObject *obj,
 
     return head;
 }
+
+
+/*
+ * Append a code block to a list of them.
+ */
+void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
+{
+    codeBlockList *cbl;
+
+    /* Handle the trivial case. */
+    if (cb == NULL)
+        return;
+
+    /* Find the end of the list. */
+    while (*headp != NULL)
+    {
+        /* Ignore if the block is already in the list. */
+        if ((*headp)->block == cb)
+            return;
+
+        headp = &(*headp)->next;
+    }
+
+    cbl = sipMalloc(sizeof (codeBlockList));
+    cbl->block = cb;
+
+    *headp = cbl;
+}
+
+
+/*
+ * Convert a text string to a scope part structure.
+ */
+scopedNameDef *text2scopePart(char *text)
+{
+    scopedNameDef *snd;
+
+    snd = sipMalloc(sizeof (scopedNameDef));
+
+    snd->name = text;
+    snd->next = NULL;
+
+    return snd;
+}

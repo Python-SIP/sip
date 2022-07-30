@@ -1,7 +1,7 @@
 /*
  * The XML and API file generator module for SIP.
  *
- * Copyright (c) 2020 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -18,6 +18,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "sip.h"
@@ -1382,4 +1383,32 @@ static const char *reflectedSlot(slotType st)
     }
 
     return NULL;
+}
+
+
+/*
+ * Append a name to a list of scopes.
+ */
+void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd)
+{
+    while (*headp != NULL)
+        headp = &(*headp)->next;
+
+    *headp = newsnd;
+}
+
+
+/*
+ * Free a scoped name - but not the text itself.
+ */
+void freeScopedName(scopedNameDef *snd)
+{
+    while (snd != NULL)
+    {
+        scopedNameDef *next = snd->next;
+
+        free(snd);
+
+        snd = next;
+    }
 }

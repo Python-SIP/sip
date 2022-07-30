@@ -1924,3 +1924,32 @@ static int isPyKeyword(const char *word)
 
     return FALSE;
 }
+
+
+/*
+ * Add an interface file to an interface file list if it isn't already there.
+ */
+void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
+{
+    /* Make sure we don't try to add an interface file to its own list. */
+    if (&iff->used != ifflp)
+    {
+        ifaceFileList *iffl;
+
+        while ((iffl = *ifflp) != NULL)
+        {
+            /* Don't bother if it is already there. */
+            if (iffl->iff == iff)
+                return;
+
+            ifflp = &iffl -> next;
+        }
+
+        iffl = sipMalloc(sizeof (ifaceFileList));
+
+        iffl->iff = iff;
+        iffl->next = NULL;
+
+        *ifflp = iffl;
+    }
+}

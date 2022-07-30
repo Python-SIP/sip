@@ -1399,25 +1399,19 @@ void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff);
 int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
-int sameTemplateSignature(signatureDef *tmpl_sd, signatureDef *args_sd,
-        int deep);
 int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
+int sameArgType(argDef *a1, argDef *a2, int strict);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
-scopedNameDef *copyScopedName(scopedNameDef *);
 void appendScopedName(scopedNameDef **,scopedNameDef *);
 scopedNameDef *text2scopePart(char *text);
 void freeScopedName(scopedNameDef *);
-char *scopedNameToString(scopedNameDef *name);
-void appendToClassList(classList **,classDef *);
 void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
-void appendCodeBlockList(codeBlockList **headp, codeBlockList *cbl);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
 void prOverloadName(FILE *fp, overDef *od);
 void prDefaultValue(argDef *ad, int in_str, FILE *fp);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
-void searchTypedefs(sipSpec *pt, scopedNameDef *snd, argDef *ad);
 int isZeroArgSlot(memberDef *md);
 int isIntReturnSlot(memberDef *md);
 int isSSizeReturnSlot(memberDef *md);
@@ -1426,29 +1420,13 @@ int isVoidReturnSlot(memberDef *md);
 int isNumberSlot(memberDef *md);
 int isInplaceNumberSlot(memberDef *md);
 int isRichCompareSlot(memberDef *md);
-mappedTypeDef *allocMappedType(sipSpec *pt, argDef *type, int use_name);
 void appendString(stringList **headp, const char *s);
-void templateExpansions(signatureDef *patt, signatureDef *src,
-        signatureDef *declared_names, scopedNameDef **names,
-        scopedNameDef **values);
-codeBlockList *templateCode(sipSpec *pt, ifaceFileList **used,
-        codeBlockList *ocbl, scopedNameDef *names, scopedNameDef *values);
-ifaceFileDef *findIfaceFile(sipSpec *pt, moduleDef *mod,
-        scopedNameDef *fqname, ifaceFileType iftype, argDef *ad);
 int pluginPyQt5(sipSpec *pt);
 int pluginPyQt6(sipSpec *pt);
-SIP_NORETURN void yyerror(char *);
-void yywarning(char *);
-int yylex(void);
-nameDef *cacheName(sipSpec *pt, const char *name);
-scopedNameDef *encodedTemplateName(templateDef *td);
 memberDef *findMethod(classDef *cd, const char *name);
 typeHintDef *newTypeHint(char *raw_hint);
-char *templateString(const char *src, scopedNameDef *names,
-        scopedNameDef *values);
 void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
 void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
-scopedNameDef *getFQCNameOfType(argDef *ad);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         ifaceFileList *defined, int pep484, int rest, FILE *fp);

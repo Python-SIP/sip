@@ -305,6 +305,7 @@ static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp);
 static void normaliseArg(argDef *ad);
 static void restoreArg(argDef *ad);
 static int stringFind(stringList *sl, const char *s);
+static scopedNameDef *getFQCNameOfType(argDef *ad);
 
 
 /*
@@ -15332,4 +15333,341 @@ int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
             return qd->default_enabled;
 
     return FALSE;
+}
+
+
+/*
+ * Put a scoped name to stderr.
+ */
+void fatalScopedName(scopedNameDef *snd)
+{
+    while (snd != NULL)
+    {
+        fatalAppend("%s", snd->name);
+
+        snd = snd -> next;
+
+        if (snd != NULL)
+            fatalAppend("::");
+    }
+}
+
+
+/*
+ * Compare two signatures and return TRUE if they are the same.
+ */
+int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
+{
+    int a;
+
+    if (strict)
+    {
+        /* The number of arguments must be the same. */
+        if (sd1 -> nrArgs != sd2 -> nrArgs)
+            return FALSE;
+    }
+    else
+    {
+        int na1, na2;
+
+        /* We only count the compulsory arguments. */
+        na1 = 0;
+
+        for (a = 0; a < sd1 -> nrArgs; ++a)
+        {
+            if (sd1 -> args[a].defval != NULL)
+                break;
+
+            ++na1;
+        }
+
+        na2 = 0;
+
+        for (a = 0; a < sd2 -> nrArgs; ++a)
+        {
+            if (sd2 -> args[a].defval != NULL)
+                break;
+
+            ++na2;
+        }
+
+        if (na1 != na2)
+            return FALSE;
+    }
+
+    /* The arguments must be the same. */
+    for (a = 0; a < sd1 -> nrArgs; ++a)
+    {
+        if (!strict && sd1 -> args[a].defval != NULL)
+            break;
+
+        if (!sameArgType(&sd1 -> args[a],&sd2 -> args[a],strict))
+            return FALSE;
+    }
+
+    /* Must be the same if we've got this far. */
+    return TRUE;
+}
+
+
+#define pyAsString(t)   ((t) == ustring_type || (t) == sstring_type || \
+            (t) == string_type || (t) == ascii_string_type || \
+            (t) == latin1_string_type || (t) == utf8_string_type)
+#define pyAsFloat(t)    ((t) == cfloat_type || (t) == float_type || \
+            (t) == cdouble_type || (t) == double_type)
+#define pyAsInt(t)  ((t) == bool_type || (t) == hash_type || \
+            (t) == ssize_type || (t) == size_type || (t) == byte_type || \
+            (t) == sbyte_type || (t) == ubyte_type || (t) == short_type || \
+            (t) == ushort_type || (t) == cint_type || (t) == int_type || \
+            (t) == uint_type)
+#define pyAsLong(t) ((t) == long_type || (t) == longlong_type)
+#define pyAsULong(t)    ((t) == ulong_type || (t) == ulonglong_type)
+#define pyAsAuto(t) ((t) == bool_type || \
+            (t) == byte_type || (t) == sbyte_type || (t) == ubyte_type || \
+            (t) == short_type || (t) == ushort_type || \
+            (t) == int_type || (t) == uint_type || \
+            (t) == float_type || (t) == double_type)
+#define pyIsConstrained(t)  ((t) == cbool_type || (t) == cint_type || \
+            (t) == cfloat_type || (t) == cdouble_type)
+
+/*
+ * Compare two argument types and return TRUE if they are the same.  "strict"
+ * means as C++ would see it, rather than Python.
+ */
+int sameArgType(argDef *a1, argDef *a2, int strict)
+{
+    /* The references must be the same. */
+    if (isReference(a1) != isReference(a2) || a1->nrderefs != a2->nrderefs)
+        return FALSE;
+
+    if (strict)
+    {
+        /* The const should be the same. */
+        if (isConstArg(a1) != isConstArg(a2))
+            return FALSE;
+
+        return sameBaseType(a1,a2);
+    }
+
+    /* If both are constrained fundamental types then the types must match. */
+    if (pyIsConstrained(a1->atype) && pyIsConstrained(a2->atype))
+        return (a1->atype == a2->atype);
+
+    if (abiVersion >= ABI_13_0)
+    {
+        /* Anonymous enums are ints. */
+        if ((pyAsInt(a1->atype) && a2->atype == enum_type && a2->u.ed->fqcname == NULL) ||
+            (a1->atype == enum_type && a1->u.ed->fqcname == NULL && pyAsInt(a2->atype)))
+            return TRUE;
+    }
+    else
+    {
+        /* An unconstrained enum also acts as a (very) constrained int. */
+        if ((pyAsInt(a1->atype) && a2->atype == enum_type && !isConstrained(a2)) ||
+            (a1->atype == enum_type && !isConstrained(a1) && pyAsInt(a2->atype)))
+            return TRUE;
+    }
+
+    /* Python will see all these as strings. */
+    if (pyAsString(a1->atype) && pyAsString(a2->atype))
+        return TRUE;
+
+    /* Python will see all these as floats. */
+    if (pyAsFloat(a1->atype) && pyAsFloat(a2->atype))
+        return TRUE;
+
+    /* Python will see all these as ints. */
+    if (pyAsInt(a1->atype) && pyAsInt(a2->atype))
+        return TRUE;
+
+    /* Python will see all these as longs. */
+    if (pyAsLong(a1->atype) && pyAsLong(a2->atype))
+        return TRUE;
+
+    /* Python will see all these as unsigned longs. */
+    if (pyAsULong(a1->atype) && pyAsULong(a2->atype))
+        return TRUE;
+
+    /* Python will automatically convert between these. */
+    if (pyAsAuto(a1->atype) && pyAsAuto(a2->atype))
+        return TRUE;
+
+    /* All the special cases have been handled. */
+    return sameBaseType(a1, a2);
+}
+
+
+/*
+ * Compare two basic types and return TRUE if they are the same.
+ */
+int sameBaseType(argDef *a1, argDef *a2)
+{
+    /* The types must be the same. */
+    if (a1->atype != a2->atype)
+    {
+        /*
+         * If we are comparing a template with those that have already been
+         * used to instantiate a class or mapped type then we need to compare
+         * with the class or mapped type name.
+         */
+        if (a1->atype == class_type && a2->atype == defined_type)
+            return compareScopedNames(a1->u.cd->iff->fqcname, a2->u.snd) == 0;
+
+        if (a1->atype == defined_type && a2->atype == class_type)
+            return compareScopedNames(a2->u.cd->iff->fqcname, a1->u.snd) == 0;
+
+        if (a1->atype == mapped_type && a2->atype == defined_type)
+            return compareScopedNames(a1->u.mtd->iff->fqcname, a2->u.snd) == 0;
+
+        if (a1->atype == defined_type && a2->atype == mapped_type)
+            return compareScopedNames(a2->u.mtd->iff->fqcname, a1->u.snd) == 0;
+
+        if (a1->atype == enum_type && a2->atype == defined_type)
+            return compareScopedNames(a1->u.ed->fqcname, a2->u.snd) == 0;
+
+        if (a1->atype == defined_type && a2->atype == enum_type)
+            return compareScopedNames(a2->u.ed->fqcname, a1->u.snd) == 0;
+
+        return FALSE;
+    }
+
+    switch (a1->atype)
+    {
+    case class_type:
+        if (a1->u.cd != a2->u.cd)
+            return FALSE;
+
+        break;
+
+    case enum_type:
+        if (a1->u.ed != a2->u.ed)
+            return FALSE;
+
+        break;
+
+    case template_type:
+        {
+            int a;
+            templateDef *td1, *td2;
+
+            td1 = a1->u.td;
+            td2 = a2->u.td;
+
+            if (compareScopedNames(td1->fqname, td2->fqname) != 0 ||
+                    td1->types.nrArgs != td2->types.nrArgs)
+                return FALSE;
+
+            for (a = 0; a < td1->types.nrArgs; ++a)
+            {
+                argDef *td1ad = &td1->types.args[a];
+                argDef *td2ad = &td2->types.args[a];
+
+                if (td1ad->nrderefs != td2ad->nrderefs)
+                    return FALSE;
+
+                if (!sameBaseType(td1ad, td2ad))
+                    return FALSE;
+            }
+
+            break;
+        }
+
+    case struct_type:
+    case union_type:
+        if (compareScopedNames(a1->u.sname, a2->u.sname) != 0)
+            return FALSE;
+
+        break;
+
+    case defined_type:
+        if (compareScopedNames(a1->u.snd, a2->u.snd) != 0)
+            return FALSE;
+
+        break;
+
+    case mapped_type:
+        if (a1->u.mtd != a2->u.mtd)
+            return FALSE;
+
+        break;
+
+    /* Suppress a compiler warning. */
+    default:
+        ;
+    }
+
+    /* Must be the same if we've got this far. */
+    return TRUE;
+}
+
+
+/*
+ * The equivalent of strcmp() for scoped names.
+ */
+int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2)
+{
+    /* Strip the global scope if the target doesn't specify it. */
+    if (snd2->name[0] != '\0')
+        snd1 = removeGlobalScope(snd1);
+
+    while (snd1 != NULL && snd2 != NULL)
+    {
+        int res = strcmp(snd1->name, snd2->name);
+
+        if (res != 0)
+            return res;
+
+        snd1 = snd1->next;
+        snd2 = snd2->next;
+    }
+
+    if (snd1 == NULL)
+        return (snd2 == NULL ? 0 : -1);
+
+    return 1;
+}
+
+
+/*
+ * Return the fully qualified C/C++ name for a generated type.
+ */
+static scopedNameDef *getFQCNameOfType(argDef *ad)
+{
+    scopedNameDef *snd;
+
+    switch (ad->atype)
+    {
+    case class_type:
+        snd = classFQCName(ad->u.cd);
+        break;
+
+    case mapped_type:
+        snd = ad->u.mtd->iff->fqcname;
+        break;
+
+    case enum_type:
+        snd = ad->u.ed->fqcname;
+        break;
+
+    default:
+        /* Suppress a compiler warning. */
+        snd = NULL;
+    }
+
+    return snd;
+}
+
+
+/*
+ * Return the method of a class with a given name.
+ */
+memberDef *findMethod(classDef *cd, const char *name)
+{
+    memberDef *md;
+
+    for (md = cd->members; md != NULL; md = md->next)
+        if (strcmp(md->pyname->text, name) == 0)
+            break;
+
+    return md;
 }
