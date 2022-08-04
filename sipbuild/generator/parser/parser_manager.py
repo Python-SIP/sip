@@ -926,6 +926,10 @@ class ParserManager:
         """ Apply annotations to a mapped type. """
 
         mapped_type.handles_none = annotations.get('AllowNone', False)
+        mapped_type.no_assignment_operator = annotations.get(
+                'NoAssignmentOperator', False)
+        mapped_type.no_copy_ctor = annotations.get('NoCopyCtor', False)
+        mapped_type.no_default_ctor = annotations.get('NoDefaultCtor', False)
         mapped_type.no_release = annotations.get('NoRelease', False)
         mapped_type.type_hints = self.get_type_hints(p, symbol, annotations)
 

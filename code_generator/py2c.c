@@ -1404,6 +1404,15 @@ static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
 
     cache(&cache_mappedtype, obj, value);
 
+    if (bool_attr(obj, "no_assignment_operator"))
+        setNoAssignOp(value);
+
+    if (bool_attr(obj, "no_copy_ctor"))
+        setNoCopyCtor(value);
+
+    if (bool_attr(obj, "no_default_ctor"))
+        setNoDefaultCtor(value);
+
     if (bool_attr(obj, "no_release"))
         setNoRelease(value);
 

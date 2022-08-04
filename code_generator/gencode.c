@@ -3712,95 +3712,104 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
          * consequence of the assignment, eg. if it is implementing some sort
          * of reference counting scheme.
          */
-        prcode(fp,
-"\n"
-"\n"
-            );
-
-        if (!generating_c)
+        if (!noAssignOp(mtd))
+        {
             prcode(fp,
-"extern \"C\" {static void assign_%L(void *, Py_ssize_t, void *);}\n"
-                , mtd->iff);
+"\n"
+"\n"
+                );
 
-        prcode(fp,
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void assign_%L(void *, Py_ssize_t, void *);}\n"
+                    , mtd->iff);
+
+            prcode(fp,
 "static void assign_%L(void *sipDst, Py_ssize_t sipDstIdx, void *sipSrc)\n"
 "{\n"
-            , mtd->iff);
+                , mtd->iff);
 
-        if (generating_c)
-            prcode(fp,
+            if (generating_c)
+                prcode(fp,
 "    ((%b *)sipDst)[sipDstIdx] = *((%b *)sipSrc);\n"
-                , &mtd->type, &mtd->type);
-        else
-            prcode(fp,
+                    , &mtd->type, &mtd->type);
+            else
+                prcode(fp,
 "    reinterpret_cast<%b *>(sipDst)[sipDstIdx] = *reinterpret_cast<%b *>(sipSrc);\n"
-                , &mtd->type, &mtd->type);
+                    , &mtd->type, &mtd->type);
 
-        prcode(fp,
+            prcode(fp,
 "}\n"
-            );
+                );
+        }
 
         /* Generate the array allocation helper. */
-        prcode(fp,
-"\n"
-"\n"
-            );
-
-        if (!generating_c)
+        if (!noDefaultCtor(mtd))
+        {
             prcode(fp,
-"extern \"C\" {static void *array_%L(Py_ssize_t);}\n"
-                , mtd->iff);
+"\n"
+"\n"
+                );
 
-        prcode(fp,
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void *array_%L(Py_ssize_t);}\n"
+                    , mtd->iff);
+
+            prcode(fp,
 "static void *array_%L(Py_ssize_t sipNrElem)\n"
 "{\n"
-            , mtd->iff);
-
-        if (generating_c)
-            prcode(fp,
-"    return sipMalloc(sizeof (%b) * sipNrElem);\n"
-                , &mtd->type);
-        else
-            prcode(fp,
-"    return new %b[sipNrElem];\n"
-                , &mtd->type);
-
-        prcode(fp,
-"}\n"
-            );
-
-        /* Generate the copy helper. */
-        prcode(fp,
-"\n"
-"\n"
-            );
-
-        if (!generating_c)
-            prcode(fp,
-"extern \"C\" {static void *copy_%L(const void *, Py_ssize_t);}\n"
                 , mtd->iff);
 
-        prcode(fp,
+            if (generating_c)
+                prcode(fp,
+"    return sipMalloc(sizeof (%b) * sipNrElem);\n"
+                    , &mtd->type);
+            else
+                prcode(fp,
+"    return new %b[sipNrElem];\n"
+                    , &mtd->type);
+
+            prcode(fp,
+"}\n"
+                );
+        }
+
+        /* Generate the copy helper. */
+        if (!noCopyCtor(mtd))
+        {
+            prcode(fp,
+"\n"
+"\n"
+                );
+
+            if (!generating_c)
+                prcode(fp,
+"extern \"C\" {static void *copy_%L(const void *, Py_ssize_t);}\n"
+                    , mtd->iff);
+
+            prcode(fp,
 "static void *copy_%L(const void *sipSrc, Py_ssize_t sipSrcIdx)\n"
 "{\n"
-            , mtd->iff);
+                , mtd->iff);
 
-        if (generating_c)
-            prcode(fp,
+            if (generating_c)
+                prcode(fp,
 "    %b *sipPtr = sipMalloc(sizeof (%b));\n"
 "    *sipPtr = ((const %b *)sipSrc)[sipSrcIdx];\n"
 "\n"
 "    return sipPtr;\n"
-                , &mtd->type, &mtd->type
-                , &mtd->type);
-        else
-            prcode(fp,
+                    , &mtd->type, &mtd->type
+                    , &mtd->type);
+            else
+                prcode(fp,
 "    return new %b(reinterpret_cast<const %b *>(sipSrc)[sipSrcIdx]);\n"
-                , &mtd->type, &mtd->type);
+                    , &mtd->type, &mtd->type);
 
-        prcode(fp,
+            prcode(fp,
 "}\n"
-            );
+                );
+        }
 
         prcode(fp,
 "\n"
@@ -4006,22 +4015,47 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
         );
 
     if (noRelease(mtd))
+    {
         prcode(fp,
 "    SIP_NULLPTR,\n"
 "    SIP_NULLPTR,\n"
 "    SIP_NULLPTR,\n"
 "    SIP_NULLPTR,\n"
             );
+    }
     else
-        prcode(fp,
+    {
+        if (!noAssignOp(mtd))
+            prcode(fp,
 "    assign_%L,\n"
-"    array_%L,\n"
-"    copy_%L,\n"
-"    release_%L,\n"
-            , mtd->iff
-            , mtd->iff
-            , mtd->iff
             , mtd->iff);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
+
+        if (!noDefaultCtor(mtd))
+            prcode(fp,
+"    array_%L,\n"
+            , mtd->iff);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
+
+        if (!noCopyCtor(mtd))
+            prcode(fp,
+"    copy_%L,\n"
+            , mtd->iff);
+        else
+            prcode(fp,
+"    SIP_NULLPTR,\n"
+                );
+
+        prcode(fp,
+"    release_%L,\n"
+            , mtd->iff);
+    }
 
     if (mtd->convtocode != NULL)
     {

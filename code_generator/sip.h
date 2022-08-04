@@ -543,6 +543,9 @@
 #define MT_NO_RELEASE       0x01    /* Do not generate a release function. */
 #define MT_ALLOW_NONE       0x02    /* The mapped type will handle None. */
 #define MT_USER_STATE       0x04    /* The convertors need user state. */
+#define MT_NO_ASSIGN_OP     0x08    /* No assignment operator. */
+#define MT_NO_COPY_CTOR     0x10    /* No copy ctor. */
+#define MT_NO_DEFAULT_CTOR  0x20    /* No default ctor. */
 
 #define noRelease(mt)       ((mt)->mtflags & MT_NO_RELEASE)
 #define setNoRelease(mt)    ((mt)->mtflags |= MT_NO_RELEASE)
@@ -550,6 +553,12 @@
 #define setHandlesNone(mt)  ((mt)->mtflags |= MT_ALLOW_NONE)
 #define needsUserState(mt)  ((mt)->mtflags & MT_USER_STATE)
 #define setNeedsUserState(mt)   ((mt)->mtflags |= MT_USER_STATE)
+#define noAssignOp(mt)      ((mt)->mtflags & MT_NO_ASSIGN_OP)
+#define setNoAssignOp(mt)   ((mt)->mtflags |= MT_NO_ASSIGN_OP)
+#define noCopyCtor(mt)      ((mt)->mtflags & MT_NO_COPY_CTOR)
+#define setNoCopyCtor(mt)   ((mt)->mtflags |= MT_NO_COPY_CTOR)
+#define noDefaultCtor(mt)   ((mt)->mtflags & MT_NO_DEFAULT_CTOR)
+#define setNoDefaultCtor(mt)    ((mt)->mtflags |= MT_NO_DEFAULT_CTOR)
 
 
 /* Handle typedef flags. */

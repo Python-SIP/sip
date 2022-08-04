@@ -542,6 +542,24 @@ Mapped Type Annotations
     :directive:`%ConvertToTypeCode`.
 
 
+.. mapped-type-annotation:: NoAssignmentOperator
+
+    This boolean annotation is used to specify that the C++ type does not have
+    a public assignment operator.
+
+
+.. mapped-type-annotation:: NoCopyCtor
+
+    This boolean annotation is used to specify that the C++ type does not have
+    a public copy constructor.
+
+
+.. mapped-type-annotation:: NoDefaultCtor
+
+    This boolean annotation is used to specify that the C++ type does not have
+    a public default constructor.
+
+
 .. mapped-type-annotation:: NoRelease
 
     This boolean annotation is used to specify that the mapped type does not

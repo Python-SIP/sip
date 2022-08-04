@@ -1035,6 +1035,15 @@ class MappedType:
     # Set if the handwritten code requires user state information.
     needs_user_state: bool = False
 
+    # Set if /NoAssignmentOperator/ was specified.
+    no_assignment_operator: bool = False
+
+    # Set if /NoCopyCtor/ was specified.
+    no_copy_ctor: bool = False
+
+    # Set if /NoDefaultCtor/ was specified.
+    no_default_ctor: bool = False
+
     # Set if /NoRelease/ was specified.
     no_release: bool = False
 
