@@ -338,21 +338,21 @@ class Project(AbstractProject, Configurable):
             # We expect a two part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 2:
-                if self.minimum_glibc_version > (2, 17):
+                if not self.minimum_glibc_version or self.minimum.glibc_version <= (2, 5):
+                    # PEP 513.
+                    parts[0] = 'manylinux1'
+                elif self.minimum_glibc_version <= (2, 12):
+                    # PEP 571.
+                    parts[0] = 'manylinux2010'
+                elif self.minimum_glibc_version <= (2, 17):
+                    # PEP 599.
+                    parts[0] = 'manylinux2014'
+                else:
                     # PEP 600.
                     parts[0] = 'manylinux'
                     parts.insert(1,
                             '{}.{}'.format(self.minimum_glibc_version[0],
                                     self.minimum_glibc_version[1]))
-                elif self.minimum_glibc_version > (2, 12):
-                    # PEP 599.
-                    parts[0] = 'manylinux2014'
-                elif self.minimum_glibc_version > (2, 5):
-                    # PEP 571.
-                    parts[0] = 'manylinux2010'
-                else:
-                    # PEP 513.
-                    parts[0] = 'manylinux1'
 
                 platform_tag = '-'.join(parts)
 
@@ -468,8 +468,6 @@ class Project(AbstractProject, Configurable):
                         "'{0}' is an invalid GLIBC version number".format(
                                 value),
                         section_name='tool.sip.project')
-        else:
-            value = (2, 5)
 
         self._minimum_glibc_version = value
 
