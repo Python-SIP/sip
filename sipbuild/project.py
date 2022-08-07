@@ -336,25 +336,13 @@ class Project(AbstractProject, Configurable):
 
         elif self.py_platform == 'linux' and self.manylinux:
             # We expect a two part tag so leave anything else unchanged.
-            parts = platform_tag.split('-')
-            if len(parts) == 2:
-                if not self.minimum_glibc_version or self.minimum_glibc_version <= (2, 5):
-                    # PEP 513.
-                    parts[0] = 'manylinux1'
-                elif self.minimum_glibc_version <= (2, 12):
-                    # PEP 571.
-                    parts[0] = 'manylinux2010'
-                elif self.minimum_glibc_version <= (2, 17):
-                    # PEP 599.
-                    parts[0] = 'manylinux2014'
+            if len(platform_tag.split('-')) == 2:
+                if self.minimum_glibc_version:
+                    major, minor = self.minimum_glibc_version
                 else:
-                    # PEP 600.
-                    parts[0] = 'manylinux'
-                    parts.insert(1,
-                            '{}.{}'.format(self.minimum_glibc_version[0],
-                                    self.minimum_glibc_version[1]))
+                    major, minor = 2, 5
 
-                platform_tag = '-'.join(parts)
+                platform_tag = 'manylinux-{}.{}'.format(major, minor)
 
         return platform_tag.replace('.', '_').replace('-', '_')
 
