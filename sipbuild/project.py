@@ -338,7 +338,7 @@ class Project(AbstractProject, Configurable):
             # We expect a two part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 2:
-                if not self.minimum_glibc_version or self.minimum.glibc_version <= (2, 5):
+                if not self.minimum_glibc_version or self.minimum_glibc_version <= (2, 5):
                     # PEP 513.
                     parts[0] = 'manylinux1'
                 elif self.minimum_glibc_version <= (2, 12):
