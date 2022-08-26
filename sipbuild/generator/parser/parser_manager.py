@@ -1448,14 +1448,15 @@ class ParserManager:
 
             return None
 
-        # Check that type hints haven't been suppressed.
-        if annotations.get('NoTypeHint') is not None and (th_in or th_out or th_value):
-            self.parser_error(p, symbol,
-                    "'NoTypeHint' cannot be specified with a type hint")
+        if th_in is not None or th_out is not None or th_value is not None:
+            # Check that type hints haven't been suppressed.
+            if annotations.get('NoTypeHint') is not None:
+                self.parser_error(p, symbol,
+                        "'NoTypeHint' cannot be specified with a type hint")
 
-            return None
+            return TypeHints(th_in, th_out, th_value)
 
-        return TypeHints(th_in, th_out, th_value)
+        return None
 
     @property
     def in_main_module(self):
