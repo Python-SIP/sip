@@ -1843,8 +1843,7 @@ def _instantiate_mapped_type_template(spec, mod, mapped_type_template, type,
     mapped_type.no_copy_ctor = proto_mapped_type.no_copy_ctor
     mapped_type.no_default_ctor = proto_mapped_type.no_default_ctor
     mapped_type.no_release = proto_mapped_type.no_release
-    # TODO
-    #mapped_type.pyqt_flags = proto_mapped_type.pyqt_flags
+    mapped_type.pyqt_flags = proto_mapped_type.pyqt_flags
 
     if proto_mapped_type.type_hints is not None:
         mapped_type.type_hints = instantiate_type_hints(spec,
