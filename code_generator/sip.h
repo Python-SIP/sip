@@ -1381,7 +1381,6 @@ void parse(sipSpec *, FILE *, char *, int, stringList **, stringList *,
 void get_bindings_configuration(const char *sip_file, stringList **tags,
         stringList **disabled);
 void parserEOF(const char *,parserContext *);
-void transform(sipSpec *, int);
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);

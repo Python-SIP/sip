@@ -23,7 +23,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class AccessSpecifier(Enum):
@@ -680,6 +680,18 @@ class ScopedName:
 
         return '::'.join(s_l)
 
+    @property
+    def absolute(self):
+        """ Return an absolute version of the name. """
+
+        if self.is_absolute:
+            return self
+
+        copy = type(self)(self)
+        copy.make_absolute()
+
+        return copy
+
     def append(self, name):
         """ Append a simple name. """
 
@@ -703,9 +715,9 @@ class ScopedName:
 
         return len(self) == 1
 
-    def matches(self, scoped_name, scope):
-        """ Return True if a scoped name matches this taking account of a scope
-        if the scoped name is relative.
+    def matches(self, scoped_name, scope=None):
+        """ Return True if a scoped name matches this taking account of an
+        optional scope if the scoped name is relative.
         """
 
         assert self.is_absolute
@@ -724,11 +736,8 @@ class ScopedName:
 
             scope = scope.scope
 
-        # Try the global scope.
-        fq_name = ScopedName(scoped_name)
-        fq_name.make_absolute()
-
-        return self == fq_name
+        # Treat the name as if it were absolute.
+        return self._name[1:] == scoped_name._name
 
     def make_absolute(self):
         """ Make sure the scoped name is absolute. """
@@ -834,6 +843,9 @@ class Argument:
     # The value of /ScopesStripped/.
     scopes_stripped: int = 0
 
+    # The source location.
+    source_location: Optional['SourceLocation'] = None
+
     # Any transfer of ownership.
     transfer: Transfer = Transfer.NONE
 
@@ -850,8 +862,19 @@ class CachedName:
     # The name.
     name: str
 
+    # Set if the name is a substring of another. (resolver)
+    is_substring: bool = False
+
+    # The offset of the name in the string pool. (resolver)
+    offset: int = 0
+
     # Set if the name is used in the generated code.
     used: bool = False
+
+    def __str__(self):
+        """ Return the string representation. """
+
+        return self.name
 
 
 @dataclass
@@ -889,6 +912,9 @@ class Constructor:
 
     # The action required on the GIL.
     gil_action: GILAction = GILAction.DEFAULT
+
+    # Set if the ctor is the implementation of a cast. (resolver)
+    is_cast: bool = False
 
     # The keyword argument support.
     kw_args: KwArgs = KwArgs.NONE
@@ -962,7 +988,8 @@ class IfaceFile:
     type: IfaceFileType
 
     # The C/C++ name.  It will be None if the interface file relates to a
-    # template.
+    # template.  Note that this is fully qualified and so overlaps with
+    # 'fq_cpp_name'.
     cpp_name: Optional[CachedName] = None
 
     # The filename extension.
@@ -971,6 +998,9 @@ class IfaceFile:
     # The fully qualified C/C++ name.  It will be None if the interface file
     # relates to a template.
     fq_cpp_name: Optional[ScopedName] = None
+
+    # The generated type number. (resolver)
+    type_nr: int = -1
 
     # The defining module.  It will be None if the interface file relates to a
     # template.
@@ -1116,6 +1146,9 @@ class Member:
 class Module:
     """ Encapsulate a module. """
 
+    # The list of all (explicit and implied) imports. (resolver)
+    all_imports: List['Module'] = field(default_factory=list)
+
     # Set if wrapped ctors should support cooperative multi-inheritance.
     call_super_init: bool = False
 
@@ -1178,8 +1211,17 @@ class Module:
     # The next key to auto-allocate.
     next_key: int = -1
 
+    # The number of exceptions defined in this module. (resolver)
+    nr_exceptions: int = 0
+
+    # The generated types needed by this module. (resolver)
+    needed_types: List[Argument] = field(default_factory=list)
+
     # The number of typedefs defined in this module.
     nr_typedefs: int = 0
+
+    # The number of virtual error handlers defined in this module. (resolver)
+    nr_virtual_error_handlers: int = 0
 
     # The overloaded global functions.
     overloads: List['Overload'] = field(default_factory=list)
@@ -1262,6 +1304,9 @@ class Overload:
     # Set if /AutoGen/ was specified and the associated feature was enabled.
     is_auto_generated: bool = False
 
+    # Set if the overload is a complementary slot. (resolver)
+    is_complementary: bool = False
+
     # Set if the overload is const.
     is_const: bool = False
 
@@ -1271,11 +1316,23 @@ class Overload:
     # Set if the overload is final.
     is_final: bool = False
 
+    # Set if the C++ overload is global. (resolver)
+    is_global: bool = False
+
+    # Set if self should not be dereferenced. (resolver)
+    dont_deref_self: bool = False
+
+    # Set if the overload is a reflected slot. (resolver)
+    is_reflected: bool = False
+
     # Set if the overload is static.
     is_static: bool = False
 
     # Set if the overload is virtual.
     is_virtual: bool = False
+
+    # Set if the overload is a virtual reimplementation. (resolver)
+    is_virtual_reimplementation: bool = False
 
     # The keyword argument support.
     kw_args: KwArgs = KwArgs.NONE
@@ -1307,11 +1364,8 @@ class Overload:
     # Set if a Python exception is raised.
     raises_py_exception: bool = False
 
-    # The source file name.
-    source_file: Optional[str] = None
-
-    # The source line number.
-    source_line: int = 0
+    # The source location.
+    source_location: Optional['SourceLocation'] = None
 
     # The optional throw arguments.
     throw_args: Optional['ThrowArguments'] = None
@@ -1382,8 +1436,28 @@ class Signature:
 
 
 @dataclass
+class SourceLocation:
+    """ Encapsulate a location in a .sip source file. """
+
+    # The .sip file name.
+    sip_file: str
+
+    # The column number.
+    column: int = 0
+
+    # The line number.
+    line: int = 0
+
+
+@dataclass
 class Specification:
     """ Encapsulate a parsed .sip file. """
+
+    # The version of the ABI being targeted.
+    abi_version: tuple
+
+    # Set if the specification is strict.
+    is_strict: bool
 
     # Set if the bindings are for C rather than C++.
     c_bindings: bool = False
@@ -1419,20 +1493,35 @@ class Specification:
     modules: List[Module] = field(default_factory=lambda: [Module()])
 
     # The cache of names that may be required as strings in the generated code.
-    name_cache: List[CachedName] = field(default_factory=list)
+    name_cache: Dict[int, List[CachedName]] = field(default_factory=dict)
+
+    # The number of virtual handlers. (resolver)
+    nr_virtual_handlers: int = 0
 
     # The list of plugins.  Note that these are PyQt-specific and will be
     # removed in SIP v7.
     plugins: List[str] = field(default_factory=list)
 
+    # The QObject class.
+    pyqt_qobject: Optional['WrappedClass'] = None
+
     # The list of typedefs.
     typedefs: List['WrappedTypedef'] = field(default_factory=list)
+
+    # The list of variables.
+    variables: List['WrappedVariable'] = field(default_factory=list)
 
     # The list of virtual error handlers.
     virtual_error_handlers: List['VirtualErrorHandler'] = field(default_factory=list)
 
-    # The list of variables.
-    variables: List['WrappedVariable'] = field(default_factory=list)
+    # The list of virtual handlers. (resolver)
+    virtual_handlers: List['VirtualHandler'] = field(default_factory=list)
+
+    def __hash__(self):
+        """ Reimplemented so a Specification object can be used as a dict key.
+        """
+
+        return id(self)
 
 
 @dataclass
@@ -1456,14 +1545,22 @@ class ThrowArguments:
 
 
 @dataclass
+class TypeHint:
+    """ Encapsulate a PEP 484 type hint. """
+
+    # The text of the hint.
+    text: str
+
+
+@dataclass
 class TypeHints:
     """ Encapsulate a set of PEP 484 type hints for a type. """
 
     # The type hint when used to pass a value into a callable.
-    hint_in: Optional[str]
+    hint_in: Optional[TypeHint]
 
     # The type hint used to return a value from a callable.
-    hint_out: Optional[str]
+    hint_out: Optional[TypeHint]
 
     # The representation of a default value in a type hint.
     default_value: Optional[str]
@@ -1477,7 +1574,7 @@ class Value:
     value_type: ValueType
 
     # Any literal value.
-    value: Optional[Union[str, int, float, FunctionCall]]
+    value: Optional[Union[str, int, float, FunctionCall, ScopedName]]
 
     # Any binary operator.
     binary_operator: Optional[str] = None
@@ -1501,6 +1598,58 @@ class VirtualErrorHandler:
 
     # The name of the handler.
     name: str
+
+    # The number of the handler. (resolver)
+    handler_nr: int = -1
+
+
+@dataclass
+class VirtualHandler:
+    """ Encapsulate a virtual overload handler. (resolver) """
+
+    # The C/C++ signature.
+    cpp_signature: Signature
+
+    # The Python signature.
+    py_signature: Signature
+
+    # The code specified by any %VirtualCatcherCode directive.
+    virtual_catcher_code: Optional[CodeBlock]
+
+    # The virtual error handler.
+    virtual_error_handler: VirtualErrorHandler
+
+    # Set if execution should abort if there is an exception.
+    abort_on_exception: bool = False
+
+    # The number of the handler.
+    handler_nr: int = -1
+
+    # Set if ownership of the result should be transferred.
+    transfer_result: bool = False
+
+
+@dataclass
+class VirtualOverload:
+    """ Encapsulate a virtual overloaded member function. (resolver) """
+
+    # The overload
+    overload: Overload
+
+    # The handler for the overload.  It is only set for the module for which
+    # code is being generated.
+    handler: Optional[VirtualHandler]
+
+
+@dataclass
+class VisibleMember:
+    """ Encapsulate a visible member function. (resolver) """
+
+    # The member function.
+    member: Member
+
+    # The defining class.
+    scope: 'WrappedClass'
 
 
 @dataclass
@@ -1527,6 +1676,9 @@ class WrappedClass:
 
     # Set if an instance of the class cannot be assigned.
     cannot_assign: bool = False
+
+    # Set if an instance of the class cannot be copied. (resolver)
+    cannot_copy: bool = False
 
     # The list of operator casts.
     casts: List[Argument] = field(default_factory=list)
@@ -1594,6 +1746,12 @@ class WrappedClass:
     # Set if the class has a non-lazy method.
     has_nonlazy_method: bool = False
 
+    # Set if the class actually has a shadow (ie. derived) class. (resolver)
+    has_shadow: bool = False
+
+    # Set if the class has variables that need handlers. (resolver)
+    has_variable_handlers: bool = False
+
     # The %InstanceCode.
     instance_code: Optional[CodeBlock] = None
 
@@ -1609,11 +1767,11 @@ class WrappedClass:
     # Set if the class is opaque.
     is_opaque: bool = False
 
-    # The class is defined in a protected section.
+    # Set if the class is defined in a protected section.
     is_protected: bool = False
 
-    # The class has only been used as a template argument.
-    is_template_arg: bool = False
+    # Set if the class is QObject or a sub-class. (resolver)
+    is_qobject: bool = False
 
     # The methods.
     members: List[Member] = field(default_factory=list)
@@ -1623,6 +1781,16 @@ class WrappedClass:
 
     # Set if /Mixin/ was specified.
     mixin: bool = False
+
+    # The list of all classes in the class hierarchy starting with itself.
+    # (resolver)
+    mro: List['WrappedClass'] = field(default_factory=list)
+
+    # Set if the class needs an array helper. (resolver)
+    needs_array_helper: bool = False
+
+    # Set if the class needs a copy helper. (resolver)
+    needs_copy_helper: bool = False
 
     # Set if the class needs a shadow (ie. derived) class.
     needs_shadow: bool = False
@@ -1661,6 +1829,9 @@ class WrappedClass:
     # The real class if this is a proxy or a namespace extender.
     real_class: Optional['WrappedClass'] = None
 
+    # The sub-class base class. (resolver)
+    subclass_base: Optional['WrappedClass'] = None
+
     # The super-classes.
     superclasses: List['WrappedClass'] = field(default_factory=list)
 
@@ -1681,6 +1852,12 @@ class WrappedClass:
 
     # The name of the virtual error handler to use.
     virtual_error_handler: Optional[str] = None
+
+    # The virtual overloaded methods. (resolver)
+    virtual_overloads: List[VirtualOverload] = field(default_factory=list)
+
+    # The visible member functions. (resolver)
+    visible_members: List[VisibleMember] = field(default_factory=list)
 
 
 @dataclass
@@ -1708,17 +1885,31 @@ class WrappedEnum:
     # The members.
     members: List['WrappedEnumMember'] = field(default_factory=list)
 
+    # Set if this enum is needed by the module for which code is to be
+    # generated. (resolver)
+    needed: bool = False
+
     # Set if /NoScope/ was specified.
     no_scope: bool = False
 
     # Set if the type hint should be suppressed.
     no_type_hint: bool = False
 
+    # The overloaded slot member functions. (resolver)
+    overloads: List['Overload'] = field(default_factory=list)
+
     # The Python name.
     py_name: Optional[CachedName] = None
 
     # The enclosing scope.
     scope: Optional[Union[MappedType, WrappedClass]] = None
+
+    # The slot member functions.  These can only be created by global operators
+    # being moved. (resolver)
+    slots: List[Member] = field(default_factory=list)
+
+    # The generated type number. (resolver)
+    type_nr: int = -1
 
 
 @dataclass
@@ -1757,6 +1948,13 @@ class WrappedException:
 
     # The base exception if it is defined in the specification.
     defined_base_exception: Optional['WrappedException'] = None
+
+    # The number of the exception. (resolver)
+    exception_nr: int = -1
+
+    # Set if this exception is needed by the module for which code is to be
+    # generated. (resolver)
+    needed: bool = False
 
     # The Python name.
     py_name: Optional[str] = None
@@ -1809,6 +2007,9 @@ class WrappedVariable:
 
     # Set if the variable is static.
     is_static: bool = False
+
+    # Set if the variable needs a handler. (resolver)
+    needs_handler: bool = False
 
     # Set if the type hint should be suppressed.
     no_type_hint: bool = False

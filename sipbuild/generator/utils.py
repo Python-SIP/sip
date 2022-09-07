@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2022, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,7 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .specification import ArgumentType, ScopedName
+from .specification import (ArgumentType, CachedName, IfaceFile, IfaceFileType,
+        ScopedName)
 
 
 def append_iface_file(iface_file_list, iface_file):
@@ -142,6 +143,106 @@ def argument_as_str(arg):
     return s
 
 
+def cached_name(spec, name):
+    """ Add a name to the cache if necessary and return the cached name. """
+
+    # Get the line of the cache for the length of this name creating it if
+    # necessary.
+    line = spec.name_cache.setdefault(len(name), [])
+
+    # See if the name has already been cached.
+    for nd in line:
+        if nd.name == name:
+            return nd
+
+    # Create a new entry.
+    nd = CachedName(name)
+    line.append(nd)
+
+    return nd
+
+
+def find_iface_file(spec, mod, fq_cpp_name, iface_file_type, error_logger,
+        cpp_type=None, scope=None):
+    """ Return an interface file for a fully qualified C/C++ name and type
+    creating it if necessary.
+    """
+
+    # See if the name is already used.
+    for iff in spec.iface_files:
+        if not iff.fq_cpp_name.matches(fq_cpp_name, scope=scope):
+            continue
+
+        # They must be the same type except that we allow a class if we want an
+        # exception.  This is because we allow classes to be used before they
+        # are defined.
+        if iff.type is not iface_file_type:
+            if iface_file_type is not IfaceFileType.EXCEPTION or iff.type is not IfaceFileType.CLASS:
+                error_logger(
+                        "a class, exception, namespace or mapped type has already been defined with the same name")
+
+        # Ignore an external class declared in another module.
+        if iface_file_type is IfaceFileType.CLASS and iff.module is not None and iff.module is not mod:
+            for cd in spec.classes:
+                if cd.iface_file is iff:
+                    external = cd.external
+                    break
+            else:
+                external = False
+
+            if external:
+                continue
+
+        # If this is a mapped type with the same name defined in a different
+        # module, then check that this type isn't the same as any of the mapped
+        # types defined in that module.
+        if iface_file_type == IfaceFileType.MAPPED_TYPE and iff.module is not mod:
+            for mtd in spec.mapped_types:
+                if mtd.iface_file is not iff:
+                    continue
+
+                if cpp_type.type is not ArgumentType.TEMPLATE or \
+                    mtd.type.type is not ArgumentType.TEMPLATE or \
+                    same_base_type(cpp_type, mtd.type):
+                    error_logger(
+                            "the mapped type has already been defined in another module")
+
+            # If we got here then we have a mapped type based on an existing
+            # template, but with unique parameters.  We don't want to use
+            # interface files from other modules, so skip this one.
+            continue
+
+        # Ignore a namespace defined in another module.
+        if iface_file_type is IfaceFileType.NAMESPACE and iff.module is not mod:
+            continue
+
+        return iff
+
+    # Create a new interface file.
+    fq_cpp_name = normalised_scoped_name(fq_cpp_name, scope)
+
+    iff = IfaceFile(iface_file_type,
+                cpp_name=cached_name(spec, str(fq_cpp_name)),
+                fq_cpp_name=fq_cpp_name)
+
+    # Use the same ordering as the old parser.
+    spec.iface_files.insert(0, iff)
+
+    return iff
+
+
+def find_method(klass, name):
+    """ Return the Member object for a named member of a class or None if there
+    was none.
+    """
+
+    for member in klass.members:
+        if member.py_name.name == name:
+            return member
+
+    return None
+
+
 def normalised_scoped_name(scoped_name, scope):
     """ Convert a scoped name to a fully qualified name. """
 
@@ -174,6 +275,90 @@ def normalised_scoped_name(scoped_name, scope):
     return fq_scoped_name
 
 
+# Argument type qualifiers.
+_PY_STRING = (ArgumentType.USTRING, ArgumentType.SSTRING, ArgumentType.STRING,
+        ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING,
+        ArgumentType.UTF8_STRING)
+_PY_FLOAT = (ArgumentType.CFLOAT, ArgumentType.FLOAT, ArgumentType.CDOUBLE,
+        ArgumentType.DOUBLE)
+_PY_INT = (ArgumentType.BOOL, ArgumentType.HASH, ArgumentType.SSIZE,
+        ArgumentType.SIZE, ArgumentType.BYTE, ArgumentType.SBYTE,
+        ArgumentType.UBYTE, ArgumentType.SHORT, ArgumentType.USHORT,
+        ArgumentType.CINT, ArgumentType.INT, ArgumentType.UINT)
+_PY_LONG = (ArgumentType.LONG, ArgumentType.LONGLONG)
+_PY_ULONG = (ArgumentType.ULONG, ArgumentType.ULONGLONG)
+_PY_AUTO = (ArgumentType.BOOL, ArgumentType.BYTE, ArgumentType.SBYTE,
+        ArgumentType.UBYTE, ArgumentType.SHORT, ArgumentType.USHORT,
+        ArgumentType.INT, ArgumentType.UINT, ArgumentType.FLOAT,
+        ArgumentType.DOUBLE)
+_PY_CONSTRAINED = (ArgumentType.CBOOL, ArgumentType.CINT, ArgumentType.CFLOAT,
+        ArgumentType.CDOUBLE)
+
+def same_argument_type(spec, arg1, arg2, strict=True):
+    """ Compare two argument types and return True if they are the same.
+    'strict' means as C++ would see it, rather than Python.
+    """
+
+    if arg1.is_reference != arg2.is_reference:
+        return False
+
+    if len(arg1.derefs) != len(arg2.derefs):
+        return False
+
+    if strict:
+        # The const should be the same.
+        if arg1.is_const != arg2.is_const:
+            return False
+
+        return same_base_type(arg1, arg2)
+
+    # If both are constrained fundamental types then the types must match.
+    if arg1.type in _PY_CONSTRAINED and arg2.type in _PY_CONSTRAINED:
+        return arg1.type is arg2.type
+
+    if spec.abi_version >= (13, 0):
+        # Anonymous enums are ints.
+        if arg1.type in _PY_INT and arg2.type is ArgumentType.ENUM and arg2.definition.fq_cpp_name is None:
+            return True
+
+        if arg1.type is ArgumentType.ENUM and arg1.definition.fq_cpp_name is None and arg2.type in _PY_INT:
+            return True
+    else:
+        # An unconstrained enum also acts as a (very) constrained int.
+        if arg1.type in _PY_INT and arg2.type is ArgumentType.ENUM and not arg2.is_constrained:
+            return True
+
+        if arg1.type is ArgumentType.ENUM and not arg1.is_constrained and arg2.type in _PY_INT:
+            return True
+
+    # Python will see all these as strings.
+    if arg1.type in _PY_STRING and arg2.type in _PY_STRING:
+        return True
+
+    # Python will see all these as floats.
+    if arg1.type in _PY_FLOAT and arg2.type in _PY_FLOAT:
+        return True
+
+    # Python will see all these as ints.
+    if arg1.type in _PY_INT and arg2.type in _PY_INT:
+        return True
+
+    # Python will see all these as longs.
+    if arg1.type in _PY_LONG and arg2.type in _PY_LONG:
+        return True
+
+    # Python will see all these as unsigned longs.
+    if arg1.type in _PY_ULONG and arg2.type in _PY_ULONG:
+        return True
+
+    # Python will automatically convert between these.
+    if arg1.type in _PY_AUTO and arg2.type in _PY_AUTO:
+        return True
+
+    # All the special cases have been handled.
+    return same_base_type(arg1, arg2)
+
+
 def same_base_type(type1, type2):
     """ Return True if two Argument objects refer to the same base type, ie.
     without taking into account const and pointers.
@@ -187,22 +372,22 @@ def same_base_type(type1, type2):
 
         if type1.type is ArgumentType.CLASS and type2.type is ArgumentType.DEFINED:
 
-            return type1.definition.iface_file.fq_cpp_name == type2.definition
+            return type1.definition.iface_file.fq_cpp_name.matches(type2.definition)
 
         if type1.type is ArgumentType.DEFINED and type2.type is ArgumentType.CLASS:
-            return type2.definition.iface_file.fq_cpp_name == type1.definition
+            return type2.definition.iface_file.fq_cpp_name.matches(type1.definition)
 
         if type1.type is ArgumentType.MAPPED and type2.type is ArgumentType.DEFINED:
-            return type1.definition.iface_file.fq_cpp_name == type2.definition
+            return type1.definition.iface_file.fq_cpp_name.matches(type2.definition)
 
         if type1.type is ArgumentType.DEFINED and type2.type is ArgumentType.MAPPED:
-            return type2.definition.iface_file.fq_cpp_name == type1.definition
+            return type2.definition.iface_file.fq_cpp_name.matches(type1.definition)
 
         if type1.type is ArgumentType.ENUM and type2.type is ArgumentType.DEFINED:
-            return type1.definition.fq_cpp_name == type2.definition
+            return type1.definition.fq_cpp_name.matches(type2.definition)
 
         if type1.type is ArgumentType.DEFINED and type2.type is ArgumentType.ENUM:
-            return type2.definition.fq_cpp_name == type1.definition
+            return type2.definition.fq_cpp_name.matches(type1.definition)
 
         return False
 
@@ -216,7 +401,7 @@ def same_base_type(type1, type2):
         td1 = type1.definition
         td2 = type2.definition
 
-        if td1.cpp_name != td2.cpp_name:
+        if td1.cpp_name.absolute != td2.cpp_name.absolute:
             return False
 
         try:
@@ -244,6 +429,47 @@ def same_base_type(type1, type2):
     return True
 
 
+def same_signature(spec, sig1, sig2, strict=True):
+    """ Compare two signatures and return True if they are the same. """
+
+    if strict:
+        # Count all the arguments.
+        na1 = len(sig1.args)
+        na2 = len(sig2.args)
+    else:
+        # Count only the compulsory arguments.
+        na1 = 0
+
+        for arg in sig1.args:
+            if arg.default_value is not None:
+                break
+
+            na1 += 1
+
+        na2 = 0
+
+        for arg in sig2.args:
+            if arg.default_value is not None:
+                break;
+
+            na2 += 1
+
+    # The number of arguments must be the same.
+    if na1 != na2:
+        return False
+
+    # The arguments must be the same.
+    for a in range(len(sig1.args)):
+        if not strict and sig1.args[a].default_value is not None:
+            break
+
+        if not same_argument_type(spec, sig1.args[a], sig2.args[a], strict=strict):
+            return False
+
+    # Must be the same if we've got this far.
+    return True
+
+
 def search_typedefs(spec, cpp_name, type):
     """ Search the typedefs and update the given type from any definition. """
 
@@ -251,22 +477,22 @@ def search_typedefs(spec, cpp_name, type):
     fq_cpp_name = ScopedName(cpp_name)
     fq_cpp_name.make_absolute()
 
-    for td in spec.typedefs:
-        if td.fq_cpp_name == fq_cpp_name:
+    for typedef in spec.typedefs:
+        if typedef.fq_cpp_name == fq_cpp_name:
             break
     else:
         return
 
     # Update the type.
-    type.type = td.type.type
-    type.allow_none = type.allow_none or td.type.allow_none
-    type.definition = td.type.definition
-    type.derefs.extend(td.type.derefs)
-    type.disallow_none = type.disallow_none or td.type.disallow_none
-    type.is_const = type.is_const or td.type.is_const
-    type.is_reference = type.is_reference or td.type.is_reference
-    type.type_hints = type.type_hints or td.type.type_hints
+    type.type = typedef.type.type
+    type.allow_none = type.allow_none or typedef.type.allow_none
+    type.definition = typedef.type.definition
+    type.derefs.extend(typedef.type.derefs)
+    type.disallow_none = type.disallow_none or typedef.type.disallow_none
+    type.is_const = type.is_const or typedef.type.is_const
+    type.is_reference = type.is_reference or typedef.type.is_reference
+    type.type_hints = type.type_hints or typedef.type.type_hints
 
     # Remember the original typedef.
     if type.original_typedef is None:
-        type.original_typedef = td
+        type.original_typedef = typedef

@@ -8,7 +8,7 @@
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ('AS IS'
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -21,6 +21,40 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the API.  This is private to the rest of sip.
-from .parser import parse
-from .resolver import resolve
+from ..exceptions import UserException
+
+
+class ErrorLog:
+    """ This object logs errors and raises a corresponding exception when
+    requested.
+    """
+
+    def __init__(self):
+        """ Initialise the error log. """
+
+        self._errors = []
+
+    def log(self, text, source_location=None):
+        """ Log an error with an optional source location. """
+
+        # Format the entry.
+        if source_location is None:
+            entry = ''
+        else:
+            entry = source_location.sip_file + ": "
+
+            if source_location.line > 0:
+                entry += "line {0}: ".format(source_location.line)
+
+                if source_location.column > 0:
+                    entry += "column {0}: ".format(source_location.column)
+
+        entry += text
+
+        self._errors.append(entry)
+
+    def as_exception(self):
+        """ Raise a UserException for any logged errors. """
+
+        if self._errors:
+            raise UserException('\n'.join(self._errors))

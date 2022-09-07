@@ -51,7 +51,6 @@ static void raise_exception(int action);
 /* Forward declarations. */
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
 static PyObject *py_py2c(PyObject *self, PyObject *args);
-static PyObject *py_transform(PyObject *self, PyObject *args);
 static PyObject *py_generateCode(PyObject *self, PyObject *args);
 static PyObject *py_generateExtracts(PyObject *self, PyObject *args);
 static PyObject *py_generateAPI(PyObject *self, PyObject *args);
@@ -74,7 +73,6 @@ PyMODINIT_FUNC PyInit_code_generator(void)
     static PyMethodDef methods[] = {
         {"set_globals", py_set_globals, METH_VARARGS, NULL},
         {"py2c", py_py2c, METH_VARARGS, NULL},
-        {"transform", py_transform, METH_VARARGS, NULL},
         {"generateCode", py_generateCode, METH_VARARGS, NULL},
         {"generateExtracts", py_generateExtracts, METH_VARARGS, NULL},
         {"generateAPI", py_generateAPI, METH_VARARGS, NULL},
@@ -148,31 +146,6 @@ static PyObject *py_py2c(PyObject *self, PyObject *args)
     }
 
     return PyCapsule_New(py2c(spec, encoding), NULL, NULL);
-}
-
-
-/*
- * Wrapper around transform().
- */
-static PyObject *py_transform(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    int strict, action;
-
-    if (!PyArg_ParseTuple(args, "O&p",
-            sipSpec_convertor, &pt,
-            &strict))
-        return NULL;
-
-    if ((action = setjmp(on_fatal_error)) != NO_EXCEPTION)
-    {
-        raise_exception(action);
-        return NULL;
-    }
-
-    transform(pt, strict);
-
-    Py_RETURN_NONE;
 }
 
 

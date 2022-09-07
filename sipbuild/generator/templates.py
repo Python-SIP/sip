@@ -24,7 +24,7 @@
 from copy import copy
 
 from .specification import ArgumentType, IfaceFileType, ScopedName
-from .utils import argument_as_str, same_base_type
+from .utils import append_iface_file, argument_as_str, same_base_type
 
 
 def encoded_template_name(template):
@@ -33,7 +33,7 @@ def encoded_template_name(template):
     snd = ScopedName(template.cpp_name)
 
     for ad in template.types.args:
-        flags = 0;
+        flags = 0
 
         if ad.is_const:
             flags |= 1
@@ -177,7 +177,7 @@ def template_expansions(template_names, instantiation_values,
             value_arg = instantiation_values.args[arg_nr]
 
             # These checks shouldn't be necessary, but...
-            if value_arg.type is ArgumentType.TEMPLATE and len(name_arg.definiton.types.args) == len(value_arg.definition.types.args):
+            if value_arg.type is ArgumentType.TEMPLATE and len(name_arg.definition.types.args) == len(value_arg.definition.types.args):
                 expansions.update(
                         template_expansions(name_arg.definition.types,
                                 value_arg.definition.types, declared_names))
@@ -201,25 +201,6 @@ def template_string(proto_str, expansions, scope_replacement=None):
         proto_str = proto_str.replace(name, value)
 
     return proto_str
-
-
-def _find_iface_file(spec, fq_cpp_name):
-    """ Return the interface file corresponding to the given C++ name or None
-    if one couldn't be found.
-    """
-
-    for iff in spec.iface_files:
-        if iff.type in (IfaceFileType.CLASS, IfaceFileType.EXCEPTION):
-            if iff.fq_cpp_name == fq_cpp_name:
-                return iff
-
-    for w_enum in spec.enums:
-        if w_enum.scope is not None:
-            iff = w_enum.scope.iface_file
-            if iff.fq_cpp_name == fq_cpp_name:
-                return iff
-
-    return None
 
 
 def _strip_const(s):
@@ -257,18 +238,7 @@ def _template_code_block(spec, used, proto_code, expansions):
                         if i_line[:pos].endswith(gen_type):
                             value = _strip_const(value)
 
-                            # Add the interface file for any outer scope to the
-                            # used list.  (Note: this is a bit strange and may
-                            # be a bug but it is needed to re-create the output
-                            # of the old parser.)
-                            fq_scope = ScopedName.parse(value).scope
-                            fq_scope.make_absolute()
-
-                            if fq_scope is not None:
-                                iface_file = _find_iface_file(spec, fq_scope)
-
-                                if iface_file is not None and iface_file not in used:
-                                    used.append(iface_file)
+                            _add_used_from_code(spec, used, value)
 
                             # Convert the value to the rest of the name of the
                             # generated type structure.
@@ -292,3 +262,22 @@ def _template_code_block(spec, used, proto_code, expansions):
         return proto_code
 
     return i_code
+
+
+def _add_used_from_code(spec, used, name):
+    """ Add any interface files to a used list that are defined for a name. """
+
+    name = ScopedName.parse(name)
+    name.make_absolute()
+
+    for iface_file in spec.iface_files:
+        if iface_file.type in (IfaceFileType.CLASS, IfaceFileType.EXCEPTION):
+            if iface_file.fq_cpp_name == name:
+                append_iface_file(used, iface_file)
+                return
+
+    for enum in spec.enums:
+        if enum.scope is not None:
+            if enum.fq_cpp_name == name:
+                append_iface_file(used, enum.scope.iface_file)
+                return

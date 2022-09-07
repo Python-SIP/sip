@@ -1445,16 +1445,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         ed = ad->u.ed;
 
         if (ed->ecd != NULL)
-        {
-            if (isTemplateClass(ed->ecd))
-                continue;
-
             type_nr = ed->ecd->iff->ifacenr;
-        }
         else if (ed->emtd != NULL)
-        {
             type_nr = ed->emtd->iff->ifacenr;
-        }
 
         if (enum_idx == 0)
         {

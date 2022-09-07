@@ -26,10 +26,10 @@ import sys
 
 from .buildable import BuildableBindings
 from .code_generator import (generateCode, generateExtracts, generateAPI,
-        generateTypeHints, py2c, transform)
+        generateTypeHints, py2c)
 from .configurable import Configurable, Option
 from .exceptions import UserException
-from .generator import parse
+from .generator import parse, resolve
 from .installable import Installable
 from .module import copy_nonshared_sources
 from .version import SIP_VERSION
@@ -167,8 +167,10 @@ class Bindings(Configurable):
                 project.abi_version, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs)
 
+        # Resolve the types.
+        resolve(spec)
+
         pt = py2c(spec, encoding)
-        transform(pt, True)
 
         module = spec.modules[0]
 

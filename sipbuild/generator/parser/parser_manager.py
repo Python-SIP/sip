@@ -29,21 +29,24 @@ from ply import lex, yacc
 from ...bindings_configuration import get_bindings_configuration
 from ...exceptions import UserException
 
+from ..error_log import ErrorLog
+from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, CachedName, ClassKey, CodeBlock, Constructor,
-        DocstringFormat, DocstringSignature, EnumBaseType, GILAction,
-        IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
-        PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, ScopedName,
-        Signature, Specification, Transfer, TypeHints, WrappedClass,
+        ArrayArgument, ClassKey, CodeBlock, Constructor, DocstringFormat,
+        DocstringSignature, EnumBaseType, GILAction, IfaceFile, IfaceFileType,
+        KwArgs, MappedType, Member, Module, Overload, PyQtMethodSpecifier,
+        PySlot, Qualifier, QualifierType, ScopedName, Signature,
+        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
         WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
-from ..utils import argument_as_str, normalised_scoped_name, same_base_type
+from ..type_hints import get_type_hint
+from ..utils import (argument_as_str, cached_name, find_iface_file,
+        normalised_scoped_name, same_base_type)
 
 from . import rules
 from . import tokens
 from .annotations import InvalidAnnotation, validate_annotation_value
-from .instantiations import instantiate_class
 
 
 class ParserManager:
@@ -73,7 +76,8 @@ class ParserManager:
         # Public state.
         self.tags = tags
 
-        self.spec = Specification()
+        self.spec = Specification(
+                tuple([int(v) for v in abi_version.split('.')]), strict)
 
         self.c_bindings = None
         self.code_block = None
@@ -88,21 +92,19 @@ class ParserManager:
         # Private state.
         self._hex_version = hex_version
         self._encoding = encoding
-        self._abi_version = tuple([int(v) for v in abi_version.split('.')])
         self._disabled_features = disabled_features
         self._protected_is_public = protected_is_public
         self._include_dirs = include_dirs
-        self._strict = strict
+        self._template_arg_classes = []
 
         self._scope_stack = []
-        self._errors = []
+        self._error_log = ErrorLog()
         self._file_stack = []
         self._pending_module_state = None
         self._input = None
         self._all_sip_files = []
         self._sip_file = None
         self._sip_files = []
-        self._name_cache = {}
 
     def complete_class(self, p, symbol, annotations, has_body):
         """ Complete the definition of the class that is the current scope, pop
@@ -125,17 +127,17 @@ class ParserManager:
         # Get the Python name and see if it is different to the C++ name.
         py_name = self.get_py_name(klass.iface_file.fq_cpp_name.base_name,
                 annotations)
-        klass.py_name = self.cached_name(py_name)
+        klass.py_name = cached_name(self.spec, py_name)
 
         klass.no_type_hint = annotations.get('NoTypeHint', False)
 
         metatype = annotations.get('Metatype')
         if metatype is not None:
-            klass.metatype = self.cached_name(metatype)
+            klass.metatype = cached_name(self.spec, metatype)
 
         supertype = annotations.get('Supertype')
         if supertype is not None:
-            klass.supertype = self.cached_name(supertype)
+            klass.supertype = cached_name(self.spec, supertype)
 
         klass.export_derived = annotations.get('ExportDerived', False)
         klass.mixin = annotations.get('Mixin', False)
@@ -161,6 +163,10 @@ class ParserManager:
         if klass.is_opaque:
             klass.external = annotations.get('External', False)
         else:
+            # A default dtor is public.
+            if klass.dtor is None:
+                klass.dtor = AccessSpecifier.PUBLIC
+
             klass.no_default_ctors = annotations.get('NoDefaultCtors', False)
 
             # Provide a default ctor if required.
@@ -422,17 +428,20 @@ class ParserManager:
         # See if it already exists.
         for klass in self.spec.classes:
             if klass.iface_file is iface_file:
-                if klass.is_template_arg and not self.parsing_template:
-                    klass.is_template_arg = False
+                if not self.parsing_template:
+                    try:
+                        self._template_arg_classes.remove(klass)
+                    except ValueError:
+                        pass
 
                 return klass
 
         # Create a new one.
         klass = WrappedClass(iface_file,
-                self.cached_name(iface_file.fq_cpp_name.base_name), None)
+                cached_name(self.spec, iface_file.fq_cpp_name.base_name), None)
 
         if tmpl_arg:
-            klass.is_template_arg = True
+            self._template_arg_classes.append(klass)
 
         # Use the same ordering as the old parser.
         self.spec.classes.insert(0, klass)
@@ -470,7 +479,7 @@ class ParserManager:
                 result=Argument(ArgumentType.VOID))
         self._check_ellipsis(p, symbol, py_signature)
 
-        # Configure the destructor.
+        # Configure the constructor.
         ctor = Constructor(access_specifier, py_signature)
 
         if annotations.get("NoDerived", False):
@@ -592,7 +601,7 @@ class ParserManager:
         base_type = EnumBaseType.ENUM
 
         if base_type_s is not None:
-            if self._abi_version < (13, 0):
+            if self.spec.abi_version < (13, 0):
                 self.parser_error(p, symbol,
                         "/BaseType/ is only supported for ABI v13.0 and later")
 
@@ -617,8 +626,9 @@ class ParserManager:
             py_name = None
         else:
             fq_cpp_name = normalised_scoped_name(cpp_name, self.scope)
-            cached_fq_cpp_name = self.cached_name(str(fq_cpp_name))
-            py_name = self.cached_name(self.get_py_name(cpp_name, annotations))
+            cached_fq_cpp_name = cached_name(self.spec, str(fq_cpp_name))
+            py_name = cached_name(self.spec,
+                    self.get_py_name(cpp_name, annotations))
 
             self.check_attributes(p, symbol, py_name)
 
@@ -710,9 +720,7 @@ class ParserManager:
         overload.throw_args = exceptions
         overload.virtual_call_code = virtual_call_code
         overload.virtual_catcher_code = virtual_catcher_code
-
-        overload.source_file = self._sip_file
-        overload.source_line = p.lineno(symbol)
+        overload.source_location = self.get_source_location(p, symbol)
 
         # See if the function is a non-lazy method.  These are methods that
         # Python expects to see defined in the type before any instance of the
@@ -846,7 +854,7 @@ class ParserManager:
             fq_cpp_name = ''
 
         iface_file = self.find_iface_file(p, symbol, fq_cpp_name,
-                IfaceFileType.MAPPED_TYPE, cpp_type)
+                IfaceFileType.MAPPED_TYPE, cpp_type=cpp_type)
 
         # Check it hasn't already been defined.
         for mtd in self.spec.mapped_types:
@@ -863,10 +871,11 @@ class ParserManager:
         # Create a new mapped type.
         mapped_type = MappedType(iface_file, cpp_type)
 
-        mapped_type.cpp_name = self.cached_name(argument_as_str(cpp_type))
+        mapped_type.cpp_name = cached_name(self.spec,
+                argument_as_str(cpp_type))
 
         if cpp_name is not None:
-            mapped_type.py_name = self.cached_name(
+            mapped_type.py_name = cached_name(self.spec,
                     annotations.get('PyName', cpp_name))
 
         self.annotate_mapped_type(p, symbol, mapped_type, annotations)
@@ -911,7 +920,7 @@ class ParserManager:
     def add_typedef(self, p, symbol, typedef):
         """ Add a typedef to the current scope. """
 
-        if self._strict:
+        if self.spec.is_strict:
             for td in self.spec.typedefs:
                 if td.fq_cpp_name == typedef.fq_cpp_name:
                     self.parser_error(p, symbol,
@@ -1000,25 +1009,6 @@ class ParserManager:
                         "{0} is not a valid {1} annotation".format(name,
                                 context))
 
-    def cached_name(self, name):
-        """ Add a name to the cache if necessary and return the cached name.
-        """
-
-        # Get the line of the cache for the length of this name creating it if
-        # necessary.
-        line = self._name_cache.setdefault(len(name), [])
-
-        # See if the name has already been cached.
-        for nd in line:
-            if nd.name == name:
-                return nd
-
-        # Create a new entry.
-        nd = CachedName(name)
-        line.append(nd)
-
-        return nd
-
     def check_attributes(self, p, symbol, py_name, is_function=False,
             ignore=None):
         """ Check that a Python name will not clash with another object in the
@@ -1026,7 +1016,7 @@ class ParserManager:
         """
 
         # We don't do any check for a non-strict parse.
-        if not self._strict:
+        if not self.spec.is_strict:
             return
 
         # Report a name clash with something.
@@ -1236,7 +1226,7 @@ class ParserManager:
             value = qual.name not in self._disabled_features
         elif qual.type is QualifierType.PLATFORM:
             # The platform is always ignored in non-strict mode.
-            if not self._strict:
+            if not self.spec.is_strict:
                 return True
 
             value = qual.name in self.tags
@@ -1427,26 +1417,30 @@ class ParserManager:
         None if none were specified.
         """
 
-        th = annotations.get('TypeHint')
-        th_in = annotations.get('TypeHintIn')
-        th_out = annotations.get('TypeHintOut')
+        th_text = annotations.get('TypeHint')
+        th_in_text = annotations.get('TypeHintIn')
+        th_out_text = annotations.get('TypeHintOut')
         th_value = annotations.get('TypeHintValue')
 
-        if th_in is None:
-            th_in = th
-        elif th is not None:
+        if th_in_text is None:
+            th_in_text = th_text
+        elif th_text is not None:
             self.parser_error(p, symbol,
                     "'TypeHint' and 'TypeHintIn' cannot both be specified")
 
             return None
 
-        if th_out is None:
-            th_out = th
-        elif th is not None:
+        th_in = None if th_in_text is None else get_type_hint(self.spec, th_in_text)
+
+        if th_out_text is None:
+            th_out_text = th_text
+        elif th_text is not None:
             self.parser_error(p, symbol,
                     "'TypeHint' and 'TypeHintOut' cannot both be specified")
 
             return None
+
+        th_out = None if th_out_text is None else get_type_hint(self.spec, th_out_text)
 
         if th_in is not None or th_out is not None or th_value is not None:
             # Check that type hints haven't been suppressed.
@@ -1476,7 +1470,7 @@ class ParserManager:
 
         # Look for an appropriate class template.
         for tmpl_names, proto_class in self.class_templates:
-            if proto_class.iface_file.fq_cpp_name.matches(template.cpp_name, self.scope) and same_template_signature(tmpl_names, template.types):
+            if proto_class.iface_file.fq_cpp_name.matches(template.cpp_name, scope=self.scope) and same_template_signature(tmpl_names, template.types):
                 break
         else:
             # There was no class template to instantiate.
@@ -1490,8 +1484,9 @@ class ParserManager:
     def lexer_error(self, t, text):
         """ Record an error caused by a token. """
 
-        self._errors.append(
-                self._format_error(self._sip_file, t.lineno, t.lexpos, text))
+        self._error_log.log(text,
+                SourceLocation(self._sip_file, line=t.lineno,
+                        column=self._get_column_from_lexpos(t.lexpos)))
 
     def parse(self, sip_file):
         """ Parse a .sip file and return a Specification object and a list of
@@ -1515,31 +1510,42 @@ class ParserManager:
             self._unexpected_eof_error()
 
         self._handle_eom()
-        self._report_errors()
+        self._error_log.as_exception()
 
         self.spec.c_bindings = bool(self.c_bindings)
 
         self.spec.typedefs.sort(key=lambda k: k.fq_cpp_name)
         self.spec.variables.sort(key=lambda k: k.py_name.name)
 
-        # Remove all template classes.
-        for _, klass in self.class_templates:
+        # Remove all template classes and anything they contain.
+        template_classes = [k for _, k in self.class_templates]
+
+        for enum in list(self.spec.enums):
+            if enum.scope in template_classes:
+                spec.spec.enums.remove(enum)
+
+        for typedef in list(self.spec.typedefs):
+            if typedef.scope in template_classes:
+                spec.spec.typedefs.remove(typedef)
+
+        for variable in list(self.spec.variables):
+            if variable.scope in template_classes:
+                spec.spec.variables.remove(variable)
+
+        for klass in template_classes:
             self.spec.classes.remove(klass)
             self.spec.iface_files.remove(klass.iface_file)
 
-        # Create the name cache as seen by the rest of the code.
-        for k in sorted(self._name_cache.keys(), reverse=True):
-            self.spec.name_cache.extend(
-                    sorted(self._name_cache[k], key=lambda k: k.name))
+        # Remove all classes that are only template arguments.
+        for klass in self._template_arg_classes:
+            self.spec.classes.remove(klass)
 
         return self.spec, self._sip_files
 
     def parser_error(self, p, symbol, text):
         """ Record an error caused by a symbol in a production. """
 
-        self._errors.append(
-                self._format_error(self._sip_file, p.lineno(symbol),
-                        p.lexpos(symbol), text))
+        self._error_log.log(text, self.get_source_location(p, symbol))
 
     def pop_file(self):
         """ Restore the current .sip file from the stack and make it current.
@@ -1647,7 +1653,7 @@ class ParserManager:
 
                 # Get the configuration of the new module.
                 mod_tags, mod_disabled = get_bindings_configuration(
-                        self._abi_version[0], sip_file, self._include_dirs)
+                        self.spec.abi_version[0], sip_file, self._include_dirs)
 
                 for tag in mod_tags:
                     if tag not in self.tags:
@@ -1812,7 +1818,7 @@ class ParserManager:
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
 
-        if self._abi_version >= (13, 0):
+        if self.spec.abi_version >= (13, 0):
             convert_to_us = mapped_type.convert_to_type_code is not None and 'sipUserState' in mapped_type.convert_to_type_code.text
 
             release_us = mapped_type.release_code is not None and 'sipUserState' in mapped_type.release_code.text
@@ -1905,67 +1911,12 @@ class ParserManager:
         creating it if necessary.
         """
 
-        # See if the name is already used.
-        for iff in self.spec.iface_files:
-            if not iff.fq_cpp_name.matches(fq_cpp_name, self.scope):
-                continue
+        def error_logger(text):
+            self.parser_error(p, symbol, text)
 
-            # They must be the same type except that we allow a class if we
-            # want an exception.  This is because we allow classes to be used
-            # before they are defined.
-            if iff.type is not iface_file_type:
-                if iface_file_type is not IfaceFileType.EXCEPTION or iff.type is not IfaceFileType.CLASS:
-                    self.parser_error(p, symbol,
-                            "a class, exception, namespace or mapped type has already been defined with the same name")
-
-            # Ignore an external class declared in another module.
-            if iface_file_type is IfaceFileType.CLASS and iff.module is not None and iff.module is not self.module_state.module:
-                for cd in self.spec.classes:
-                    if cd.iface_file is iff:
-                        external = cd.external
-                        break
-                else:
-                    external = False
-
-                if external:
-                    continue
-
-            # If this is a mapped type with the same name defined in a
-            # different module, then check that this type isn't the same as any
-            # of the mapped types defined in that module.
-            if iface_file_type == IfaceFileType.MAPPED_TYPE and iff.module is not self.module_state.module:
-                for mtd in self.spec.mapped_types:
-                    if mtd.iface_file is not iff:
-                        continue
-
-                    if cpp_type.type is not ArgumentType.TEMPLATE or \
-                        mtd.type.type is not ArgumentType.TEMPLATE or \
-                        same_base_type(cpp_type, mtd.type):
-                        self.parser_error(p, symbol,
-                                "the mapped type has already been defined in another module")
-
-                # If we got here then we have a mapped type based on an
-                # existing template, but with unique parameters.  We don't want
-                # to use interface files from other modules, so skip this one.
-                continue
-
-            # Ignore a namespace defined in another module.
-            if iface_file_type is IfaceFileType.NAMESPACE and iff.module is not self.module_state.module:
-                continue
-
-            return iff
-
-        # Create a new interface file.
-        fq_cpp_name = normalised_scoped_name(fq_cpp_name, self.scope)
-
-        iff = IfaceFile(iface_file_type,
-                cpp_name=self.cached_name(str(fq_cpp_name)),
-                fq_cpp_name=fq_cpp_name)
-
-        # Use the same ordering as the old parser.
-        self.spec.iface_files.insert(0, iff)
-
-        return iff
+        return find_iface_file(self.spec, self.module_state.module,
+                fq_cpp_name, iface_file_type, error_logger, cpp_type=cpp_type,
+                scope=self.scope)
 
     def _find_member(self, p, symbol, py_name, args, annotations, method_code):
         """ Return (creating if necessary) the member for a Python name. """
@@ -2003,7 +1954,7 @@ class ParserManager:
             # __delattr__ is implemented as __setattr__.
             if py_slot is PySlot.DELATTR:
                 if self.in_main_module:
-                    self.cached_name(py_name).used = True
+                    cached_name(self.spec, py_name).used = True
 
                 py_slot = PySlot.SETATTR
                 py_name = '__setattr__'
@@ -2037,7 +1988,7 @@ class ParserManager:
                 break
         else:
             member = Member(self.module_state.module,
-                    self.cached_name(py_name))
+                    cached_name(self.spec, py_name))
             member.namespace_iface_file = namespace_iface_file
             member.no_arg_parser = no_arg_parser
             member.py_slot = py_slot
@@ -2065,13 +2016,14 @@ class ParserManager:
 
         return qual
 
-    def _format_error(self, sip_file, line, lexpos, text):
-        """ Return a formated error message. """
+    def _get_column_from_lexpos(self, lexpos):
+        """ Return the column within the current line corresponding to a lexer
+        position.
+        """
 
         line_start = self._input.rfind('\n', 0, lexpos) + 1
-        col = lexpos - line_start + 1
 
-        return "{0}: line {1} column {2}: {3}".format(sip_file, line, col, text)
+        return lexpos - line_start + 1
 
     def _get_gil_action(self, p, symbol, annotations):
         """ Return an appropriate GILAction according to the annotations. """
@@ -2143,6 +2095,12 @@ class ParserManager:
 
         return anno
 
+    def get_source_location(self, p, symbol):
+        """ Return a SourceLocation object for a symbol. """
+
+        return SourceLocation(self._sip_file, line=p.lineno(symbol),
+                column=self._get_column_from_lexpos(p.lexpos(symbol)))
+
     def _handle_eom(self):
         """ Check that the current module is complete. """
 
@@ -2150,9 +2108,8 @@ class ParserManager:
         module = module_state.module
 
         if module.fq_py_name is None:
-            self._errors.append(
-                    "{0}: %Module has not been specified".format(
-                            self._sip_file))
+            self._error_log.log("%Module has not been specified",
+                    SourceLocation(self._sip_file))
 
         # call_super_init defaults to False if it wasn't specified.
         module.call_super_init = bool(module_state.call_super_init)
@@ -2180,17 +2137,11 @@ class ParserManager:
 
         return self._input
 
-    def _report_errors(self):
-        """ Raise an exception if there any errors to report. """
-
-        if self._errors:
-            raise UserException('\n'.join(self._errors))
-
     def _unexpected_eof_error(self):
         """ Record an error caused by an unexpected EOF. """
 
-        self._errors.append(
-                "{0}: unexpected end of file".format(self._sip_file))
+        self._error_log.log("unexpected end of file",
+                SourceLocation(self._sip_file))
 
 
 class ModuleState:

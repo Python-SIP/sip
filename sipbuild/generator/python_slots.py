@@ -94,7 +94,7 @@ slot_name_detail_map = {n: (t, f, a) for n, t, f, a in _SLOT_DEFINITIONS}
 
 
 def invalid_global_slot(slot):
-    """ Return True if the slot cannot be specified as a global (ie. module
+    """ Return True if a slot cannot be specified as a global (ie. module
     level) slot.
     """
 
@@ -113,24 +113,69 @@ def invalid_global_slot(slot):
     return True
 
 
+def is_hash_return_slot(slot):
+    """ Return True if a slot returns a Py_hash_t. """
+
+    return slot is PySlot.HASH
+
+
+_INPLACE_NUMBER_SLOTS = (PySlot.IADD, PySlot.ISUB, PySlot.IMUL, PySlot.IMOD,
+        PySlot.IFLOORDIV, PySlot.ITRUEDIV, PySlot.IAND, PySlot.IOR,
+        PySlot.IXOR, PySlot.ILSHIFT, PySlot.IRSHIFT, PySlot.IMATMUL)
+
 def is_inplace_number_slot(slot):
-    """ Return True if the slot is an inplace binary numeric slot. """
+    """ Return True if a slot is an inplace binary numeric slot. """
 
-    return slot in (PySlot.IADD, PySlot.ISUB, PySlot.IMUL, PySlot.IMOD,
-            PySlot.IFLOORDIV, PySlot.ITRUEDIV, PySlot.IAND, PySlot.IOR,
-            PySlot.IXOR, PySlot.ILSHIFT, PySlot.IRSHIFT, PySlot.IMATMUL)
+    return slot in _INPLACE_NUMBER_SLOTS
 
+
+_INT_RETURN_SLOTS = (PySlot.BOOL, PySlot.CONTAINS)
+
+def is_int_return_slot(slot):
+    """ Return True if a slot returns an int. """
+
+    return slot in _INT_RETURN_SLOTS
+
+
+_NUMBER_SLOTS = (PySlot.ADD, PySlot.SUB, PySlot.MUL, PySlot.MOD,
+        PySlot.FLOORDIV, PySlot.TRUEDIV, PySlot.AND, PySlot.OR, PySlot.XOR,
+        PySlot.LSHIFT, PySlot.RSHIFT, PySlot.MATMUL)
 
 def is_number_slot(slot):
-    """ Return True if the slot is a binary numeric slot. """
+    """ Return True if a slot is a binary numeric slot. """
 
-    return slot in (PySlot.ADD, PySlot.SUB, PySlot.MUL, PySlot.MOD,
-            PySlot.FLOORDIV, PySlot.TRUEDIV, PySlot.AND, PySlot.OR, PySlot.XOR,
-            PySlot.LSHIFT, PySlot.RSHIFT, PySlot.MATMUL)
+    return slot in _NUMBER_SLOTS
 
+
+_RICH_COMPARE_SLOTS = (PySlot.LT, PySlot.LE, PySlot.EQ, PySlot.NE, PySlot.GT,
+        PySlot.GE)
 
 def is_rich_compare_slot(slot):
-    """ Return True if the slot is a rich comparision slot. """
+    """ Return True if a slot is a rich comparision slot. """
 
-    return slot in (PySlot.LT, PySlot.LE, PySlot.EQ, PySlot.NE, PySlot.GT,
-            PySlot.GE)
+    return slot in _RICH_COMPARE_SLOTS
+
+
+def is_ssize_return_slot(slot):
+    """ Return True if a slot returns a Py_ssize_t. """
+
+    return slot is PySlot.LEN
+
+
+_VOID_RETURN_SLOTS = (PySlot.SETITEM, PySlot.DELITEM, PySlot.SETATTR)
+
+def is_void_return_slot(slot):
+    """ Return True if a slot returns a void. """
+
+    return slot in _VOID_RETURN_SLOTS
+
+
+_ZERO_ARG_SLOTS = (PySlot.STR, PySlot.INT, PySlot.FLOAT, PySlot.INVERT,
+        PySlot.NEG, PySlot.LEN, PySlot.BOOL, PySlot.POS, PySlot.ABS,
+        PySlot.REPR, PySlot.HASH, PySlot.INDEX, PySlot.ITER, PySlot.NEXT,
+        PySlot.AWAIT, PySlot.AITER, PySlot.ANEXT)
+
+def is_zero_arg_slot(slot):
+    """ Return True if a slot takes zero arguments. """
+
+    return slot in _ZERO_ARG_SLOTS

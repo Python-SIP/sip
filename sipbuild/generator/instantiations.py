@@ -23,12 +23,13 @@
 
 from copy import copy
 
-from ..specification import (Argument, ArgumentType, FunctionCall,
+from .specification import (Argument, ArgumentType, FunctionCall,
         IfaceFileType, KwArgs, ScopedName, Signature, TypeHints, Value,
         ValueType)
-from ..templates import (template_code, template_code_blocks,
+from .templates import (template_code, template_code_blocks,
         template_expansions, template_string)
-from ..utils import append_iface_file, normalised_scoped_name
+from .type_hints import get_type_hint
+from .utils import append_iface_file, cached_name, normalised_scoped_name
 
 
 def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
@@ -47,7 +48,8 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
     if docstring is not None:
         i_class.docstring = docstring
 
-    i_class.py_name = pm.cached_name(py_name)
+    i_class.mro = []
+    i_class.py_name = cached_name(pm.spec, py_name)
     i_class.template = template
     i_class.no_type_name = no_type_name
 
@@ -80,8 +82,8 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
 
     # Handle any type hints.
     if proto_class.type_hints is not None:
-        i_class.type_hints = _instantiate_type_hints(proto_class.type_hints,
-                expansions)
+        i_class.type_hints = instantiate_type_hints(pm.spec,
+                proto_class.type_hints, expansions)
 
     # Handle any flagged enums.
     if proto_class.pyqt_flags_enums is not None:
@@ -193,8 +195,8 @@ def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
 
     # Handle any type hints.
     if proto_arg.type_hints is not None:
-        i_arg.type_hints = _instantiate_type_hints(proto_arg.type_hints,
-                expansions)
+        i_arg.type_hints = instantiate_type_hints(pm.spec,
+                proto_arg.type_hints, expansions)
 
     # Handle arguments that are unscoped names.
     if proto_arg.type is ArgumentType.DEFINED and proto_arg.definition.is_simple:
@@ -261,7 +263,7 @@ def _instantiate_enums(tmpl_names, proto_class, template, i_class, expansions,
         pm):
     """ Instantiate the enums for a template class. """
 
-    for proto_enum in pm.spec.enums:
+    for proto_enum in list(pm.spec.enums):
         if proto_enum.scope is not proto_class:
             continue
 
@@ -271,7 +273,8 @@ def _instantiate_enums(tmpl_names, proto_class, template, i_class, expansions,
         if proto_enum.fq_cpp_name is not None:
             i_enum.fq_cpp_name = normalised_scoped_name(proto_enum.fq_cpp_name,
                     i_class)
-            i_enum.cached_fq_cpp_name = pm.cached_name(str(i_enum.fq_cpp_name))
+            i_enum.cached_fq_cpp_name = cached_name(pm.spec,
+                    str(i_enum.fq_cpp_name))
 
         if pm.in_main_module:
             if i_enum.py_name is not None:
@@ -382,18 +385,20 @@ def _instantiate_signature(proto_signature, proto_class, tmpl_names, template,
     return i_signature
 
 
-def _instantiate_type_hints(proto_type_hints, expansions):
+def instantiate_type_hints(spec, proto_type_hints, expansions):
     """ Return an instantiated TypeHints object. """
 
     if proto_type_hints.hint_in is not None:
-        hint_in = template_string(proto_type_hints.hint_in, expansions,
-                scope_replacement='.')
+        hint_in = get_type_hint(spec,
+                template_string(proto_type_hints.hint_in.text, expansions,
+                        scope_replacement='.'))
     else:
         hint_in = None
 
     if proto_type_hints.hint_out is not None:
-        hint_out = template_string(proto_type_hints.hint_out, expansions,
-                scope_replacement='.')
+        hint_out = get_type_hint(spec,
+                template_string(proto_type_hints.hint_out.text, expansions,
+                        scope_replacement='.'))
     else:
         hint_out = None
 
