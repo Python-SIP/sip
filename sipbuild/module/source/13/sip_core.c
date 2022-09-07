@@ -179,6 +179,9 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* am_await */
             0,              /* am_aiter */
             0,              /* am_anext */
+#if PY_VERSION_HEX >= 0x030a0000
+            0,              /* am_send */
+#endif
         },
         {
             0,              /* nb_add */
@@ -255,6 +258,7 @@ static sipWrapperType sipWrapper_Type = {
     0,                      /* wt_td */
     0,                      /* wt_iextend */
     0,                      /* wt_user_data */
+    0,                      /* wt_reserved */
 };
 
 
@@ -9626,6 +9630,9 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* am_await */
             0,              /* am_aiter */
             0,              /* am_anext */
+#if PY_VERSION_HEX >= 0x030a0000
+            0,              /* am_send */
+#endif
         },
         {
             0,              /* nb_add */
@@ -9702,6 +9709,7 @@ sipWrapperType sipSimpleWrapper_Type = {
     0,                      /* wt_td */
     0,                      /* wt_iextend */
     0,                      /* wt_user_data */
+    0,                      /* wt_reserved */
 };
 
 

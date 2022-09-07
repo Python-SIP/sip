@@ -1978,6 +1978,12 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 "    SIP_NULLPTR,\n"
                 );
     }
+    else
+    {
+        prcode(fp,
+"    SIP_NULLPTR,\n"
+            );
+    }
 
     prcode(fp,
 "};\n"
@@ -2523,7 +2529,7 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp)
 {
     overDef *od;
-    int need_intro, has_auto_docstring;
+    int need_intro, has_auto_docstring, self_unused = FALSE;
     ifaceFileDef *scope;
     const char *kw_fw_decl, *kw_decl;
 
@@ -2599,6 +2605,8 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
             prcode(fp,
 "extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *%s);}\n"
                 , md->pyname->text, kw_fw_decl);
+        else
+            self_unused = TRUE;
 
         prcode(fp,
 "static PyObject *func_%s(PyObject *%s,PyObject *sipArgs%s)\n"
@@ -2626,6 +2634,12 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
                 prcode(fp,
 "    PyObject *sipParseErr = SIP_NULLPTR;\n"
                     );
+
+                if (self_unused)
+                    prcode(fp,
+"\n"
+"    (void)sipSelf;\n"
+                        );
 
                 need_intro = FALSE;
             }
