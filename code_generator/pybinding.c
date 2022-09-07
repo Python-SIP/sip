@@ -493,35 +493,3 @@ static void exception_set(void)
 {
     longjmp(on_fatal_error, EXCEPTION_SET);
 }
-
-
-/*
- * Display a warning message.
- */
-void warning(Warning w, const char *fmt, ...)
-{
-    static char warning_text[1000];
-
-    va_list ap;
-    size_t used = strlen(warning_text);
-    size_t room = sizeof (warning_text) - used - 1;
-
-    va_start(ap, fmt);
-    vsnprintf(&warning_text[used], room, fmt, ap);
-    va_end(ap);
-
-    if (strchr(fmt, '\n') != NULL)
-    {
-        int ret;
-
-        ret = PyErr_WarnEx(
-                (w == DeprecationWarning ? PyExc_FutureWarning :
-                        PyExc_UserWarning),
-                warning_text, 1);
-
-        warning_text[0] = '\0';
-
-        if (ret < 0)
-            exception_set();
-    }
-}

@@ -231,10 +231,6 @@ static mappedTypeDef *mappedtype_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static mappedTypeDef *mappedtype_list_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
-static mappedTypeTmplDef *mappedtypetemplate(sipSpec *pt, PyObject *obj,
-        const char *encoding);
-static mappedTypeTmplDef *mappedtypetemplate_list_attr(sipSpec *pt,
-        PyObject *obj, const char *name, const char *encoding);
 static memberDef *member(sipSpec *pt, PyObject *obj, const char *encoding);
 static memberDef *member_attr(sipSpec *pt, PyObject *obj, const char *name,
         const char *encoding);
@@ -352,8 +348,6 @@ sipSpec *py2c(PyObject *spec, const char *encoding)
     pt->classes = class_list_attr(pt, spec, "classes", encoding);
     pt->exceptions = exception_list_attr(pt, spec, "exceptions", encoding);
     pt->mappedtypes = mappedtype_list_attr(pt, spec, "mapped_types", encoding);
-    pt->mappedtypetemplates = mappedtypetemplate_list_attr(pt, spec,
-            "mapped_type_templates", encoding);
     pt->enums = wrappedenum_list_attr(pt, spec, "enums", encoding);
     pt->vars = wrappedvariable_list_attr(pt, spec, "variables", encoding);
     pt->typedefs = wrappedtypedef_list_attr(pt, spec, "typedefs", encoding);
@@ -1555,52 +1549,6 @@ static mappedTypeDef *mappedtype_list_attr(sipSpec *pt, PyObject *obj,
 
 
 /*
- * Convert a MappedTypeTemplate object.
- */
-static mappedTypeTmplDef *mappedtypetemplate(sipSpec *pt, PyObject *obj,
-        const char *encoding)
-{
-    mappedTypeTmplDef *value;
-
-    value = sipMalloc(sizeof (mappedTypeTmplDef));
-
-    value->sig = *signature_attr(pt, obj, "signature", encoding);
-    value->mt = mappedtype_attr(pt, obj, "mapped_type", encoding);
-
-    return value;
-}
-
-
-/*
- * Convert a MappedTypeTemplate list attribute.
- */
-static mappedTypeTmplDef *mappedtypetemplate_list_attr(sipSpec *pt,
-        PyObject *obj, const char *name, const char *encoding)
-{
-    PyObject *attr = PyObject_GetAttrString(obj, name);
-    mappedTypeTmplDef *head, **tail;
-    Py_ssize_t i;
-
-    assert(attr != NULL);
-
-    head = NULL;
-    tail = &head;
-
-    for (i = 0; i < PyList_Size(attr); ++i)
-    {
-        mappedTypeTmplDef *item = mappedtypetemplate(pt,
-                PyList_GetItem(attr, i), encoding);
-        *tail = item;
-        tail = &item->next;
-    }
-
-    Py_DECREF(attr);
-
-    return head;
-}
-
-
-/*
  * Convert a Member object.
  */
 static memberDef *member(sipSpec *pt, PyObject *obj, const char *encoding)
@@ -1752,8 +1700,6 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
             "default_docstring_format");
     value->defdocstringsig = (Signature)enum_attr(obj,
             "default_docstring_signature");
-    value->defmetatype = cachedname_attr(obj, "default_metatype", encoding);
-    value->defsupertype = cachedname_attr(obj, "default_supertype", encoding);
     value->defexception = exception_attr(pt, obj, "default_exception",
             encoding);
     value->hdrcode = codeblock_list_attr(obj, "module_header_code", encoding);

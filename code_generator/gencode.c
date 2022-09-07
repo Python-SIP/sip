@@ -307,6 +307,20 @@ static void restoreArg(argDef *ad);
 static int stringFind(stringList *sl, const char *s);
 static scopedNameDef *getFQCNameOfType(argDef *ad);
 static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
+static int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
+static int excludedFeature(stringList *xsl, qualDef *qd);
+static int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict);
+static int sameArgType(argDef *a1, argDef *a2, int strict);
+static int sameBaseType(argDef *a1, argDef *a2);
+static void prOverloadName(FILE *fp, overDef *od);
+static int isZeroArgSlot(memberDef *md);
+static int isIntReturnSlot(memberDef *md);
+static int isSSizeReturnSlot(memberDef *md);
+static int isHashReturnSlot(memberDef *md);
+static int isVoidReturnSlot(memberDef *md);
+static int isInplaceNumberSlot(memberDef *md);
+static int isRichCompareSlot(memberDef *md);
+static int usedInCode(codeBlockList *cbl, const char *str);
 
 
 /*
@@ -5413,7 +5427,7 @@ static void generateObjToCppConversion(argDef *ad, int has_state, FILE *fp)
 /*
  * Returns TRUE if the given method is a slot that takes zero arguments.
  */
-int isZeroArgSlot(memberDef *md)
+static int isZeroArgSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5442,7 +5456,7 @@ static int isMultiArgSlot(memberDef *md)
  * Returns TRUE if the given method is a slot that returns void (ie. nothing
  * other than an error indicator).
  */
-int isVoidReturnSlot(memberDef *md)
+static int isVoidReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5453,7 +5467,7 @@ int isVoidReturnSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is a slot that returns int.
  */
-int isIntReturnSlot(memberDef *md)
+static int isIntReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5464,7 +5478,7 @@ int isIntReturnSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is a slot that returns Py_ssize_t.
  */
-int isSSizeReturnSlot(memberDef *md)
+static int isSSizeReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5475,7 +5489,7 @@ int isSSizeReturnSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is a slot that returns Py_hash_t.
  */
-int isHashReturnSlot(memberDef *md)
+static int isHashReturnSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5497,7 +5511,7 @@ static int isIntArgSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is an inplace number slot.
  */
-int isInplaceNumberSlot(memberDef *md)
+static int isInplaceNumberSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -5536,7 +5550,7 @@ int isNumberSlot(memberDef *md)
 /*
  * Returns TRUE if the given method is a rich compare slot.
  */
-int isRichCompareSlot(memberDef *md)
+static int isRichCompareSlot(memberDef *md)
 {
     slotType st = md->slot;
 
@@ -14015,7 +14029,7 @@ static void prCachedName(FILE *fp, nameDef *nd, const char *prefix)
 /*
  * Generate the C++ name of an overloaded function.
  */
-void prOverloadName(FILE *fp, overDef *od)
+static void prOverloadName(FILE *fp, overDef *od)
 {
     const char *pt1, *pt2;
 
@@ -14404,7 +14418,7 @@ static const char *argName(const char *name, codeBlockList *cbl)
 /*
  * Returns TRUE if a string is used in code.
  */
-int usedInCode(codeBlockList *cbl, const char *str)
+static int usedInCode(codeBlockList *cbl, const char *str)
 {
     while (cbl != NULL)
     {
@@ -15276,7 +15290,7 @@ void appendString(stringList **headp, const char *s)
 /*
  * Return TRUE if the given qualifier is excluded.
  */
-int excludedFeature(stringList *xsl, qualDef *qd)
+static int excludedFeature(stringList *xsl, qualDef *qd)
 {
     while (xsl != NULL)
     {
@@ -15352,7 +15366,7 @@ char *scopedNameTail(scopedNameDef *snd)
 /*
  * Return TRUE if the given qualifier is needed.
  */
-int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
+static int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
 {
     stringList *sl;
 
@@ -15384,7 +15398,7 @@ void fatalScopedName(scopedNameDef *snd)
 /*
  * Compare two signatures and return TRUE if they are the same.
  */
-int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
+static int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
 {
     int a;
 
@@ -15462,7 +15476,7 @@ int sameSignature(signatureDef *sd1, signatureDef *sd2, int strict)
  * Compare two argument types and return TRUE if they are the same.  "strict"
  * means as C++ would see it, rather than Python.
  */
-int sameArgType(argDef *a1, argDef *a2, int strict)
+static int sameArgType(argDef *a1, argDef *a2, int strict)
 {
     /* The references must be the same. */
     if (isReference(a1) != isReference(a2) || a1->nrderefs != a2->nrderefs)
@@ -15528,7 +15542,7 @@ int sameArgType(argDef *a1, argDef *a2, int strict)
 /*
  * Compare two basic types and return TRUE if they are the same.
  */
-int sameBaseType(argDef *a1, argDef *a2)
+static int sameBaseType(argDef *a1, argDef *a2)
 {
     /* The types must be the same. */
     if (a1->atype != a2->atype)
