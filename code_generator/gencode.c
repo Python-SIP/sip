@@ -306,6 +306,7 @@ static void normaliseArg(argDef *ad);
 static void restoreArg(argDef *ad);
 static int stringFind(stringList *sl, const char *s);
 static scopedNameDef *getFQCNameOfType(argDef *ad);
+static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
 
 
 /*
@@ -14773,7 +14774,7 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
 {
     if (docstrings)
     {
-        dsCtor(pt, cd, ct, fp);
+        pyiCtor(pt, pt->module, cd, ct, FALSE, NULL, 0, fp);
         ++currentLineNr;
     }
 }
@@ -15697,4 +15698,13 @@ memberDef *findMethod(classDef *cd, const char *name)
             break;
 
     return md;
+}
+
+
+/*
+ * Generate the docstring for a single API overload.
+ */
+static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
+{
+    pyiOverload(pt, pt->module, od, FALSE, is_method, NULL, 0, FALSE, fp);
 }

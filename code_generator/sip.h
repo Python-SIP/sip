@@ -1403,7 +1403,6 @@ void *sipCalloc(size_t nr, size_t n);
 char *sipStrdup(const char *);
 char *concat(const char *, ...);
 void append(char **, const char *);
-void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff);
 int selectedQualifier(stringList *needed_qualifiers, qualDef *qd);
 int excludedFeature(stringList *,qualDef *);
 int sameSignature(signatureDef *,signatureDef *,int);
@@ -1411,10 +1410,6 @@ int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 int sameArgType(argDef *a1, argDef *a2, int strict);
 int sameBaseType(argDef *,argDef *);
 char *scopedNameTail(scopedNameDef *);
-void appendScopedName(scopedNameDef **,scopedNameDef *);
-scopedNameDef *text2scopePart(char *text);
-void freeScopedName(scopedNameDef *);
-void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
 void prOverloadName(FILE *fp, overDef *od);
@@ -1432,9 +1427,11 @@ void appendString(stringList **headp, const char *s);
 int pluginPyQt5(sipSpec *pt);
 int pluginPyQt6(sipSpec *pt);
 memberDef *findMethod(classDef *cd, const char *name);
-typeHintDef *newTypeHint(char *raw_hint);
-void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp);
-void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp);
+void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
+        int overloaded, ifaceFileList *defined, int indent, FILE *fp);
+void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int overloaded,
+        int is_method, ifaceFileList *defined, int indent, int pep484,
+        FILE *fp);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         ifaceFileList *defined, int pep484, int rest, FILE *fp);

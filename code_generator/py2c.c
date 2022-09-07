@@ -327,6 +327,11 @@ static varDef *wrappedvariable(sipSpec *pt, PyObject *obj,
 static varDef *wrappedvariable_list_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 
+/* Other forward declarations. */
+static void appendCodeBlock(codeBlockList **headp, codeBlock *cb);
+static scopedNameDef *text2scopePart(char *text);
+static typeHintDef *newTypeHint(char *raw_hint);
+
 
 /*
  * Convert the Specification Python object to the C structures defined in
@@ -3213,7 +3218,7 @@ static varDef *wrappedvariable_list_attr(sipSpec *pt, PyObject *obj,
 /*
  * Append a code block to a list of them.
  */
-void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
+static void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
 {
     codeBlockList *cbl;
 
@@ -3241,7 +3246,7 @@ void appendCodeBlock(codeBlockList **headp, codeBlock *cb)
 /*
  * Convert a text string to a scope part structure.
  */
-scopedNameDef *text2scopePart(char *text)
+static scopedNameDef *text2scopePart(char *text)
 {
     scopedNameDef *snd;
 
@@ -3251,4 +3256,18 @@ scopedNameDef *text2scopePart(char *text)
     snd->next = NULL;
 
     return snd;
+}
+
+
+/*
+ * Create a new type hint for a raw string.
+ */
+static typeHintDef *newTypeHint(char *raw_hint)
+{
+    typeHintDef *thd = sipMalloc(sizeof (typeHintDef));
+
+    thd->status = needs_parsing;
+    thd->raw_hint = raw_hint;
+
+    return thd;
 }

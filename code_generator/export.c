@@ -70,6 +70,9 @@ static void restPyAttribute(moduleDef *mod, classDef *scope, nameDef *name,
 static int restValue(sipSpec *pt, valueDef *value, FILE *fp);
 static const char *reflectedSlot(slotType st);
 static int hasCppSignature(signatureDef *sd);
+static void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd);
+static void freeScopedName(scopedNameDef *snd);
+static scopedNameDef *text2scopePart(char *text);
 
 
 /*
@@ -1197,28 +1200,6 @@ static void exportPythonSignature(sipSpec *pt, FILE *fp, signatureDef *sd,
 
 
 /*
- * Generate a fully qualified class name as a reST reference.
- */
-void restPyClass(classDef *cd, FILE *fp)
-{
-    fprintf(fp, ":sip:ref:`~%s.", cd->iff->module->fullname->text);
-    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-    fprintf(fp, "`");
-}
-
-
-/*
- * Generate a fully qualified enum name as a reST reference.
- */
-void restPyEnum(enumDef *ed, FILE *fp)
-{
-    fprintf(fp, ":sip:ref:`~%s.", ed->module->fullname->text);
-    prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-    fprintf(fp, "`");
-}
-
-
-/*
  * Generate a fully qualified attribute name as a reST reference.
  */
 static void restPyEnumMember(enumMemberDef *emd, FILE *fp)
@@ -1389,7 +1370,7 @@ static const char *reflectedSlot(slotType st)
 /*
  * Append a name to a list of scopes.
  */
-void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd)
+static void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd)
 {
     while (*headp != NULL)
         headp = &(*headp)->next;
@@ -1401,7 +1382,7 @@ void appendScopedName(scopedNameDef **headp, scopedNameDef *newsnd)
 /*
  * Free a scoped name - but not the text itself.
  */
-void freeScopedName(scopedNameDef *snd)
+static void freeScopedName(scopedNameDef *snd)
 {
     while (snd != NULL)
     {
@@ -1411,4 +1392,20 @@ void freeScopedName(scopedNameDef *snd)
 
         snd = next;
     }
+}
+
+
+/*
+ * Convert a text string to a scope part structure.
+ */
+static scopedNameDef *text2scopePart(char *text)
+{
+    scopedNameDef *snd;
+
+    snd = sipMalloc(sizeof (scopedNameDef));
+
+    snd->name = text;
+    snd->next = NULL;
+
+    return snd;
 }

@@ -38,17 +38,12 @@ static void pyiClass(sipSpec *pt, moduleDef *mod, classDef *cd,
         ifaceFileList **defined, int indent, FILE *fp);
 static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
         ifaceFileList **defined, int indent, FILE *fp);
-static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
-        int overloaded, ifaceFileList *defined, int indent, FILE *fp);
 static void pyiCallable(sipSpec *pt, moduleDef *mod, memberDef *md,
         overDef *overloads, int is_method, ifaceFileList *defined, int indent,
         FILE *fp);
 static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
         int is_setter, memberDef *md, overDef *overloads,
         ifaceFileList *defined, int indent, FILE *fp);
-static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, ifaceFileList *defined, int indent,
-        int pep484, FILE *fp);
 static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         int need_self, ifaceFileList *defined, KwArgs kwargs, int pep484,
         FILE *fp);
@@ -86,6 +81,7 @@ static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes);
 static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
         int out);
 static int isPyKeyword(const char *word);
+static void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff);
 
 
 /*
@@ -539,18 +535,9 @@ static void pyiMappedType(sipSpec *pt, moduleDef *mod, mappedTypeDef *mtd,
 
 
 /*
- * Generate a ctor docstring.
- */
-void dsCtor(sipSpec *pt, classDef *cd, ctorDef *ct, FILE *fp)
-{
-    pyiCtor(pt, pt->module, cd, ct, FALSE, NULL, 0, fp);
-}
-
-
-/*
  * Generate an ctor type hint.
  */
-static void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
+void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
         int overloaded, ifaceFileList *defined, int indent, FILE *fp)
 {
     int a, need_comma;
@@ -781,20 +768,11 @@ static void pyiProperty(sipSpec *pt, moduleDef *mod, propertyDef *pd,
 
 
 /*
- * Generate the docstring for a single API overload.
- */
-void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
-{
-    pyiOverload(pt, pt->module, od, FALSE, is_method, NULL, 0, FALSE, fp);
-}
-
-
-/*
  * Generate the type hints for a single API overload.
  */
-static void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od,
-        int overloaded, int is_method, ifaceFileList *defined,
-        int indent, int pep484, FILE *fp)
+void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int overloaded,
+        int is_method, ifaceFileList *defined, int indent, int pep484,
+        FILE *fp)
 {
     if (overloaded)
     {
@@ -1339,20 +1317,6 @@ static int inIfaceFileList(ifaceFileDef *iff, ifaceFileList *defined)
     }
 
     return FALSE;
-}
-
-
-/*
- * Create a new type hint for a raw string.
- */
-typeHintDef *newTypeHint(char *raw_hint)
-{
-    typeHintDef *thd = sipMalloc(sizeof (typeHintDef));
-
-    thd->status = needs_parsing;
-    thd->raw_hint = raw_hint;
-
-    return thd;
 }
 
 
@@ -1929,7 +1893,7 @@ static int isPyKeyword(const char *word)
 /*
  * Add an interface file to an interface file list if it isn't already there.
  */
-void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
+static void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
 {
     /* Make sure we don't try to add an interface file to its own list. */
     if (&iff->used != ifflp)
@@ -1952,4 +1916,26 @@ void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff)
 
         *ifflp = iffl;
     }
+}
+
+
+/*
+ * Generate a fully qualified class name as a reST reference.
+ */
+void restPyClass(classDef *cd, FILE *fp)
+{
+    fprintf(fp, ":sip:ref:`~%s.", cd->iff->module->fullname->text);
+    prScopedPythonName(fp, cd->ecd, cd->pyname->text);
+    fprintf(fp, "`");
+}
+
+
+/*
+ * Generate a fully qualified enum name as a reST reference.
+ */
+void restPyEnum(enumDef *ed, FILE *fp)
+{
+    fprintf(fp, ":sip:ref:`~%s.", ed->module->fullname->text);
+    prScopedPythonName(fp, ed->ecd, ed->pyname->text);
+    fprintf(fp, "`");
 }
