@@ -329,8 +329,15 @@ class Project(AbstractProject, Configurable):
             # We expect a three part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 3:
-                parts[1] = '{}.{}'.format(self.minimum_macos_version[0],
-                        self.minimum_macos_version[1])
+                min_major = int(self.minimum_macos_version[0])
+                min_minor = int(self.minimum_macos_version[1])
+
+                # For arm64 binaries enforce a valid minimum macOS version.
+                if parts[2] == 'arm64' and min_major < 11:
+                    min_major = 11
+                    min_minor = 0
+
+                parts[1] = '{}.{}'.format(min_major, min_minor)
 
                 platform_tag = '-'.join(parts)
 
