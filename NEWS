@@ -1,4 +1,4 @@
-v6.7.0 8th September 2022
+v6.7.0 17th September 2022
   - Added the /NoAssignmentOperator/, /NoCopyCtor/ and /NoDefaultCtor/ mapped
     type annotations.
   - Added the --generator-version command line option to sip-distinfo.
