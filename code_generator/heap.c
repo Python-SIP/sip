@@ -1,7 +1,7 @@
 /*
  * Wrappers around standard functions that use the heap.
  *
- * Copyright (c) 2015 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -17,15 +17,13 @@
  */
 
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
 
 #include "sip.h"
-
-
-static void nomem(void);
 
 
 /*
@@ -35,8 +33,8 @@ void *sipMalloc(size_t n)
 {
 	void *h;
 
-	if ((h = malloc(n)) == NULL)
-		nomem();
+	h = malloc(n);
+    assert(h != NULL);
 
     memset(h, 0, n);
 
@@ -51,8 +49,8 @@ void *sipCalloc(size_t nr, size_t n)
 {
 	void *h;
 
-	if ((h = calloc(nr, n)) == NULL)
-		nomem();
+	h = calloc(nr, n);
+    assert(h != NULL);
 
     return h;
 }
@@ -65,8 +63,8 @@ char *sipStrdup(const char *s)
 {
 	char *h;
 
-	if ((h = strdup(s)) == NULL)
-		nomem();
+	h = strdup(s);
+    assert(h != NULL);
 
 	return h;
 }
@@ -111,21 +109,10 @@ char *concat(const char *s, ...)
 /*
  * Append a string to another that is on the heap.
  */
-
 void append(char **s, const char *new)
 {
-	if ((*s = realloc(*s,strlen(*s) + strlen(new) + 1)) == NULL)
-		nomem();
+	*s = realloc(*s, strlen(*s) + strlen(new) + 1);
+    assert(*s != NULL);
 
-	strcat(*s,new);
-}
-
-
-/*
- * Display a standard error message when the heap is exhausted.
- */
-
-static void nomem(void)
-{
-	fatal("Unable to allocate memory on the heap\n");
+	strcat(*s, new);
 }
