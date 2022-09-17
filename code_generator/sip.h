@@ -46,23 +46,6 @@
 #define FALSE   0
 
 
-/* Some convenient compiler extensions. */
-
-#if defined(__GNUC__)
-#define SIP_NORETURN    __attribute__((__noreturn__))
-#define SIP_UNUSED      __attribute__((__unused__))
-#elif defined(_MSC_VER)
-#define SIP_NORETURN    __declspec(noreturn)
-#endif
-
-#if !defined(SIP_NORETURN)
-#define SIP_NORETURN
-#endif
-#if !defined(SIP_UNUSED)
-#define SIP_UNUSED
-#endif
-
-
 #define DEFAULT_OFILE_EXT   ".o"    /* Default object file extension. */
 
 #define MAX_NR_ARGS         20      /* Max. nr. args. to a function or template. */
@@ -1337,7 +1320,6 @@ int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
-SIP_NORETURN void fatal(const char *fmt, ...);
 int error(const char *fmt, ...);
 void errorAppend(const char *fmt, ...);
 void *sipMalloc(size_t n);

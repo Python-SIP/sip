@@ -18,7 +18,6 @@
 
 
 #include <assert.h>
-#include <setjmp.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,11 +38,7 @@ unsigned abiVersion;
 char *sipName;
 
 /* Support for fatal error handling. */
-#define NO_EXCEPTION        0           /* No exception has been set. */
-#define EXCEPTION_NEEDED    1           /* An exception needs to be set. */
-
 static char error_text[1000];
-static jmp_buf on_fatal_error;
 static PyObject *exception_type;
 static void raise_exception(void);
 
@@ -135,12 +130,6 @@ static PyObject *py_py2c(PyObject *self, PyObject *args)
             &spec,
             &encoding))
         return NULL;
-
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
-    {
-        raise_exception();
-        return NULL;
-    }
 
     return PyCapsule_New(py2c(spec, encoding), NULL, NULL);
 }
@@ -418,25 +407,6 @@ static int extend_stringList(stringList **slp, PyObject *py_list, int no_dups)
     }
 
     return 1;
-}
-
-
-/*
- * Display a one line error message describing a fatal error.  This does not
- * return.
- */
-void fatal(const char *fmt, ...)
-{
-    va_list ap;
-    size_t used = strlen(error_text);
-    size_t room = sizeof (error_text) - used - 1;
-
-    va_start(ap,fmt);
-    vsnprintf(&error_text[used], room, fmt, ap);
-    va_end(ap);
-
-    /* Raise an exception. */
-    longjmp(on_fatal_error, EXCEPTION_NEEDED);
 }
 
 
