@@ -77,7 +77,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
         const char *codeDir, stringList **generated, const char *srcSuffix,
         int parts, stringList *needed_qualifiers, stringList *xsl,
         int py_debug);
-static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
+static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug);
 static void generateSipAPI(moduleDef *mod, FILE *fp);
 static void generateSipImportVariables(FILE *fp);
@@ -344,13 +344,18 @@ stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
 
     if (isComposite(pt->module))
     {
-        generateCompositeCpp(pt, codeDir, &generated, py_debug);
+        if (generateCompositeCpp(pt, codeDir, &generated, py_debug) < 0)
+            return NULL;
+
         *api_header = NULL;
     }
     else
     {
         *api_header = generateCpp(pt, pt->module, codeDir, &generated,
                 srcSuffix, parts, needed_qualifiers, xsl, py_debug);
+
+        if (*api_header == NULL)
+            return NULL;
     }
 
     return generated;
@@ -474,6 +479,9 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h", NULL);
     fp = createFile(mod, hfile, "Internal module API header file.");
+
+    if (fp == NULL)
+        return NULL;
 
     /* Include files. */
 
@@ -1021,7 +1029,7 @@ static char *makePartName(const char *codeDir, const char *mname, int part,
 /*
  * Generate the C code for a composite module.
  */
-static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
+static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug)
 {
     char *cppfile;
@@ -1031,6 +1039,9 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
     fp = createCompilationUnit(pt->module, generated, cppfile,
             "Composite module code.");
+
+    if (fp == NULL)
+        return -1;
 
     declareLimitedAPI(py_debug, NULL, fp);
 
@@ -1091,6 +1102,8 @@ static void generateCompositeCpp(sipSpec *pt, const char *codeDir,
 
     closeFile(fp);
     free(cppfile);
+
+    return 0;
 }
 
 
@@ -1171,7 +1184,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     else
         cppfile = concat(codeDir, "/sip", mname, "cmodule", srcSuffix, NULL);
 
-    fp = createCompilationUnit(mod, generated, cppfile, "Module code.");
+    if ((fp = createCompilationUnit(mod, generated, cppfile, "Module code.")) == NULL)
+        return NULL;
 
     prcode(fp,
 "\n"
@@ -2203,8 +2217,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 ++this_part;
 
                 cppfile = makePartName(codeDir, mname, this_part, srcSuffix);
-                fp = createCompilationUnit(mod, generated, cppfile,
-                        "Module code.");
+                if ((fp = createCompilationUnit(mod, generated, cppfile, "Module code.")) == NULL)
+                    return NULL;
 
                 prcode(fp,
 "\n"
@@ -3639,8 +3653,8 @@ static int generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
     if (master == NULL)
     {
         cppfile = createIfaceFileName(codeDir,iff,srcSuffix);
-        fp = createCompilationUnit(iff->module, generated, cppfile,
-                "Interface wrapper code.");
+        if ((fp = createCompilationUnit(iff->module, generated, cppfile, "Interface wrapper code.")) == NULL)
+            return -1;
 
         prcode(fp,
 "\n"
@@ -13721,6 +13735,9 @@ static FILE *createCompilationUnit(moduleDef *mod, stringList **generated,
 {
     FILE *fp = createFile(mod, fname, description);
 
+    if (fp == NULL)
+        return NULL;
+
     appendString(generated, sipStrdup(fname));
 
     generateCppCodeBlock(mod->unitcode, fp);
@@ -13739,7 +13756,10 @@ static FILE *createFile(moduleDef *mod, const char *fname,
 
     /* Create the file. */
     if ((fp = fopen(fname, "w")) == NULL)
-        fatal("Unable to create file \"%s\"\n",fname);
+    {
+        error("Unable to create file \"%s\"\n",fname);
+        return NULL;
+    }
 
     /* The "stack" doesn't have to be very deep. */
     previousLineNr = currentLineNr;
