@@ -87,13 +87,13 @@ static void appendToIfaceFileList(ifaceFileList **ifflp, ifaceFileDef *iff);
 /*
  * Generate the .pyi file.
  */
-void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
+int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
 {
     FILE *fp;
 
     /* Generate the file. */
     if ((fp = fopen(pyiFile, "w")) == NULL)
-        fatal("Unable to create file \"%s\"\n", pyiFile);
+        return error("Unable to create file \"%s\"\n", pyiFile);
 
     /* Write the header. */
     fprintf(fp,
@@ -119,6 +119,8 @@ void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile)
         pyiModule(pt, mod, fp);
 
     fclose(fp);
+
+    return 0;
 }
 
 

@@ -1333,9 +1333,9 @@ stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         const char **api_header);
 void generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
-void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
-void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
-void generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
+int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
+int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
+int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 SIP_NORETURN void fatal(const char *fmt, ...);
 int error(const char *fmt, ...);

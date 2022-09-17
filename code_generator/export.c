@@ -78,7 +78,7 @@ static scopedNameDef *text2scopePart(char *text);
 /*
  * Generate the API file.
  */
-void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
+int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
 {
     overDef *od;
     classDef *cd;
@@ -86,7 +86,7 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
 
     /* Generate the file. */
     if ((fp = fopen(apiFile, "w")) == NULL)
-        fatal("Unable to create file \"%s\"\n", apiFile);
+        return error("Unable to create file \"%s\"\n", apiFile);
 
     apiEnums(pt, mod, NULL, fp);
     apiVars(pt, mod, NULL, fp);
@@ -136,6 +136,8 @@ void generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile)
     }
 
     fclose(fp);
+
+    return 0;
 }
 
 
@@ -295,14 +297,14 @@ static int apiArgument(sipSpec *pt, argDef *ad, int out, int need_comma,
 /*
  * Generate the XML export file.
  */
-void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
+int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
 {
     FILE *fp;
     classDef *cd;
     memberDef *md;
 
     if ((fp = fopen(xmlFile, "w")) == NULL)
-        fatal("Unable to create file \"%s\"\n", xmlFile);
+        return error("Unable to create file \"%s\"\n", xmlFile);
 
     fprintf(fp, "<?xml version=\"1.0\"?>\n");
     fprintf(fp, "<Module version=\"%u\" name=\"%s\">\n",
@@ -335,6 +337,8 @@ void generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile)
     fprintf(fp, "</Module>\n");
 
     fclose(fp);
+
+    return 0;
 }
 
 

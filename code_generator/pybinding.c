@@ -223,13 +223,11 @@ static PyObject *py_generateAPI(PyObject *self, PyObject *args)
             fs_convertor, &apiFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
+    if (generateAPI(pt, pt->module, apiFile) < 0)
     {
         raise_exception();
         return NULL;
     }
-
-    generateAPI(pt, pt->module, apiFile);
 
     Py_RETURN_NONE;
 }
@@ -248,13 +246,11 @@ static PyObject *py_generateXML(PyObject *self, PyObject *args)
             fs_convertor, &xmlFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
+    if (generateXML(pt, pt->module, xmlFile) < 0)
     {
         raise_exception();
         return NULL;
     }
-
-    generateXML(pt, pt->module, xmlFile);
 
     Py_RETURN_NONE;
 }
@@ -273,13 +269,11 @@ static PyObject *py_generateTypeHints(PyObject *self, PyObject *args)
             fs_convertor, &pyiFile))
         return NULL;
 
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
+    if (generateTypeHints(pt, pt->module, pyiFile) < 0)
     {
         raise_exception();
         return NULL;
     }
-
-    generateTypeHints(pt, pt->module, pyiFile);
 
     Py_RETURN_NONE;
 }
