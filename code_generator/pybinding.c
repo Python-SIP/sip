@@ -171,15 +171,15 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
             &py_debug))
         return NULL;
 
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
+    sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
+            releaseGIL, parts, versions, xfeatures, docs, py_debug,
+            &api_header);
+
+    if (sources == NULL)
     {
         raise_exception();
         return NULL;
     }
-
-    sources = generateCode(pt, codeDir, srcSuffix, exceptions, tracing,
-            releaseGIL, parts, versions, xfeatures, docs, py_debug,
-            &api_header);
 
     return Py_BuildValue("(sN)", api_header, stringList_convert_from(sources));
 }

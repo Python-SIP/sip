@@ -85,19 +85,18 @@ static void generateModInitStart(moduleDef *mod, int gen_c, FILE *fp);
 static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp);
 static void generateModDocstring(moduleDef *mod, FILE *fp);
-static void generateIfaceCpp(sipSpec *, stringList **generated, int,
+static int generateIfaceCpp(sipSpec *, stringList **generated, int,
         ifaceFileDef *, int, const char *, const char *, FILE *);
 static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
-static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug,
-        FILE *fp);
+static int generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp);
 static void generateImportedClassAPI(classDef *cd, moduleDef *mod, FILE *fp);
 static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp);
-static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
+static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         int py_debug, FILE *fp);
-static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
+static int generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
 static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
         classDef *, moduleDef *, FILE *);
@@ -129,11 +128,11 @@ static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
         int, FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
 static void generatePyQtEmitters(classDef *cd, FILE *fp);
-static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
+static int generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp);
-static void generateDefaultInstanceReturn(argDef *res, const char *indent,
+static int generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp);
-static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+static int generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp);
 static void generateVirtHandlerCall(moduleDef *mod, classDef *cd,
         virtOverDef *vod, argDef *res, const char *indent, FILE *fp);
@@ -1211,7 +1210,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
     /* Generate any virtual handlers. */
     for (vhd = pt->virthandlers; vhd != NULL; vhd = vhd->next)
-        generateVirtualHandler(mod, vhd, fp);
+        if (generateVirtualHandler(mod, vhd, fp) < 0)
+            return NULL;
 
     /* Generate any virtual error handlers. */
     for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
@@ -2209,9 +2209,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 need_postinc = FALSE;
             }
 
-            generateIfaceCpp(pt, generated, py_debug, iff, need_postinc,
-                    codeDir, srcSuffix,
-                    ((parts && iff->file_extension == NULL) ? fp : NULL));
+            if (generateIfaceCpp(pt, generated, py_debug, iff, need_postinc, codeDir, srcSuffix, ((parts && iff->file_extension == NULL) ? fp : NULL)) < 0)
+                return NULL;
         }
 
     closeFile(fp);
@@ -3608,7 +3607,7 @@ static int emptyIfaceFile(sipSpec *pt, ifaceFileDef *iff)
 /*
  * Generate the C/C++ code for an interface.
  */
-static void generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
+static int generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
         ifaceFileDef *iff, int need_postinc, const char *codeDir,
         const char *srcSuffix, FILE *master)
 {
@@ -3623,7 +3622,7 @@ static void generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
      * warning messages from ranlib.
      */
     if (emptyIfaceFile(pt, iff))
-        return;
+        return 0;
 
     if (master == NULL)
     {
@@ -3672,12 +3671,14 @@ static void generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
         {
             classDef *pcd;
 
-            generateClassCpp(cd, pt, py_debug, fp);
+            if (generateClassCpp(cd, pt, py_debug, fp) < 0)
+                return -1;
 
             /* Generate any enclosed protected classes. */
             for (pcd = pt->classes; pcd != NULL; pcd = pcd->next)
                 if (isProtectedClass(pcd) && pcd->ecd == cd)
-                    generateClassCpp(pcd, pt, py_debug, fp);
+                    if (generateClassCpp(pcd, pt, py_debug, fp) < 0)
+                        return -1;
         }
     }
 
@@ -3690,6 +3691,8 @@ static void generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
         closeFile(fp);
         free(cppfile);
     }
+
+    return 0;
 }
 
 
@@ -4124,7 +4127,7 @@ static void generateTypeDefName(ifaceFileDef *iff, FILE *fp)
 /*
  * Generate the C++ code for a class.
  */
-static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
+static int generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
 {
     moduleDef *mod = cd->iff->module;
 
@@ -4132,7 +4135,8 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
 
     generateCppCodeBlock(cd->cppcode, fp);
 
-    generateClassFunctions(pt, mod, cd, py_debug, fp);
+    if (generateClassFunctions(pt, mod, cd, py_debug, fp) < 0)
+        return -1;
 
     generateAccessFunctions(pt, mod, cd, fp);
 
@@ -4178,6 +4182,8 @@ static void generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
 
     /* The type definition structure. */
     generateTypeDefinition(pt, cd, py_debug, fp);
+
+    return 0;
 }
 
 
@@ -5872,7 +5878,7 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 /*
  * Generate the member functions for a class.
  */
-static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
+static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         int py_debug, FILE *fp)
 {
     visibleList *vl;
@@ -5884,7 +5890,8 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (!isExportDerived(cd))
             generateShadowClassDeclaration(pt, cd, fp);
 
-        generateShadowCode(pt, mod, cd, fp);
+        if (generateShadowCode(pt, mod, cd, fp) < 0)
+            return -1;
     }
 
     /* The member functions. */
@@ -6562,13 +6569,15 @@ static void generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The type initialisation function. */
     if (canCreate(cd))
         generateTypeInit(cd, mod, fp);
+
+    return 0;
 }
 
 
 /*
  * Generate the shadow (derived) class code.
  */
-static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
+static int generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp)
 {
     int nrVirts, virtNr;
@@ -6727,11 +6736,14 @@ static void generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
                 break;
 
         if (dvod == vod)
-            generateVirtualCatcher(mod, cd, virtNr++, vod, fp);
+            if (generateVirtualCatcher(mod, cd, virtNr++, vod, fp) < 0)
+                return -1;
     }
 
     /* Generate the wrapper around each protected member function. */
     generateProtectedDefinitions(mod, cd, fp);
+
+    return 0;
 }
 
 
@@ -6789,7 +6801,7 @@ static void generateProtectedEnums(sipSpec *pt,classDef *cd,FILE *fp)
 /*
  * Generate the catcher for a virtual function.
  */
-static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
+static int generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         virtOverDef *vod, FILE *fp)
 {
     overDef *od = vod->od;
@@ -6916,7 +6928,8 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     }
     else if (isAbstract(od))
     {
-        generateDefaultInstanceReturn(res, "    ", fp);
+        if (generateDefaultInstanceReturn(res, "    ", fp) < 0)
+            return -1;
     }
     else
     {
@@ -6969,6 +6982,8 @@ static void generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     prcode(fp,
 "}\n"
         );
+
+    return 0;
 }
 
 
@@ -7132,7 +7147,7 @@ static void generateCastZero(argDef *ad, FILE *fp)
  * Generate a statement to return the default instance of a type typically on
  * error (ie. when there is nothing sensible to return).
  */
-static void generateDefaultInstanceReturn(argDef *res, const char *indent,
+static int generateDefaultInstanceReturn(argDef *res, const char *indent,
         FILE *fp)
 {
     codeBlockList *instance_code;
@@ -7144,7 +7159,7 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
 "%s    return;\n"
             , indent);
 
-        return;
+        return 0;
     }
 
     /* Handle any %InstanceCode. */
@@ -7188,7 +7203,7 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
             , indent
             , indent);
 
-        return;
+        return 0;
     }
 
     prcode(fp,
@@ -7240,7 +7255,7 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         else
         {
             errorScopedName(classFQCName(res->u.cd));
-            fatal(" must have a default constructor\n");
+            return error(" must have a default constructor\n");
         }
     }
     else
@@ -7248,6 +7263,8 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
 
     prcode(fp,";\n"
         );
+
+    return 0;
 }
 
 
@@ -7537,7 +7554,7 @@ static void generateProtectedCallArgs(moduleDef *mod, signatureDef *sd,
  * Generate the function that does most of the work to handle a particular
  * virtual function.
  */
-static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
+static int generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp)
 {
     int a, nrvals, res_isref;
@@ -7746,7 +7763,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 "}\n"
             );
 
-        return;
+        return 0;
     }
 
     /* See how many values we expect. */
@@ -7772,7 +7789,7 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
 "}\n"
             );
 
-        return;
+        return 0;
     }
 
     prcode(fp, ");\n"
@@ -7838,8 +7855,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
                 prcode(fp,
 "        abort();\n"
                     );
-            else
-                generateDefaultInstanceReturn(res, "    ", fp);
+            else if (generateDefaultInstanceReturn(res, "    ", fp) < 0)
+                return -1;
         }
 
         prcode(fp,
@@ -7851,6 +7868,8 @@ static void generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
     prcode(fp,
 "}\n"
         );
+
+    return 0;
 }
 
 
