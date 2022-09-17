@@ -226,7 +226,7 @@ static FILE *createCompilationUnit(moduleDef *mod, stringList **generated,
         const char *fname, const char *description);
 static FILE *createFile(moduleDef *mod, const char *fname,
         const char *description);
-static void closeFile(FILE *);
+static int closeFile(FILE *);
 static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep);
 static void prTypeName(FILE *fp, argDef *ad);
 static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
@@ -1006,7 +1006,8 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "#endif\n"
         );
 
-    closeFile(fp);
+    if (closeFile(fp) < 0)
+        return NULL;
 
     return hfile;
 }
@@ -1100,7 +1101,9 @@ static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "}\n"
         );
 
-    closeFile(fp);
+    if (closeFile(fp) < 0)
+        return -1;
+
     free(cppfile);
 
     return 0;
@@ -2209,7 +2212,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             if (parts && files_in_part++ == max_per_part)
             {
                 /* Close the old part. */
-                closeFile(fp);
+                if (closeFile(fp) < 0)
+                    return NULL;
+
                 free(cppfile);
 
                 /* Create a new one. */
@@ -2236,7 +2241,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 return NULL;
         }
 
-    closeFile(fp);
+    if (closeFile(fp) < 0)
+        return NULL;
+
     free(cppfile);
 
     /* How many parts we actually generated. */
@@ -3715,7 +3722,9 @@ static int generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
 
     if (master == NULL)
     {
-        closeFile(fp);
+        if (closeFile(fp) < 0)
+            return -1;
+
         free(cppfile);
     }
 
@@ -13831,16 +13840,18 @@ void prCopying(FILE *fp, moduleDef *mod, const char *comment)
 /*
  * Close a file and report any errors.
  */
-static void closeFile(FILE *fp)
+static int closeFile(FILE *fp)
 {
     if (ferror(fp))
-        fatal("Error writing to \"%s\"\n",currentFileName);
+        return error("Error writing to \"%s\"\n", currentFileName);
 
     if (fclose(fp))
-        fatal("Error closing \"%s\"\n",currentFileName);
+        return error("Error closing \"%s\"\n", currentFileName);
 
     currentLineNr = previousLineNr;
     currentFileName = previousFileName;
+
+    return 0;
 }
 
 
