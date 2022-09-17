@@ -87,7 +87,7 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
 static void generateModDocstring(moduleDef *mod, FILE *fp);
 static int generateIfaceCpp(sipSpec *, stringList **generated, int,
         ifaceFileDef *, int, const char *, const char *, FILE *);
-static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
+static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp);
 static void generateImportedMappedTypeAPI(mappedTypeDef *mtd, moduleDef *mod,
         FILE *fp);
 static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp);
@@ -98,14 +98,14 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
         int py_debug, FILE *fp);
 static int generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         FILE *fp);
-static void generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
+static int generateFunction(sipSpec *, memberDef *, overDef *, classDef *,
         classDef *, moduleDef *, FILE *);
-static void generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
+static int generateFunctionBody(overDef *, classDef *, mappedTypeDef *,
         classDef *, int deref, moduleDef *, FILE *);
 static void generatePyObjects(sipSpec *pt, moduleDef *mod, FILE *fp);
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
+static int generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
         FILE *fp);
-static void generateTypeInit(classDef *, moduleDef *, FILE *);
+static int generateTypeInit(classDef *, moduleDef *, FILE *);
 static void generateCppCodeBlock(codeBlockList *cbl, FILE *fp);
 static void generateUsedIncludes(ifaceFileList *iffl, FILE *fp);
 static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp);
@@ -127,7 +127,7 @@ static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od);
 static void generateNamedBaseType(ifaceFileDef *, argDef *, const char *, int,
         int, FILE *);
 static void generateTupleBuilder(moduleDef *, signatureDef *, FILE *);
-static void generatePyQtEmitters(classDef *cd, FILE *fp);
+static int generatePyQtEmitters(classDef *cd, FILE *fp);
 static int generateVirtualHandler(moduleDef *mod, virtHandlerDef *vhd,
         FILE *fp);
 static int generateDefaultInstanceReturn(argDef *res, const char *indent,
@@ -145,7 +145,7 @@ static void generateConstructorCall(classDef *, ctorDef *, int, int,
         moduleDef *, FILE *);
 static void generateHandleResult(moduleDef *, overDef *, int, int, char *,
         FILE *);
-static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
+static int generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp);
 static void generateSimpleFunctionCall(fcallDef *, int, FILE *);
 static int generateResultVar(ifaceFileDef *scope, overDef *od, argDef *res,
@@ -202,7 +202,7 @@ static void generateAccessFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 static void generateConvertToDefinitions(mappedTypeDef *, classDef *, FILE *);
 static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
         FILE *fp);
-static void generateArgParser(moduleDef *mod, signatureDef *sd,
+static int generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
         FILE *fp);
 static void generateTry(throwArgs *, FILE *);
@@ -211,7 +211,7 @@ static void generateCatch(throwArgs *ta, signatureDef *sd, moduleDef *mod,
 static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
         signatureDef *sd, FILE *fp, int rgil);
 static void generateThrowSpecifier(throwArgs *, FILE *);
-static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp);
 static void generateCastZero(argDef *ad, FILE *fp);
 static void generateCallDefaultCtor(ctorDef *ct, FILE *fp);
@@ -1238,7 +1238,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     {
         if (md->slot == no_slot)
         {
-            generateOrdinaryFunction(pt, mod, NULL, NULL, md, fp);
+            if (generateOrdinaryFunction(pt, mod, NULL, NULL, md, fp) < 0)
+                return NULL;
         }
         else
         {
@@ -1252,7 +1253,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             {
                 if (od->common == md)
                 {
-                    generateSlot(mod, NULL, NULL, md, fp);
+                    if (generateSlot(mod, NULL, NULL, md, fp) < 0)
+                        return NULL;
+
                     slot_extenders = TRUE;
                     break;
                 }
@@ -1268,7 +1271,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             for (md = cd->members; md != NULL; md = md->next)
             {
                 if (md->slot == no_slot)
-                    generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
+                    if (generateOrdinaryFunction(pt, mod, cd, NULL, md, fp) < 0)
+                        return NULL;
             }
         }
     }
@@ -1278,13 +1282,17 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     {
         if (cd->ctors != NULL)
         {
-            generateTypeInit(cd, mod, fp);
+            if (generateTypeInit(cd, mod, fp) < 0)
+                return NULL;
+
             ctor_extenders = TRUE;
         }
 
         for (md = cd->members; md != NULL; md = md->next)
         {
-            generateSlot(mod, cd, NULL, md, fp);
+            if (generateSlot(mod, cd, NULL, md, fp) < 0)
+                return NULL;
+
             slot_extenders = TRUE;
         }
     }
@@ -1421,7 +1429,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             continue;
 
         for (slot = ed->slots; slot != NULL; slot = slot->next)
-            generateSlot(mod, NULL, ed, slot, fp);
+            if (generateSlot(mod, NULL, ed, slot, fp) < 0)
+                return NULL;
 
         prcode(fp,
 "\n"
@@ -2525,7 +2534,7 @@ static void generateEncodedType(moduleDef *mod, classDef *cd, int last,
 /*
  * Generate an ordinary function.
  */
-static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
+static int generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
         classDef *c_scope, mappedTypeDef *mt_scope, memberDef *md, FILE *fp)
 {
     overDef *od;
@@ -2644,7 +2653,8 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
                 need_intro = FALSE;
             }
 
-            generateFunctionBody(od, c_scope, mt_scope, c_scope, TRUE, mod, fp);
+            if (generateFunctionBody(od, c_scope, mt_scope, c_scope, TRUE, mod, fp) < 0)
+                return -1;
         }
 
         od = od->next;
@@ -2678,6 +2688,8 @@ static void generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
     prcode(fp,
 "}\n"
         );
+
+    return 0;
 }
 
 
@@ -3684,7 +3696,8 @@ static int generateIfaceCpp(sipSpec *pt, stringList **generated, int py_debug,
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
         if (mtd->iff == iff)
-            generateMappedTypeCpp(mtd, pt, fp);
+            if (generateMappedTypeCpp(mtd, pt, fp) < 0)
+                return -1;
 
     if (master == NULL)
     {
@@ -3722,7 +3735,7 @@ static char *createIfaceFileName(const char *codeDir, ifaceFileDef *iff,
 /*
  * Generate the C++ code for a mapped type version.
  */
-static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
+static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 {
     int nr_methods, nr_enums, has_ints, needs_namespace, plugin;
     int need_state, need_user_state;
@@ -3930,7 +3943,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     /* Generate the static methods. */
     for (md = mtd->members; md != NULL; md = md->next)
-        generateOrdinaryFunction(pt, mtd->iff->module, NULL, mtd, md, fp);
+        if (generateOrdinaryFunction(pt, mtd->iff->module, NULL, mtd, md, fp) < 0)
+            return -1;
 
     nr_methods = generateMappedTypeMethodTable(pt, mtd, fp);
 
@@ -4112,6 +4126,8 @@ static void generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
     prcode(fp,
 "};\n"
         );
+
+    return 0;
 }
 
 
@@ -4181,7 +4197,8 @@ static int generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
     }
 
     /* The type definition structure. */
-    generateTypeDefinition(pt, cd, py_debug, fp);
+    if (generateTypeDefinition(pt, cd, py_debug, fp) < 0)
+        return -1;
 
     return 0;
 }
@@ -5583,7 +5600,7 @@ static int isRichCompareSlot(memberDef *md)
 /*
  * Generate a Python slot handler for either a class, an enum or an extender.
  */
-static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
+static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         memberDef *md, FILE *fp)
 {
     char *arg_str, *decl_arg_str, *prefix, *ret_type, *ret_value;
@@ -5774,7 +5791,8 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
 
         for (od = overs; od != NULL; od = od->next)
             if (od->common == md)
-                generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp);
+                if (generateFunctionBody(od, cd, NULL, cd, (ed == NULL && !dontDerefSelf(od)), mod, fp) < 0)
+                    return -1;
 
         if (has_args)
         {
@@ -5872,6 +5890,8 @@ static void generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     prcode(fp,
 "}\n"
         );
+
+    return 0;
 }
 
 
@@ -5897,14 +5917,21 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
     /* The member functions. */
     for (vl = cd->visible; vl != NULL; vl = vl->next)
         if (vl->m->slot == no_slot)
-            generateFunction(pt, vl->m, vl->cd->overs, cd, vl->cd, mod, fp);
+            if (generateFunction(pt, vl->m, vl->cd->overs, cd, vl->cd, mod, fp) < 0)
+                return -1;
 
     /* The slot functions. */
     for (md = cd->members; md != NULL; md = md->next)
         if (cd->iff->type == namespace_iface)
-            generateOrdinaryFunction(pt, mod, cd, NULL, md, fp);
+        {
+            if (generateOrdinaryFunction(pt, mod, cd, NULL, md, fp) < 0)
+                return -1;
+        }
         else if (md->slot != no_slot)
-            generateSlot(mod, cd, NULL, md, fp);
+        {
+            if (generateSlot(mod, cd, NULL, md, fp) < 0)
+                return -1;
+        }
 
     /* The cast function. */
     if (cd->supers != NULL)
@@ -6568,7 +6595,8 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
     /* The type initialisation function. */
     if (canCreate(cd))
-        generateTypeInit(cd, mod, fp);
+        if (generateTypeInit(cd, mod, fp) < 0)
+            return -1;
 
     return 0;
 }
@@ -9470,7 +9498,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd, int in_str, FILE *fp)
  * Generate the type structure that contains all the information needed by the
  * meta-type.  A sub-set of this is used to extend namespaces.
  */
-static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
+static int generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
         FILE *fp)
 {
     const char *sep;
@@ -9674,9 +9702,14 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     /* Generate any plugin-specific data structures. */
     if (pluginPyQt5(pt) || pluginPyQt6(pt))
-        plugin = generatePyQtClassPlugin(pt, cd, fp);
+    {
+        if ((plugin = generatePyQtClassPlugin(pt, cd, fp)) < 0)
+            return -1;
+    }
     else
+    {
         plugin = FALSE;
+    }
 
     prcode(fp,
 "\n"
@@ -10112,6 +10145,8 @@ static void generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
     prcode(fp,
 "};\n"
         );
+
+    return 0;
 }
 
 
@@ -10127,7 +10162,7 @@ static int hasOptionalArgs(overDef *od)
 /*
  * Generate the PyQt emitters for a class.
  */
-static void generatePyQtEmitters(classDef *cd, FILE *fp)
+static int generatePyQtEmitters(classDef *cd, FILE *fp)
 {
     moduleDef *mod = cd->iff->module;
     memberDef *md;
@@ -10175,7 +10210,8 @@ static void generatePyQtEmitters(classDef *cd, FILE *fp)
 "    {\n"
                 );
 
-            generateArgParser(mod, &od->pysig, cd, NULL, NULL, NULL, fp);
+            if (generateArgParser(mod, &od->pysig, cd, NULL, NULL, NULL, fp) < 0)
+                return -1;
 
             prcode(fp,
 "        {\n"
@@ -10211,6 +10247,8 @@ static void generatePyQtEmitters(classDef *cd, FILE *fp)
                 , cd->pyname, md->pyname);
         }
     }
+
+    return 0;
 }
 
 
@@ -10588,7 +10626,7 @@ static const char *slotName(slotType st)
 /*
  * Generate the initialisation function or cast operators for the type.
  */
-static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
+static int generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 {
     ctorDef *ct;
     int need_self, need_owner;
@@ -10686,7 +10724,9 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
             error_flag = old_error_flag = FALSE;
         }
 
-        generateArgParser(mod, &ct->pysig, cd, NULL, ct, NULL, fp);
+        if (generateArgParser(mod, &ct->pysig, cd, NULL, ct, NULL, fp) < 0)
+            return -1;
+
         generateConstructorCall(cd, ct, error_flag, old_error_flag, mod, fp);
 
         prcode(fp,
@@ -10699,6 +10739,8 @@ static void generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
 "    return SIP_NULLPTR;\n"
 "}\n"
         );
+
+    return 0;
 }
 
 
@@ -11156,7 +11198,7 @@ static int skipOverload(overDef *od,memberDef *md,classDef *cd,classDef *ccd,
 /*
  * Generate a class member function.
  */
-static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
+static int generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
         classDef *cd, classDef *ocd, moduleDef *mod, FILE *fp)
 {
     overDef *od;
@@ -11311,7 +11353,8 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
                 break;
             }
 
-            generateFunctionBody(od, cd, NULL, ocd, TRUE, mod, fp);
+            if (generateFunctionBody(od, cd, NULL, ocd, TRUE, mod, fp) < 0)
+                return -1;
         }
 
         if (!noArgParser(md))
@@ -11335,13 +11378,15 @@ static void generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
 "}\n"
             );
     }
+
+    return 0;
 }
 
 
 /*
  * Generate the function calls for a particular overload.
  */
-static void generateFunctionBody(overDef *od, classDef *c_scope,
+static int generateFunctionBody(overDef *od, classDef *c_scope,
         mappedTypeDef *mt_scope, classDef *ocd, int deref, moduleDef *mod,
         FILE *fp)
 {
@@ -11384,11 +11429,13 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
             od->pysig.args[0].u.cd = ocd;
         }
 
-        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp);
+        if (generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp) < 0)
+            return -1;
     }
     else if (!isIntArgSlot(od->common) && !isZeroArgSlot(od->common))
     {
-        generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp);
+        if (generateArgParser(mod, &od->pysig, c_scope, mt_scope, NULL, od, fp) < 0)
+            return -1;
     }
 
     generateFunctionCall(c_scope, mt_scope, o_scope, od, deref, mod, fp);
@@ -11398,6 +11445,8 @@ static void generateFunctionBody(overDef *od, classDef *c_scope,
         );
 
     od->pysig = saved;
+
+    return 0;
 }
 
 
@@ -12849,7 +12898,7 @@ static void generateNumberSlotCall(moduleDef *mod, overDef *od, char *op,
 /*
  * Generate the argument variables for a member function/constructor/operator.
  */
-static void generateArgParser(moduleDef *mod, signatureDef *sd,
+static int generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
         FILE *fp)
 {
@@ -13226,15 +13275,15 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
             if (isArray(ad))
             {
                 if (ad->nrderefs != 1 || !isInArg(ad) || isReference(ad))
-                    fatal("Mapped type or class with /Array/ is not a pointer\n");
+                    return error("Mapped type or class with /Array/ is not a pointer\n");
 
                 if (ad->atype == mapped_type && noRelease(ad->u.mtd))
-                    fatal("Mapped type does not support /Array/\n");
+                    return error("Mapped type does not support /Array/\n");
 
                 if (ad->atype == class_type && !(generating_c || arrayHelper(ad->u.cd)))
                 {
                     errorScopedName(classFQCName(ad->u.cd));
-                    fatal(" does not support /Array/\n");
+                    return error(" does not support /Array/\n");
                 }
 
                 if (ad->atype == class_type && abiSupportsArray())
@@ -13433,6 +13482,8 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
     }
 
     prcode(fp,"))\n");
+
+    return 0;
 }
 
 
@@ -14943,7 +14994,8 @@ static int generatePluginSignalsTable(sipSpec *pt, classDef *cd, FILE *fp)
                 {
                     is_signals = TRUE;
 
-                    generatePyQtEmitters(cd, fp);
+                    if (generatePyQtEmitters(cd, fp) < 0)
+                        return -1;
 
                     prcode(fp,
 "\n"
@@ -15004,6 +15056,9 @@ static int generatePyQt6MappedTypePlugin(sipSpec *pt, mappedTypeDef *mtd,
 static int generatePyQtClassPlugin(sipSpec *pt, classDef *cd, FILE *fp)
 {
     int is_signals = generatePluginSignalsTable(pt, cd, fp);
+
+    if (is_signals < 0)
+        return -1;
 
     /* The PyQt6 support code doesn't assume the structure is generated. */
     if (pluginPyQt6(pt))
