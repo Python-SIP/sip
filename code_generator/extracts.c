@@ -26,7 +26,7 @@
 /*
  * Generate the extracts.
  */
-void generateExtracts(sipSpec *pt, const stringList *extracts)
+int generateExtracts(sipSpec *pt, const stringList *extracts)
 {
     while (extracts != NULL)
     {
@@ -40,7 +40,8 @@ void generateExtracts(sipSpec *pt, const stringList *extracts)
         cp = strchr(extracts->s, ':');
 
         if (cp == NULL || cp == extracts->s || cp[1] == '\0')
-            fatal("An extract must be in the form 'id:file', not '%s'\n",
+            return error(
+                    "An extract must be in the form 'id:file', not '%s'\n",
                     extracts->s);
 
         id = extracts->s;
@@ -52,11 +53,12 @@ void generateExtracts(sipSpec *pt, const stringList *extracts)
                 break;
 
         if (ed == NULL)
-            fatal("There is no extract defined with the identifier \"%.*s\"\n",
+            return error(
+                    "There is no extract defined with the identifier \"%.*s\"\n",
                     id_len, id);
 
         if ((fp = fopen(fname, "w")) == NULL)
-            fatal("Unable to create file '%s'\n", fname);
+            return error("Unable to create file '%s'\n", fname);
 
         for (epd = ed->parts; epd != NULL; epd = epd->next)
             fprintf(fp, "%s", epd->part->frag);
@@ -65,6 +67,8 @@ void generateExtracts(sipSpec *pt, const stringList *extracts)
 
         extracts = extracts->next;
     }
+
+    return 0;
 }
 
 

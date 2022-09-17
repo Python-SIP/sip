@@ -198,13 +198,11 @@ static PyObject *py_generateExtracts(PyObject *self, PyObject *args)
             stringList_convertor, &extracts))
         return NULL;
 
-    if (setjmp(on_fatal_error) != NO_EXCEPTION)
+    if (generateExtracts(pt, extracts) < 0)
     {
         raise_exception();
         return NULL;
     }
-
-    generateExtracts(pt, extracts);
 
     Py_RETURN_NONE;
 }

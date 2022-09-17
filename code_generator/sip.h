@@ -1331,7 +1331,7 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);
-void generateExtracts(sipSpec *pt, const stringList *extracts);
+int generateExtracts(sipSpec *pt, const stringList *extracts);
 void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
