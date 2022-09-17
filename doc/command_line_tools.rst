@@ -377,6 +377,10 @@ The full set of command line options is:
     Create an sdist which can then be installed by :program:`pip` or uploaded
     to PyPI.
 
+    :program:`pip` can also be used to create a wheel from the sdist.  However,
+    for Linux wheels, :program:`auditwheel` must be run for the wheel before it
+    can be uploaded to PyPI.
+
 .. option:: --setup-cfg FILE
 
     ``FILE`` is copied to the sdist as :file:`setup.cfg` instead of the default
