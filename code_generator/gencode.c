@@ -321,6 +321,7 @@ static int isVoidReturnSlot(memberDef *md);
 static int isInplaceNumberSlot(memberDef *md);
 static int isRichCompareSlot(memberDef *md);
 static int usedInCode(codeBlockList *cbl, const char *str);
+static void errorScopedName(scopedNameDef *snd);
 
 
 /*
@@ -7238,7 +7239,7 @@ static void generateDefaultInstanceReturn(argDef *res, const char *indent,
         }
         else
         {
-            fatalScopedName(classFQCName(res->u.cd));
+            errorScopedName(classFQCName(res->u.cd));
             fatal(" must have a default constructor\n");
         }
     }
@@ -13213,7 +13214,7 @@ static void generateArgParser(moduleDef *mod, signatureDef *sd,
 
                 if (ad->atype == class_type && !(generating_c || arrayHelper(ad->u.cd)))
                 {
-                    fatalScopedName(classFQCName(ad->u.cd));
+                    errorScopedName(classFQCName(ad->u.cd));
                     fatal(" does not support /Array/\n");
                 }
 
@@ -14175,7 +14176,7 @@ static void prOverloadName(FILE *fp, overDef *od)
     if (fp != NULL)
         fprintf(fp, "%s%s", pt1, pt2);
     else
-        fatalAppend("%s%s", pt1, pt2);
+        errorAppend("%s%s", pt1, pt2);
 }
 
 
@@ -15395,16 +15396,16 @@ static int selectedQualifier(stringList *needed_qualifiers, qualDef *qd)
 /*
  * Put a scoped name to stderr.
  */
-void fatalScopedName(scopedNameDef *snd)
+static void errorScopedName(scopedNameDef *snd)
 {
     while (snd != NULL)
     {
-        fatalAppend("%s", snd->name);
+        errorAppend("%s", snd->name);
 
         snd = snd -> next;
 
         if (snd != NULL)
-            fatalAppend("::");
+            errorAppend("::");
     }
 }
 
