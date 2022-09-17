@@ -24,7 +24,9 @@
 
 #include <Python.h>
 
+#undef NDEBUG
 #include <assert.h>
+
 #include <limits.h>
 #include <string.h>
 
