@@ -2392,7 +2392,6 @@ static throwArgs *throw_arguments(sipSpec *pt, PyObject *obj,
 {
     throwArgs *value;
     PyObject *args_obj;
-    Py_ssize_t i;
 
     if (obj == Py_None)
         return NULL;
@@ -2402,10 +2401,19 @@ static throwArgs *throw_arguments(sipSpec *pt, PyObject *obj,
     args_obj = PyObject_GetAttrString(obj, "arguments");
     assert(args_obj != NULL);
 
-    for (i = 0; i < PyList_Size(args_obj) && i < MAX_NR_ARGS; ++i)
-        value->args[i] = exception(pt, PyList_GetItem(args_obj, i), encoding);
+    if (args_obj != Py_None)
+    {
+        Py_ssize_t i;
 
-    value->nrArgs = i;
+        for (i = 0; i < PyList_Size(args_obj) && i < MAX_NR_ARGS; ++i)
+            value->args[i] = exception(pt, PyList_GetItem(args_obj, i), encoding);
+
+        value->nrArgs = i;
+    }
+    else
+    {
+        value->nrArgs = -1;
+    }
 
     Py_DECREF(args_obj);
 

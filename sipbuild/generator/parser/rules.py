@@ -2253,7 +2253,7 @@ def p_exception(p):
     pm.check_annotations(p, 4, "exception", _EXCEPTION_ANNOTATIONS)
 
     cpp_name = p[2]
-    py_name = pm.get_py_name(cpp_name, p[4])
+    py_name = pm.get_py_name(cpp_name.base_name, p[4])
     pm.check_attributes(p, 2, py_name)
 
     builtin_base, defined_base = p[3]

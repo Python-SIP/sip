@@ -2044,14 +2044,13 @@ def _iface_files_are_used_by_overload(spec, used, overload, need_types=False):
     if spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)):
         return
 
-    if overload.throw_args is not None:
-        for throw_arg in overload.throw_args:
-            if throw_arg is not None:
-                for exception in throw_arg.arguments:
-                    append_iface_file(used, exception.iface_file)
+    throw_args = overload.throw_args
+    if throw_args is not None and throw_args.arguments is not None:
+        for exception in throw_args.arguments:
+            append_iface_file(used, exception.iface_file)
 
-                    if need_types:
-                        _set_needs_exception(exception)
+            if need_types:
+                _set_needs_exception(exception)
 
 
 def _iface_file_is_used(used, arg, need_types=False):
