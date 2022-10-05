@@ -404,15 +404,15 @@ def same_base_type(type1, type2):
         if td1.cpp_name.absolute != td2.cpp_name.absolute:
             return False
 
-        try:
-            for ad1, ad2 in zip(td1.types.args, td2.types.args, strict=True):
-                if len(ad1.derefs) != len(ad2.derefs):
-                    return False
-
-                if not same_base_type(ad1, ad2):
-                    return False
-        except ValueError:
+        if len(td1.types.args) != len(td2.types.args):
             return False
+
+        for ad1, ad2 in zip(td1.types.args, td2.types.args):
+            if len(ad1.derefs) != len(ad2.derefs):
+                return False
+
+            if not same_base_type(ad1, ad2):
+                return False
 
         return True
 
