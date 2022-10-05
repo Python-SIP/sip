@@ -212,8 +212,6 @@ static exceptionDef *exception_list_attr(sipSpec *pt, PyObject *obj,
 static valueDef *expr(sipSpec *pt, PyObject *obj, const char *encoding);
 static valueDef *expr_attr(sipSpec *pt, PyObject *obj, const char *name,
         const char *encoding);
-static void extract_list_attr(sipSpec *pt, PyObject *obj, const char *name,
-        const char *encoding);
 static fcallDef *functioncall(sipSpec *pt, PyObject *obj,
         const char *encoding);
 static ifaceFileDef *ifacefile(sipSpec *pt, PyObject *obj,
@@ -365,8 +363,6 @@ sipSpec *py2c(PyObject *spec, const char *encoding)
     pt->plugins = str_list_attr(spec, "plugins", encoding);
     pt->nrvirthandlers = int_attr(spec, "nr_virtual_handlers");
     pt->qobject_cd = class_attr(pt, spec, "pyqt_qobject", encoding);
-
-    extract_list_attr(pt, spec, "extracts", encoding);
 
     return pt;
 }
@@ -1226,37 +1222,6 @@ static exceptionDef *exception_list_attr(sipSpec *pt, PyObject *obj,
     Py_DECREF(attr);
 
     return head;
-}
-
-
-/*
- * Convert a Extract list attribute.
- */
-static void extract_list_attr(sipSpec *pt, PyObject *obj, const char *name,
-        const char *encoding)
-{
-    PyObject *attr = PyObject_GetAttrString(obj, name);
-    Py_ssize_t i;
-
-    assert(attr != NULL);
-
-    for (i = 0; i < PyList_Size(attr); ++i)
-    {
-        PyObject *item;
-        const char *id;
-        int order;
-        codeBlock *part;
-
-        item = PyList_GetItem(attr, i);
-
-        id = str_attr(item, "id", encoding);
-        order = int_attr(item, "order");
-        part = codeblock_attr(item, "part", encoding);
-
-        addExtractPart(pt, id, order, part);
-    }
-
-    Py_DECREF(attr);
 }
 
 

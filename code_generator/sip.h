@@ -1249,22 +1249,6 @@ typedef struct _classDef {
 } classDef;
 
 
-/* The extracts for an identifier. */
-typedef struct _extractDef {
-    const char *id;                     /* The identifier. */
-    struct _extractPartDef *parts;      /* The ordered list of parts. */
-    struct _extractDef *next;           /* The next in the list. */
-} extractDef;
-
-
-/* Part of an extract for an identifier. */
-typedef struct _extractPartDef {
-    int order;                          /* The order of the part. */
-    codeBlock *part;                    /* The part itself. */
-    struct _extractPartDef *next;       /* The next in the list. */
-} extractPartDef;
-
-
 /* A rule for automatic Python naming. */
 typedef struct _autoPyNameDef {
     const char *remove_leading;         /* Leading string to remove. */
@@ -1314,8 +1298,6 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);
-int generateExtracts(sipSpec *pt, const stringList *extracts);
-void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
 int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
 int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);

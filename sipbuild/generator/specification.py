@@ -965,8 +965,8 @@ class Extract:
     # The order.  A negative value implies the part is appended to the extract.
     order: int
 
-    # The actual part of the extract.
-    part: CodeBlock
+    # The text of the extract part.
+    text: str
 
 
 @dataclass

@@ -22,5 +22,6 @@
 
 
 # Publish the API.  This is private to the rest of sip.
+from .extracts import generate_extract
 from .parser import parse
 from .resolver import resolve
