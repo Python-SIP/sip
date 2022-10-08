@@ -49,6 +49,8 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
         i_class.docstring = docstring
 
     i_class.mro = []
+    i_class.virtual_overloads = []
+    i_class.visible_members = []
     i_class.py_name = cached_name(pm.spec, py_name)
     i_class.template = template
     i_class.no_type_name = no_type_name
