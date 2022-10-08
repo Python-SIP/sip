@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .specification import PySlot
+from ..specification import PySlot
 
 
 # Map the Python slot types to C++.
@@ -58,14 +58,27 @@ _PYSLOT_CPP_MAP = {
 }
 
 
-def format_overload_as_cpp(overload):
-    ''' Return the C++ representation of an overload. '''
+class OverloadFormatter:
+    """ This creates various string representations of an overload. """
 
-    part1 = 'operator'
+    def __init__(self, overload, scope):
+        """ Initialise the object. """
 
-    try:
-        part2 = _PYSLOT_CPP_MAP[overload.common.py_slot]
-    except KeyError:
-        return overload.cpp_name
+        self._overload = overload
+        self._scope = scope
 
-    return 'operator' + part2
+    @property
+    def fq_cpp_name(self):
+        """ The fully qualified C++ name. """
+
+        if self._scope is None:
+            scope_s = ''
+        else:
+            scope_s = str(self._scope.iface_file.fq_cpp_name) + '::'
+
+        try:
+            part2 = _PYSLOT_CPP_MAP[self._overload.common.py_slot]
+        except KeyError:
+            return scope_s + self._overload.cpp_name
+
+        return scope_s + 'operator' + part2

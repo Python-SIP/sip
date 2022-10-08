@@ -25,7 +25,6 @@
 from copy import copy
 
 from ..error_log import ErrorLog
-from ..formatters import format_overload_as_cpp
 from ..instantiations import instantiate_type_hints
 from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_inplace_number_slot, is_rich_compare_slot, is_ssize_return_slot,
@@ -2187,12 +2186,9 @@ def _check_properties(klass, error_log):
 def _log_overload_error(error_log, text, overload, scope=None):
     """ Log an error about an overload. """
 
-    if scope is not None:
-        scope_s = str(scope.iface_file.fq_cpp_name) + '::'
-    else:
-        scope_s = ''
+    from ..formatters import OverloadFormatter
 
-    error_log.log(
-            "'{0}{1}' {2}".format(scope_s, format_overload_as_cpp(overload),
-                    text),
+    formatter = OverloadFormatter(overload, scope)
+
+    error_log.log(f"'{formatter.fq_cpp_name}' {text}",
             source_location=overload.source_location)
