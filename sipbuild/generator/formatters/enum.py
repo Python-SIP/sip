@@ -8,7 +8,7 @@
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ('AS IS'
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -21,8 +21,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-# Publish the API.  This is private to the rest of sip.
-from .api import generate_api
-from .extracts import generate_extract
-from .parser import parse
-from .resolver import resolve
+from .scoped import EmbeddedScopeFormatter
+from .utils import format_scoped_py_name
+
+
+class EnumFormatter(EmbeddedScopeFormatter):
+    """ This creates various string representations of an enum. """
+
+    @property
+    def fq_py_member_names(self):
+        """ An iterator over the fully qualified Python names of the members of
+        the enum.
+        """
+
+        enum = self.object
+
+        enum_name = enum.module.fq_py_name.name + '.'
+
+        if enum.py_name is not None:
+            enum_name += format_scoped_py_name(self.scope, enum.py_name.name)
+            enum_name += '.'
+
+        for member in enum.members:
+            yield enum_name + member.py_name.name

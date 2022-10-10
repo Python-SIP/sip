@@ -25,10 +25,10 @@ import os
 import sys
 
 from .buildable import BuildableBindings
-from .code_generator import generateCode, generateAPI, generateTypeHints, py2c
+from .code_generator import generateCode, generateTypeHints, py2c
 from .configurable import Configurable, Option
 from .exceptions import UserException
-from .generator import generate_extract, parse, resolve
+from .generator import generate_api, generate_extract, parse, resolve
 from .installable import Installable
 from .module import copy_nonshared_sources
 from .version import SIP_VERSION
@@ -194,7 +194,7 @@ class Bindings(Configurable):
             project.progress(
                     "Generating the {0} .api file".format(buildable.target))
 
-            generateAPI(pt,
+            generate_api(spec, module,
                     os.path.join(project.build_dir, buildable.target + '.api'))
 
         # Generate any extracts.

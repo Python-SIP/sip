@@ -32,13 +32,14 @@ from ...exceptions import UserException
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, CodeBlock, Constructor, DocstringFormat,
         DocstringSignature, EnumBaseType, GILAction, IfaceFile, IfaceFileType,
         KwArgs, MappedType, Member, Module, Overload, PyQtMethodSpecifier,
-        PySlot, Qualifier, QualifierType, ScopedName, Signature,
-        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
-        WrappedException, WrappedEnum, WrappedEnumMember)
+        PySlot, Qualifier, QualifierType, Signature, SourceLocation,
+        Specification, Transfer, TypeHints, WrappedClass, WrappedException,
+        WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..type_hints import get_type_hint
 from ..utils import (argument_as_str, cached_name, find_iface_file,

@@ -21,63 +21,50 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..specification import PySlot
-
-from .scoped import ScopedFormatter
+from .base_formatter import BaseFormatter
 from .utils import format_scoped_py_name
 
 
-# Map the Python slot types to C++.
-_PYSLOT_CPP_MAP = {
-    PySlot.ADD: '+',
-    PySlot.SUB: '-',
-    PySlot.MUL: '*',
-    PySlot.TRUEDIV: '/',
-    PySlot.MOD: '%',
-    PySlot.AND: '&',
-    PySlot.OR: '|',
-    PySlot.XOR: '^',
-    PySlot.LSHIFT: '<<',
-    PySlot.RSHIFT: '>>',
-    PySlot.IADD: '+=',
-    PySlot.ISUB: '-=',
-    PySlot.IMUL: '*=',
-    PySlot.ITRUEDIV: '/=',
-    PySlot.IMOD: '%=',
-    PySlot.IAND: '&=',
-    PySlot.IOR: '|=',
-    PySlot.IXOR: '^=',
-    PySlot.ILSHIFT: '<<=',
-    PySlot.IRSHIFT: '>>=',
-    PySlot.INVERT: '~',
-    PySlot.CALL: '()',
-    PySlot.GETITEM: '[]',
-    PySlot.LT: '<',
-    PySlot.LE: '<=',
-    PySlot.EQ: '==',
-    PySlot.NE: '!=',
-    PySlot.GT: '>',
-    PySlot.GE: '>=',
-}
+class ScopedFormatter(BaseFormatter):
+    """ A base class for formatters of objects that can be contained by a
+    scope.
+    """
 
+    def __init__(self, spec, object, scope):
+        """ Initialise the object. """
 
-class OverloadFormatter(ScopedFormatter):
-    """ This creates various string representations of an overload. """
+        super().__init__(spec, object)
+
+        self.scope = scope
+
+    @property
+    def cpp_scope(self):
+        """ The C++ scope as a string. """
+
+        if self.scope is None:
+            return ''
+
+        return str(self.scope.iface_file.fq_cpp_name) + '::'
 
     @property
     def fq_cpp_name(self):
         """ The fully qualified C++ name. """
 
-        try:
-            cpp_op = _PYSLOT_CPP_MAP[self.object.common.py_slot]
-        except KeyError:
-            return super().fq_cpp_name
-
-        return self.cpp_scope + 'operator' + cpp_op
+        return self.cpp_scope + self.object.cpp_name
 
     @property
     def fq_py_name(self):
         """ The fully qualified Python name. """
 
-        return format_scoped_py_name(self.scope,
-                self.object.common.py_name.name)
+        return format_scoped_py_name(self.scope, self.object.py_name.name)
+
+
+class EmbeddedScopeFormatter(ScopedFormatter):
+    """ A base class for formatters of objects that have a reference to their
+    scope.
+    """
+
+    def __init__(self, spec, object):
+        """ Initialise the object. """
+
+        super().__init__(spec, object, object.scope)

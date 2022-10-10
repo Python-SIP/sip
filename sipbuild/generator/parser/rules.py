@@ -21,12 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
         FunctionCall, IfaceFile, IfaceFileType, KwArgs, License, MappedType,
         MappedTypeTemplate, Overload, Property, PyQtMethodSpecifier,
-        QualifierType, ScopedName, Signature, Template, ThrowArguments, Value,
-        ValueType, VirtualErrorHandler, WrappedTypedef, WrappedVariable)
+        QualifierType, Signature, Template, ThrowArguments, Value, ValueType,
+        VirtualErrorHandler, WrappedTypedef, WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import cached_name, normalised_scoped_name, search_typedefs
 

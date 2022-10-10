@@ -21,8 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .specification import (ArgumentType, CachedName, IfaceFile, IfaceFileType,
-        ScopedName)
+from .scoped_name import ScopedName
+from .specification import ArgumentType, CachedName, IfaceFile, IfaceFileType
 
 
 def append_iface_file(iface_file_list, iface_file):

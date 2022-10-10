@@ -23,7 +23,8 @@
 
 from copy import copy
 
-from .specification import ArgumentType, IfaceFileType, ScopedName
+from .scoped_name import ScopedName
+from .specification import ArgumentType, IfaceFileType
 from .utils import append_iface_file, argument_as_str, same_base_type
 
 

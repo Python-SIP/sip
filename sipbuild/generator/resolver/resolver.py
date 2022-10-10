@@ -29,9 +29,10 @@ from ..instantiations import instantiate_type_hints
 from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_inplace_number_slot, is_rich_compare_slot, is_ssize_return_slot,
         is_void_return_slot, is_zero_arg_slot)
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType, ClassKey,
         Constructor, IfaceFileType, MappedType, Member, PyQtMethodSpecifier,
-        PySlot, ScopedName, Signature, Transfer, ValueType, VirtualHandler,
+        PySlot, Signature, Transfer, ValueType, VirtualHandler,
         VirtualOverload, VisibleMember, WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)

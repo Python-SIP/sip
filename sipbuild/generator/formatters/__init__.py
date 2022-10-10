@@ -22,4 +22,8 @@
 
 
 # Publish the API.  This is private to the rest of sip.
+from .enum import EnumFormatter
+from .klass import ClassFormatter
 from .overload import OverloadFormatter
+from .signature import SignatureFormatter
+from .variable import VariableFormatter

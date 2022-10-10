@@ -23,9 +23,9 @@
 
 from copy import copy
 
+from .scoped_name import ScopedName
 from .specification import (Argument, ArgumentType, FunctionCall,
-        IfaceFileType, KwArgs, ScopedName, Signature, TypeHints, Value,
-        ValueType)
+        IfaceFileType, KwArgs, Signature, TypeHints, Value, ValueType)
 from .templates import (template_code, template_code_blocks,
         template_expansions, template_string)
 from .type_hints import get_type_hint
