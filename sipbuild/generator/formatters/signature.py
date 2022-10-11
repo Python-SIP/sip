@@ -22,7 +22,7 @@
 
 
 from ..scoped_name import STRIP_NONE
-from ..specification import ArrayArgument
+from ..specification import ArgumentType, ArrayArgument
 
 from .argument import ArgumentFormatter
 from .base_formatter import BaseFormatter
@@ -63,7 +63,9 @@ class SignatureFormatter(BaseFormatter):
         results = []
 
         if sig.result is not None:
-            results.append(ArgumentFormatter(self.spec, sig.result).py_type())
+            if sig.result.type is not ArgumentType.VOID or len(sig.result.derefs) != 0:
+                results.append(ArgumentFormatter(self.spec,
+                        sig.result).py_type())
 
         for arg in sig.args:
             if arg.is_out:

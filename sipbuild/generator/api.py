@@ -67,7 +67,7 @@ def generate_api(spec, module, api_filename):
 def _api_ctor(af, spec, module, ctor, scope):
     """ Generate an API ctor. """
 
-    py_class = module.fq_py_name.name + '.' + ClassFormatter(spec, scope).fq_py_name
+    py_class = module.py_name + '.' + ClassFormatter(spec, scope).fq_py_name
     py_arguments = SignatureFormatter(spec, ctor.py_signature).py_arguments
 
     # Do the callable type form.
@@ -90,7 +90,7 @@ def _api_enums(af, spec, module, scope=None):
             formatter = EnumFormatter(spec, enum)
 
             if enum.py_name is not None:
-                af.write(f'{module.fq_py_name.name}.{formatter.fq_py_name}?{IconNumber.ENUM}\n')
+                af.write(f'{module.py_name}.{formatter.fq_py_name}?{IconNumber.ENUM}\n')
 
             for member_s in formatter.fq_py_member_names:
                 af.write(f'{member_s}?{IconNumber.ENUM}\n')
@@ -103,7 +103,7 @@ def _api_variables(af, spec, module, scope=None):
         if variable.module is module and variable.scope is scope:
             formatter = VariableFormatter(spec, variable)
 
-            af.write(f'{module.fq_py_name.name}.{formatter.fq_py_name}?{IconNumber.VARIABLE}\n')
+            af.write(f'{module.py_name}.{formatter.fq_py_name}?{IconNumber.VARIABLE}\n')
 
 
 def _api_overload(af, spec, module, overload, scope=None):
@@ -111,7 +111,7 @@ def _api_overload(af, spec, module, overload, scope=None):
 
     sig_formatter = SignatureFormatter(spec, overload.py_signature)
 
-    s = module.fq_py_name.name + '.' + OverloadFormatter(spec, overload, scope).fq_py_name
+    s = module.py_name + '.' + OverloadFormatter(spec, overload, scope).fq_py_name
 
     s += f'?{IconNumber.METHOD}({sig_formatter.py_arguments})'
 
@@ -126,4 +126,4 @@ def _api_overload(af, spec, module, overload, scope=None):
 
     s += '\n'
 
-    return s
+    af.write(s)

@@ -1062,6 +1062,9 @@ class Module:
     # The code specified by any %PreInitialisationCode directives.
     preinitialisation_code: List[CodeBlock] = field(default_factory=list)
 
+    # The name of the module. (resolver)
+    py_name: Optional[str] = None
+
     # Set if the generated bindings are Py_ssize_t clean.
     py_ssize_t_clean: bool = False
 

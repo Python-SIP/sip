@@ -36,7 +36,7 @@ class EnumFormatter(EmbeddedScopeFormatter):
 
         enum = self.object
 
-        enum_name = enum.module.fq_py_name.name + '.'
+        enum_name = enum.module.py_name + '.'
 
         if enum.py_name is not None:
             enum_name += format_scoped_py_name(self.scope, enum.py_name.name)

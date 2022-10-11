@@ -1615,7 +1615,6 @@ static memberDef *member_list_attr(sipSpec *pt, PyObject *obj,
 static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
 {
     moduleDef *value;
-    char *basename;
     PyObject *needed_types_obj;
     Py_ssize_t nr_needed_types;
 
@@ -1630,12 +1629,7 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
     cache(&cache_module, obj, value);
 
     value->fullname = cachedname_attr(obj, "fq_py_name", encoding);
-
-    if ((basename = strrchr(value->fullname->text, '.')) == NULL)
-        value->name = value->fullname->text;
-    else
-        value->name = basename + 1;
-
+    value->name = str_attr(obj, "py_name", encoding);
     value->docstring = docstring_attr(obj, "docstring", encoding);
 
     if (bool_attr(obj, "call_super_init"))

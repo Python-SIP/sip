@@ -52,6 +52,9 @@ def resolve(spec):
     for mod in spec.modules:
         _set_all_imports(mod, error_log)
 
+        # Set the base name of the module.  This is done for efficiency.
+        mod.py_name = mod.fq_py_name.name.split('.')[-1]
+
     # Set the default meta-type for the main module if it doesn't have one
     # explicitly set.
     main_mod = spec.modules[0]
