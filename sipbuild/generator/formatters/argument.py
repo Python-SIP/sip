@@ -243,6 +243,9 @@ class ArgumentFormatter(BaseFormatter):
             if definition.py_name is not None:
                 name = definition.py_name.name
 
+        elif type is ArgumentType.DEFINED:
+            name = definition.as_py
+
         elif type is ArgumentType.CAPSULE:
             name = definition.base_name
 

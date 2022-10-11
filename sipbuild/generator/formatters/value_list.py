@@ -65,8 +65,10 @@ class ValueListFormatter(BaseFormatter):
             if value.value_type is ValueType.QCHAR:
                 if value.value == '"' and embedded:
                     s += "'\\\"'"
-                else:
+                elif value.value.isprintable():
                     s += "'" + value.value + "'"
+                else:
+                    s += f"'\\{ord(value.value):03o}'"
 
             elif value.value_type is ValueType.STRING:
                 quote = "\\\"" if embedded else "\""
@@ -112,7 +114,8 @@ class ValueListFormatter(BaseFormatter):
                 else:
                     s += arg_formatter.cpp_type()
 
-                args = [ValueListFormatter(self.spec, a)._expression
+                args = [ValueListFormatter(self.spec, a)._expression(
+                                as_python=as_python, embedded=embedded)
                         for a in value.value.args]
 
                 s += '(' + ', '.join(args) + ')'
