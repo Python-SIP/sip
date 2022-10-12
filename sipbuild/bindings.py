@@ -28,7 +28,8 @@ from .buildable import BuildableBindings
 from .code_generator import generateCode, generateTypeHints, py2c
 from .configurable import Configurable, Option
 from .exceptions import UserException
-from .generator import generate_api, generate_extract, parse, resolve
+from .generator import parse, resolve
+from .generator.outputs import output_api, output_extract
 from .installable import Installable
 from .module import copy_nonshared_sources
 from .version import SIP_VERSION
@@ -194,12 +195,12 @@ class Bindings(Configurable):
             project.progress(
                     "Generating the {0} .api file".format(buildable.target))
 
-            generate_api(spec, module,
+            output_api(spec, module,
                     os.path.join(project.build_dir, buildable.target + '.api'))
 
         # Generate any extracts.
         for extract_ref in self.generate_extracts:
-            generate_extract(spec, extract_ref)
+            output_extract(spec, extract_ref)
 
         # Generate any type hints file.
         if self.pep484_pyi and not self.internal:

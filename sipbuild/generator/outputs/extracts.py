@@ -21,11 +21,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..exceptions import UserException
+from ...exceptions import UserException
 
 
-def generate_extract(spec, extract_ref):
-    """ Generate an extract. """
+def output_extract(spec, extract_ref):
+    """ Output an extract. """
 
     # Get the id and file name from the reference.
     parts = extract_ref.split(':')

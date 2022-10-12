@@ -23,9 +23,9 @@
 
 from enum import IntEnum
 
-from .formatters import (ClassFormatter, EnumFormatter, OverloadFormatter,
+from ..formatters import (ClassFormatter, EnumFormatter, OverloadFormatter,
         SignatureFormatter, VariableFormatter)
-from .specification import AccessSpecifier
+from ..specification import AccessSpecifier
 
 
 class IconNumber(IntEnum):
@@ -39,8 +39,8 @@ class IconNumber(IntEnum):
     ENUM = 10
 
 
-def generate_api(spec, module, api_filename):
-    """ Generate a QScintilla API file. """
+def output_api(spec, module, api_filename):
+    """ Output a QScintilla API file. """
 
     with open(api_filename, 'w') as af:
         _api_enums(af, spec, module)
