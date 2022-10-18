@@ -28,7 +28,7 @@ from .specification import (Argument, ArgumentType, FunctionCall,
         IfaceFileType, KwArgs, Signature, TypeHints, Value, ValueType)
 from .templates import (template_code, template_code_blocks,
         template_expansions, template_string)
-from .type_hints import get_type_hint
+from .type_hints import TypeHintManager
 from .utils import append_iface_file, cached_name, normalised_scoped_name
 
 
@@ -390,15 +390,17 @@ def _instantiate_signature(proto_signature, proto_class, tmpl_names, template,
 def instantiate_type_hints(spec, proto_type_hints, expansions):
     """ Return an instantiated TypeHints object. """
 
+    manager = TypeHintManager(spec)
+
     if proto_type_hints.hint_in is not None:
-        hint_in = get_type_hint(spec,
+        hint_in = manager.get_type_hint(
                 template_string(proto_type_hints.hint_in.text, expansions,
                         scope_replacement='.'))
     else:
         hint_in = None
 
     if proto_type_hints.hint_out is not None:
-        hint_out = get_type_hint(spec,
+        hint_out = manager.get_type_hint(
                 template_string(proto_type_hints.hint_out.text, expansions,
                         scope_replacement='.'))
     else:

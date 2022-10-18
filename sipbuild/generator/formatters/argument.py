@@ -209,6 +209,31 @@ class ArgumentFormatter(BaseFormatter):
 
         return s
 
+    def py_default_value(self, embedded=False):
+        """ Return the Python representation of the argument's default value.
+        """
+
+        from .value_list import ValueListFormatter
+
+        arg = self.object
+
+        # Use any explicitly provided documentation.
+        if arg.type_hints is not None and arg.type_hints.default_value is not None:
+            return arg.type_hints.default_value
+
+        # Translate some special cases.
+        if len(arg.default_value) == 1 and arg.default_value[0].value_type is ValueType.NUMERIC:
+            value = arg.default_value[0].value
+
+            if len(arg.derefs) > 0 and value == 0:
+                return 'None'
+
+            if arg.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
+                return 'True' if value else 'False'
+
+        return ValueListFormatter(self.spec, arg.default_value).py_expression(
+                embedded=embedded)
+
     def py_type(self, default_value=False):
         """ Return the Python representation of the argument type. """
 
@@ -222,7 +247,7 @@ class ArgumentFormatter(BaseFormatter):
             if arg.name is not None:
                 s += ' ' + arg.name.name
 
-            s += '=' + self._py_default_value()
+            s += '=' + self.py_default_value()
 
         return s
 
@@ -305,27 +330,3 @@ class ArgumentFormatter(BaseFormatter):
             name = '...'
 
         return scope, name
-
-    def _py_default_value(self):
-        """ Return the Python representation of the argument's default value.
-        """
-
-        from .value_list import ValueListFormatter
-
-        arg = self.object
-
-        # Use any explicitly provided documentation.
-        if arg.type_hints is not None and arg.type_hints.default_value is not None:
-            return arg.type_hints.default_value
-
-        # Translate some special cases.
-        if len(arg.default_value) == 1 and arg.default_value[0].value_type is ValueType.NUMERIC:
-            value = arg.default_value[0].value
-
-            if len(arg.derefs) > 0 and value == 0:
-                return 'None'
-
-            if arg.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
-                return 'True' if value else 'False'
-
-        return ValueListFormatter(self.spec, arg.default_value).py_expression

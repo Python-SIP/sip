@@ -35,3 +35,27 @@ def format_scoped_py_name(scope, py_name):
         py_name_s = py_name
 
     return scope_s + py_name_s
+
+
+def iface_is_defined(iface_file, module, defined, scope=None):
+    """ Return True if a type corresponding to an interface file has been
+    defined in the context of a module.
+    """
+
+    # A type in another module would have been imported.
+    if iface_file.module is not module:
+        return True
+
+    if iface_file not in defined:
+        return False
+
+    # Check all enclosing scopes have been defined as well.
+    while scope is not None:
+    {
+        if scope.iface_file not in defined:
+            return False
+
+        scope = scope.scope
+    }
+
+    return True

@@ -41,7 +41,7 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         Specification, Transfer, TypeHints, WrappedClass, WrappedException,
         WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
-from ..type_hints import get_type_hint
+from ..type_hints import TypeHintManager
 from ..utils import (argument_as_str, cached_name, find_iface_file,
         normalised_scoped_name, same_base_type)
 
@@ -79,6 +79,8 @@ class ParserManager:
 
         self.spec = Specification(
                 tuple([int(v) for v in abi_version.split('.')]), strict)
+
+        self._th_manager = TypeHintManager(self.spec)
 
         self.c_bindings = None
         self.code_block = None
@@ -1431,7 +1433,7 @@ class ParserManager:
 
             return None
 
-        th_in = None if th_in_text is None else get_type_hint(self.spec, th_in_text)
+        th_in = None if th_in_text is None else self._th_manager.get_type_hint(th_in_text)
 
         if th_out_text is None:
             th_out_text = th_text
@@ -1441,7 +1443,7 @@ class ParserManager:
 
             return None
 
-        th_out = None if th_out_text is None else get_type_hint(self.spec, th_out_text)
+        th_out = None if th_out_text is None else self._th_manager.get_type_hint(th_out_text)
 
         if th_in is not None or th_out is not None or th_value is not None:
             # Check that type hints haven't been suppressed.

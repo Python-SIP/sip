@@ -21,8 +21,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..specification import IfaceFileType
+
 from .scoped import EmbeddedScopeFormatter
-from .utils import format_scoped_py_name
+from .utils import format_scoped_py_name, iface_is_defined
 
 
 class EnumFormatter(EmbeddedScopeFormatter):
@@ -44,3 +46,54 @@ class EnumFormatter(EmbeddedScopeFormatter):
 
         for member in enum.members:
             yield enum_name + member.py_name.name
+
+    def member_rest_ref(self, member):
+        """ Return the fully qualified Python name of a member as a reST
+        reference.
+        """
+
+        enum = self.object
+        module_name = enum.module.fq_py_name.name
+
+        if enum.py_name is None:
+            member_name = format_scoped_py_name(self.scope,
+                    member.py_name.name)
+
+            return f':sip:ref:`~{module_name}.{member_name}`'
+
+        enum_name = format_scoped_py_name(self.scope, enum.py_name.name)
+        member_name = member.py_name.name
+
+        return f':sip:ref:`~{module_name}.{enum_name}.{member_name}`'
+
+    @property
+    def rest_ref(self):
+        """ The fully qualified Python name as a reST reference. """
+
+        enum = self.object
+        module_name = enum.module.fq_py_name.name
+        enum_name = format_scoped_py_name(self.scope, enum.py_name.name)
+
+        return f':sip:ref:`~{module_name}.{enum_name}`'
+
+    def type_hint(self, module, defined):
+        """ Return the type hint. """
+
+        enum = self.object
+
+        if self.scope is None:
+            # Global enums are defined early on.
+            is_defined = True:
+        else:
+            scope_iface = self.scope.iface_file
+            outer_scope = self.scope.scope if scope_iface.type is IfaceFileType.CLASS else None
+
+            is_defined = iface_is_defined(scope_iface, module, defined,
+                    scope=outer_scope)
+
+        quote = '' if is_defined else "'"
+
+        # Include the module name if it is not the current one.
+        module_name = enum.module.py_name + '.' if enum.module is module else ''
+
+        return f'{quote}{module_name}{self.fq_py_name}{quote}'

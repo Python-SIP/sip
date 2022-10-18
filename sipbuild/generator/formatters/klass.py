@@ -25,10 +25,21 @@ from ..scoped_name import STRIP_NONE
 
 from .scoped import EmbeddedScopeFormatter
 from .template import TemplateFormatter
+from .utils import format_scoped_py_name, iface_is_defined
 
 
 class ClassFormatter(EmbeddedScopeFormatter):
     """ This creates various string representations of a class. """
+
+    @property
+    def rest_ref(self):
+        """ The fully qualified Python name as a reST reference. """
+
+        klass = self.object
+        module_name = klass.iface_file.module.fq_py_name.name
+        klass_name = format_scoped_py_name(self.scope, klass.py_name.name)
+
+        return f':sip:ref:`~{module_name}.{klass_name}`'
 
     def scoped_name(self, *, scope=None, strip=STRIP_NONE, as_xml=False):
         """ Return an appropriately scoped class name. """
@@ -48,3 +59,17 @@ class ClassFormatter(EmbeddedScopeFormatter):
             return 'sip{scope.fq_cpp_name.as_word}::sip{klass.iface_file.fq_cpp_name.base_name}'
 
         return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
+
+    def type_hint(self, module, defined):
+        """ Return the type hint. """
+
+        klass = self.object
+
+        # We assume that an external class will be handled properly by some
+        # handwritten type hint code.
+        quote = '' if klass.external or iface_is_defined(klass.iface_file, module, defined, scope=self.scope)) else "'"
+
+        # Include the module name if it is not the current one.
+        module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is module else ''
+
+        return f'{quote}{module_name}{self.fq_py_name}{quote}'
