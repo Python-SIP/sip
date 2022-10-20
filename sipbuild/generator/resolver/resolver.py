@@ -2190,9 +2190,10 @@ def _check_properties(klass, error_log):
 def _log_overload_error(error_log, text, overload, scope=None):
     """ Log an error about an overload. """
 
-    from ..formatters import OverloadFormatter
+    if scope is None:
+        fq_cpp_name = overload.cpp_name
+    else:
+        fq_cpp_name = f'{scope.iface_file.fq_cpp_name}::{overload.cpp_name}'
 
-    formatter = OverloadFormatter(overload, scope)
-
-    error_log.log(f"'{formatter.fq_cpp_name}' {text}",
+    error_log.log(f"'{fq_cpp_name}' {text}",
             source_location=overload.source_location)
