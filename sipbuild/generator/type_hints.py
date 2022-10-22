@@ -345,7 +345,7 @@ class TypeHintManager:
         """ Lookup an enum using its C/C++ name. """
 
         for enum in self._spec.enums:
-            if enum.fq_cpp_name is not None and enum.fq_cpp_name == name and enum.scope in scopes:
+            if enum.fq_cpp_name is not None and enum.fq_cpp_name.base_name == name and enum.scope in scopes:
                 return enum
 
         return None
@@ -375,15 +375,15 @@ class TypeHintManager:
         # Start searching at the global level.
         scope_klass = None
         scope_mapped_type = None
-        scopes = (scope_klass, scope_mapped_type)
 
-        scoped_name = ScopedName.parse(name)
+        # We allow both Python and C++ scope separators.
+        scoped_name = ScopedName.parse(name.replace('.', '::'))
 
         for part_i, part in enumerate(scoped_name):
             is_last_part = ((part_i + 1) == len(scoped_name))
 
             # See if it's an enum.
-            enum = self._lookup_enum(part, scopes)
+            enum = self._lookup_enum(part, (scope_klass, scope_mapped_type))
             if enum is not None:
                 if is_last_part:
                     return TypeHintNode(NodeType.ENUM, definition=enum)
@@ -408,7 +408,8 @@ class TypeHintManager:
                             type_hint = mapped_type.type_hints.hint_out if out else mapped_type.type_hints.hint_in
 
                             if type_hint is not None:
-                                return self._copy_type_hint(type_hint, out)
+                                if self._managed_type_hints[type_hint.text].parse_state is not ParseState.PARSING:
+                                    return self._copy_type_hint(type_hint, out)
 
                         return None
 
@@ -427,7 +428,8 @@ class TypeHintManager:
                         type_hint = klass.type_hints.hint_out if out else klass.type_hints.hint_in
 
                         if type_hint is not None:
-                            return self._copy_type_hint(type_hint, out)
+                            if self._managed_type_hints[type_hint.text].parse_state is not ParseState.PARSING:
+                                return self._copy_type_hint(type_hint, out)
 
                     return TypeHintNode(NodeType.CLASS, definition=klass)
 
