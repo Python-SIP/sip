@@ -86,7 +86,7 @@ class TypeHintNode:
     type: NodeType
 
     # The list of child nodes.
-    children: List['TypeHintNode'] = field(default_factory=list)
+    children: Optional[List['TypeHintNode']] = None
 
     # The type-dependent definition.
     definition: Optional[Union[str, WrappedClass, WrappedEnum]] = None
@@ -168,12 +168,13 @@ class TypeHintManager:
         end = self._strip_trailing(text, start, end)
         name_end = end
 
-        have_brackets = False
-        children = []
+        children = None
 
         i = text[start:end].find('[')
         if i >= 0:
             i += start
+
+            children = []
 
             # The last character must be a closing bracket.
             if text[end - 1] != ']':
@@ -208,8 +209,6 @@ class TypeHintManager:
                 else:
                     break
 
-            have_brackets = True
-
         # See if we have a name.
         if name_start != name_end:
             # Get the name. */
@@ -238,8 +237,8 @@ class TypeHintManager:
                 node = TypeHintNode(NodeType.TYPING, children=children,
                         definition=name)
             else:
-                # Only objects from the typing module can have brackets.
-                if have_brackets:
+                # Only objects from the typing module can have children.
+                if children is not None:
                     raise UserException(
                             f"type hint '{text}': brackets are invalid")
 
@@ -247,8 +246,8 @@ class TypeHintManager:
                 node = self._lookup_type(name, out)
         else:
             # At the top level we must have brackets and they must not be empty.
-            if top_level and (not have_brackets or len(children) == 0):
-                raise UserExceptiond(
+            if top_level and (children is None or len(children) == 0):
+                raise UserException(
                         f"type hint '{text}': must have non-empty brackets")
 
             # Return the representation of brackets.
@@ -276,21 +275,17 @@ class TypeHintManager:
 
         if node.type is NodeType.TYPING:
             if node.definition is None:
-                name = ''
+                s = ''
             elif pep484:
-                name = 'typing.' + node.definition
+                s = 'typing.' + node.definition
             else:
-                name = node.definition
+                s = node.definition
 
-            children = [self._render_node(c, out, pep484, rest_ref, module,
-                    defined) for c in node.children]
+            if node.children is not None:
+                children = [self._render_node(c, out, pep484, rest_ref, module,
+                        defined) for c in node.children]
 
-            children = ', '.join(children)
-
-            if children != '':
-                children = '[' + children + ']'
-
-            s = f'{name}{children}'
+                s += '[' + ', '.join(children) + ']'
 
         elif node.type is NodeType.CLASS:
             formatter = ClassFormatter(self._spec, node.definition)
