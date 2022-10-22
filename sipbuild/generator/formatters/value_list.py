@@ -63,6 +63,9 @@ class ValueListFormatter(BaseFormatter):
 
         # See if it is an enum member.
         target_scope = target.scope
+        if target_scope is not None:
+            target_scope.make_absolute()
+
         target_base_name = target.base_name
 
         for enum in self.spec.enums:

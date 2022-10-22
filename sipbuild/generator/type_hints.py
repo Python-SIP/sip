@@ -263,9 +263,9 @@ class TypeHintManager:
 
         self._parse(managed_type_hint, out)
 
-        if managed_type_hint.root is None:
+        if managed_type_hint.root is not None:
             s = self._render_node(managed_type_hint.root, out, pep484,
-                    rest_ref)
+                    rest_ref, module, defined)
         else:
             s = self._maybe_any_object(managed_type_hint.type_hint.text,
                     pep484=pep484)
@@ -294,7 +294,7 @@ class TypeHintManager:
             s = f'{name}{children}'
 
         elif node.type is NodeType.CLASS:
-            formatter = ClassFormatter(node.definition)
+            formatter = ClassFormatter(self._spec, node.definition)
 
             if rest_ref:
                 s = formatter.rest_ref
@@ -304,7 +304,7 @@ class TypeHintManager:
                 s = formatter.fq_py_name
 
         elif node.type is NodeType.ENUM:
-            formatter = EnumFormatter(node.definition)
+            formatter = EnumFormatter(self._spec, node.definition)
 
             if rest_ref:
                 s = formatter.rest_ref
