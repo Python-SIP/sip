@@ -41,7 +41,8 @@ class ClassFormatter(EmbeddedScopeFormatter):
 
         return f':sip:ref:`~{module_name}.{klass_name}`'
 
-    def scoped_name(self, *, scope=None, strip=STRIP_NONE, as_xml=False):
+    def scoped_name(self, *, scope=None, strip=STRIP_NONE, make_public=False,
+            as_xml=False):
         """ Return an appropriately scoped class name. """
 
         klass = self.object
@@ -51,7 +52,7 @@ class ClassFormatter(EmbeddedScopeFormatter):
                     scope=scope, strip=strip, as_xml=as_xml)
 
         # Protected classes have to be explicitly scoped.
-        if klass.is_protected:
+        if klass.is_protected and not make_public:
             # This should never happen.
             if scope is None:
                 scope = klass.iface_file
@@ -67,7 +68,7 @@ class ClassFormatter(EmbeddedScopeFormatter):
 
         # We assume that an external class will be handled properly by some
         # handwritten type hint code.
-        quote = '' if klass.external or iface_is_defined(klass.iface_file, module, defined, scope=self.scope)) else "'"
+        quote = '' if klass.external or iface_is_defined(klass.iface_file, module, defined, scope=self.scope) else "'"
 
         # Include the module name if it is not the current one.
         module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is module else ''

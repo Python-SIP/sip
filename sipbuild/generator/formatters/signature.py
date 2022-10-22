@@ -31,12 +31,13 @@ from .base_formatter import BaseFormatter
 class SignatureFormatter(BaseFormatter):
     """ This creates various string representations of a signature. """
 
-    def cpp_arguments(self, *, scope=None, strip=STRIP_NONE,
+    def cpp_arguments(self, *, scope=None, strip=STRIP_NONE, make_public=False,
             as_xml=False):
         """ Return the C++ representation of the signature arguments. """
 
         args = [ArgumentFormatter(self.spec, arg).cpp_type(scope=scope,
-                strip=strip, as_xml=as_xml) for arg in self.object.args]
+                strip=strip, make_public=make_public, as_xml=as_xml)
+                for arg in self.object.args]
 
         return ', '.join(args)
 

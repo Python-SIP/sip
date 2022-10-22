@@ -78,6 +78,7 @@ class ManagedTypeHint:
     root: Optional['TypeHintNode'] = None
 
 
+@dataclass
 class TypeHintNode:
     """ Encapsulate a node of a parsed type hint. """
 
@@ -109,15 +110,13 @@ class TypeHintManager:
             manager = cls._spec_manager_map[spec]
         except KeyError:
             manager = object.__new__(cls)
+
+            manager._spec = spec
+            manager._managed_type_hints = {}
+
             cls._spec_manager_map[spec] = manager
 
         return manager
-
-    def __init__(self, spec):
-        """ Initialise the manager. """
-
-        self._spec = spec
-        self._managed_type_hints = {}
 
     def get_type_hint(self, text):
         """ Return a unique (to the specification) TypeHint object for the text
@@ -147,17 +146,13 @@ class TypeHintManager:
     def _parse(self, managed_type_hint, out):
         """ Ensure a type hint has been parsed. """
 
-        if managed_type_hint.parse_state is ParseState.PARSING:
-            raise UserException(
-                    f"type hint '{managed_type_hint.type_hint.text}' has a recursive definition")
-
         if managed_type_hint.parse_state is ParseState.REQUIRED:
             managed_type_hint.parse_state = ParseState.PARSING
-            managed_type_hint.root = self._parse_node(out,
+            managed_type_hint.root = self._parse_node(managed_type_hint, out,
                     managed_type_hint.type_hint.text)
             managed_type_hint.parse_state = ParseState.PARSED
 
-    def _parse_node(self, out, text, start=0, end=None):
+    def _parse_node(self, managed_type_hint, out, text, start=0, end=None):
         """ Return a single node of a parsed type hint. """
 
         if end is None:
@@ -176,54 +171,52 @@ class TypeHintManager:
         have_brackets = False
         children = []
 
-        for i in range(start, end):
-            if text[i] == '[':
-                typeHintNodeDef **tail = &children;
+        i = text[start:end].find('[')
+        if i >= 0:
+            i += start
 
-                # The last character must be a closing bracket.
-                if text[end - 1] != ']':
-                    raise UserException(
-                            f"type hint '{text}': ']' expected at position {end}")
+            # The last character must be a closing bracket.
+            if text[end - 1] != ']':
+                raise UserException(
+                        f"type hint '{text}': ']' expected at position {end}")
 
-                # Find the end of any name.
-                name_end = self._strip_trailing(name_start, i)
+            # Find the end of any name.
+            name_end = self._strip_trailing(text, name_start, i)
 
-                while True:
-                    # Skip the opening bracket or comma.
-                    i += 1
+            while True:
+                # Skip the opening bracket or comma.
+                i += 1
 
-                    # Find the next comma, if any.
-                    depth = 0
+                # Find the next comma, if any.
+                depth = 0
 
-                    for part_i in range(i, end):
-                        if text[part_i] == '[':
-                            depth += 1
+                for part_i in range(i, end):
+                    if text[part_i] == '[':
+                        depth += 1
 
-                        elif text[part_i] == ']' and depth != 0:
-                            depth -= 1
+                    elif text[part_i] == ']' and depth != 0:
+                        depth -= 1
 
-                        elif text[part_i] in ',]' and depth == 0:
-                            # Recursively parse this part.
-                            new_child = self._parse_node(out, text, i, part_i)
-                            if new_child is not None:
-                                self._append_child(children, new_child)
+                    elif text[part_i] in ',]' and depth == 0:
+                        # Recursively parse this part.
+                        new_child = self._parse_node(managed_type_hint, out,
+                                text, i, part_i)
+                        if new_child is not None:
+                            self._append_child(children, new_child)
 
-                            i = part_i
-                            break
-
-                    if part_i == end:
+                        i = part_i
                         break
+                else:
+                    break
 
-                have_brackets = True
-
-                break
+            have_brackets = True
 
         # See if we have a name.
         if name_start != name_end:
             # Get the name. */
             name = text[name_start:name_end]
 
-            /* See if it is an object in the typing module. */
+            # See if it is an object in the typing module.
             if name in _TYPING_MODULE:
                 if name == 'Union':
                     # If there are no children assume it is because they have
@@ -246,17 +239,18 @@ class TypeHintManager:
                 node = TypeHintNode(NodeType.TYPING, children=children,
                         definition=name)
             else:
-                # Search for the type.
-                node = self._lookup_type(name, out)
+                # Only objects from the typing module can have brackets.
+                if have_brackets:
+                    raise UserException(
+                            f"type hint '{text}': brackets are invalid")
 
-            # Only objects from the typing module can have brackets.
-            if typing is None and have_brackets:
-                raise UserException(f"type hint '{text}' brackets are invalid")
+                # Search for the type.
+                node = self._lookup_type(managed_type_hint, name, out)
         else:
             # At the top level we must have brackets and they must not be empty.
             if top_level and (not have_brackets or len(children) == 0):
                 raise UserExceptiond(
-                        f"type hint '{text}' must have non-empty brackets")
+                        f"type hint '{text}': must have non-empty brackets")
 
             # Return the representation of brackets.
             node = TypeHintNode(NodeType.TYPING, children=children)
@@ -375,7 +369,7 @@ class TypeHintManager:
 
         return None
 
-    def _lookup_type(self, name, out):
+    def _lookup_type(self, managed_type_hint, name, out):
         """ Look up a qualified Python type and return the corresponding node.
         """
 
@@ -412,10 +406,10 @@ class TypeHintManager:
                     # succeeded.
                     if is_last_part:
                         if mapped_type.type_hints is not None:
-                            type_hint = mapped_type.type_hints.int_out if out else mapped_type.type_hints.hint_in
+                            type_hint = mapped_type.type_hints.hint_out if out else mapped_type.type_hints.hint_in
 
-                            if type_hint is not None:
-                                return self._copy_type_hint(type_hint)
+                            if type_hint is not None and managed_type_hint.parse_state is not ParseState.PARSING:
+                                return self._copy_type_hint(type_hint, out)
 
                         return None
 
@@ -431,10 +425,10 @@ class TypeHintManager:
                 # If we have used the whole name then the lookup has succeeded.
                 if is_last_part:
                     if klass.type_hints is not None:
-                        type_hint = klass.type_hints.int_out if out else klass.type_hints.hint_in
+                        type_hint = klass.type_hints.hint_out if out else klass.type_hints.hint_in
 
-                        if type_hint is not None:
-                            return self._copy_type_hint(type_hint)
+                        if type_hint is not None and managed_type_hint.parse_state is not ParseState.PARSING:
+                            return self._copy_type_hint(type_hint, out)
 
                     return TypeHintNode(NodeType.CLASS, definition=klass)
 
@@ -474,7 +468,7 @@ class TypeHintManager:
         return start
 
     @staticmethod
-    def _strip_trailing(start, end):
+    def _strip_trailing(text, start, end):
         """ Return the index after the last non-space of a string. """
 
         while end > start and text[end - 1] == ' ':

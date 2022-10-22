@@ -83,7 +83,7 @@ class EnumFormatter(EmbeddedScopeFormatter):
 
         if self.scope is None:
             # Global enums are defined early on.
-            is_defined = True:
+            is_defined = True
         else:
             scope_iface = self.scope.iface_file
             outer_scope = self.scope.scope if scope_iface.type is IfaceFileType.CLASS else None

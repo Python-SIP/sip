@@ -1298,7 +1298,6 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);
-int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
 int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 int error(const char *fmt, ...);

@@ -21,10 +21,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..formatters import (ArgumentFormatter, EnumFormatter, ClassFormatter,
+from ..formatters import (ArgumentFormatter, ClassFormatter, EnumFormatter,
+        format_scoped_py_name, SignatureFormatter, ValueListFormatter,
         VariableFormatter)
-from ..scoped_name import STRIP_GLOBAL
-from ..specification import KwArgs
+from ..python_slots import is_number_slot
+from ..scoped_name import ScopedName, STRIP_GLOBAL
+from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
+        IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
+from ..type_hints import TypeHintManager
 
 
 # The schema version number.
@@ -56,211 +60,152 @@ def output_xml(spec, module, xml_filename):
         xf.write('</Module>\n')
 
 
-/*
- * Generate a 'realname' attribute containing a fully qualified C/C++ name of
- * an object.
- */
-static void xmlRealScopedName(classDef *scope, const char *cppname, FILE *fp)
-{
-    const char *sep = "";
-
-    fprintf(fp, " realname=\"");
-
-    if (scope != NULL)
-    {
-        scopedNameDef *snd;
-
-        for (snd = removeGlobalScope(classFQCName(scope)); snd != NULL; snd = snd->next)
-        {
-            fprintf(fp, "%s%s", sep, snd->name);
-            sep = "::";
-        }
-    }
-
-    fprintf(fp, "%s%s\"", sep, cppname);
-}
-
-
-def _xml_realname(fq_cpp_name, member=None):
+def _xml_realname(scope, member=None):
     """ Return a 'realname' attribute containing a fully qualified C/C++ name.
     """
 
-    s = ' realname="' + fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
+    if scope is None:
+        # The member should have a name in this context.
+        fq_cpp_name = member
+    else:
+        if isinstance(scope, ScopedName):
+            fq_cpp_name = scope
+        else:
+            fq_cpp_name = scope.iface_file.fq_cpp_name
 
-    if member is not None:
-        s += '::' + member
+        fq_cpp_name = fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
 
-    s += '"'
+        if member is not None:
+            fq_cpp_name += '::' + member
 
-    return s
+    return f' realname="{fq_cpp_name}"'
 
 
-ZZZ
 def _xml_class(xf, spec, module, klass):
-    """ Generate the XML for a class. """
-{
-    int indent = 1;
-    ctorDef *ct;
-    memberDef *md;
+    """ Output the XML for a class. """
 
-    if (isOpaque(cd))
-    {
-        xmlIndent(indent, fp);
-        fprintf(fp, "<OpaqueClass name=\"");
-        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        fprintf(fp, "\"/>\n");
+    indent = 1
 
-        return;
-    }
+    if klass.is_opaque:
+        s = ' ' * indent
 
-    if (!isHiddenNamespace(cd))
-    {
-        xmlIndent(indent++, fp);
-        fprintf(fp, "<Class name=\"");
-        prScopedPythonName(fp, cd->ecd, cd->pyname->text);
-        fprintf(fp, "\"");
+        s += '<OpaqueClass name="'
+        s += ClassFormatter(spec, klass).fq_py_name
+        s += '"/>\n'
 
-        s += _xml_realname(classFQCName(cd))
+        xf.write(s)
 
-        if (cd->picklecode != NULL)
-            fprintf(fp, " pickle=\"1\"");
+        return
 
-        if (cd->convtocode != NULL)
-            fprintf(fp, " convert=\"1\"");
+    if not klass.is_hidden_namespace:
+        s = ' ' * indent
 
-        if (cd->convfromcode != NULL)
-            fprintf(fp, " convertfrom=\"1\"");
+        s += '<Class name="'
+        s += ClassFormatter(spec, klass).fq_py_name
+        s += '"'
 
-        if (cd->real != NULL)
-            fprintf(fp, " extends=\"%s\"", cd->real->iff->module->name);
+        s += _xml_realname(klass.iface_file.fq_cpp_name)
 
-        if (cd->pyqt_flags_enums != NULL)
-        {
-            const char *sep;
-            stringList *sl;
+        if klass.pickle_code is not None:
+            s += ' pickle="1"'
 
-            fprintf(fp, " flagsenums=\"");
-            sep = "";
+        if klass.convert_to_type_code is not None:
+            s += ' convert="1"'
 
-            for (sl = cd->pyqt_flags_enums; sl != NULL; sl = sl->next)
-            {
-                fprintf(fp, "%s%s", sep, sl->s);
-                sep = " ";
-            }
+        if klass.convert_from_type_code is not None:
+            s += ' convertfrom="1"'
 
-            fprintf(fp, "\"");
-        }
+        if klass.real_class is not None:
+            s += f' extends="{klass.real_class.iface_file.module.py_name}"'
 
-        if (cd->supers != NULL)
-        {
-            classList *cl;
+        if klass.pyqt_flags_enums is not None:
+            s += ' flagsenums="' + ' '.join(klass.pyqt_flags_enums) + '"'
 
-            fprintf(fp, " inherits=\"");
+        if len(klass.superclasses) != 0:
+            super_refs = ' '.join(
+                    [ClassFormatter(spec, s).rest_ref
+                            for s in klass.superclasses])
 
-            for (cl = cd->supers; cl != NULL; cl = cl->next)
-            {
-                if (cl != cd->supers)
-                    fprintf(fp, " ");
+            s += f' inherits="{super_refs}"'
 
-                restPyClass(cl->cd, fp);
-            }
+        s += '>\n'
 
-            fprintf(fp, "\"");
-        }
+        xf.write(s)
 
-        fprintf(fp, ">\n");
-    }
+    for ctor in klass.ctors:
+        if ctor.access_specifier is not AccessSpecifier.PRIVATE:
+            _xml_ctor(xf, spec, module, klass, ctor, indent + 1)
 
-    for (ct = cd->ctors; ct != NULL; ct = ct->next)
-    {
-        if (isPrivateCtor(ct))
-            continue;
+    _xml_enums(xf, spec, module, klass, indent + 1)
+    _xml_variables(xf, spec, module, klass, indent + 1)
 
-        xmlCtor(pt, mod, cd, ct, indent, fp);
-    }
+    for member in klass.members:
+        _xml_function(xf, spec, module,  member, klass.overloads, klass,
+                indent + 1)
 
-    _xml_enums(xf, spec, module, cd, indent)
-    _xml_variables(xf, spec, module, cd, indent)
-
-    for (md = cd->members; md != NULL; md = md->next)
-        _xml_function(xf, spec, module,  md, cd->overs, cd, indent)
-
-    if (!isHiddenNamespace(cd))
-    {
-        xmlIndent(--indent, fp);
-        fprintf(fp, "</Class>\n");
-    }
-}
+    if not klass.is_hidden_namespace:
+        s = ' ' * indent
+        s += '</Class>\n'
+        xf.write(s)
 
 
-ZZZ
 def _xml_enums(xf, spec, module, scope=None, indent=1):
-    """ Generate the XML for all the enums in a scope. """
-{
-    enumDef *ed;
+    """ Output the XML for all the enums in a scope. """
 
-    for (ed = pt->enums; ed != NULL; ed = ed->next)
-    {
-        if (ed->module != mod)
-            continue;
+    for enum in spec.enums:
+        if enum.module is module and enum.scope is scope:
+            if enum.py_name is None:
+                for member in enum.members:
+                    s = ' ' * indent
 
-        if (ed->ecd != scope)
-            continue;
+                    s += '<Member name="'
+                    s += format_scoped_py_name(enum.scope, member.py_name.name)
+                    s += '"'
 
-        if (ed->pyname != NULL)
-        {
-            enumMemberDef *emd;
+                    s += _xml_realname(enum.scope, member.cpp_name)
 
-            xmlIndent(indent++, fp);
-            fprintf(fp, "<Enum name=\"");
-            prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-            fprintf(fp, "\"");
+                    s += ' const="1" typename="int"/>\n'
 
-            s += _xml_realname(ed->fqcname)
+                    xf.write(s)
+            else:
+                s = ' ' * indent
 
-            fprintf(fp, ">\n");
+                s += '<Enum name="'
+                s += format_scoped_py_name(enum.scope, enum.py_name.name)
+                s += '"'
 
-            for (emd = ed->members; emd != NULL; emd = emd->next)
-            {
-                xmlIndent(indent, fp);
-                fprintf(fp, "<EnumMember name=\"");
-                prScopedPythonName(fp, ed->ecd, ed->pyname->text);
-                fprintf(fp, ".%s\"", emd->pyname->text);
+                s += _xml_realname(enum.fq_cpp_name)
 
-                s += _xml_realname(ed->fqcname, emd->cname)
+                s += '>\n'
 
-                fprintf(fp, "/>\n");
-            }
+                xf.write(s)
 
-            xmlIndent(--indent, fp);
-            fprintf(fp, "</Enum>\n");
-        }
-        else
-        {
-            enumMemberDef *emd;
+                for member in enum.members:
+                    s = ' ' * (indent + 1)
 
-            for (emd = ed->members; emd != NULL; emd = emd->next)
-            {
-                xmlIndent(indent, fp);
-                fprintf(fp, "<Member name=\"");
-                prScopedPythonName(fp, ed->ecd, emd->pyname->text);
-                fprintf(fp, "\"");
+                    s += '<EnumMember name="'
+                    s += format_scoped_py_name(enum.scope, enum.py_name.name)
+                    s += '.' + member.py_name.name + '"'
 
-                xmlRealScopedName(scope, emd->cname, fp);
+                    s += _xml_realname(enum.fq_cpp_name, member.cpp_name)
 
-                fprintf(fp, " const=\"1\" typename=\"int\"/>\n");
-            }
-        }
-    }
-}
+                    s += '/>\n'
+
+                    xf.write(s)
+
+                s = ' ' * indent
+
+                s += '</Enum>\n'
+
+                xf.write(s)
 
 
 def _xml_variables(xf, spec, module, scope=None, indent=1):
-    """ Generate the XML for all the variables in a scope. """
+    """ Output the XML for all the variables in a scope. """
 
     for variable in spec.variables:
         if variable.module is module and variable.scope is scope:
-            formatter = VariableFormatter(variable)
+            formatter = VariableFormatter(spec, variable)
 
             s = ' ' * indent
 
@@ -279,331 +224,267 @@ def _xml_variables(xf, spec, module, scope=None, indent=1):
             xf.write(s)
 
 
-/*
- * Generate the XML for a ctor.
- */
-static void xmlCtor(sipSpec *pt, moduleDef *mod, classDef *scope, ctorDef *ct,
-        int indent, FILE *fp)
-{
-    int a;
+def _xml_ctor(xf, spec, module, scope, ctor, indent):
+    """ Output the XML for a ctor. """
 
-    xmlIndent(indent++, fp);
-    fprintf(fp, "<Function name=\"");
-    prScopedPythonName(fp, scope, "__init__");
-    fprintf(fp, "\"");
+    s = ' ' * indent
 
-    xmlRealScopedName(scope, "__init__", fp);
+    s += '<Function name="'
+    s += format_scoped_py_name(scope, '__init__')
+    s += '"'
 
-    if (hasCppSignature(ct->cppsig))
-    {
-        fprintf(fp, " cppsig=\"");
-        xmlCppSignature(fp, ct->cppsig, FALSE);
-        fprintf(fp, "\"");
-    }
+    s += _xml_realname(scope, '__init__')
 
-    /* Handle the trivial case. */
-    if (ct->pysig.nrArgs == 0)
-    {
-        fprintf(fp, "/>\n");
-        return;
-    }
+    if _has_cpp_signature(ctor.cpp_signature):
+        s += ' cppsig="'
+        s += _xml_cpp_signature(spec, ctor.cpp_signature)
+        s += '"'
 
-    fprintf(fp, ">\n");
+    # Handle the trivial case.
+    if len(ctor.py_signature.args) == 0:
+        s += '/>\n'
+        xf.write(s)
+    else:
+        s += '>\n'
+        xf.write(s)
 
-    for (a = 0; a < ct->pysig.nrArgs; ++a)
-    {
-        argDef *ad = &ct->pysig.args[a];
+        for arg in ctor.py_signature.args:
+            if arg.is_in:
+                _xml_argument(xf, spec, module, arg, ctor.kw_args, indent + 1)
 
-        if (isInArg(ad))
-            xmlArgument(pt, mod, ad, FALSE, ct->kwargs, FALSE, indent, fp);
+            if arg.is_out:
+                _xml_argument(xf, spec, moduke, arg, ctor.kw_args, indent + 1,
+                        out=True)
 
-        if (isOutArg(ad))
-            xmlArgument(pt, mod, ad, TRUE, ct->kwargs, FALSE, indent, fp);
-    }
-
-    xmlIndent(--indent, fp);
-    fprintf(fp, "</Function>\n");
-}
+        s = ' ' * indent
+        s += '</Function>\n'
+        xf.write(s)
 
 
 def _xml_function(xf, spec, module, member, overloads, scope=None, indent=1):
-    """ Generate the XML for a function. """
-{
-    overDef *od;
+    """ Output the XML for a function. """
 
-    for (od = oloads; od != NULL; od = od->next)
-    {
-        int isstat;
-        classDef *xtnds;
+    for overload in overloads:
+        if overload.common is not member:
+            continue
 
-        if (od->common != md)
-            continue;
+        if overload.access_specifier is AccessSpecifier.PRIVATE:
+            continue
 
-        if (isPrivate(od))
-            continue;
+        if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
+            s = ' ' * indent
 
-        if (isSignal(od))
-        {
-            int a;
+            s += '<Signal name="'
+            s += format_scoped_py_name(scope, member.py_name.name)
+            s += '"'
 
-            xmlIndent(indent++, fp);
-            fprintf(fp, "<Signal name=\"");
-            prScopedPythonName(fp, scope, md->pyname->text);
-            fprintf(fp, "\"");
+            s += _xml_realname(scope, overload.cpp_name)
 
-            xmlRealScopedName(scope, od->cppname, fp);
+            if _has_cpp_signature(overload.cpp_signature):
+                s += ' cppsig="'
+                s += _xml_cpp_signature(spec, overload.cpp_signature)
+                s += '"'
 
-            if (hasCppSignature(od->cppsig))
-            {
-                fprintf(fp, " cppsig=\"");
-                xmlCppSignature(fp, od->cppsig, FALSE);
-                fprintf(fp, "\"");
-            }
+            # Handle the trivial case.
+            if len(overload.py_signature.args) == 0:
+                s += '/>\n'
+                xf.write(s)
+            else:
+                s += '>\n'
+                xf.write(s)
 
-            /* Handle the trivial case. */
-            if (od->pysig.nrArgs == 0)
-            {
-                fprintf(fp, "/>\n");
-                continue;
-            }
+                for arg in overload.py_signature.args:
+                    _xml_argument(xf, spec, module, arg, overload.kw_args,
+                            indent + 1)
 
-            fprintf(fp, ">\n");
+                s = ' ' * indent
+                s += '</Signal>\n'
+                xf.write(s)
+        else:
+            extends = None
+            is_static = (scope is None or scope.iface_file.type is IfaceFileType.NAMESPACE or overload.is_static)
 
-            for (a = 0; a < od->pysig.nrArgs; ++a)
-            {
-                argDef *ad = &od->pysig.args[a];
+            if scope is None and member.py_slot is not None and overload.py_signature.args[0].type is ArgumentType.CLASS:
+                extends = overload.py_signature.args[0].definition
+                is_static = False
 
-                xmlArgument(pt, mod, ad, FALSE, od->kwargs, FALSE, indent, fp);
-            }
-
-            xmlIndent(--indent, fp);
-            fprintf(fp, "</Signal>\n");
-
-            continue;
-        }
-
-        xtnds = NULL;
-        isstat = (scope == NULL || scope->iff->type == namespace_iface || isStatic(od));
-
-        if (scope == NULL && md->slot != no_slot && od->pysig.args[0].atype == class_type)
-        {
-            xtnds = od->pysig.args[0].u.cd;
-            isstat = FALSE;
-        }
-
-        xmlOverload(pt, mod, scope, md, od, xtnds, isstat, indent, fp);
-    }
-}
+            _xml_overload(xf, spec, module, scope, overload, extends,
+                    is_static, indent)
 
 
-/*
- * Generate the XML for an overload.
- */
-static void xmlOverload(sipSpec *pt, moduleDef *mod, classDef *scope,
-        memberDef *md, overDef *od, classDef *xtnds, int stat, int indent,
-        FILE *fp)
-{
-    const char *name, *cppname = od->cppname;
-    int a, no_res;
+def _xml_overload(xf, spec, module, scope, overload, extends, is_static,
+        indent):
+    """ Output the XML for an overload. """
 
-    xmlIndent(indent++, fp);
-    fprintf(fp, "<Function name=\"");
+    s = ' ' * indent
 
-    if (isReflected(od))
-    {
-        if ((name = reflectedSlot(md->slot)) != NULL)
-            cppname = name;
-        else
-            name = md->pyname->text;
-    }
-    else
-    {
-        name = md->pyname->text;
-    }
+    s += '<Function name="'
 
-    prScopedPythonName(fp, scope, name);
+    if overload.is_reflected:
+        name = _reflected_slot(overload.common.py_slot)
+    else:
+        name = None
 
-    fprintf(fp, "\"");
+    if name is None:
+        name = overload.common.py_name.name
+        cpp_name = overload.cpp_name
+    else:
+        cpp_name = name
+        
+    s += format_scoped_py_name(scope, name)
 
-    xmlRealScopedName(scope, cppname, fp);
+    s += '"'
 
-    if (hasCppSignature(od->cppsig))
-    {
-        fprintf(fp, " cppsig=\"");
-        xmlCppSignature(fp, od->cppsig, isConst(od));
-        fprintf(fp, "\"");
-    }
+    s += _xml_realname(scope, cpp_name)
 
-    if (isAbstract(od))
-        fprintf(fp, " abstract=\"1\"");
+    if _has_cpp_signature(overload.cpp_signature):
+        s += ' cppsig="'
+        s += _xml_cpp_signature(spec, overload.cpp_signature,
+                is_const=overload.is_const)
+        s += '"'
 
-    if (stat)
-        fprintf(fp, " static=\"1\"");
+    if overload.is_abstract:
+        s += ' abstract="1"'
 
-    if (isSlot(od))
-        fprintf(fp, " slot=\"1\"");
+    if is_static:
+        s += ' static="1"'
 
-    if (isVirtual(od))
-    {
-        fprintf(fp, " virtual=\"1\"");
-    }
+    if overload.pyqt_method_specifier is PyQtMethodSpecifier.SLOT:
+        s += ' slot="1"'
 
-    if (xtnds != NULL)
-    {
-        fprintf(fp, " extends=\"");
-        prScopedPythonName(fp, xtnds->ecd, xtnds->pyname->text);
-        fprintf(fp, "\"");
-    }
+    if overload.is_virtual:
+        s += ' virtual="1"'
 
-    /* An empty type hint specifies a void return. */
-    if (od->pysig.result.typehint_out != NULL && od->pysig.result.typehint_out->raw_hint[0] == '\0')
-        no_res = TRUE;
-    else
-        no_res = (od->pysig.result.atype == void_type && od->pysig.result.nrderefs == 0);
+    if extends is not None:
+        s += ' extends="'
+        s += ClassFormatter(spec, extends).fq_py_name
+        s += '"'
 
-    /* Handle the trivial case. */
-    if (no_res && od->pysig.nrArgs == 0)
-    {
-        fprintf(fp, "/>\n");
-        return;
-    }
+    # An empty type hint specifies a void return.
+    result = overload.py_signature.result
 
-    fprintf(fp, ">\n");
+    if result.type_hints is not None and result.type_hints.hint_out is not None and result.type_hints.hint_out.text == '':
+        no_result = True
+    else:
+        no_result = (result.type is ArgumentType.VOID and len(result.derefs) == 0)
 
-    if (!no_res)
-        xmlArgument(pt, mod, &od->pysig.result, TRUE, NoKwArgs,
-                isResultTransferredBack(od), indent, fp);
+    # Handle the trivial case.
+    if no_result and len(overload.py_signature.args) == 0:
+        s += '/>\n'
+        xf.write(s)
+        return
 
-    for (a = 0; a < od->pysig.nrArgs; ++a)
-    {
-        argDef *ad = &od->pysig.args[a];
+    s += '>\n'
+    xf.write(s)
 
-        /*
-         * Ignore the first argument of non-reflected number slots and the
-         * second argument of reflected number slots.
-         */
-        if (isNumberSlot(md) && od->pysig.nrArgs == 2)
-            if ((a == 0 && !isReflected(od)) || (a == 1 && isReflected(od)))
-                continue;
+    if not no_result:
+        _xml_argument(xf, spec, module, overload.py_signature.result,
+                KwArgs.NONE, indent + 1, out=True,
+                transfer_result=overload.transfer is Transfer.TRANSFER_BACK)
 
-        if (isInArg(ad))
-            xmlArgument(pt, mod, ad, FALSE, od->kwargs, FALSE, indent, fp);
+    # Ignore the first argument of non-reflected number slots and the second
+    # argument of reflected number slots.
+    might_ignore = (is_number_slot(overload.common.py_slot) and len(overload.py_signature.args) == 2)
 
-        if (isOutArg(ad))
-            xmlArgument(pt, mod, ad, TRUE, od->kwargs, FALSE, indent, fp);
-    }
+    for a, arg in enumerate(overload.py_signature.args):
+        if might_ignore:
+            if a == 0 and not overload.is_reflected:
+                continue
 
-    xmlIndent(--indent, fp);
-    fprintf(fp, "</Function>\n");
-}
+            if a == 1 and overload.is_reflected:
+                continue
+
+        if arg.is_in:
+            _xml_argument(xf, spec, module, arg, overload.kw_args, indent + 1)
+
+        if arg.is_out:
+            _xml_argument(xf, spec, module, arg, overload.kw_args, indent + 1,
+                    out=True)
+
+    s = ' ' * indent
+
+    s += '</Function>\n'
+
+    xf.write(s)
 
 
-/*
- * Return TRUE if there is a C/C++ signature.
- */
-static int hasCppSignature(signatureDef *sd)
-{
-    int a;
+# Argument types that imply handwritten code.
+_HANDWRITTEN_CODE_TYPES = (
+    ArgumentType.PYOBJECT,
+    ArgumentType.PYTUPLE,
+    ArgumentType.PYLIST,
+    ArgumentType.PYDICT,
+    ArgumentType.PYCALLABLE,
+    ArgumentType.PYSLICE,
+    ArgumentType.PYTYPE,
+    ArgumentType.PYBUFFER,
+    ArgumentType.PYENUM,
+    ArgumentType.CAPSULE,
+)
 
-    if (sd == NULL)
-        return FALSE;
+def _has_cpp_signature(signature):
+    """ Return True if there is a C/C++ signature. """
 
-    /*
-     * See if there are any arguments that could only have come from
-     * handwritten code.
-     */
-    for (a = 0; a < sd->nrArgs; ++a)
-    {
-        switch (sd->args[a].atype)
-        {
-        case pyobject_type:
-        case pytuple_type:
-        case pylist_type:
-        case pydict_type:
-        case pycallable_type:
-        case pyslice_type:
-        case pytype_type:
-        case pybuffer_type:
-        case pyenum_type:
-        case capsule_type:
-            return FALSE;
+    if signature is None:
+        return False
 
-        default:
-            break;
-        }
-    }
+    # See if there are any arguments that could only have come from handwritten
+    # code.
+    for arg in signature.args:
+        if arg in _HANDWRITTEN_CODE_TYPES:
+            return False
 
-    return TRUE;
-}
+    return True
 
 
-/*
- * Generate the XML for a C++ signature.
- */
-static void xmlCppSignature(FILE *fp, signatureDef *sd, int is_const)
-{
-    int a;
+def _xml_cpp_signature(spec, signature, is_const=False):
+    """ Return the XML for a C++ signature. """
 
-    prcode(fp, "%M");
-    normaliseArgs(sd);
+    formatter = SignatureFormatter(spec, signature)
 
-    prcode(fp, "(");
+    args = formatter.cpp_arguments(strip=STRIP_GLOBAL, make_public=True,
+        as_xml=True)
+    const = ' const' if is_const else ''
 
-    for (a = 0; a < sd->nrArgs; ++a)
-    {
-        argDef *ad = &sd->args[a];
-
-        if (a > 0)
-            prcode(fp, ",");
-
-        generateBaseType(NULL, ad, TRUE, STRIP_GLOBAL, fp);
-    }
-
-    prcode(fp, ")%s", (is_const ? " const" : ""));
-
-    restoreArgs(sd);
-    prcode(fp, "%M");
-}
+    return f'({args}){const}'
 
 
-/*
- * Generate the XML for an argument.
- */
-static void xmlArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        KwArgs kwargs, int res_xfer, int indent, FILE *fp)
-{
-    if (isArraySize(ad))
-        return;
+def _xml_argument(xf, spec, module, arg, kw_args, indent, out=False,
+        transfer_result=False):
+    """ Ouput the XML for an argument. """
 
-    xmlIndent(indent, fp);
-    fprintf(fp, "<%s", (out ? "Return" : "Argument"));
-    s += _xml_type(spec, module, ad, out, kwargs)
+    if arg.array is ArrayArgument.ARRAY_SIZE:
+        return
 
-    if (!out)
-    {
-        if (isAllowNone(ad))
-            fprintf(fp, " allownone=\"1\"");
+    s = ' ' * indent
 
-        if (isDisallowNone(ad))
-            fprintf(fp, " disallownone=\"1\"");
+    s += '<' + ('Return' if out else 'Argument')
+    s += _xml_type(spec, module, arg, kw_args=kw_args, out=out)
 
-        if (isTransferred(ad))
-            fprintf(fp, " transfer=\"to\"");
-        else if (isThisTransferred(ad))
-            fprintf(fp, " transfer=\"this\"");
-    }
+    if not out:
+        if arg.allow_none:
+            s += ' allownone="1"'
 
-    if (res_xfer || isTransferredBack(ad))
-        fprintf(fp, " transfer=\"back\"");
+        if arg.disallow_none:
+            s += ' disallownone="1"'
 
-    fprintf(fp, "/>\n");
-}
+        if arg.transfer is Transfer.TRANSFER:
+            s += ' transfer="to"'
+        elif arg.transfer is Transfer.TRANSFER_THIS:
+            s += ' transfer="this"'
+
+    if transfer_result or arg.transfer is Transfer.TRANSFER_BACK:
+        s += ' transfer="back"'
+
+    s += '/>\n'
+
+    xf.write(s)
 
 
-def _xml_type(spec, module, arg, out=False, kw_args=KwArgs.NONE):
+def _xml_type(spec, module, arg, kw_args=KwArgs.NONE, out=False):
     """ Return the XML for a type. """
 
-    formatter = ArgumentFormatter(arg)
+    formatter = ArgumentFormatter(spec, arg)
 
     s = ' typename="'
 
@@ -624,10 +505,10 @@ def _xml_type(spec, module, arg, out=False, kw_args=KwArgs.NONE):
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
-            s += ClassFormatter(arg.definition).rest_ref
+            s += ClassFormatter(spec, arg.definition).rest_ref
         elif arg.type is ArgumentType.ENUM:
             if arg.definition.py_name is not None:
-                s += EnumFormatter(arg.definition).rest_ref
+                s += EnumFormatter(spec, arg.definition).rest_ref
             else:
                 s += 'int'
         elif arg.type is ArgumentType.MAPPED:
@@ -643,7 +524,7 @@ def _xml_type(spec, module, arg, out=False, kw_args=KwArgs.NONE):
 
         # Try and convert the value to a reST reference.  We don't try very
         # hard but will get most cases.
-        rest_ref = ValueListFormatter(arg.default_value).rest_ref(spec)
+        rest_ref = ValueListFormatter(spec, arg.default_value).rest_ref
         if rest_ref is None:
             rest_ref = formatter.py_default_value()
 
@@ -654,53 +535,25 @@ def _xml_type(spec, module, arg, out=False, kw_args=KwArgs.NONE):
     return s
 
 
-/*
- * Return the name of the reflected version of a slot or NULL if it doesn't
- * have one.
- */
-static const char *reflectedSlot(slotType st)
-{
-    switch (st)
-    {
-    case add_slot:
-        return "__radd__";
-
-    case sub_slot:
-        return "__rsub__";
-
-    case mul_slot:
-        return "__rmul__";
-
-    case matmul_slot:
-        return "__rmatmul__";
-
-    case truediv_slot:
-        return "__rtruediv__";
-
-    case floordiv_slot:
-        return "__rfloordiv__";
-
-    case mod_slot:
-        return "__rmod__";
-
-    case lshift_slot:
-        return "__rlshift__";
-
-    case rshift_slot:
-        return "__rrshift__";
-
-    case and_slot:
-        return "__rand__";
-
-    case or_slot:
-        return "__ror__";
-
-    case xor_slot:
-        return "__rxor__";
-
-    default:
-        break;
-    }
-
-    return NULL;
+# A map of slots and the names of their reflections.
+_SLOT_REFLECTIONS = {
+    PySlot.ADD: '__radd__',
+    PySlot.SUB: '__rsub__',
+    PySlot.MUL: '__rmul__',
+    PySlot.MATMUL: '__rmatmul__',
+    PySlot.TRUEDIV: '__rtruediv__',
+    PySlot.FLOORDIV: '__rfloordiv__',
+    PySlot.MOD: '__rmod__',
+    PySlot.LSHIFT: '__rlshift__',
+    PySlot.RSHIFT: '__rrshift__',
+    PySlot.AND: '__rand__',
+    PySlot.OR: '__ror__',
+    PySlot.XOR: '__rxor__',
 }
+
+def _reflected_slot(py_slot):
+    """ Return the name of the reflected version of a slot or None if it
+    doesn't have one.
+    """
+
+    return _SLOT_REFLECTIONS.get(py_slot)

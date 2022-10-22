@@ -32,7 +32,7 @@ class ArgumentFormatter(BaseFormatter):
     """ This creates various string representations of an argument. """
 
     def cpp_type(self, *, name=None, scope=None, strip=STRIP_NONE,
-            use_typename=True, as_xml=False):
+            make_public=False, use_typename=True, as_xml=False):
         """ Return the C++ representation of the argument type. """
 
         arg = self.object
@@ -61,7 +61,7 @@ class ArgumentFormatter(BaseFormatter):
             if arg.type is ArgumentType.FUNCTION:
                 s += ArgumentFormatter(self.spec,
                         arg.definition.result).cpp_type(scope=scope,
-                                strip=strip)
+                                strip=strip, as_xml=as_xml)
 
                 s += ' (' + '*' * nr_derefs + name + ')('
 
@@ -158,7 +158,8 @@ class ArgumentFormatter(BaseFormatter):
 
             elif arg.type is ArgumentType.MAPPED:
                 s += ArgumentFormatter(self.spec,
-                        arg.definition.type).cpp_type(scope=scope, strip=strip)
+                        arg.definition.type).cpp_type(scope=scope, strip=strip,
+                                as_xml=as_xml)
 
             elif arg.type is ArgumentType.CLASS:
                 from .klass import ClassFormatter
@@ -167,18 +168,19 @@ class ArgumentFormatter(BaseFormatter):
                     s += 'union ' if arg.definition.class_key is ClassKey.UNION else 'struct '
 
                 s += ClassFormatter(self.spec, arg.definition).scoped_name(
-                        scope=scope, strip=strip, as_xml=as_xml)
+                        scope=scope, strip=strip, make_public=make_public,
+                        as_xml=as_xml)
 
             elif arg.type is ArgumentType.TEMPLATE:
                 from .template import TemplateFormatter
 
-                s += TemplateFormatter(self.spec, arg.definition).cpp_type(
-                        scope=scope, strip=strip, as_xml=as_xml)
+                s += TemplateFormatter(self.spec, arg.definition, scope).cpp_type(
+                        strip=strip, as_xml=as_xml)
 
             elif arg.type is ArgumentType.ENUM:
                 enum = arg.definition
 
-                if enum.fq_cpp_name is None or enum.is_protected:
+                if enum.fq_cpp_name is None or (enum.is_protected and not make_public):
                     s += 'int'
                 else:
                     s += enum.fq_cpp_name.cpp_stripped(strip)

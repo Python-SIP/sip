@@ -22,8 +22,11 @@
 
 
 # Publish the API.  This is private to the rest of sip.
+from .argument import ArgumentFormatter
 from .enum import EnumFormatter
 from .klass import ClassFormatter
 from .overload import OverloadFormatter
 from .signature import SignatureFormatter
+from .utils import format_scoped_py_name
+from .value_list import ValueListFormatter
 from .variable import VariableFormatter

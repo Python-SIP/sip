@@ -30,7 +30,7 @@ from .signature import SignatureFormatter
 class TemplateFormatter(ScopedFormatter):
     """ This creates various string representations of a template. """
 
-    def cpp_type(self, *, scope=None, strip=STRIP_NONE, as_xml=False):
+    def cpp_type(self, *, strip=STRIP_NONE, as_xml=False):
         """ Return the C++ representation of the template type. """
 
         template = self.object

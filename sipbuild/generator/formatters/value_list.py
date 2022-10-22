@@ -43,9 +43,9 @@ class ValueListFormatter(BaseFormatter):
 
         return self._expression(as_python=True, embedded=embedded)
 
-    def rest_ref(self, spec):
-        """ Return the Python representation of the value list as a reST
-        reference.
+    @property
+    def rest_ref(self):
+        """ The Python representation of the value list as a reST reference.
         """
 
         value_list = self.object
@@ -54,23 +54,23 @@ class ValueListFormatter(BaseFormatter):
         if len(value_list) != 1 or value_list[0].value_type is not ValueType.SCOPED:
             return None
 
-        target = value_list[0]
+        target = value_list[0].value
 
         # See if it is an attribute.
-        for variable in spec.variables:
-            variable.fq_cpp_name == target:
-                return VariableFormatter(variable).rest_ref
+        for variable in self.spec.variables:
+            if variable.fq_cpp_name == target:
+                return VariableFormatter(self.spec, variable).rest_ref
 
         # See if it is an enum member.
         target_scope = target.scope
         target_base_name = target.base_name
 
-        for enum in spec.enums:
+        for enum in self.spec.enums:
             # Look for the member name first before working out if it is the
             # correct enum.
             for member in enum.members:
                 if member.cpp_name == target_base_name:
-                    formatter = EnumFormatter(enum)
+                    formatter = EnumFormatter(self.spec, enum)
 
                     if enum.is_scoped:
                         # It's a scoped enum so the fully qualified name of the

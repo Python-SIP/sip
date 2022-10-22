@@ -601,7 +601,7 @@ def _move_global_slot(spec, mod, global_slot, error_log):
 
         # Move the overload to the end of the destination list.
         if is_second:
-            overload.is_reflected
+            overload.is_reflected = True
 
         overload.access_specifier = AccessSpecifier.PUBLIC
         overload.common = arg_member

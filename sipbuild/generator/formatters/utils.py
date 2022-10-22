@@ -51,11 +51,9 @@ def iface_is_defined(iface_file, module, defined, scope=None):
 
     # Check all enclosing scopes have been defined as well.
     while scope is not None:
-    {
         if scope.iface_file not in defined:
             return False
 
         scope = scope.scope
-    }
 
     return True
