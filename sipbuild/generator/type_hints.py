@@ -148,11 +148,11 @@ class TypeHintManager:
 
         if managed_type_hint.parse_state is ParseState.REQUIRED:
             managed_type_hint.parse_state = ParseState.PARSING
-            managed_type_hint.root = self._parse_node(managed_type_hint, out,
+            managed_type_hint.root = self._parse_node(out,
                     managed_type_hint.type_hint.text)
             managed_type_hint.parse_state = ParseState.PARSED
 
-    def _parse_node(self, managed_type_hint, out, text, start=0, end=None):
+    def _parse_node(self, out, text, start=0, end=None):
         """ Return a single node of a parsed type hint. """
 
         if end is None:
@@ -199,8 +199,7 @@ class TypeHintManager:
 
                     elif text[part_i] in ',]' and depth == 0:
                         # Recursively parse this part.
-                        new_child = self._parse_node(managed_type_hint, out,
-                                text, i, part_i)
+                        new_child = self._parse_node(out, text, i, part_i)
                         if new_child is not None:
                             self._append_child(children, new_child)
 
@@ -245,7 +244,7 @@ class TypeHintManager:
                             f"type hint '{text}': brackets are invalid")
 
                 # Search for the type.
-                node = self._lookup_type(managed_type_hint, name, out)
+                node = self._lookup_type(name, out)
         else:
             # At the top level we must have brackets and they must not be empty.
             if top_level and (not have_brackets or len(children) == 0):
@@ -369,7 +368,7 @@ class TypeHintManager:
 
         return None
 
-    def _lookup_type(self, managed_type_hint, name, out):
+    def _lookup_type(self, name, out):
         """ Look up a qualified Python type and return the corresponding node.
         """
 
@@ -408,7 +407,7 @@ class TypeHintManager:
                         if mapped_type.type_hints is not None:
                             type_hint = mapped_type.type_hints.hint_out if out else mapped_type.type_hints.hint_in
 
-                            if type_hint is not None and managed_type_hint.parse_state is not ParseState.PARSING:
+                            if type_hint is not None:
                                 return self._copy_type_hint(type_hint, out)
 
                         return None
@@ -427,7 +426,7 @@ class TypeHintManager:
                     if klass.type_hints is not None:
                         type_hint = klass.type_hints.hint_out if out else klass.type_hints.hint_in
 
-                        if type_hint is not None and managed_type_hint.parse_state is not ParseState.PARSING:
+                        if type_hint is not None:
                             return self._copy_type_hint(type_hint, out)
 
                     return TypeHintNode(NodeType.CLASS, definition=klass)
