@@ -2476,7 +2476,7 @@ static typeHintDef *typehint_attr(PyObject *obj, const char *name,
     {
         if ((value = search_str_cache(cache_typehint, raw_hint)) == NULL)
         {
-            typeHintDef *value = sipMalloc(sizeof (typeHintDef));
+            value = sipMalloc(sizeof (typeHintDef));
 
             cache_str(&cache_typehint, raw_hint, value);
 
