@@ -330,7 +330,7 @@ def _has_cpp_signature(signature):
     # See if there are any arguments that could only have come from handwritten
     # code.
     for arg in signature.args:
-        if arg in _HANDWRITTEN_CODE_TYPES:
+        if arg.type in _HANDWRITTEN_CODE_TYPES:
             return False
 
     return True

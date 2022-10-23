@@ -201,7 +201,7 @@ class ArgumentFormatter(BaseFormatter):
                 space_before_name = True
 
         if is_reference:
-            s += '&amp;' if as_xml else '&'
+            s += '&'
 
         if name:
             if space_before_name:

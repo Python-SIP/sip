@@ -42,17 +42,14 @@ class TemplateFormatter(ScopedFormatter):
 
         s += template.cpp_name.cpp_stripped(strip)
 
-        s += '&lt;' if as_xml else '<'
+        s += '<'
 
         s += SignatureFormatter(self.spec, template.types).cpp_arguments(
                 strip=strip, as_xml=as_xml)
 
-        if as_xml:
-            s += '&gt;'
-        else:
-            if s.endswith('>'):
-                s += ' '
+        if s.endswith('>') and not as_xml:
+            s += ' '
 
-            s += '>'
+        s += '>'
 
         return s

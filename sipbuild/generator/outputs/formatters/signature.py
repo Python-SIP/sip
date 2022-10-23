@@ -39,7 +39,9 @@ class SignatureFormatter(BaseFormatter):
                 strip=strip, make_public=make_public, as_xml=as_xml)
                 for arg in self.object.args]
 
-        return ', '.join(args)
+        # Note the lack of separating space (although this may be for XML only
+        # to be consistent with previous implementations).
+        return ','.join(args)
 
     @property
     def py_arguments(self):
