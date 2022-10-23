@@ -253,8 +253,6 @@ static classDef *class_list_attr(sipSpec *pt, PyObject *obj, const char *name,
 static classList *classlist_attr(sipSpec *pt, PyObject *obj, const char *name,
         const char *encoding);
 static codeBlock *codeblock(PyObject *obj, const char *encoding);
-static codeBlock *codeblock_attr(PyObject *obj, const char *name,
-        const char *encoding);
 static codeBlockList *codeblock_list_attr(PyObject *obj, const char *name,
         const char *encoding);
 static ctorDef *constructor(sipSpec *pt, PyObject *obj, const char *encoding);
@@ -290,8 +288,6 @@ static licenseDef *license_attr(PyObject *obj, const char *name,
         const char *encoding);
 static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
         const char *encoding);
-static mappedTypeDef *mappedtype_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding);
 static mappedTypeDef *mappedtype_list_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static memberDef *member(sipSpec *pt, PyObject *obj, const char *encoding);
@@ -972,25 +968,6 @@ static codeBlock *codeblock(PyObject *obj, const char *encoding)
 
 
 /*
- * Convert a CodeBlock attribute.
- */
-static codeBlock *codeblock_attr(PyObject *obj, const char *name,
-        const char *encoding)
-{
-    PyObject *attr = PyObject_GetAttrString(obj, name);
-    codeBlock *value;
-
-    assert(attr != NULL);
-
-    value = codeblock(attr, encoding);
-
-    Py_DECREF(attr);
-
-    return value;
-}
-
-
-/*
  * Convert a CodeBlock list or an optional CodeBlock attribute.
  */
 static codeBlockList *codeblock_list_attr(PyObject *obj, const char *name,
@@ -1523,25 +1500,6 @@ static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
     value->releasecode = codeblock_list_attr(obj, "release_code", encoding);
 
     value->real = value;
-
-    return value;
-}
-
-
-/*
- * Convert an optional MappedType attribute.
- */
-static mappedTypeDef *mappedtype_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding)
-{
-    PyObject *attr = PyObject_GetAttrString(obj, name);
-    mappedTypeDef *value;
-
-    assert(attr != NULL);
-
-    value = mappedtype(pt, attr, encoding);
-
-    Py_DECREF(attr);
 
     return value;
 }
