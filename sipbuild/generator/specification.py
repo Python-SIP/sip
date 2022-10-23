@@ -1375,22 +1375,14 @@ class ThrowArguments:
 
 
 @dataclass
-class TypeHint:
-    """ Encapsulate a PEP 484 type hint. """
-
-    # The text of the hint.
-    text: str
-
-
-@dataclass
 class TypeHints:
     """ Encapsulate a set of PEP 484 type hints for a type. """
 
     # The type hint when used to pass a value into a callable.
-    hint_in: Optional[TypeHint]
+    hint_in: Optional[str]
 
     # The type hint used to return a value from a callable.
-    hint_out: Optional[TypeHint]
+    hint_out: Optional[str]
 
     # The representation of a default value in a type hint.
     default_value: Optional[str]

@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..specification import ValueType
+from ...specification import ValueType
 
 from .argument import ArgumentFormatter
 from .base_formatter import BaseFormatter

@@ -21,8 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..scoped_name import STRIP_NONE
-from ..specification import ArgumentType, ArrayArgument
+from ...scoped_name import STRIP_NONE
+from ...specification import ArgumentType, ArrayArgument
 
 from .argument import ArgumentFormatter
 from .base_formatter import BaseFormatter

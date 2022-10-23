@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..specification import PySlot
+from ...specification import PySlot
 
 from .scoped import ScopedFormatter
 from .utils import format_scoped_py_name

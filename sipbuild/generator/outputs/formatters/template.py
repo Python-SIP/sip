@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..scoped_name import STRIP_GLOBAL, STRIP_NONE
+from ...scoped_name import STRIP_GLOBAL, STRIP_NONE
 
 from .scoped import ScopedFormatter
 from .signature import SignatureFormatter

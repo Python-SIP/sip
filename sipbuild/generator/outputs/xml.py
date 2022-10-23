@@ -23,14 +23,15 @@
 
 from xml.etree.ElementTree import Element, SubElement
 
-from ..formatters import (ArgumentFormatter, ClassFormatter, EnumFormatter,
-        format_scoped_py_name, SignatureFormatter, ValueListFormatter,
-        VariableFormatter)
 from ..python_slots import is_number_slot
 from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
         IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
-from ..type_hints import TypeHintManager
+
+from .formatters import (ArgumentFormatter, ClassFormatter, EnumFormatter,
+        format_scoped_py_name, SignatureFormatter, ValueListFormatter,
+        VariableFormatter)
+from .type_hints import TypeHintManager
 
 
 # The schema version number.
@@ -276,7 +277,7 @@ def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
     # An empty type hint specifies a void return.
     result = overload.py_signature.result
 
-    if result.type_hints is not None and result.type_hints.hint_out is not None and result.type_hints.hint_out.text == '':
+    if result.type_hints is not None and result.type_hints.hint_out is not None and result.type_hints.hint_out == '':
         no_result = True
     else:
         no_result = (result.type is ArgumentType.VOID and len(result.derefs) == 0)

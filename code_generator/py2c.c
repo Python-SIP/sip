@@ -88,7 +88,6 @@ static objectCache *cache_mappedtype = NULL;
 static objectCache *cache_member = NULL;
 static objectCache *cache_module = NULL;
 static objectCache *cache_qual = NULL;
-static objectCache *cache_typehint = NULL;
 static objectCache *cache_virtualerrorhandler = NULL;
 static objectCache *cache_wrappedenum = NULL;
 static objectCache *cache_wrappedtypedef = NULL;
@@ -109,7 +108,6 @@ static void clear_caches(void)
     clear_cache(&cache_member);
     clear_cache(&cache_module);
     clear_cache(&cache_qual);
-    clear_cache(&cache_typehint);
     clear_cache(&cache_virtualerrorhandler);
     clear_cache(&cache_wrappedenum);
     clear_cache(&cache_wrappedtypedef);
@@ -277,7 +275,6 @@ static throwArgs *throw_arguments(sipSpec *pt, PyObject *obj,
         const char *encoding);
 static throwArgs *throw_arguments_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
-static typeHintDef *typehint(PyObject *obj, const char *encoding);
 static typeHintDef *typehint_attr(PyObject *obj, const char *name,
         const char *encoding);
 static void typehints_attr(PyObject *obj, const char *name,
@@ -2400,38 +2397,21 @@ static throwArgs *throw_arguments_attr(sipSpec *pt, PyObject *obj,
 
 
 /*
- * Convert an optional TypeHint object.
- */
-static typeHintDef *typehint(PyObject *obj, const char *encoding)
-{
-    typeHintDef *value;
-
-    if (obj == Py_None)
-        return NULL;
-
-    if ((value = search_cache(cache_typehint, obj)) != NULL)
-        return value;
-
-    value = newTypeHint(str_attr(obj, "text", encoding));
-
-    cache(&cache_typehint, obj, value);
-
-    return value;
-}
-
-
-/*
- * Convert an optional TypeHint attribute.
+ * Convert an optional str attribute as a typeHintDef.
  */
 static typeHintDef *typehint_attr(PyObject *obj, const char *name,
         const char *encoding)
 {
     PyObject *attr = PyObject_GetAttrString(obj, name);
     typeHintDef *value;
+    char *raw_hint;
 
     assert(attr != NULL);
 
-    value = typehint(attr, encoding);
+    if ((raw_hint = str(attr, encoding)) != NULL)
+        value = newTypeHint(raw_hint);
+    else
+        value = NULL;
 
     Py_DECREF(attr);
 

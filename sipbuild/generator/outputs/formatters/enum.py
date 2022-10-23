@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..specification import IfaceFileType
+from ...specification import IfaceFileType
 
 from .scoped import EmbeddedScopeFormatter
 from .utils import format_scoped_py_name, iface_is_defined

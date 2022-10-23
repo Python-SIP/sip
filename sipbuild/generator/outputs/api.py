@@ -23,9 +23,10 @@
 
 from enum import IntEnum
 
-from ..formatters import (ClassFormatter, EnumFormatter, OverloadFormatter,
-        SignatureFormatter, VariableFormatter)
 from ..specification import AccessSpecifier
+
+from .formatters import (ClassFormatter, EnumFormatter, OverloadFormatter,
+        SignatureFormatter, VariableFormatter)
 
 
 class IconNumber(IntEnum):

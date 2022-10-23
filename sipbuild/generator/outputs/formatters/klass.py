@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ..scoped_name import STRIP_NONE
+from ...scoped_name import STRIP_NONE
 
 from .scoped import EmbeddedScopeFormatter
 from .template import TemplateFormatter
