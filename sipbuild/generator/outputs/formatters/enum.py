@@ -47,7 +47,7 @@ class EnumFormatter(EmbeddedScopeFormatter):
         for member in enum.members:
             yield enum_name + member.py_name.name
 
-    def member_rest_ref(self, member):
+    def member_as_rest_ref(self, member):
         """ Return the fully qualified Python name of a member as a reST
         reference.
         """
@@ -66,9 +66,8 @@ class EnumFormatter(EmbeddedScopeFormatter):
 
         return f':sip:ref:`~{module_name}.{enum_name}.{member_name}`'
 
-    @property
-    def rest_ref(self):
-        """ The fully qualified Python name as a reST reference. """
+    def as_rest_ref(self):
+        """ Return the fully qualified Python name as a reST reference. """
 
         enum = self.object
         module_name = enum.module.fq_py_name.name
@@ -76,7 +75,7 @@ class EnumFormatter(EmbeddedScopeFormatter):
 
         return f':sip:ref:`~{module_name}.{enum_name}`'
 
-    def type_hint(self, module, defined):
+    def as_type_hint(self, module, defined):
         """ Return the type hint. """
 
         enum = self.object

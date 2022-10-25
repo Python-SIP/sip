@@ -24,3 +24,4 @@
 # Publish the API.  This is private to the rest of sip.
 from .api import output_api
 from .extracts import output_extract
+from .pyi import output_pyi

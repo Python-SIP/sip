@@ -55,7 +55,8 @@ class ParserManager:
     """
 
     def __init__(self, hex_version, encoding, abi_version, tags,
-            disabled_features, protected_is_public, include_dirs, strict):
+            disabled_features, protected_is_public, include_dirs, sip_module,
+            is_strict):
         """ Initialise the manager. """
 
         # Create the lexer.
@@ -77,7 +78,8 @@ class ParserManager:
         self.tags = tags
 
         self.spec = Specification(
-                tuple([int(v) for v in abi_version.split('.')]), strict)
+                tuple([int(v) for v in abi_version.split('.')]), is_strict,
+                sip_module)
 
         self.c_bindings = None
         self.code_block = None

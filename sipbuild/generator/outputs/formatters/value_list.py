@@ -43,9 +43,9 @@ class ValueListFormatter(BaseFormatter):
 
         return self._expression(as_python=True, embedded=embedded)
 
-    @property
-    def rest_ref(self):
-        """ The Python representation of the value list as a reST reference.
+    def as_rest_ref(self):
+        """ Return the Python representation of the value list as a reST
+        reference.
         """
 
         value_list = self.object
@@ -59,7 +59,7 @@ class ValueListFormatter(BaseFormatter):
         # See if it is an attribute.
         for variable in self.spec.variables:
             if variable.fq_cpp_name == target:
-                return VariableFormatter(self.spec, variable).rest_ref
+                return VariableFormatter(self.spec, variable).as_rest_ref()
 
         # See if it is an enum member.
         target_scope = target.scope
@@ -79,12 +79,12 @@ class ValueListFormatter(BaseFormatter):
                         # It's a scoped enum so the fully qualified name of the
                         # enum must match the scope of the name.
                         if target_scope is not None and enum.fq_cpp_name == target_scope:
-                            return formatter.member_rest_ref(member)
+                            return formatter.member_as_rest_ref(member)
                     else:
                         # It's a traditional enum so the scope of the enum must
                         # match the scope of the name.
                         if (enum.scope is None and target_scope is None) or (enum.scope is not None and target_scope is not None and enum.scope.iface_file.fq_cpp_name == target_scope):
-                            return formatter.member_rest_ref(member)
+                            return formatter.member_as_rest_ref(member)
 
                     break
 
@@ -150,7 +150,7 @@ class ValueListFormatter(BaseFormatter):
                         value.value.result)
 
                 if as_python:
-                    s += arg_formatter.py_type()
+                    s += arg_formatter.as_py_type()
                 else:
                     s += arg_formatter.cpp_type()
 

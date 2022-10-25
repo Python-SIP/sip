@@ -27,9 +27,8 @@ from .scoped import EmbeddedScopeFormatter
 class VariableFormatter(EmbeddedScopeFormatter):
     """ This creates various string representations of a variable. """
 
-    @property
-    def rest_ref(self):
-        """ The fully qualified Python name as a reST reference. """
+    def as_rest_ref(self):
+        """ Return the fully qualified Python name as a reST reference. """
 
         variable = self.object
         module_name = variable.module.fq_py_name.name

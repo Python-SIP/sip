@@ -40,32 +40,34 @@ class IconNumber(IntEnum):
     ENUM = 10
 
 
-def output_api(spec, module, api_filename):
+def output_api(spec, api_filename):
     """ Output a QScintilla API file. """
 
     with open(api_filename, 'w') as af:
-        _api_enums(af, spec, module)
-        _api_variables(af, spec, module)
+        module = spec.modules[0]
+
+        _enums(af, spec, module)
+        _variables(af, spec, module)
 
         for overload in module.overloads:
             if overload.common.module is module and overload.common.py_slot is None:
-                _api_overload(af, spec, module, overload)
+                _overload(af, spec, module, overload)
 
         for klass in spec.classes:
             if klass.iface_file.module is module and not klass.external:
-                _api_enums(af, spec, module, scope=klass)
-                _api_variables(af, spec, module, scope=klass)
+                _enums(af, spec, module, scope=klass)
+                _variables(af, spec, module, scope=klass)
 
                 for ctor in klass.ctors:
                     if ctor.access_specifier is not AccessSpecifier.PRIVATE:
-                        _api_ctor(af, spec, module, ctor, klass)
+                        _ctor(af, spec, module, ctor, klass)
 
                 for overload in klass.overloads:
                     if overload.access_specifier is not AccessSpecifier.PRIVATE and overload.common.py_slot is None:
-                        _api_overload(af, spec, module, overload, scope=klass)
+                        _overload(af, spec, module, overload, scope=klass)
 
 
-def _api_ctor(af, spec, module, ctor, scope):
+def _ctor(af, spec, module, ctor, scope):
     """ Generate an API ctor. """
 
     py_class = module.py_name + '.' + ClassFormatter(spec, scope).fq_py_name
@@ -83,7 +85,7 @@ def _api_ctor(af, spec, module, ctor, scope):
     af.write(f'{py_class}.__init__?{IconNumber.CLASS}({py_arguments})\n')
 
 
-def _api_enums(af, spec, module, scope=None):
+def _enums(af, spec, module, scope=None):
     """ Generate the APIs for all the enums in a scope. """
 
     for enum in spec.enums:
@@ -97,7 +99,7 @@ def _api_enums(af, spec, module, scope=None):
                 af.write(f'{member_s}?{IconNumber.ENUM}\n')
 
 
-def _api_variables(af, spec, module, scope=None):
+def _variables(af, spec, module, scope=None):
     """ Generate the APIs for all the variables in a scope. """
 
     for variable in spec.variables:
@@ -107,7 +109,7 @@ def _api_variables(af, spec, module, scope=None):
             af.write(f'{module.py_name}.{formatter.fq_py_name}?{IconNumber.VARIABLE}\n')
 
 
-def _api_overload(af, spec, module, overload, scope=None):
+def _overload(af, spec, module, overload, scope=None):
     """ Generate a single API overload. """
 
     sig_formatter = SignatureFormatter(spec, overload.py_signature)

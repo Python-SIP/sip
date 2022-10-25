@@ -21,6 +21,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+def format_copying(copying, comment):
+    """ Return a formatted %Copying text. """
+
+    s = ''.join([b.text for b in copying]).rstrip().replace('\n', '\n' + comment + ' ')
+
+    if s:
+        s = comment + '\n' + s
+
+    return s
+
+
 def format_scoped_py_name(scope, py_name):
     """ Return a formatted scoped Python name. """
 

@@ -24,6 +24,8 @@
 from ...scoped_name import STRIP_NONE
 from ...specification import ArgumentType, ArrayArgument, ClassKey, ValueType
 
+from ..type_hints import TypeHintManager
+
 from .base_formatter import BaseFormatter
 from .utils import format_scoped_py_name
 
@@ -33,7 +35,7 @@ class ArgumentFormatter(BaseFormatter):
 
     def cpp_type(self, *, name=None, scope=None, strip=STRIP_NONE,
             make_public=False, use_typename=True, as_xml=False):
-        """ Return the C++ representation of the argument type. """
+        """ Return the argument as a C++ type. """
 
         arg = self.object
 
@@ -236,8 +238,8 @@ class ArgumentFormatter(BaseFormatter):
         return ValueListFormatter(self.spec, arg.default_value).py_expression(
                 embedded=embedded)
 
-    def py_type(self, default_value=False):
-        """ Return the Python representation of the argument type. """
+    def as_py_type(self, default_value=False):
+        """ Return the argument as a Python type. """
 
         arg = self.object
 
@@ -252,6 +254,88 @@ class ArgumentFormatter(BaseFormatter):
             s += '=' + self.py_default_value()
 
         return s
+
+    def as_rest_ref(self, out):
+        """ Return the argument as a reST reference. """
+
+        arg = self.object
+
+        s = ''
+
+        hint = self._get_hint(out)
+
+        if hint is None:
+            if arg.type is ArgumentType.CLASS:
+                from .klass import ClassFormatter
+
+                s += ClassFormatter(self.spec, arg.definition).as_rest_ref()
+            elif arg.type is ArgumentType.ENUM:
+                if arg.definition.py_name is not None:
+                    from .enum import EnumFormatter
+
+                    s += EnumFormatter(self.spec, arg.definition).as_rest_ref()
+                else:
+                    s += 'int'
+            elif arg.type is ArgumentType.MAPPED:
+                # There would normally be a type hint.
+                s += "unknown-type"
+            else:
+                s += self.as_py_type()
+        else:
+            s += TypeHintManager(self.spec).as_rest_ref(hint, out)
+
+        return s
+
+    def as_type_hint(self, module, out, defined):
+        """ Return the argument as a type hint. """
+
+        arg = self.object
+
+        s = ''
+
+        hint = self._get_hint(out)
+
+        if hint is None:
+            if arg.type is ArgumentType.CLASS:
+                from .klass import ClassFormatter
+
+                s += ClassFormatter(self.spec, arg.definition).as_type_hint(
+                        module, defined)
+            elif arg.type is ArgumentType.ENUM:
+                if arg.definition.py_name is not None:
+                    from .enum import EnumFormatter
+
+                    s += EnumFormatter(self.spec, arg.definition).as_type_hint(
+                            module, defined)
+                else:
+                    s += 'int'
+            elif arg.type is ArgumentType.MAPPED:
+                # There would normally be a type hint.
+                s += 'typing.Any'
+            else:
+                s += self.as_py_type()
+        else:
+            s += TypeHintManager(self.spec).as_type_hint(hint, module, out,
+                    defined)
+
+        return s
+
+    def _get_hint(self, out):
+        """ Return the raw type hint. """
+
+        arg = self.object
+
+        # Use any explicit type hint unless the argument is constrained.
+        if arg.type_hints is None:
+            hint = None
+        elif out:
+            hint = arg.type_hints.hint_out
+        elif arg.is_constrained:
+            hint = None
+        else:
+            hint = arg.type_hints.hint_in
+
+        return hint
 
     def _py_arg(self):
         """ Return an argument as a 2-tuple of scope and name. """
@@ -270,6 +354,13 @@ class ArgumentFormatter(BaseFormatter):
             if definition.py_name is not None:
                 name = definition.py_name.name
 
+        elif type is ArgumentType.ENUM:
+            if definition.py_name is None:
+                name = 'int'
+            else:
+                scope = definition.scope
+                name = definition.py_name.name
+
         elif type is ArgumentType.DEFINED:
             name = definition.as_py
 
@@ -278,13 +369,6 @@ class ArgumentFormatter(BaseFormatter):
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
             name = 'sip.voidptr'
-
-        elif type is ArgumentType.ENUM:
-            if definition.py_name is None:
-                name = 'int'
-            else:
-                scope = definition.scope
-                name = definition.py_name.name
 
         elif type is ArgumentType.USTRING:
             name = 'bytes'

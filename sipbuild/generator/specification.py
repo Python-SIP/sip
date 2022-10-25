@@ -1289,6 +1289,9 @@ class Specification:
     # Set if the specification is strict.
     is_strict: bool
 
+    # The name of the sip module.
+    sip_module: str
+
     # Set if the bindings are for C rather than C++.
     c_bindings: bool = False
 

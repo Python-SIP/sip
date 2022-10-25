@@ -31,9 +31,8 @@ from .utils import format_scoped_py_name, iface_is_defined
 class ClassFormatter(EmbeddedScopeFormatter):
     """ This creates various string representations of a class. """
 
-    @property
-    def rest_ref(self):
-        """ The fully qualified Python name as a reST reference. """
+    def as_rest_ref(self):
+        """ Return the fully qualified Python name as a reST reference. """
 
         klass = self.object
         module_name = klass.iface_file.module.fq_py_name.name
@@ -61,7 +60,7 @@ class ClassFormatter(EmbeddedScopeFormatter):
 
         return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
 
-    def type_hint(self, module, defined):
+    def as_type_hint(self, module, defined):
         """ Return the type hint. """
 
         klass = self.object

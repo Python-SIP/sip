@@ -32,8 +32,6 @@ from ...exceptions import UserException
 from ..scoped_name import ScopedName
 from ..specification import WrappedClass, WrappedEnum
 
-from .formatters import EnumFormatter, ClassFormatter
-
 
 # The types defined in the typing module.
 _TYPING_MODULE = (
@@ -69,11 +67,17 @@ class ManagedTypeHint:
     # The type hint being managed.
     type_hint: str
 
-    # The parse state.
-    parse_state: ParseState = ParseState.REQUIRED
+    # The rendered docstring.
+    as_docstring: Optional[str] = None
 
     # The rendered reST reference.
-    rest_ref: Optional[str] = None
+    as_rest_ref: Optional[str] = None
+
+    # The rendered type hint.
+    as_type_hint: Optional[str] = None
+
+    # The parse state.
+    parse_state: ParseState = ParseState.REQUIRED
 
     # The root node.
     root: Optional['TypeHintNode'] = None
@@ -119,6 +123,42 @@ class TypeHintManager:
 
         return manager
 
+    def as_docstring(self, type_hint, module, out, defined):
+        """ Return the type hint as a docstring. """
+
+        managed_type_hint = self._get_managed_type_hint(type_hint)
+
+        # See if it needs rendering.
+        if managed_type_hint.as_docstring is None:
+            managed_type_hint.as_docstring = self._render(managed_type_hint,
+                    out, module=module, defined=defined)
+
+        return managed_type_hint.as_docstring
+
+    def as_rest_ref(self, type_hint, out):
+        """ Return the type hint with appropriate reST references. """
+
+        managed_type_hint = self._get_managed_type_hint(type_hint)
+
+        # See if it needs rendering.
+        if managed_type_hint.as_rest_ref is None:
+            managed_type_hint.as_rest_ref = self._render(managed_type_hint,
+                    out, rest_ref=True)
+
+        return managed_type_hint.as_rest_ref
+
+    def as_type_hint(self, type_hint, module, out, defined):
+        """ Return the type hint as a type hint. """
+
+        managed_type_hint = self._get_managed_type_hint(type_hint)
+
+        # See if it needs rendering.
+        if managed_type_hint.as_type_hint is None:
+            managed_type_hint.as_type_hint = self._render(managed_type_hint,
+                    out, pep484=True, module=module, defined=defined)
+
+        return managed_type_hint.as_type_hint
+
     def _get_managed_type_hint(self, type_hint):
         """ Return the unique (for the specification) managed type hint for a
         type hint.
@@ -131,18 +171,6 @@ class TypeHintManager:
             self._managed_type_hints[type_hint] = managed_type_hint
 
         return managed_type_hint
-
-    def rest_ref(self, type_hint, out):
-        """ Return the type hint with appropriate reST references. """
-
-        managed_type_hint = self._get_managed_type_hint(type_hint)
-
-        # See if it needs rendering.
-        if managed_type_hint.rest_ref is None:
-            managed_type_hint.rest_ref = self._render(managed_type_hint, out,
-                    rest_ref=True)
-
-        return managed_type_hint.rest_ref
 
     def _parse(self, managed_type_hint, out):
         """ Ensure a type hint has been parsed. """
@@ -289,22 +317,26 @@ class TypeHintManager:
                 s += '[' + ', '.join(children) + ']'
 
         elif node.type is NodeType.CLASS:
+            from .formatters import ClassFormatter
+
             formatter = ClassFormatter(self._spec, node.definition)
 
             if rest_ref:
-                s = formatter.rest_ref
+                s = formatter.as_rest_ref()
             elif pep484:
-                s = formatter.type_hint(module, defined)
+                s = formatter.as_type_hint(module, defined)
             else:
                 s = formatter.fq_py_name
 
         elif node.type is NodeType.ENUM:
+            from .formatters import EnumFormatter
+
             formatter = EnumFormatter(self._spec, node.definition)
 
             if rest_ref:
-                s = formatter.rest_ref
+                s = formatter.as_rest_ref()
             elif pep484:
-                s = formatter.type_hint(module, defined)
+                s = formatter.as_type_hint(module, defined)
             else:
                 s = formatter.fq_py_name
 

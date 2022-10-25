@@ -25,11 +25,13 @@ from .parser_manager import ParserManager
 
 
 def parse(sip_file, hex_version, encoding, abi_version, tags,
-        disabled_features, protected_is_public, include_dirs, strict=True):
+        disabled_features, protected_is_public, include_dirs, sip_module,
+        is_strict=True):
     """ Parse a .sip specification file returning a corresponding Specification
     object and a list of the .sip files that define the module to be generated.
     """
 
     return ParserManager(
             hex_version, encoding, abi_version, tags, disabled_features,
-            protected_is_public, include_dirs, strict).parse(sip_file)
+            protected_is_public, include_dirs, sip_module, is_strict).parse(
+                    sip_file)

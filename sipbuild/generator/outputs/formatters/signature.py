@@ -53,7 +53,7 @@ class SignatureFormatter(BaseFormatter):
             if arg.array is not ArrayArgument.ARRAY_SIZE and arg.is_in:
                 args.append(
                         ArgumentFormatter(self.spec,
-                                arg).py_type(default_value=True))
+                                arg).as_py_type(default_value=True))
 
         return ', '.join(args)
 
@@ -68,10 +68,10 @@ class SignatureFormatter(BaseFormatter):
         if sig.result is not None:
             if sig.result.type is not ArgumentType.VOID or len(sig.result.derefs) != 0:
                 results.append(ArgumentFormatter(self.spec,
-                        sig.result).py_type())
+                        sig.result).as_py_type())
 
         for arg in sig.args:
             if arg.is_out:
-                results.append(ArgumentFormatter(self.spec, arg).py_type())
+                results.append(ArgumentFormatter(self.spec, arg).as_py_type())
 
         return ', '.join(results)

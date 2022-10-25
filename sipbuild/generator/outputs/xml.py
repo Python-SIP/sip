@@ -31,7 +31,6 @@ from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
 from .formatters import (ArgumentFormatter, ClassFormatter, EnumFormatter,
         format_scoped_py_name, SignatureFormatter, ValueListFormatter,
         VariableFormatter)
-from .type_hints import TypeHintManager
 
 
 # The schema version number.
@@ -56,18 +55,18 @@ def output_xml(spec, module_name):
             _xml_class(root, spec, module, klass)
 
     for klass in module.proxies:
-        _xml_class(root, spec, module, klass)
+        _class(root, spec, module, klass)
 
-    _xml_enums(root, spec, module)
-    _xml_variables(root, spec, module)
+    _enums(root, spec, module)
+    _variables(root, spec, module)
 
     for member in module.global_functions:
-        _xml_function(root, spec, module, member, module.overloads)
+        _function(root, spec, member, module.overloads)
 
     return root
 
 
-def _xml_realname(scope, member=None):
+def _realname(scope, member=None):
     """ Return a 'realname' attribute containing a fully qualified C/C++ name.
     """
 
@@ -88,7 +87,7 @@ def _xml_realname(scope, member=None):
     return fq_cpp_name
 
 
-def _xml_class(parent, spec, module, klass):
+def _class(parent, spec, module, klass):
     """ Output the XML for a class. """
 
     if klass.is_opaque:
@@ -117,26 +116,25 @@ def _xml_class(parent, spec, module, klass):
 
         if len(klass.superclasses) != 0:
             attrib['inherits'] = ' '.join(
-                    [ClassFormatter(spec, s).rest_ref
+                    [ClassFormatter(spec, s).as_rest_ref()
                             for s in klass.superclasses])
 
         parent_klass = SubElement(parent, 'Class', attrib,
                 name=ClassFormatter(spec, klass).fq_py_name,
-                realname=_xml_realname(klass.iface_file.fq_cpp_name))
+                realname=_realname(klass.iface_file.fq_cpp_name))
 
     for ctor in klass.ctors:
         if ctor.access_specifier is not AccessSpecifier.PRIVATE:
-            _xml_ctor(parent_klass, spec, module, klass, ctor)
+            _ctor(parent_klass, spec, klass, ctor)
 
-    _xml_enums(parent_klass, spec, module, klass)
-    _xml_variables(parent_klass, spec, module, klass)
+    _enums(parent_klass, spec, module, klass)
+    _variables(parent_klass, spec, module, klass)
 
     for member in klass.members:
-        _xml_function(parent_klass, spec, module,  member, klass.overloads,
-                klass)
+        _function(parent_klass, spec, member, klass.overloads, klass)
 
 
-def _xml_enums(parent, spec, module, scope=None):
+def _enums(parent, spec, module, scope=None):
     """ Output the XML for all the enums in a scope. """
 
     for enum in spec.enums:
@@ -146,24 +144,23 @@ def _xml_enums(parent, spec, module, scope=None):
                     SubElement(parent, 'Member',
                             name=format_scoped_py_name(enum.scope,
                                     member.py_name.name),
-                            realname=_xml_realname(enum.scope,
-                                    member.cpp_name),
+                            realname=_realname(enum.scope, member.cpp_name),
                             const='1', typename='int')
             else:
                 enum_el = SubElement(parent, 'Enum',
                         name=format_scoped_py_name(enum.scope,
                                 enum.py_name.name),
-                        realname=_xml_realname(enum.fq_cpp_name))
+                        realname=_realname(enum.fq_cpp_name))
 
                 for member in enum.members:
                     name = format_scoped_py_name(enum.scope, enum.py_name.name) + '.' + member.py_name.name
 
                     SubElement(enum_el, 'EnumMember', name=name,
-                            realname=_xml_realname(enum.fq_cpp_name,
+                            realname=_realname(enum.fq_cpp_name,
                                     member.cpp_name))
 
 
-def _xml_variables(parent, spec, module, scope=None):
+def _variables(parent, spec, module, scope=None):
     """ Output the XML for all the variables in a scope. """
 
     for variable in spec.variables:
@@ -179,32 +176,31 @@ def _xml_variables(parent, spec, module, scope=None):
                 attrib['static'] = '1'
 
             SubElement(parent, 'Member', attrib, name=formatter.fq_py_name,
-                    realname=_xml_realname(variable.fq_cpp_name),
-                    typename=_xml_typename(spec, module, variable.type))
+                    realname=_realname(variable.fq_cpp_name),
+                    typename=_typename(spec, variable.type))
 
 
-def _xml_ctor(parent, spec, module, scope, ctor):
+def _ctor(parent, spec, scope, ctor):
     """ Output the XML for a ctor. """
 
     attrib = {}
 
     if _has_cpp_signature(ctor.cpp_signature):
-        attrib['cppsig'] = _xml_cpp_signature(spec, ctor.cpp_signature)
+        attrib['cppsig'] = _cpp_signature(spec, ctor.cpp_signature)
 
     function_el = SubElement(parent, 'Function', attrib,
             name=format_scoped_py_name(scope, '__init__'),
-            realname=_xml_realname(scope, '__init__'))
+            realname=_realname(scope, '__init__'))
 
     for arg in ctor.py_signature.args:
         if arg.is_in:
-            _xml_argument(function_el, spec, module, arg, ctor.kw_args)
+            _argument(function_el, spec, arg, ctor.kw_args)
 
         if arg.is_out:
-            _xml_argument(function_el, spec, moduke, arg, ctor.kw_args,
-                    out=True)
+            _argument(function_el, spec, arg, ctor.kw_args, out=True)
 
 
-def _xml_function(parent, spec, module, member, overloads, scope=None):
+def _function(parent, spec, member, overloads, scope=None):
     """ Output the XML for a function. """
 
     for overload in overloads:
@@ -213,16 +209,15 @@ def _xml_function(parent, spec, module, member, overloads, scope=None):
                 attrib = {}
 
                 if _has_cpp_signature(overload.cpp_signature):
-                    attrib['cppsig'] = _xml_cpp_signature(spec,
+                    attrib['cppsig'] = _cpp_signature(spec,
                             overload.cpp_signature)
 
                 signal_el = SubElement(parent, 'Signal', attrib,
                         name=format_scoped_py_name(scope, member.py_name.name),
-                        realname=_xml_realname(scope, overload.cpp_name))
+                        realname=_realname(scope, overload.cpp_name))
 
                 for arg in overload.py_signature.args:
-                    _xml_argument(signal_el, spec, module, arg,
-                            overload.kw_args)
+                    _argument(signal_el, spec, arg, overload.kw_args)
             else:
                 extends = None
                 is_static = (scope is None or scope.iface_file.type is IfaceFileType.NAMESPACE or overload.is_static)
@@ -231,11 +226,11 @@ def _xml_function(parent, spec, module, member, overloads, scope=None):
                     extends = overload.py_signature.args[0].definition
                     is_static = False
 
-                _xml_overload(parent, spec, module, scope, overload, extends,
+                _overload(parent, spec, scope, overload, extends,
                         is_static)
 
 
-def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
+def _overload(parent, spec, scope, overload, extends, is_static):
     """ Output the XML for an overload. """
 
     if overload.is_reflected:
@@ -252,7 +247,7 @@ def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
     attrib = {}
 
     if _has_cpp_signature(overload.cpp_signature):
-        attrib['cppsig'] = _xml_cpp_signature(spec, overload.cpp_signature,
+        attrib['cppsig'] = _cpp_signature(spec, overload.cpp_signature,
                 is_const=overload.is_const)
 
     if overload.is_abstract:
@@ -272,7 +267,7 @@ def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
 
     function_el = SubElement(parent, 'Function', attrib,
             name=format_scoped_py_name(scope, name),
-            realname=_xml_realname(scope, cpp_name))
+            realname=_realname(scope, cpp_name))
 
     # An empty type hint specifies a void return.
     result = overload.py_signature.result
@@ -283,8 +278,8 @@ def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
         no_result = (result.type is ArgumentType.VOID and len(result.derefs) == 0)
 
     if not no_result:
-        _xml_argument(function_el, spec, module, overload.py_signature.result,
-                KwArgs.NONE, out=True,
+        _argument(function_el, spec, overload.py_signature.result, KwArgs.NONE,
+                out=True,
                 transfer_result=overload.transfer is Transfer.TRANSFER_BACK)
 
     # Ignore the first argument of non-reflected number slots and the second
@@ -300,11 +295,10 @@ def _xml_overload(parent, spec, module, scope, overload, extends, is_static):
                 continue
 
         if arg.is_in:
-            _xml_argument(function_el, spec, module, arg, overload.kw_args)
+            _argument(function_el, spec, arg, overload.kw_args)
 
         if arg.is_out:
-            _xml_argument(function_el, spec, module, arg, overload.kw_args,
-                    out=True)
+            _argument(function_el, spec, arg, overload.kw_args, out=True)
 
 
 # Argument types that imply handwritten code.
@@ -336,7 +330,7 @@ def _has_cpp_signature(signature):
     return True
 
 
-def _xml_cpp_signature(spec, signature, is_const=False):
+def _cpp_signature(spec, signature, is_const=False):
     """ Return the XML for a C++ signature. """
 
     formatter = SignatureFormatter(spec, signature)
@@ -348,7 +342,7 @@ def _xml_cpp_signature(spec, signature, is_const=False):
     return f'({args}){const}'
 
 
-def _xml_argument(parent, spec, module, arg, kw_args, out=False,
+def _argument(parent, spec, arg, kw_args, out=False,
         transfer_result=False):
     """ Ouput the XML for an argument. """
 
@@ -371,14 +365,11 @@ def _xml_argument(parent, spec, module, arg, kw_args, out=False,
             attrib['transfer'] = 'back'
 
         SubElement(parent, 'Return' if out else 'Argument', attrib,
-                typename=_xml_typename(spec, module, arg, kw_args=kw_args,
-                        out=out))
+                typename=_typename(spec, arg, kw_args=kw_args, out=out))
 
 
-def _xml_typename(spec, module, arg, kw_args=KwArgs.NONE, out=False):
+def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
     """ Return the XML for a type. """
-
-    formatter = ArgumentFormatter(spec, arg)
 
     s = ''
 
@@ -387,38 +378,14 @@ def _xml_typename(spec, module, arg, kw_args=KwArgs.NONE, out=False):
         if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and arg.default_value is not None):
             s += arg.name.name + ': '
 
-    # Use any explicit type hint unless the argument is constrained.
-    if arg.type_hints is None:
-        hint = None
-    elif out:
-        hint = arg.type_hints.hint_out
-    elif arg.is_constrained:
-        hint = None
-    else:
-        hint = arg.type_hints.hint_in
-
-    if hint is None:
-        if arg.type is ArgumentType.CLASS:
-            s += ClassFormatter(spec, arg.definition).rest_ref
-        elif arg.type is ArgumentType.ENUM:
-            if arg.definition.py_name is not None:
-                s += EnumFormatter(spec, arg.definition).rest_ref
-            else:
-                s += 'int'
-        elif arg.type is ArgumentType.MAPPED:
-            # There would normally be a type hint.
-            s += "unknown-type"
-        else:
-            s += formatter.py_type()
-    else:
-        s += TypeHintManager(spec).rest_ref(hint, out)
+    s += ArgumentFormatter(spec, arg).as_rest_ref(out)
 
     if not out and arg.name is not None and arg.default_value is not None:
         s += ' = '
 
         # Try and convert the value to a reST reference.  We don't try very
         # hard but will get most cases.
-        rest_ref = ValueListFormatter(spec, arg.default_value).rest_ref
+        rest_ref = ValueListFormatter(spec, arg.default_value).as_rest_ref()
         if rest_ref is None:
             rest_ref = formatter.py_default_value()
 
