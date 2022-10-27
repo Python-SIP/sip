@@ -450,6 +450,8 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
         nr_overloads += 1
 
     # Handle each overload.
+    overload_nr = 0
+
     for overload in overloads:
         if overload.access_specifier is AccessSpecifier.PRIVATE:
             continue
@@ -460,8 +462,10 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
         if overload.no_type_hint:
             continue
 
-        _overload(pf, spec, module, overload, nr_overloads > 1, is_method,
-                defined, indent)
+        _overload(pf, spec, module, overload, nr_overloads > 1, overload_nr,
+                is_method, defined, indent)
+
+        overload_nr += 1
 
 
 def _property(pf, spec, module, prop, is_setter, member, overloads, defined,
@@ -497,18 +501,24 @@ def _property(pf, spec, module, prop, is_setter, member, overloads, defined,
         break
 
 
-def _overload(pf, spec, module, overload, overloaded, is_method, defined,
-        indent):
+def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
+        defined, indent):
     """ Output the type hints for a single overload. """
 
-    if overloaded:
+    # mypy recommends using 'object' as the argument type.
+    is_eq_slot = (overload.common.py_slot in (PySlot.EQ, PySlot.NE))
+
+    # The recommendation means any subsequent overloads are pointless.
+    if is_eq_slot:
+        if overload_nr > 0:
+            return
+    elif overloaded:
         pf.write(_indent(indent) + '@typing.overload\n')
 
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
-    # mypy recommends using 'object' as the argument type.
-    if overload.common.py_slot in (PySlot.EQ, PySlot.NE):
+    if is_eq_slot:
         signature = '(self, other: object)'
     else:
         need_self = (is_method and not overload.is_static)
