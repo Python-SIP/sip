@@ -262,11 +262,6 @@ class TypeHintManager:
                 node = TypeHintNode(NodeType.TYPING, children=children,
                         definition=name)
             else:
-                # Only objects from the typing module can have children.
-                if children is not None:
-                    raise UserException(
-                            f"type hint '{text}': brackets are invalid")
-
                 # Search for the type.
                 node = self._lookup_type(name, out)
         else:
