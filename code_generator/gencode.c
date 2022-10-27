@@ -14904,7 +14904,7 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
 {
     if (docstrings)
     {
-        pyiCtor(pt, pt->module, cd, ct, FALSE, NULL, 0, fp);
+        pyiCtor(pt, pt->module, cd, ct, fp);
         ++currentLineNr;
     }
 }
@@ -15840,5 +15840,5 @@ memberDef *findMethod(classDef *cd, const char *name)
  */
 static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
 {
-    pyiOverload(pt, pt->module, od, FALSE, is_method, NULL, 0, FALSE, fp);
+    pyiOverload(pt, pt->module, od, is_method, fp);
 }
