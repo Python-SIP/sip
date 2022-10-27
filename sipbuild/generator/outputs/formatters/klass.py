@@ -67,9 +67,9 @@ class ClassFormatter(EmbeddedScopeFormatter):
 
         # We assume that an external class will be handled properly by some
         # handwritten type hint code.
-        quote = '' if klass.external or iface_is_defined(klass.iface_file, module, defined, scope=self.scope) else "'"
+        quote = '' if klass.external or iface_is_defined(klass.iface_file, klass.scope, module, defined) else "'"
 
         # Include the module name if it is not the current one.
-        module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is module else ''
+        module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module else ''
 
         return f'{quote}{module_name}{self.fq_py_name}{quote}'

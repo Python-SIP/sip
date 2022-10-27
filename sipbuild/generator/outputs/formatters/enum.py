@@ -87,12 +87,12 @@ class EnumFormatter(EmbeddedScopeFormatter):
             scope_iface = self.scope.iface_file
             outer_scope = self.scope.scope if scope_iface.type is IfaceFileType.CLASS else None
 
-            is_defined = iface_is_defined(scope_iface, module, defined,
-                    scope=outer_scope)
+            is_defined = iface_is_defined(scope_iface, outer_scope, module,
+                    defined)
 
         quote = '' if is_defined else "'"
 
         # Include the module name if it is not the current one.
-        module_name = enum.module.py_name + '.' if enum.module is module else ''
+        module_name = enum.module.py_name + '.' if enum.module is not module else ''
 
         return f'{quote}{module_name}{self.fq_py_name}{quote}'

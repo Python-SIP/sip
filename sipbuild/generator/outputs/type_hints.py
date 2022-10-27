@@ -73,9 +73,6 @@ class ManagedTypeHint:
     # The rendered reST reference.
     as_rest_ref: Optional[str] = None
 
-    # The rendered type hint.
-    as_type_hint: Optional[str] = None
-
     # The parse state.
     parse_state: ParseState = ParseState.REQUIRED
 
@@ -152,12 +149,10 @@ class TypeHintManager:
 
         managed_type_hint = self._get_managed_type_hint(type_hint)
 
-        # See if it needs rendering.
-        if managed_type_hint.as_type_hint is None:
-            managed_type_hint.as_type_hint = self._render(managed_type_hint,
-                    out, pep484=True, module=module, defined=defined)
-
-        return managed_type_hint.as_type_hint
+        # Note that we always render type hints as they can be different before
+        # and after a class or enum is defined in the .pyi file.
+        return self._render(managed_type_hint, out, pep484=True,
+                module=module, defined=defined)
 
     def _get_managed_type_hint(self, type_hint):
         """ Return the unique (for the specification) managed type hint for a

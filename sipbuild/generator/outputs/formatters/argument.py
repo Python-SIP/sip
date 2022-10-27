@@ -238,12 +238,12 @@ class ArgumentFormatter(BaseFormatter):
         return ValueListFormatter(self.spec, arg.default_value).py_expression(
                 embedded=embedded)
 
-    def as_py_type(self, default_value=False):
+    def as_py_type(self, pep484=False, default_value=False):
         """ Return the argument as a Python type. """
 
         arg = self.object
 
-        scope, name = self._py_arg()
+        scope, name = self._py_arg(pep484)
 
         s = format_scoped_py_name(scope, name)
 
@@ -313,7 +313,7 @@ class ArgumentFormatter(BaseFormatter):
                 # There would normally be a type hint.
                 s += 'typing.Any'
             else:
-                s += self.as_py_type()
+                s += self.as_py_type(pep484=True)
         else:
             s += TypeHintManager(self.spec).as_type_hint(hint, module, out,
                     defined)
@@ -337,11 +337,12 @@ class ArgumentFormatter(BaseFormatter):
 
         return hint
 
-    def _py_arg(self):
+    def _py_arg(self, pep484):
         """ Return an argument as a 2-tuple of scope and name. """
 
         type = self.object.type
         definition = self.object.definition
+        sip_module = self.spec.sip_module
 
         scope = None
         name = "unknown-type"
@@ -368,12 +369,12 @@ class ArgumentFormatter(BaseFormatter):
             name = definition.base_name
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            name = 'sip.voidptr'
+            name = sip_module + '.voidptr'
 
-        elif type is ArgumentType.USTRING:
+        elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.USTRING):
             name = 'bytes'
 
-        elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.WSTRING, ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING):
+        elif type in (ArgumentType.WSTRING, ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING):
             name = 'bytes' if self.object.array is ArrayArgument.ARRAY else 'str'
 
         elif type in (ArgumentType.BYTE, ArgumentType.SBYTE, ArgumentType.UBYTE, ArgumentType.USHORT, ArgumentType.UINT, ArgumentType.LONG, ArgumentType.LONGLONG, ArgumentType.ULONG, ArgumentType.ULONGLONG, ArgumentType.SHORT, ArgumentType.INT, ArgumentType.CINT, ArgumentType.SSIZE, ArgumentType.SIZE, ArgumentType.HASH):
@@ -386,19 +387,19 @@ class ArgumentFormatter(BaseFormatter):
             name = 'bool'
 
         elif type is ArgumentType.PYOBJECT:
-            name = 'object'
+            name = 'typing.Any' if pep484 else 'Any'
 
         elif type is ArgumentType.PYTUPLE:
-            name = 'tuple'
+            name = 'typing.Tuple' if pep484 else 'Tuple'
 
         elif type is ArgumentType.PYLIST:
-            name = 'list'
+            name = 'typing.List' if pep484 else 'List'
 
         elif type is ArgumentType.PYDICT:
-            name = 'dict'
+            name = 'typing.Dict' if pep484 else 'Dict'
 
         elif type is ArgumentType.PYCALLABLE:
-            name = 'callable'
+            name = 'typing.Callable[..., None]' if pep484 else 'Callable[..., None]'
 
         elif type is ArgumentType.PYSLICE:
             name = 'slice'
@@ -407,12 +408,16 @@ class ArgumentFormatter(BaseFormatter):
             name = 'type'
 
         elif type is ArgumentType.PYBUFFER:
-            name = 'buffer'
+            if pep484:
+                name = sip_module + '.Buffer'
+            else:
+                # This replicates sip.pyi.
+                name = f'Union[bytes, bytearray, memoryview, {sip_module}.array, {sip_module}.voidptr]'
 
         elif type is ArgumentType.PYENUM:
-            name = 'enum'
+            name = 'enum.Enum'
 
         elif type is ArgumentType.ELLIPSIS:
-            name = '...'
+            name = '*'
 
         return scope, name
