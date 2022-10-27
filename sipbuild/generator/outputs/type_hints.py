@@ -123,7 +123,7 @@ class TypeHintManager:
     def as_docstring(self, type_hint, module, out, defined):
         """ Return the type hint as a docstring. """
 
-        managed_type_hint = self._get_managed_type_hint(type_hint)
+        managed_type_hint = self._get_managed_type_hint(type_hint, out)
 
         # See if it needs rendering.
         if managed_type_hint.as_docstring is None:
@@ -135,7 +135,7 @@ class TypeHintManager:
     def as_rest_ref(self, type_hint, out):
         """ Return the type hint with appropriate reST references. """
 
-        managed_type_hint = self._get_managed_type_hint(type_hint)
+        managed_type_hint = self._get_managed_type_hint(type_hint, out)
 
         # See if it needs rendering.
         if managed_type_hint.as_rest_ref is None:
@@ -147,25 +147,26 @@ class TypeHintManager:
     def as_type_hint(self, type_hint, module, out, defined):
         """ Return the type hint as a type hint. """
 
-        managed_type_hint = self._get_managed_type_hint(type_hint)
+        managed_type_hint = self._get_managed_type_hint(type_hint, out)
 
         # Note that we always render type hints as they can be different before
         # and after a class or enum is defined in the .pyi file.
         return self._render(managed_type_hint, out, pep484=True,
                 module=module, defined=defined)
 
-    def _get_managed_type_hint(self, type_hint):
+    def _get_managed_type_hint(self, type_hint, out):
         """ Return the unique (for the specification) managed type hint for a
         type hint.
         """
 
         try:
-            managed_type_hint = self._managed_type_hints[type_hint]
+            hint_in, hint_out = self._managed_type_hints[type_hint]
         except KeyError:
-            managed_type_hint = ManagedTypeHint(type_hint)
-            self._managed_type_hints[type_hint] = managed_type_hint
+            hint_in = ManagedTypeHint(type_hint)
+            hint_out = ManagedTypeHint(type_hint)
+            self._managed_type_hints[type_hint] = (hint_in, hint_out)
 
-        return managed_type_hint
+        return hint_out if out else hint_in
 
     def _parse(self, managed_type_hint, out):
         """ Ensure a type hint has been parsed. """
@@ -352,7 +353,7 @@ class TypeHintManager:
     def _copy_type_hint(self, type_hint, out):
         """ Copy the root node of a type hint. """
 
-        managed_type_hint = self._get_managed_type_hint(type_hint)
+        managed_type_hint = self._get_managed_type_hint(type_hint, out)
 
         self._parse(managed_type_hint, out)
 
@@ -431,7 +432,7 @@ class TypeHintManager:
                             type_hint = mapped_type.type_hints.hint_out if out else mapped_type.type_hints.hint_in
 
                             if type_hint is not None:
-                                if self._get_managed_type_hint(type_hint).parse_state is not ParseState.PARSING:
+                                if self._get_managed_type_hint(type_hint, out).parse_state is not ParseState.PARSING:
                                     return self._copy_type_hint(type_hint, out)
 
                         return None
@@ -451,7 +452,7 @@ class TypeHintManager:
                         type_hint = klass.type_hints.hint_out if out else klass.type_hints.hint_in
 
                         if type_hint is not None:
-                            if self._get_managed_type_hint(type_hint).parse_state is not ParseState.PARSING:
+                            if self._get_managed_type_hint(type_hint, out).parse_state is not ParseState.PARSING:
                                 return self._copy_type_hint(type_hint, out)
 
                     return TypeHintNode(NodeType.CLASS, definition=klass)
