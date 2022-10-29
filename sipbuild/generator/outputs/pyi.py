@@ -495,7 +495,7 @@ def _property(pf, spec, module, prop, is_setter, member, overloads, defined,
                 defined)
 
         s = _indent(indent)
-        s += f'def {prop.name.name}{sinature}: ...\n'
+        s += f'def {prop.name.name}{signature}: ...\n'
         pf.write(s)
 
         break
