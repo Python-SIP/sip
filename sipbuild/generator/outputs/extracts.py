@@ -28,13 +28,11 @@ def output_extract(spec, extract_ref):
     """ Output an extract. """
 
     # Get the id and file name from the reference.
-    parts = extract_ref.split(':')
-    if len(parts) != 2:
+    extract_id, _, extract_file = extract_ref.partition(':')
+    if not extract_file:
         raise UserException(
                 "an extract must be in the form 'id:file', not '{0}'".format(
                         extract_ref))
-
-    extract_id, extract_file = parts
 
     # Get all the parts of this extract.
     ordered_parts = []
