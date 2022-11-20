@@ -46,10 +46,6 @@ static void raise_exception(void);
 static PyObject *py_set_globals(PyObject *self, PyObject *args);
 static PyObject *py_py2c(PyObject *self, PyObject *args);
 static PyObject *py_generateCode(PyObject *self, PyObject *args);
-static PyObject *py_generateExtracts(PyObject *self, PyObject *args);
-static PyObject *py_generateAPI(PyObject *self, PyObject *args);
-static PyObject *py_generateXML(PyObject *self, PyObject *args);
-static PyObject *py_generateTypeHints(PyObject *self, PyObject *args);
 
 static int fs_convertor(PyObject *obj, char **fsp);
 static int sipSpec_convertor(PyObject *obj, sipSpec **ptp);
@@ -67,10 +63,6 @@ PyMODINIT_FUNC PyInit_code_generator(void)
         {"set_globals", py_set_globals, METH_VARARGS, NULL},
         {"py2c", py_py2c, METH_VARARGS, NULL},
         {"generateCode", py_generateCode, METH_VARARGS, NULL},
-        {"generateExtracts", py_generateExtracts, METH_VARARGS, NULL},
-        {"generateAPI", py_generateAPI, METH_VARARGS, NULL},
-        {"generateXML", py_generateXML, METH_VARARGS, NULL},
-        {"generateTypeHints", py_generateTypeHints, METH_VARARGS, NULL},
         {NULL, NULL, 0, NULL},
     };
 
@@ -171,98 +163,6 @@ static PyObject *py_generateCode(PyObject *self, PyObject *args)
     }
 
     return Py_BuildValue("(sN)", api_header, stringList_convert_from(sources));
-}
-
-
-/*
- * Wrapper around generateExtracts().
- */
-static PyObject *py_generateExtracts(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    stringList *extracts;
-
-    if (!PyArg_ParseTuple(args, "O&O&",
-            sipSpec_convertor, &pt,
-            stringList_convertor, &extracts))
-        return NULL;
-
-    if (generateExtracts(pt, extracts) < 0)
-    {
-        raise_exception();
-        return NULL;
-    }
-
-    Py_RETURN_NONE;
-}
-
-
-/*
- * Wrapper around generateAPI().
- */
-static PyObject *py_generateAPI(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    char *apiFile;
-
-    if (!PyArg_ParseTuple(args, "O&O&",
-            sipSpec_convertor, &pt,
-            fs_convertor, &apiFile))
-        return NULL;
-
-    if (generateAPI(pt, pt->module, apiFile) < 0)
-    {
-        raise_exception();
-        return NULL;
-    }
-
-    Py_RETURN_NONE;
-}
-
-
-/*
- * Wrapper around generateXML().
- */
-static PyObject *py_generateXML(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    char *xmlFile;
-
-    if (!PyArg_ParseTuple(args, "O&O&",
-            sipSpec_convertor, &pt,
-            fs_convertor, &xmlFile))
-        return NULL;
-
-    if (generateXML(pt, pt->module, xmlFile) < 0)
-    {
-        raise_exception();
-        return NULL;
-    }
-
-    Py_RETURN_NONE;
-}
-
-
-/*
- * Wrapper around generateTypeHints().
- */
-static PyObject *py_generateTypeHints(PyObject *self, PyObject *args)
-{
-    sipSpec *pt;
-    char *pyiFile;
-
-    if (!PyArg_ParseTuple(args, "O&O&",
-            sipSpec_convertor, &pt,
-            fs_convertor, &pyiFile))
-        return NULL;
-
-    if (generateTypeHints(pt, pt->module, pyiFile) < 0)
-    {
-        raise_exception();
-        return NULL;
-    }
-
-    Py_RETURN_NONE;
 }
 
 

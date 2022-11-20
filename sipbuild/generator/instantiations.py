@@ -23,12 +23,11 @@
 
 from copy import copy
 
+from .scoped_name import ScopedName
 from .specification import (Argument, ArgumentType, FunctionCall,
-        IfaceFileType, KwArgs, ScopedName, Signature, TypeHints, Value,
-        ValueType)
+        IfaceFileType, KwArgs, Signature, TypeHints, Value, ValueType)
 from .templates import (template_code, template_code_blocks,
         template_expansions, template_string)
-from .type_hints import get_type_hint
 from .utils import append_iface_file, cached_name, normalised_scoped_name
 
 
@@ -49,6 +48,8 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
         i_class.docstring = docstring
 
     i_class.mro = []
+    i_class.virtual_overloads = []
+    i_class.visible_members = []
     i_class.py_name = cached_name(pm.spec, py_name)
     i_class.template = template
     i_class.no_type_name = no_type_name
@@ -389,16 +390,14 @@ def instantiate_type_hints(spec, proto_type_hints, expansions):
     """ Return an instantiated TypeHints object. """
 
     if proto_type_hints.hint_in is not None:
-        hint_in = get_type_hint(spec,
-                template_string(proto_type_hints.hint_in.text, expansions,
-                        scope_replacement='.'))
+        hint_in = template_string(proto_type_hints.hint_in, expansions,
+                        scope_replacement='.')
     else:
         hint_in = None
 
     if proto_type_hints.hint_out is not None:
-        hint_out = get_type_hint(spec,
-                template_string(proto_type_hints.hint_out.text, expansions,
-                        scope_replacement='.'))
+        hint_out = template_string(proto_type_hints.hint_out, expansions,
+                        scope_replacement='.')
     else:
         hint_out = None
 

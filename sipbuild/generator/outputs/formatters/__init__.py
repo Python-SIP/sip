@@ -8,7 +8,7 @@
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ('AS IS'
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -21,51 +21,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .specification import PySlot
-
-
-# Map the Python slot types to C++.
-_PYSLOT_CPP_MAP = {
-    PySlot.ADD: '+',
-    PySlot.SUB: '-',
-    PySlot.MUL: '*',
-    PySlot.TRUEDIV: '/',
-    PySlot.MOD: '%',
-    PySlot.AND: '&',
-    PySlot.OR: '|',
-    PySlot.XOR: '^',
-    PySlot.LSHIFT: '<<',
-    PySlot.RSHIFT: '>>',
-    PySlot.IADD: '+=',
-    PySlot.ISUB: '-=',
-    PySlot.IMUL: '*=',
-    PySlot.ITRUEDIV: '/=',
-    PySlot.IMOD: '%=',
-    PySlot.IAND: '&=',
-    PySlot.IOR: '|=',
-    PySlot.IXOR: '^=',
-    PySlot.ILSHIFT: '<<=',
-    PySlot.IRSHIFT: '>>=',
-    PySlot.INVERT: '~',
-    PySlot.CALL: '()',
-    PySlot.GETITEM: '[]',
-    PySlot.LT: '<',
-    PySlot.LE: '<=',
-    PySlot.EQ: '==',
-    PySlot.NE: '!=',
-    PySlot.GT: '>',
-    PySlot.GE: '>=',
-}
-
-
-def format_overload_as_cpp(overload):
-    ''' Return the C++ representation of an overload. '''
-
-    part1 = 'operator'
-
-    try:
-        part2 = _PYSLOT_CPP_MAP[overload.common.py_slot]
-    except KeyError:
-        return overload.cpp_name
-
-    return 'operator' + part2
+# Publish the API.  This is private to the rest of sip.
+from .argument import ArgumentFormatter
+from .enum import EnumFormatter
+from .klass import ClassFormatter
+from .overload import OverloadFormatter
+from .signature import SignatureFormatter
+from .utils import format_copying, format_scoped_py_name
+from .value_list import ValueListFormatter
+from .variable import VariableFormatter

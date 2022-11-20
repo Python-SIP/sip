@@ -21,12 +21,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
         FunctionCall, IfaceFile, IfaceFileType, KwArgs, License, MappedType,
         MappedTypeTemplate, Overload, Property, PyQtMethodSpecifier,
-        QualifierType, ScopedName, Signature, Template, ThrowArguments, Value,
-        ValueType, VirtualErrorHandler, WrappedTypedef, WrappedVariable)
+        QualifierType, Signature, Template, ThrowArguments, Value, ValueType,
+        VirtualErrorHandler, WrappedTypedef, WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import cached_name, normalised_scoped_name, search_typedefs
 
@@ -548,7 +549,7 @@ def p_extract(p):
         order = args.get('order', -1)
         part = p[7]
 
-    pm.spec.extracts.append(Extract(id, order, part))
+    pm.spec.extracts.append(Extract(id, order, part.text))
 
 
 def p_extract_args(p):
@@ -2253,7 +2254,7 @@ def p_exception(p):
     pm.check_annotations(p, 4, "exception", _EXCEPTION_ANNOTATIONS)
 
     cpp_name = p[2]
-    py_name = pm.get_py_name(cpp_name, p[4])
+    py_name = pm.get_py_name(cpp_name.base_name, p[4])
     pm.check_attributes(p, 2, py_name)
 
     builtin_base, defined_base = p[3]

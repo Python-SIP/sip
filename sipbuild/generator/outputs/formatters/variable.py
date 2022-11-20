@@ -8,7 +8,7 @@
 # License v2 or v3 as published by the Free Software Foundation which can be
 # found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ('AS IS'
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -21,17 +21,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .parser_manager import ParserManager
+from .scoped import EmbeddedScopeFormatter
 
 
-def parse(sip_file, hex_version, encoding, abi_version, tags,
-        disabled_features, protected_is_public, include_dirs, sip_module,
-        is_strict=True):
-    """ Parse a .sip specification file returning a corresponding Specification
-    object and a list of the .sip files that define the module to be generated.
-    """
+class VariableFormatter(EmbeddedScopeFormatter):
+    """ This creates various string representations of a variable. """
 
-    return ParserManager(
-            hex_version, encoding, abi_version, tags, disabled_features,
-            protected_is_public, include_dirs, sip_module, is_strict).parse(
-                    sip_file)
+    def as_rest_ref(self):
+        """ Return the fully qualified Python name as a reST reference. """
+
+        variable = self.object
+        module_name = variable.module.fq_py_name.name
+        variable_name = format_scoped_py_name(self.scope,
+                variable.py_name.name)
+
+        return f':sip:ref:`~{module_name}.{variable_name}`'

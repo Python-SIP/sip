@@ -25,14 +25,14 @@
 from copy import copy
 
 from ..error_log import ErrorLog
-from ..formatters import format_overload_as_cpp
 from ..instantiations import instantiate_type_hints
 from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_inplace_number_slot, is_rich_compare_slot, is_ssize_return_slot,
         is_void_return_slot, is_zero_arg_slot)
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType, ClassKey,
         Constructor, IfaceFileType, MappedType, Member, PyQtMethodSpecifier,
-        PySlot, ScopedName, Signature, Transfer, ValueType, VirtualHandler,
+        PySlot, Signature, Transfer, ValueType, VirtualHandler,
         VirtualOverload, VisibleMember, WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
@@ -51,6 +51,9 @@ def resolve(spec):
     # Build the list of all imports for each module.
     for mod in spec.modules:
         _set_all_imports(mod, error_log)
+
+        # Set the base name of the module.  This is done for efficiency.
+        mod.py_name = mod.fq_py_name.name.split('.')[-1]
 
     # Set the default meta-type for the main module if it doesn't have one
     # explicitly set.
@@ -598,7 +601,7 @@ def _move_global_slot(spec, mod, global_slot, error_log):
 
         # Move the overload to the end of the destination list.
         if is_second:
-            overload.is_reflected
+            overload.is_reflected = True
 
         overload.access_specifier = AccessSpecifier.PUBLIC
         overload.common = arg_member
@@ -2044,14 +2047,13 @@ def _iface_files_are_used_by_overload(spec, used, overload, need_types=False):
     if spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)):
         return
 
-    if overload.throw_args is not None:
-        for throw_arg in overload.throw_args:
-            if throw_arg is not None:
-                for exception in throw_arg.arguments:
-                    append_iface_file(used, exception.iface_file)
+    throw_args = overload.throw_args
+    if throw_args is not None and throw_args.arguments is not None:
+        for exception in throw_args.arguments:
+            append_iface_file(used, exception.iface_file)
 
-                    if need_types:
-                        _set_needs_exception(exception)
+            if need_types:
+                _set_needs_exception(exception)
 
 
 def _iface_file_is_used(used, arg, need_types=False):
@@ -2188,12 +2190,10 @@ def _check_properties(klass, error_log):
 def _log_overload_error(error_log, text, overload, scope=None):
     """ Log an error about an overload. """
 
-    if scope is not None:
-        scope_s = str(scope.iface_file.fq_cpp_name) + '::'
+    if scope is None:
+        fq_cpp_name = overload.cpp_name
     else:
-        scope_s = ''
+        fq_cpp_name = f'{scope.iface_file.fq_cpp_name}::{overload.cpp_name}'
 
-    error_log.log(
-            "'{0}{1}' {2}".format(scope_s, format_overload_as_cpp(overload),
-                    text),
+    error_log.log(f"'{fq_cpp_name}' {text}",
             source_location=overload.source_location)

@@ -1249,22 +1249,6 @@ typedef struct _classDef {
 } classDef;
 
 
-/* The extracts for an identifier. */
-typedef struct _extractDef {
-    const char *id;                     /* The identifier. */
-    struct _extractPartDef *parts;      /* The ordered list of parts. */
-    struct _extractDef *next;           /* The next in the list. */
-} extractDef;
-
-
-/* Part of an extract for an identifier. */
-typedef struct _extractPartDef {
-    int order;                          /* The order of the part. */
-    codeBlock *part;                    /* The part itself. */
-    struct _extractPartDef *next;       /* The next in the list. */
-} extractPartDef;
-
-
 /* A rule for automatic Python naming. */
 typedef struct _autoPyNameDef {
     const char *remove_leading;         /* Leading string to remove. */
@@ -1314,11 +1298,6 @@ void get_bindings_configuration(const char *sip_file, stringList **tags,
 stringList *generateCode(sipSpec *, char *, const char *, int, int, int, int,
         stringList *needed_qualifiers, stringList *, int, int,
         const char **api_header);
-int generateExtracts(sipSpec *pt, const stringList *extracts);
-void addExtractPart(sipSpec *pt, const char *id, int order, codeBlock *part);
-int generateAPI(sipSpec *pt, moduleDef *mod, const char *apiFile);
-int generateXML(sipSpec *pt, moduleDef *mod, const char *xmlFile);
-int generateTypeHints(sipSpec *pt, moduleDef *mod, const char *pyiFile);
 void generateExpression(valueDef *vd, int in_str, FILE *fp);
 int error(const char *fmt, ...);
 void errorAppend(const char *fmt, ...);
@@ -1331,23 +1310,19 @@ int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 char *scopedNameTail(scopedNameDef *);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
-void prDefaultValue(argDef *ad, int in_str, FILE *fp);
+void prDefaultValue(argDef *ad, FILE *fp);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int isNumberSlot(memberDef *md);
 void appendString(stringList **headp, const char *s);
 int pluginPyQt5(sipSpec *pt);
 int pluginPyQt6(sipSpec *pt);
 memberDef *findMethod(classDef *cd, const char *name);
-void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct,
-        int overloaded, ifaceFileList *defined, int indent, FILE *fp);
-void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int overloaded,
-        int is_method, ifaceFileList *defined, int indent, int pep484,
+void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct, FILE *fp);
+void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int is_method,
         FILE *fp);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
 void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        ifaceFileList *defined, int pep484, int rest, FILE *fp);
-void restPyClass(classDef *cd, FILE *fp);
-void restPyEnum(enumDef *ed, FILE *fp);
+        FILE *fp);
 void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);

@@ -25,11 +25,11 @@ import os
 import sys
 
 from .buildable import BuildableBindings
-from .code_generator import (generateCode, generateExtracts, generateAPI,
-        generateTypeHints, py2c)
+from .code_generator import generateCode, py2c
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .generator import parse, resolve
+from .generator.outputs import output_api, output_extract, output_pyi
 from .installable import Installable
 from .module import copy_nonshared_sources
 from .version import SIP_VERSION
@@ -165,7 +165,8 @@ class Bindings(Configurable):
         # Parse the input file.
         spec, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
                 project.abi_version, self.tags, self.disabled_features,
-                self.protected_is_public, self._sip_include_dirs)
+                self.protected_is_public, self._sip_include_dirs,
+                project.sip_module or 'sip')
 
         # Resolve the types.
         resolve(spec)
@@ -195,12 +196,12 @@ class Bindings(Configurable):
             project.progress(
                     "Generating the {0} .api file".format(buildable.target))
 
-            generateAPI(pt,
+            output_api(spec,
                     os.path.join(project.build_dir, buildable.target + '.api'))
 
         # Generate any extracts.
-        if self.generate_extracts:
-            generateExtracts(pt, self.generate_extracts)
+        for extract_ref in self.generate_extracts:
+            output_extract(spec, extract_ref)
 
         # Generate any type hints file.
         if self.pep484_pyi and not self.internal:
@@ -210,7 +211,7 @@ class Bindings(Configurable):
             pyi_path = os.path.join(buildable.build_dir,
                     buildable.target + '.pyi')
 
-            generateTypeHints(pt, pyi_path)
+            output_pyi(spec, pyi_path)
 
             installable = Installable('pyi',
                     target_subdir=buildable.get_install_subdir())

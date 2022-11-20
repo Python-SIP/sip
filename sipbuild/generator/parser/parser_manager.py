@@ -32,15 +32,15 @@ from ...exceptions import UserException
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
+from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, CodeBlock, Constructor, DocstringFormat,
         DocstringSignature, EnumBaseType, GILAction, IfaceFile, IfaceFileType,
         KwArgs, MappedType, Member, Module, Overload, PyQtMethodSpecifier,
-        PySlot, Qualifier, QualifierType, ScopedName, Signature,
-        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
-        WrappedException, WrappedEnum, WrappedEnumMember)
+        PySlot, Qualifier, QualifierType, Signature, SourceLocation,
+        Specification, Transfer, TypeHints, WrappedClass, WrappedException,
+        WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
-from ..type_hints import get_type_hint
 from ..utils import (argument_as_str, cached_name, find_iface_file,
         normalised_scoped_name, same_base_type)
 
@@ -55,7 +55,8 @@ class ParserManager:
     """
 
     def __init__(self, hex_version, encoding, abi_version, tags,
-            disabled_features, protected_is_public, include_dirs, strict):
+            disabled_features, protected_is_public, include_dirs, sip_module,
+            is_strict):
         """ Initialise the manager. """
 
         # Create the lexer.
@@ -77,7 +78,8 @@ class ParserManager:
         self.tags = tags
 
         self.spec = Specification(
-                tuple([int(v) for v in abi_version.split('.')]), strict)
+                tuple([int(v) for v in abi_version.split('.')]), is_strict,
+                sip_module)
 
         self.c_bindings = None
         self.code_block = None
@@ -1417,30 +1419,26 @@ class ParserManager:
         None if none were specified.
         """
 
-        th_text = annotations.get('TypeHint')
-        th_in_text = annotations.get('TypeHintIn')
-        th_out_text = annotations.get('TypeHintOut')
+        th = annotations.get('TypeHint')
+        th_in = annotations.get('TypeHintIn')
+        th_out = annotations.get('TypeHintOut')
         th_value = annotations.get('TypeHintValue')
 
-        if th_in_text is None:
-            th_in_text = th_text
-        elif th_text is not None:
+        if th_in is None:
+            th_in = th
+        elif th is not None:
             self.parser_error(p, symbol,
                     "'TypeHint' and 'TypeHintIn' cannot both be specified")
 
             return None
 
-        th_in = None if th_in_text is None else get_type_hint(self.spec, th_in_text)
-
-        if th_out_text is None:
-            th_out_text = th_text
-        elif th_text is not None:
+        if th_out is None:
+            th_out = th
+        elif th is not None:
             self.parser_error(p, symbol,
                     "'TypeHint' and 'TypeHintOut' cannot both be specified")
 
             return None
-
-        th_out = None if th_out_text is None else get_type_hint(self.spec, th_out_text)
 
         if th_in is not None or th_out is not None or th_value is not None:
             # Check that type hints haven't been suppressed.

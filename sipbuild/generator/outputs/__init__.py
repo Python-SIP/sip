@@ -21,17 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .parser_manager import ParserManager
-
-
-def parse(sip_file, hex_version, encoding, abi_version, tags,
-        disabled_features, protected_is_public, include_dirs, sip_module,
-        is_strict=True):
-    """ Parse a .sip specification file returning a corresponding Specification
-    object and a list of the .sip files that define the module to be generated.
-    """
-
-    return ParserManager(
-            hex_version, encoding, abi_version, tags, disabled_features,
-            protected_is_public, include_dirs, sip_module, is_strict).parse(
-                    sip_file)
+# Publish the API.  This is private to the rest of sip.
+from .api import output_api
+from .extracts import output_extract
+from .pyi import output_pyi
