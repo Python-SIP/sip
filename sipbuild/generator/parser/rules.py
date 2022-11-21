@@ -210,7 +210,7 @@ def p_composite_module(p):
 
     module = pm.module_state.module
 
-    if module is not pm.spec.modules[0]:
+    if module is not pm.modules[0]:
         pm.parser_error(p, 1, "a %CompositeModule cannot be %Imported")
 
     if module.fq_py_name is not None:

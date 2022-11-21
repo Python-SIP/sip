@@ -163,17 +163,17 @@ class Bindings(Configurable):
         encoding = 'UTF-8'
 
         # Parse the input file.
-        spec, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
+        spec, modules, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
                 project.abi_version, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs,
                 project.sip_module or 'sip')
 
         # Resolve the types.
-        resolve(spec)
+        resolve(spec, modules)
 
         pt = py2c(spec, encoding)
 
-        module = spec.modules[0]
+        module = spec.module
 
         uses_limited_api = module.use_limited_api or module.is_composite
 

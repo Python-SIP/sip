@@ -41,7 +41,7 @@ from ..utils import (append_iface_file, argument_as_str, cached_name,
         same_signature, search_typedefs)
 
 
-def resolve(spec):
+def resolve(spec, modules):
     """ Resolve all types of a parsed specification and create additional views
     so that code can be generated.
     """
@@ -49,7 +49,7 @@ def resolve(spec):
     error_log = ErrorLog()
 
     # Build the list of all imports for each module.
-    for mod in spec.modules:
+    for mod in modules:
         _set_all_imports(mod, error_log)
 
         # Set the base name of the module.  This is done for efficiency.
@@ -57,19 +57,18 @@ def resolve(spec):
 
     # Set the default meta-type for the main module if it doesn't have one
     # explicitly set.
-    main_mod = spec.modules[0]
-
-    if main_mod.default_metatype is None:
-        for mod in main_mod.all_imports:
+    if spec.module.default_metatype is None:
+        for mod in spec.module.all_imports:
             if mod.default_metatype is None:
                 continue
 
-            if main_mod.default_metatype is None:
-                main_mod.default_metatype = mod.default_metatype
-            elif main_mod.default_metatype is not mod.default_metatype:
+            if spec.module.default_metatype is None:
+                spec.module.default_metatype = mod.default_metatype
+            elif spec.module.default_metatype is not mod.default_metatype:
                 error_log.log(
                         "'{0}' module has imported different default meta-types '{1}' and '{2}'".format(
-                                main_mod.fq_py_name, main_mod.default_metatype,
+                                spec.module.fq_py_name,
+                                spec.module.default_metatype,
                                 mod.default_metatype))
 
     # Check each class has been defined.
@@ -95,7 +94,7 @@ def resolve(spec):
         _set_mro(spec, klass, error_log)
 
     # Resolve the various types in the modules.
-    _resolve_module(spec, spec.modules[0], error_log)
+    _resolve_module(spec, spec.module, error_log)
 
     # Handle default ctors now that the argument types are resolved.
     for klass in spec.classes:
@@ -112,18 +111,14 @@ def resolve(spec):
 
     # Move casts and slots around to their correct classes (if in the same
     # module) or create proxies for them (if cross-module).
-    for mod in spec.modules:
-        if _generating_code_for_module(spec, mod):
-            _move_main_module_casts_slots(spec, mod, error_log)
+    _move_main_module_casts_slots(spec, error_log)
 
     # Automatically generate missing complementary slots.
     for klass in spec.classes:
         _add_complementary_slots(spec, klass)
 
-    for mod in spec.modules:
-        if _generating_code_for_module(spec, mod):
-            for klass in mod.proxies:
-                _add_complementary_slots(spec, klass)
+    for klass in spec.module.proxies:
+        _add_complementary_slots(spec, klass)
 
     # Generate the different class views.
     for klass in spec.classes:
@@ -143,7 +138,7 @@ def resolve(spec):
                 _iface_files_are_used_by_overload(spec, klass.iface_file.used,
                         overload)
 
-    for mod in spec.modules:
+    for mod in modules:
         # Create the list of numbered types sorted by type name.
         _create_sorted_numbered_types(spec, mod, error_log)
 
@@ -166,8 +161,8 @@ def resolve(spec):
         # Include the %TypeHeaderCode for exceptions defined in the main
         # module.
         if spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)):
-            if exception_mod is spec.modules[0]:
-                append_iface_file(spec.modules[0].used, exception.iface_file)
+            if exception_mod is spec.module:
+                append_iface_file(spec.module.used, exception.iface_file)
 
         # Skip those that don't require a Python exception object to be
         # created.
@@ -177,15 +172,15 @@ def resolve(spec):
         if exception.builtin_base_exception is None and exception.defined_base_exception is None:
             continue
 
-        if exception_mod is spec.modules[0] or exception.needed:
+        if exception_mod is spec.module or exception.needed:
             exception.exception_nr = exception_mod.nr_exceptions
             exception_mod.nr_exceptions += 1
 
     # For PyQt6 mark all enum interface files as being used.
     if 'PyQt6' in spec.plugins:
         for enum in spec.enums:
-            if enum.module is spec.modules[0]:
-                _enum_iface_file_is_used(enum, spec.modules[0])
+            if enum.module is spec.module:
+                _enum_iface_file_is_used(enum, spec.module)
 
     # Create the name cache as seen by the legacy code.
     name_cache = spec.name_cache
@@ -411,21 +406,21 @@ def _set_all_imports(mod, error_log, seen=None):
     seen.remove(mod)
 
 
-def _move_main_module_casts_slots(spec, mod, error_log):
+def _move_main_module_casts_slots(spec, error_log):
     """ Move the casts and slots to the correct place for a main module (ie.
     the one we are generating code for).
     """
 
     for klass in spec.classes:
-        if klass.iface_file.module is mod:
-            _move_class_casts(spec, mod, klass, error_log)
+        if klass.iface_file.module is spec.module:
+            _move_class_casts(spec, klass, error_log)
 
-    for member in mod.global_functions:
-        if member.py_slot is not None and member.module is mod:
-            _move_global_slot(spec, mod, member, error_log)
+    for member in spec.module.global_functions:
+        if member.py_slot is not None and member.module is spec.module:
+            _move_global_slot(spec, member, error_log)
 
 
-def _move_class_casts(spec, mod, klass, error_log):
+def _move_class_casts(spec, klass, error_log):
     """ Move any class casts to its correct class, or publish as a ctor
     extender.
     """
@@ -443,9 +438,9 @@ def _move_class_casts(spec, mod, klass, error_log):
                 cpp_signature=signature, is_cast=True)
 
         # If the destination class is in a different module then use a proxy.
-        if dst_klass.iface_file.module is not mod:
-            _iface_file_is_used(mod.used, arg)
-            dst_klass = _get_proxy(mod, dst_klass)
+        if dst_klass.iface_file.module is not spec.module:
+            _iface_file_is_used(spec.module.used, arg)
+            dst_klass = _get_proxy(spec.module, dst_klass)
             ctor.no_typehint = True
 
         _iface_file_is_used(dst_klass.iface_file.used, arg)
@@ -461,10 +456,10 @@ def _move_class_casts(spec, mod, klass, error_log):
         dst_klass.ctors.append(ctor)
 
 
-def _move_global_slot(spec, mod, global_slot, error_log):
+def _move_global_slot(spec, global_slot, error_log):
     """ If possible, move a global slot to its correct class. """
 
-    for overload in list(mod.overloads):
+    for overload in list(spec.module.overloads):
         if overload.common is not global_slot:
             continue
 
@@ -559,7 +554,7 @@ def _move_global_slot(spec, mod, global_slot, error_log):
                     proxy.members.insert(0, proxy_member)
 
                 # Remove the overload from the list.
-                mod.overloads.remove(overload)
+                spec.module.overloads.remove(overload)
 
                 # Add the overload to the proxy.
                 overload.common = proxy_member
@@ -573,7 +568,7 @@ def _move_global_slot(spec, mod, global_slot, error_log):
             continue
 
         # Remove from the list.
-        mod.overloads.remove(overload)
+        spec.module.overloads.remove(overload)
 
         if arg_enum is not None:
             _enum_iface_file_is_used(arg_enum, arg_module)
@@ -676,7 +671,7 @@ def _add_auto_overload(spec, auto_klass, auto_overload):
                 overload.is_autogenerated = False
                 klass.overloads.insert(0, overload)
 
-                if _generating_code_for_module(spec, klass.iface_file.module):
+                if klass.iface_file.module is spec.module:
                     member.py_name.used = True
 
                 break
@@ -734,7 +729,7 @@ def _set_mro(spec, klass, error_log, seen=None):
                 if superklass_mro not in klass.mro:
                     klass.mro.append(superklass_mro)
 
-                if _generating_code_for_module(spec, klass.iface_file.module):
+                if klass.iface_file.module is spec.module:
                     superklass_mro.iface_file.needed = True
 
                 if superklass_mro.deprecated:
@@ -767,7 +762,7 @@ def _set_mro(spec, klass, error_log, seen=None):
         if klass.metatype is None and len(klass.superclasses) == 0:
             klass.metatype = klass.iface_file.module.default_metatype
 
-        if klass.metatype is not None and _generating_code_for_module(spec, klass.iface_file.module):
+        if klass.metatype is not None and klass.iface_file.module is spec.module:
             klass.metatype.used = True
 
         # If the class doesn't have an explicit super-type then inherit from
@@ -781,7 +776,7 @@ def _set_mro(spec, klass, error_log, seen=None):
             if klass.supertype.name.endswith('sip.wrapper'):
                 klass.supertype = None
 
-        if klass.supertype is not None and _generating_code_for_module(spec, klass.iface_file.module):
+        if klass.supertype is not None and klass.iface_file.module is spec.module:
             klass.supertype.used = True
 
     # Make sure that the module in which a sub-class convertor will be created
@@ -1005,7 +1000,7 @@ def _get_visible_py_members(spec, klass):
                         if overload.is_abstract:
                             klass.is_abstract = True
 
-                        if _generating_code_for_module(spec, klass.iface_file.module) and (klass is mro_klass or (overload.access_specifier is AccessSpecifier.PROTECTED and klass.has_shadow)):
+                        if klass.iface_file.module is spec.module and (klass is mro_klass or (overload.access_specifier is AccessSpecifier.PROTECTED and klass.has_shadow)):
                             need_types = True
                             member.py_name.used = True
 
@@ -1072,7 +1067,7 @@ def _add_virtual_overload(spec, overload, klass, error_log):
 
     # If this class is defined in the main module then make sure the virtuals
     # have a handler.
-    if _generating_code_for_module(spec, klass.iface_file.module):
+    if klass.iface_file.module is spec.module:
         virtual_handler = _get_virtual_handler(spec, overload, klass,
                 error_log)
 
@@ -1081,7 +1076,7 @@ def _add_virtual_overload(spec, overload, klass, error_log):
 
         # Make sure we have the interface files and type definitions for the
         # virtual handler.
-        _iface_files_are_used_by_overload(spec, spec.modules[0].used, overload,
+        _iface_files_are_used_by_overload(spec, spec.module.used, overload,
                 need_types=True)
     else:
         virtual_handler = None
@@ -1764,7 +1759,7 @@ def _resolve_type(spec, mod, scope, type, error_log, allow_defined=False):
 
     # If we are in the main module then mark any generated types as being
     # needed.
-    if _generating_code_for_module(spec, mod):
+    if mod is spec.module:
         _set_needed_type(type)
 
 
@@ -1780,7 +1775,7 @@ def _set_needed_type(arg):
 def _set_needed_exceptions(spec, mod, throw_args):
     """ Specify that a set of thrown arguments are needed. """
 
-    if _generating_code_for_module(spec, mod) and throw_args is not None and throw_args.arguments is not None:
+    if mod is spec.module and throw_args is not None and throw_args.arguments is not None:
         for exception in throw_args.arguments:
             _set_needs_exception(exception)
 
@@ -1835,7 +1830,7 @@ def _instantiate_mapped_type_template(spec, mod, mapped_type_template, type,
     mapped_type.type.is_reference = False
     mapped_type.cpp_name = cached_name(spec, argument_as_str(mapped_type.type))
 
-    if _generating_code_for_module(spec, mod):
+    if mod is spec.module:
         mapped_type.cpp_name.used = True
 
     proto_mapped_type = mapped_type_template.mapped_type
@@ -2114,7 +2109,7 @@ def _create_sorted_numbered_types(spec, mod, error_log):
         if klass.iface_file.module is not mod:
             continue
 
-        if _generating_code_for_module(spec, mod) or klass.iface_file.needed:
+        if mod is spec.module or klass.iface_file.needed:
             if not klass.is_hidden_namespace:
                 mod.needed_types.append(Argument(ArgumentType.CLASS,
                         definition=klass, name=klass.iface_file.cpp_name))
@@ -2123,7 +2118,7 @@ def _create_sorted_numbered_types(spec, mod, error_log):
         if mapped_type.iface_file.module is not mod:
             continue
 
-        if _generating_code_for_module(spec, mod) or mapped_type.iface_file.needed:
+        if mod is spec.module or mapped_type.iface_file.needed:
             mod.needed_types.append(Argument(ArgumentType.MAPPED,
                     definition=mapped_type, name=mapped_type.cpp_name))
 
@@ -2134,7 +2129,7 @@ def _create_sorted_numbered_types(spec, mod, error_log):
         if enum.fq_cpp_name is None:
             continue
 
-        if _generating_code_for_module(spec, mod) or enum.needed:
+        if mod is spec.module or enum.needed:
             mod.needed_types.append(Argument(ArgumentType.ENUM,
                     definition=enum, name=enum.cached_fq_cpp_name))
 
@@ -2162,14 +2157,6 @@ def _create_sorted_numbered_types(spec, mod, error_log):
             needed_type.definition.type_nr = needed_type_nr
 
         needed_type_nr += 1
-
-
-def _generating_code_for_module(spec, mod):
-    """ Return True if we are generating code for a module, ie. we are the main
-    module.
-    """
-
-    return spec.modules[0] is mod
 
 
 def _check_properties(klass, error_log):

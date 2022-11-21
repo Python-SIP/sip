@@ -462,6 +462,61 @@ void generateExpression(valueDef *vd, int in_str, FILE *fp)
 
 
 /*
+ * Generate the #defines for each feature defined in a module.
+ */
+static int generateFeatureDefines(moduleDef *mod,
+        stringList *needed_qualifiers, stringList *xsl, int noIntro, FILE *fp)
+{
+    qualDef *qd;
+
+    for (qd = mod->qualifiers; qd != NULL; qd = qd->next)
+    {
+        const char *qtype = NULL;
+
+        switch (qd->qtype)
+        {
+        case time_qualifier:
+            if (selectedQualifier(needed_qualifiers, qd))
+                qtype = "TIMELINE";
+
+            break;
+
+        case platform_qualifier:
+            if (selectedQualifier(needed_qualifiers, qd))
+                qtype = "PLATFORM";
+
+            break;
+
+        case feature_qualifier:
+            if (!excludedFeature(xsl, qd))
+                qtype = "FEATURE";
+
+            break;
+        }
+
+        if (qtype != NULL)
+        {
+            if (noIntro)
+            {
+                prcode(fp,
+"\n"
+"/* These are the qualifiers that are enabled. */\n"
+                    );
+
+                noIntro = FALSE;
+            }
+
+            prcode(fp,
+"#define SIP_%s_%s\n"
+                , qtype, qd->name);
+        }
+    }
+
+    return noIntro;
+}
+
+
+/*
  * Generate the C++ internal module API header file and return its path name on
  * the heap.
  */
@@ -474,7 +529,6 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     int noIntro;
     FILE *fp;
     nameDef *nd;
-    moduleDef *imp;
     moduleListDef *mld;
 
     hfile = concat(codeDir, "/sipAPI", mname, ".h", NULL);
@@ -504,55 +558,11 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
             );
 
     /* Define the qualifiers. */
-    noIntro = TRUE;
+    noIntro = generateFeatureDefines(mod, needed_qualifiers, xsl, TRUE, fp);
 
-    for (imp = pt->modules; imp != NULL; imp = imp->next)
-    {
-        qualDef *qd;
-
-        for (qd = imp->qualifiers; qd != NULL; qd = qd->next)
-        {
-            const char *qtype = NULL;
-
-            switch (qd->qtype)
-            {
-            case time_qualifier:
-                if (selectedQualifier(needed_qualifiers, qd))
-                    qtype = "TIMELINE";
-
-                break;
-
-            case platform_qualifier:
-                if (selectedQualifier(needed_qualifiers, qd))
-                    qtype = "PLATFORM";
-
-                break;
-
-            case feature_qualifier:
-                if (!excludedFeature(xsl, qd))
-                    qtype = "FEATURE";
-
-                break;
-            }
-
-            if (qtype != NULL)
-            {
-                if (noIntro)
-                {
-                    prcode(fp,
-"\n"
-"/* These are the qualifiers that are enabled. */\n"
-                        );
-
-                    noIntro = FALSE;
-                }
-
-                prcode(fp,
-"#define SIP_%s_%s\n"
-                    , qtype, qd->name);
-            }
-        }
-    }
+    for (mld = mod->allimports; mld != NULL; mld = mld->next)
+        noIntro = generateFeatureDefines(mld->module, needed_qualifiers, xsl,
+                noIntro, fp);
 
     if (!noIntro)
         prcode(fp,
@@ -1034,7 +1044,7 @@ static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
         stringList **generated, int py_debug)
 {
     char *cppfile;
-    moduleDef *mod;
+    moduleListDef *mld;
     FILE *fp;
 
     cppfile = concat(codeDir, "/sip", pt->module->name, "cmodule.c", NULL);
@@ -1087,11 +1097,11 @@ static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
 "\n"
         );
 
-    for (mod = pt->modules; mod != NULL; mod = mod->next)
-        if (mod->container == pt->module)
+    for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
+        if (mld->module->container == pt->module)
             prcode(fp,
 "    sip_import_component_module(sipModuleDict, \"%s\");\n"
-                , mod->fullname->text);
+                , mld->module->fullname->text);
 
     prcode(fp,
 "\n"

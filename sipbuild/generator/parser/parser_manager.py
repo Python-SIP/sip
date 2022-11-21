@@ -81,6 +81,9 @@ class ParserManager:
                 tuple([int(v) for v in abi_version.split('.')]), is_strict,
                 sip_module)
 
+        # The module is initially unnamed.
+        self.modules = [self.spec.module]
+
         self.c_bindings = None
         self.code_block = None
         self.module_state = None
@@ -1207,7 +1210,7 @@ class ParserManager:
             # The current file was %Included so create a new Module and
             # ModuleState as if it had been %Imported.
             module = Module()
-            self.spec.modules.append(module)
+            self.modules.append(module)
             self.module_state = ModuleState(module, self._sip_file, self)
 
         self._file_stack.append(
@@ -1317,7 +1320,7 @@ class ParserManager:
     def find_qualifier(self, p, symbol, name, required=True):
         """ Return a Qualifier or None if one doesn't exist. """
 
-        for module in self.spec.modules:
+        for module in self.modules:
             for qual in module.qualifiers:
                 if qual.name == name:
                     return qual
@@ -1458,7 +1461,7 @@ class ParserManager:
 
         module = self.module_state.module
 
-        return module is self.spec.modules[0] or module.composite is not None
+        return module is self.spec.module or module.composite is not None
 
     def instantiate_class_template(self, p, symbol, fq_cpp_name, template,
             py_name, no_type_name, docstring):
@@ -1487,9 +1490,10 @@ class ParserManager:
                         column=self._get_column_from_lexpos(t.lexpos)))
 
     def parse(self, sip_file):
-        """ Parse a .sip file and return a Specification object and a list of
-        the .sip files that specify the module to be generated.  A
-        UserException is raised if there was an error.
+        """ Parse a .sip file and return a 3-tuple of a Specification object, a
+        list of Module objects and a list of the .sip files that specify the
+        module to be generated.  A UserException is raised if there was an
+        error.
         """
 
         # Note that the retention of the 'raw' filename, ie. that which was
@@ -1499,7 +1503,7 @@ class ParserManager:
         raw_sip_file = sip_file
         sip_file = os.path.abspath(sip_file)
 
-        self.module_state = ModuleState(self.spec.modules[0], sip_file, self)
+        self.module_state = ModuleState(self.spec.module, sip_file, self)
 
         try:
             self._parser.parse(self._read(sip_file, raw_sip_file),
@@ -1538,7 +1542,7 @@ class ParserManager:
         for klass in self._template_arg_classes:
             self.spec.classes.remove(klass)
 
-        return self.spec, self._sip_files
+        return self.spec, self.modules, self._sip_files
 
     def parser_error(self, p, symbol, text):
         """ Record an error caused by a symbol in a production. """
@@ -1643,7 +1647,7 @@ class ParserManager:
                     break
             else:
                 module = Module()
-                self.spec.modules.append(module)
+                self.modules.append(module)
 
                 module.default_exception = self.module_state.module.default_exception
                 old_module_state = self.module_state

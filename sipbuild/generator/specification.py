@@ -1322,8 +1322,8 @@ class Specification:
     # The mapped types.
     mapped_types: List[MappedType] = field(default_factory=list)
 
-    # The list of modules.  Initially there is an unnamed module.
-    modules: List[Module] = field(default_factory=lambda: [Module()])
+    # The module for which code is to be generated.
+    module: Module = field(default_factory=Module)
 
     # The cache of names that may be required as strings in the generated code.
     name_cache: Dict[int, List[CachedName]] = field(default_factory=dict)

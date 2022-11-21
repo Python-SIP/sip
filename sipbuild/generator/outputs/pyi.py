@@ -35,7 +35,7 @@ def output_pyi(spec, pyi_filename):
     """ Output a .pyi file. """
 
     with open(pyi_filename, 'w') as pf:
-        module = spec.modules[0]
+        module = spec.module
 
         # Write the header.
         copying = format_copying(module.copying, '#')
@@ -58,8 +58,8 @@ f'''# The PEP 484 type hints stub file for the {module.py_name} module.
 def _composite_module(pf, spec, module):
     """ Output the type hints for a composite module. """
 
-    for mod in spec.modules:
-        if mod.composite is module:
+    for mod in spec.module.all_imports:
+        if mod.composite is spec.module:
             pf.write(f'from {mod.fq_py_name.name} import *\n')
 
 

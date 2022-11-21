@@ -44,7 +44,7 @@ def output_api(spec, api_filename):
     """ Output a QScintilla API file. """
 
     with open(api_filename, 'w') as af:
-        module = spec.modules[0]
+        module = spec.module
 
         _enums(af, spec, module)
         _variables(af, spec, module)

@@ -398,8 +398,7 @@ sipSpec *py2c(PyObject *spec, const char *encoding)
 
     pt = sipMalloc(sizeof (sipSpec));
 
-    pt->modules = module_list_attr(pt, spec, "modules", encoding);
-    pt->module = pt->modules;
+    pt->module = module_attr(pt, spec, "module", encoding);
     pt->namecache = cachedname_list_attr(spec, "name_cache", encoding);
     pt->ifacefiles = ifacefile_list_attr(pt, spec, "iface_files", encoding);
     pt->classes = class_list_attr(pt, spec, "classes", encoding);

@@ -42,10 +42,7 @@ def output_xml(spec, module_name):
 
     # Note that we don't yet handle mapped types, templates or exceptions.
 
-    for module in spec.modules:
-        if module.py_name == module_name:
-            break
-    else:
+    if spec.module.py_name != module_name:
         return None
 
     root = Element('Module', version=_XML_VERSION_NR, name=module.py_name)

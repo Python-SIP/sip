@@ -1259,7 +1259,6 @@ typedef struct _autoPyNameDef {
 /* The parse tree corresponding to the specification file. */
 typedef struct {
     moduleDef *module;                  /* The module being generated. */
-    moduleDef *modules;                 /* The list of modules. */
     nameDef *namecache;                 /* The name cache. */
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
     classDef *classes;                  /* The list of classes. */
