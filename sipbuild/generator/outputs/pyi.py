@@ -24,7 +24,7 @@
 from ...version import SIP_VERSION_STR
 
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        EnumBaseType, IfaceFileType, PySlot)
+        EnumBaseType, IfaceFileType, PyQtMethodSpecifier, PySlot)
 from ..utils import append_iface_file, find_method
 
 from .formatters import (ArgumentFormatter, ClassFormatter, format_copying,
@@ -518,16 +518,23 @@ def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
-    if is_eq_slot:
-        signature = '(self, other: object)'
-    else:
-        need_self = (is_method and not overload.is_static)
-
-        signature = _python_signature(spec, module, overload.py_signature,
-                defined, need_self=need_self)
-
     s = _indent(indent)
-    s += f'def {overload.common.py_name.name}{signature}: ...\n'
+
+    if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
+        scope = '' if module.py_name == 'QtCore' else 'QtCore.'
+
+        s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtsignal]\n'
+    else:
+        if is_eq_slot:
+            signature = '(self, other: object)'
+        else:
+            need_self = (is_method and not overload.is_static)
+
+            signature = _python_signature(spec, module, overload.py_signature,
+                    defined, need_self=need_self)
+
+        s += f'def {overload.common.py_name.name}{signature}: ...\n'
+
     pf.write(s)
 
 
