@@ -386,8 +386,16 @@ def _enums(pf, spec, module, defined=None, scope=None, indent=0):
                 elif enum.base_type is EnumBaseType.INT_FLAG:
                     superclass = 'enum.IntFlag'
 
+            # Handle an enum with no members.
+            for member in enum.members:
+                if not member.no_type_hint:
+                    trivial = ''
+                    break
+            else:
+                trivial = ' ...'
+
             s = _indent(indent)
-            s+= f'class {enum.py_name.name}({superclass}):\n'
+            s+= f'class {enum.py_name.name}({superclass}):{trivial}\n'
             pf.write(s)
 
             indent += 1
@@ -395,12 +403,10 @@ def _enums(pf, spec, module, defined=None, scope=None, indent=0):
             enum_type = 'int'
 
         for member in enum.members:
-            if member.no_type_hint:
-                continue
-
-            s = _indent(indent)
-            s += f'{member.py_name.name} = ... # type: {enum_type}\n'
-            pf.write(s)
+            if not member.no_type_hint:
+                s = _indent(indent)
+                s += f'{member.py_name.name} = ... # type: {enum_type}\n'
+                pf.write(s)
 
         if enum.py_name is not None:
             indent -= 1
