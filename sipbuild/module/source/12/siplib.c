@@ -12198,7 +12198,12 @@ static PyObject *sipEnumType_alloc(PyTypeObject *self, Py_ssize_t nitems)
     sipEnumTypeObject *py_type;
     sipPySlotDef *psd;
 
-    assert(currentType != NULL);
+    if (currentType == NULL)
+    {
+        PyErr_SetString(PyExc_TypeError, "enums cannot be sub-classed");
+        return NULL;
+    }
+
     assert(sipTypeIsEnum(currentType));
 
     /* Call the standard super-metatype alloc. */
