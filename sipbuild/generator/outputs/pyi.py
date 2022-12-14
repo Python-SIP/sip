@@ -453,6 +453,18 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
         if overload.no_type_hint:
             continue
 
+        # Signals can have the same name as ordinary methods however
+        # 'typing.overload' cannot be used with ClassVar.  We choose to
+        # generate a type hint for the signal rather than any method.
+        if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
+            scope = '' if module.py_name == 'QtCore' else 'QtCore.'
+
+            s = _indent(indent)
+            s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtsignal]\n'
+            pf.write(s)
+
+            return
+
         nr_overloads += 1
 
     # Handle each overload.
@@ -526,20 +538,15 @@ def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
 
     s = _indent(indent)
 
-    if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-        scope = '' if module.py_name == 'QtCore' else 'QtCore.'
-
-        s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtsignal]\n'
+    if is_eq_slot:
+        signature = '(self, other: object)'
     else:
-        if is_eq_slot:
-            signature = '(self, other: object)'
-        else:
-            need_self = (is_method and not overload.is_static)
+        need_self = (is_method and not overload.is_static)
 
-            signature = _python_signature(spec, module, overload.py_signature,
-                    defined, need_self=need_self)
+        signature = _python_signature(spec, module, overload.py_signature,
+                defined, need_self=need_self)
 
-        s += f'def {overload.common.py_name.name}{signature}: ...\n'
+    s += f'def {overload.common.py_name.name}{signature}: ...\n'
 
     pf.write(s)
 
