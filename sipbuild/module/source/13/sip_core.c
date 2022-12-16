@@ -4922,7 +4922,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
                 p = va_arg(va, void **);
 
                 if (flags & FMT_AP_TRANSFER)
-                    xfer = (isstatic ? arg : self);
+                    xfer = ((isstatic || self == NULL) ? arg : self);
                 else if (flags & FMT_AP_TRANSFER_BACK)
                     xfer = Py_None;
                 else
