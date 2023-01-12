@@ -2179,11 +2179,8 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             , mname, mod->nrexceptions);
 
     /*
-     * Generate the enum meta-type registrations for PyQt6.  Qt6 registers
-     * these as and when it needs them which means that PyQt6 might handle them
-     * differently at different times.  It can be a particular problem with
-     * QMetaObject.invokeMethod().  The safest option is to register them all
-     * at the start.
+     * Generate the enum meta-type registrations for PyQt6 so that they can be
+     * used in queued connections.
      */
     if (pluginPyQt6(pt))
     {
@@ -2193,9 +2190,6 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
                 continue;
 
             if (isProtectedEnum(ed))
-                continue;
-
-            if (ed->ecd == NULL || noPyQtQMetaObject(ed->ecd))
                 continue;
 
             prcode(fp,
