@@ -2192,6 +2192,9 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             if (isProtectedEnum(ed))
                 continue;
 
+            if (ed->ecd != NULL && noPyQtQMetaObject(ed->ecd))
+                continue;
+
             prcode(fp,
 "    qMetaTypeId<%S>();\n"
                 , ed->fqcname);
