@@ -234,9 +234,10 @@ static void *search_str_cache(const strCache *cache, char *py_str)
 
 
 /* Forward declarations of convertors. */
-static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding);
-static argDef *argument_attr(sipSpec *pt, PyObject *obj, const char *name,
-        const char *encoding);
+static void argument(sipSpec *pt, PyObject *obj, const char *encoding,
+        argDef *value);
+static void argument_attr(sipSpec *pt, PyObject *obj, const char *name,
+        const char *encoding, argDef *value);
 static argList *argument_list_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static int bool_attr(PyObject *obj, const char *name);
@@ -319,9 +320,9 @@ static scopedNameDef *scopedname(PyObject *obj, const char *encoding);
 static scopedNameDef *scopedname_attr(PyObject *obj, const char *name,
         const char *encoding);
 static signatureDef *signature(sipSpec *pt, PyObject *obj,
-        const char *encoding);
+        const char *encoding, signatureDef *value);
 static signatureDef *signature_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding);
+        const char *name, const char *encoding, signatureDef *value);
 static sourceLocation sourcelocation(PyObject *obj, const char *encoding);
 static sourceLocation sourcelocation_attr(PyObject *obj, const char *name,
         const char *encoding);
@@ -427,9 +428,9 @@ sipSpec *py2c(PyObject *spec, const char *encoding)
 /*
  * Convert an optional Argument object.
  */
-static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
+static void argument(sipSpec *pt, PyObject *obj, const char *encoding,
+        argDef *value)
 {
-    argDef *value = sipMalloc(sizeof (argDef));
     PyObject *derefs_obj, *definition;
     int key, xfer, array;
     Py_ssize_t i;
@@ -437,7 +438,7 @@ static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
     if (obj == Py_None)
     {
         value->atype = no_type;
-        return value;
+        return;
     }
 
     value->atype = (argType)enum_attr(obj, "type");
@@ -522,7 +523,7 @@ static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
     switch (value->atype)
     {
     case function_type:
-        value->u.sa = signature(pt, definition, encoding);
+        value->u.sa = signature(pt, definition, encoding, NULL);
         break;
 
     case template_type:
@@ -559,27 +560,22 @@ static argDef *argument(sipSpec *pt, PyObject *obj, const char *encoding)
     }
 
     Py_DECREF(definition);
-
-    return value;
 }
 
 
 /*
  * Convert an optional Argument attribute.
  */
-static argDef *argument_attr(sipSpec *pt, PyObject *obj, const char *name,
-        const char *encoding)
+static void argument_attr(sipSpec *pt, PyObject *obj, const char *name,
+        const char *encoding, argDef *value)
 {
     PyObject *attr = PyObject_GetAttrString(obj, name);
-    argDef *value;
 
     assert(attr != NULL);
 
-    value = argument(pt, attr, encoding);
+    argument(pt, attr, encoding, value);
 
     Py_DECREF(attr);
-
-    return value;
 }
 
 
@@ -602,7 +598,7 @@ static argList *argument_list_attr(sipSpec *pt, PyObject *obj,
     {
         argList *item = sipMalloc(sizeof (argList));
 
-        item->arg = *argument(pt, PyList_GetItem(attr, i), encoding);
+        argument(pt, PyList_GetItem(attr, i), encoding, &item->arg);
 
         *tail = item;
         tail = &item->next;
@@ -1045,7 +1041,7 @@ static ctorDef *constructor(sipSpec *pt, PyObject *obj, const char *encoding)
     py_sig_obj = PyObject_GetAttrString(obj, "py_signature");
     assert(py_sig_obj != NULL);
 
-    value->pysig = *signature(pt, py_sig_obj, encoding);
+    signature(pt, py_sig_obj, encoding, &value->pysig);
 
     cpp_sig_obj = PyObject_GetAttrString(obj, "cpp_signature");
     assert(cpp_sig_obj != NULL);
@@ -1055,7 +1051,7 @@ static ctorDef *constructor(sipSpec *pt, PyObject *obj, const char *encoding)
         if (cpp_sig_obj == py_sig_obj)
             value->cppsig = &value->pysig;
         else
-            value->cppsig = signature(pt, cpp_sig_obj, encoding);
+            value->cppsig = signature(pt, cpp_sig_obj, encoding, NULL);
     }
 
     Py_DECREF(py_sig_obj);
@@ -1271,7 +1267,7 @@ static fcallDef *functioncall(sipSpec *pt, PyObject *obj, const char *encoding)
     PyObject *args_obj;
     Py_ssize_t i;
 
-    value->type = *argument_attr(pt, obj, "result", encoding);
+    argument_attr(pt, obj, "result", encoding, &value->type);
 
     args_obj = PyObject_GetAttrString(obj, "args");
     assert(args_obj != NULL);
@@ -1481,7 +1477,7 @@ static mappedTypeDef *mappedtype(sipSpec *pt, PyObject *obj,
     if (bool_attr(obj, "needs_user_state"))
         setNeedsUserState(value);
 
-    value->type = *argument_attr(pt, obj, "type", encoding);
+    argument_attr(pt, obj, "type", encoding, &value->type);
     value->pyname = cachedname_attr(obj, "py_name", encoding);
     value->cname = cachedname_attr(obj, "cpp_name", encoding);
     typehints_attr(obj, "type_hints", encoding, &value->typehint_in,
@@ -1718,8 +1714,8 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
         value->needed_types = sipCalloc(nr_needed_types, sizeof (argDef));
 
         for (i = 0; i < nr_needed_types; ++i)
-            value->needed_types[i] = *argument(pt,
-                    PyList_GetItem(needed_types_obj, i), encoding);
+            argument(pt, PyList_GetItem(needed_types_obj, i), encoding,
+                    &value->needed_types[i]);
 
         value->nr_needed_types = nr_needed_types;
     }
@@ -1937,7 +1933,7 @@ static overDef *over(sipSpec *pt, PyObject *obj, const char *encoding)
     py_sig_obj = PyObject_GetAttrString(obj, "py_signature");
     assert(py_sig_obj != NULL);
 
-    value->pysig = *signature(pt, py_sig_obj, encoding);
+    signature(pt, py_sig_obj, encoding, &value->pysig);
 
     cpp_sig_obj = PyObject_GetAttrString(obj, "cpp_signature");
     assert(cpp_sig_obj != NULL);
@@ -1945,7 +1941,7 @@ static overDef *over(sipSpec *pt, PyObject *obj, const char *encoding)
     if (cpp_sig_obj == py_sig_obj)
         value->cppsig = &value->pysig;
     else
-        value->cppsig = signature(pt, cpp_sig_obj, encoding);
+        value->cppsig = signature(pt, cpp_sig_obj, encoding, NULL);
 
     Py_DECREF(py_sig_obj);
     Py_DECREF(cpp_sig_obj);
@@ -2169,25 +2165,25 @@ static scopedNameDef *scopedname_attr(PyObject *obj, const char *name,
  * Convert an optional Signature object.
  */
 static signatureDef *signature(sipSpec *pt, PyObject *obj,
-        const char *encoding)
+        const char *encoding, signatureDef *value)
 {
-    signatureDef *value;
     PyObject *args_obj;
     Py_ssize_t i;
 
     if (obj == Py_None)
         return NULL;
 
-    value = sipMalloc(sizeof (signatureDef));
+    if (value == NULL)
+        value = sipMalloc(sizeof (signatureDef));
 
-    value->result = *argument_attr(pt, obj, "result", encoding);
+    argument_attr(pt, obj, "result", encoding, &value->result);
 
     args_obj = PyObject_GetAttrString(obj, "args");
     assert(args_obj != NULL);
     assert(PyList_Check(args_obj));
 
     for (i = 0; i < PyList_Size(args_obj) && i < MAX_NR_ARGS; ++i)
-        value->args[i] = *argument(pt, PyList_GetItem(args_obj, i), encoding);
+        argument(pt, PyList_GetItem(args_obj, i), encoding, &value->args[i]);
 
     value->nrArgs = i;
 
@@ -2201,14 +2197,13 @@ static signatureDef *signature(sipSpec *pt, PyObject *obj,
  * Convert an optional Signature attribute.
  */
 static signatureDef *signature_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding)
+        const char *name, const char *encoding, signatureDef *value)
 {
     PyObject *attr = PyObject_GetAttrString(obj, name);
-    signatureDef *value;
 
     assert(attr != NULL);
 
-    value = signature(pt, attr, encoding);
+    value = signature(pt, attr, encoding, value);
 
     Py_DECREF(attr);
 
@@ -2336,7 +2331,7 @@ static templateDef *template(sipSpec *pt, PyObject *obj, const char *encoding)
     value = sipMalloc(sizeof (templateDef));
 
     value->fqname = scopedname_attr(obj, "cpp_name", encoding);
-    value->types = *signature_attr(pt, obj, "types", encoding);
+    signature_attr(pt, obj, "types", encoding, &value->types);
 
     return value;
 }
@@ -2677,8 +2672,8 @@ static virtHandlerDef *virtualhandler(sipSpec *pt, PyObject *obj,
 
     value = sipMalloc(sizeof (virtHandlerDef));
 
-    value->cppsig = signature_attr(pt, obj, "cpp_signature", encoding);
-    value->pysig = signature_attr(pt, obj, "py_signature", encoding);
+    value->cppsig = signature_attr(pt, obj, "cpp_signature", encoding, NULL);
+    value->pysig = signature_attr(pt, obj, "py_signature", encoding, NULL);
     value->virtcode = codeblock_list_attr(obj, "virtual_catcher_code",
             encoding);
     value->veh = virtualerrorhandler_attr(pt, obj, "virtual_error_handler",
@@ -3030,7 +3025,7 @@ static typedefDef *wrappedtypedef(sipSpec *pt, PyObject *obj,
     value->fqname = scopedname_attr(obj, "fq_cpp_name", encoding);
     value->ecd = class_attr(pt, obj, "scope", encoding);
     value->module = module_attr(pt, obj, "module", encoding);
-    value->type = *argument_attr(pt, obj, "type", encoding);
+    argument_attr(pt, obj, "type", encoding, &value->type);
 
     return value;
 }
@@ -3106,7 +3101,7 @@ static varDef *wrappedvariable(sipSpec *pt, PyObject *obj,
     if (bool_attr(obj, "needs_handler"))
         setNeedsHandler(value);
 
-    value->type = *argument_attr(pt, obj, "type", encoding);
+    argument_attr(pt, obj, "type", encoding, &value->type);
     value->accessfunc = codeblock_list_attr(obj, "access_code", encoding);
     value->getcode = codeblock_list_attr(obj, "get_code", encoding);
     value->setcode = codeblock_list_attr(obj, "set_code", encoding);

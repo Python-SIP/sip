@@ -1,6 +1,7 @@
-v6.7.6 12th January 2023
+v6.7.6 25th January 2023
   - The latest version of ABI v13 is v13.4.1.
   - The latest version of ABI v12 is v12.11.1.
+  - Significantly reduced the memory requirements.
   - Bug fixes.
 
 v6.7.4 29th October 2022
