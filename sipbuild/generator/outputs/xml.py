@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -42,14 +42,16 @@ def output_xml(spec, module_name):
 
     # Note that we don't yet handle mapped types, templates or exceptions.
 
-    if spec.module.py_name != module_name:
+    module = spec.module
+
+    if module.py_name != module_name:
         return None
 
     root = Element('Module', version=_XML_VERSION_NR, name=module.py_name)
 
     for klass in spec.classes:
         if klass.iface_file.module is module and not klass.external:
-            _xml_class(root, spec, module, klass)
+            _class(root, spec, module, klass)
 
     for klass in module.proxies:
         _class(root, spec, module, klass)
@@ -375,7 +377,8 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and arg.default_value is not None):
             s += arg.name.name + ': '
 
-    s += ArgumentFormatter(spec, arg).as_rest_ref(out)
+    arg_formatter = ArgumentFormatter(spec, arg)
+    s += arg_formatter.as_rest_ref(out)
 
     if not out and arg.name is not None and arg.default_value is not None:
         s += ' = '
@@ -384,7 +387,7 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         # hard but will get most cases.
         rest_ref = ValueListFormatter(spec, arg.default_value).as_rest_ref()
         if rest_ref is None:
-            rest_ref = formatter.py_default_value()
+            rest_ref = arg_formatter.py_default_value()
 
         s += rest_ref
 
