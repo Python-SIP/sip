@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -27,8 +27,9 @@ from .parser_manager import ParserManager
 def parse(sip_file, hex_version, encoding, abi_version, tags,
         disabled_features, protected_is_public, include_dirs, sip_module,
         is_strict=True):
-    """ Parse a .sip specification file returning a corresponding Specification
-    object and a list of the .sip files that define the module to be generated.
+    """ Parse a .sip file and return a 3-tuple of a Specification object, a
+    list of Module objects and a list of the .sip files that specify the module
+    to be generated.  A UserException is raised if there was an error.
     """
 
     return ParserManager(
