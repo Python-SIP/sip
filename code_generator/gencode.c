@@ -1,7 +1,7 @@
 /*
  * The code generator module for SIP.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -342,7 +342,7 @@ stringList *generateCode(sipSpec *pt, char *codeDir, const char *srcSuffix,
     if (srcSuffix == NULL)
         srcSuffix = (generating_c ? ".c" : ".cpp");
 
-    if (isComposite(pt->module))
+    if (pt->is_composite)
     {
         if (generateCompositeCpp(pt, codeDir, &generated, py_debug) < 0)
             return NULL;
@@ -1098,10 +1098,9 @@ static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
         );
 
     for (mld = pt->module->allimports; mld != NULL; mld = mld->next)
-        if (mld->module->container == pt->module)
-            prcode(fp,
+        prcode(fp,
 "    sip_import_component_module(sipModuleDict, \"%s\");\n"
-                , mld->module->fullname->text);
+            , mld->module->fullname->text);
 
     prcode(fp,
 "\n"
@@ -1229,8 +1228,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             );
 
     /* Define the names. */
-    if (mod->container == NULL)
-        generateNameCache(pt, fp);
+    generateNameCache(pt, fp);
 
     /* Generate the C++ code blocks. */
     generateCppCodeBlock(mod->cppcode, fp);
@@ -2047,15 +2045,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
             , mname);
 
     /* Generate the Python module initialisation function. */
-
-    if (mod->container == pt->module)
-        prcode(fp,
-"\n"
-"PyObject *sip_init_%s()\n"
-"{\n"
-            , mname);
-    else
-        generateModInitStart(pt->module, generating_c, fp);
+    generateModInitStart(pt->module, generating_c, fp);
 
     /* Generate the global functions. */
 

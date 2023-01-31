@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -175,7 +175,7 @@ class Bindings(Configurable):
 
         module = spec.module
 
-        uses_limited_api = module.use_limited_api or module.is_composite
+        uses_limited_api = module.use_limited_api or spec.is_composite
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the

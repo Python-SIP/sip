@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -72,7 +72,6 @@
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
 #define MOD_IS_UNUSED           0x0002  /* This flag is unused. */
-#define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
 #define MOD_USE_LIMITED_API     0x0020  /* Use the limited API. */
@@ -85,8 +84,6 @@
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
-#define isComposite(m)      ((m)->modflags & MOD_IS_COMPOSITE)
-#define setIsComposite(m)   ((m)->modflags |= MOD_IS_COMPOSITE)
 #define setIsTransformed(m) ((m)->modflags |= MOD_IS_TRANSFORMED)
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
 #define setUseArgNames(m)   ((m)->modflags |= MOD_USE_ARG_NAMES)
@@ -954,7 +951,6 @@ typedef struct _moduleDef {
     int next_key;                       /* The next key to allocate. */
     licenseDef *license;                /* The software license. */
     struct _classDef *proxies;          /* The list of proxy classes. */
-    struct _moduleDef *container;       /* The container module, if any. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
@@ -1274,6 +1270,7 @@ typedef struct {
     codeBlockList *exptypehintcode;     /* Exported type hint code. */
     classDef *qobject_cd;               /* QObject class, NULL if none. */
     int genc;                           /* Set if we are generating C code. */
+    int is_composite;                   /* Set if the main module is composite. */
     struct _stringList *plugins;        /* The list of plugins. */
     struct _extractDef *extracts;       /* The list of extracts. */
 } sipSpec;

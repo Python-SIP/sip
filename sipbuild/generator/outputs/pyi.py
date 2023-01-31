@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -49,7 +49,7 @@ f'''# The PEP 484 type hints stub file for the {module.py_name} module.
 
 ''')
 
-        if module.is_composite:
+        if spec.is_composite:
             _composite_module(pf, spec, module)
         else:
             _module(pf, spec, module)

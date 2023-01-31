@@ -2,7 +2,7 @@
  * The transitional conversion from the output of the Python-based parser to
  * that required by the rest of the C-based code generator.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -417,6 +417,7 @@ sipSpec *py2c(PyObject *spec, const char *encoding)
     pt->exptypehintcode = codeblock_list_attr(spec, "exported_type_hint_code",
             encoding);
     pt->genc = bool_attr(spec, "c_bindings");
+    pt->is_composite = bool_attr(spec, "is_composite");
     pt->plugins = str_list_attr(spec, "plugins", encoding);
     pt->nrvirthandlers = int_attr(spec, "nr_virtual_handlers");
     pt->qobject_cd = class_attr(pt, spec, "pyqt_qobject", encoding);
@@ -1654,12 +1655,6 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
     if (bool_attr(obj, "has_delayed_dtors"))
         setHasDelayedDtors(value);
 
-    if (bool_attr(obj, "is_composite"))
-    {
-        setIsComposite(value);
-        value->modflags &= ~MOD_SUPER_INIT_MASK;
-    }
-
     if (bool_attr(obj, "use_arg_names"))
         setUseArgNames(value);
 
@@ -1699,7 +1694,6 @@ static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding)
     value->next_key = int_attr(obj, "next_key");
     value->license = license_attr(obj, "license", encoding);
     value->proxies = class_list_attr(pt, obj, "proxies", encoding);
-    value->container = module_attr(pt, obj, "composite", encoding);
     value->used = ifacefilelist_attr(pt, obj, "used", encoding);
     value->imports = modulelist_attr(pt, obj, "imports", encoding);
     value->allimports = modulelist_attr(pt, obj, "all_imports", encoding);

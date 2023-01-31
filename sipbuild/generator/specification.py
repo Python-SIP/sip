@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -979,9 +979,6 @@ class Module:
     # Set if wrapped ctors should support cooperative multi-inheritance.
     call_super_init: bool = False
 
-    # The containing composite module.
-    composite: Optional['Module'] = None
-
     # The text specified by any %Copying directives.
     copying: List[CodeBlock] = field(default_factory=list)
 
@@ -1022,9 +1019,6 @@ class Module:
 
     # The code specified by any %InitialisationCode directives.
     initialisation_code: List[CodeBlock] = field(default_factory=list)
-
-    # Set if the module is a composite module.
-    is_composite: bool = False
 
     # The software license.
     license: Optional[License] = None
@@ -1315,6 +1309,9 @@ class Specification:
 
     # The interface files.
     iface_files: List[IfaceFile] = field(default_factory=list)
+
+    # Set if the specification is for a composite module.
+    is_composite: bool = False
 
     # The mapped type templates.
     mapped_type_templates: List[MappedTypeTemplate] = field(default_factory=list)
