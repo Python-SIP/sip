@@ -378,7 +378,8 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
             s += arg.name.name + ': '
 
     arg_formatter = ArgumentFormatter(spec, arg)
-    s += arg_formatter.as_rest_ref(out, as_xml=True)
+    arg_rest_ref = arg_formatter.as_rest_ref(out, as_xml=True)
+    s += arg_rest_ref
 
     if not out and arg.name is not None and arg.default_value is not None:
         s += ' = '
@@ -387,7 +388,8 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         # hard but will get most cases.
         rest_ref = ValueListFormatter(spec, arg.default_value).as_rest_ref()
         if rest_ref is None:
-            rest_ref = arg_formatter.py_default_value(as_xml=True)
+            rest_ref = arg_formatter.py_default_value(arg_rest_ref,
+                    as_xml=True)
 
         s += rest_ref
 

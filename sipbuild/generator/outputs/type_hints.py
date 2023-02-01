@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -132,7 +132,7 @@ class TypeHintManager:
 
         return managed_type_hint.as_docstring
 
-    def as_rest_ref(self, type_hint, out):
+    def as_rest_ref(self, type_hint, out, as_xml=False):
         """ Return the type hint with appropriate reST references. """
 
         managed_type_hint = self._get_managed_type_hint(type_hint, out)
@@ -140,7 +140,7 @@ class TypeHintManager:
         # See if it needs rendering.
         if managed_type_hint.as_rest_ref is None:
             managed_type_hint.as_rest_ref = self._render(managed_type_hint,
-                    out, rest_ref=True)
+                    out, rest_ref=True, as_xml=as_xml)
 
         return managed_type_hint.as_rest_ref
 
@@ -276,21 +276,22 @@ class TypeHintManager:
         return node
 
     def _render(self, managed_type_hint, out, pep484=False, rest_ref=False,
-            module=None, defined=None):
+            module=None, defined=None, as_xml=False):
         """ Return a rendered type hint. """
 
         self._parse(managed_type_hint, out)
 
         if managed_type_hint.root is not None:
             s = self._render_node(managed_type_hint.root, out, pep484,
-                    rest_ref, module, defined)
+                    rest_ref, module, defined, as_xml)
         else:
-            s = self._maybe_any_object(managed_type_hint.type_hint,
-                    pep484=pep484)
+            s = self._maybe_any_object(managed_type_hint.type_hint, pep484,
+                    as_xml)
 
         return s
 
-    def _render_node(self, node, out, pep484, rest_ref, module, defined):
+    def _render_node(self, node, out, pep484, rest_ref, module, defined,
+            as_xml):
         """ Render a single node. """
 
         if node.type is NodeType.TYPING:
@@ -303,7 +304,7 @@ class TypeHintManager:
 
             if node.children is not None:
                 children = [self._render_node(c, out, pep484, rest_ref, module,
-                        defined) for c in node.children]
+                        defined, as_xml) for c in node.children]
 
                 s += '[' + ', '.join(children) + ']'
 
@@ -332,7 +333,7 @@ class TypeHintManager:
                 s = formatter.fq_py_name
 
         else:
-            s = self._maybe_any_object(node.definition, pep484)
+            s = self._maybe_any_object(node.definition, pep484, as_xml)
 
         return s
 
@@ -462,13 +463,19 @@ class TypeHintManager:
         # Nothing was found.
         return TypeHintNode(NodeType.OTHER, definition=name)
 
-    @classmethod
-    def _maybe_any_object(cls, hint, pep484):
+    def _maybe_any_object(self, hint, pep484, as_xml):
         """ Return a hint taking into account that it may be any sort of
         object.
         """
 
-        return hint if hint != 'Any' else cls._any_object(pep484)
+        if hint == 'Any':
+            return cls._any_object(pep484)
+
+        # Don't worry if the voidptr name is qualified in any way.
+        if hint.endswith('voidptr'):
+            return format_voidptr(self._spec, pep484, as_xml)
+
+        return hint
 
     @staticmethod
     def _any_object(pep484):
@@ -495,3 +502,17 @@ class TypeHintManager:
             end -= 1
 
         return end
+
+
+def format_voidptr(spec, pep484, as_xml):
+    """ Return the representation of a voidptr in the context of either a type
+    hint, XML or a docstring.
+    """
+
+    if pep484:
+        return spec.sip_module + '.voidptr'
+
+    if as_xml:
+        return f':sip:ref:`~{spec.sip_module}.voidptr`'
+
+    return 'voidptr'

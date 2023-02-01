@@ -24,7 +24,7 @@
 from ...scoped_name import STRIP_NONE
 from ...specification import ArgumentType, ArrayArgument, ClassKey, ValueType
 
-from ..type_hints import TypeHintManager
+from ..type_hints import format_voidptr, TypeHintManager
 
 from .base_formatter import BaseFormatter
 from .utils import format_scoped_py_name
@@ -219,7 +219,7 @@ class ArgumentFormatter(BaseFormatter):
         ArgumentType.PYSLICE, ArgumentType.PYTYPE, ArgumentType.CAPSULE,
         ArgumentType.PYBUFFER, ArgumentType.PYENUM)
 
-    def py_default_value(self, embedded=False, as_xml=False):
+    def py_default_value(self, type_name, embedded=False, as_xml=False):
         """ Return the Python representation of the argument's default value.
         """
 
@@ -235,7 +235,7 @@ class ArgumentFormatter(BaseFormatter):
         if len(arg.default_value) == 1 and arg.default_value[0].value_type is ValueType.NUMERIC:
             value = arg.default_value[0].value
 
-            if value == 0 and (len(arg.derefs) > 0 or arg.type in self._IMPLICIT_POINTERS):
+            if value == 0 and ('voidptr' in type_name or len(arg.derefs) > 0 or arg.type in self._IMPLICIT_POINTERS):
                 return 'None'
 
             if arg.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
@@ -257,7 +257,7 @@ class ArgumentFormatter(BaseFormatter):
             if arg.name is not None:
                 s += ' ' + arg.name.name
 
-            s += '=' + self.py_default_value()
+            s += '=' + self.py_default_value(name)
 
         return s
 
@@ -288,7 +288,8 @@ class ArgumentFormatter(BaseFormatter):
             else:
                 s += self.as_py_type(as_xml=as_xml)
         else:
-            s += TypeHintManager(self.spec).as_rest_ref(hint, out)
+            s += TypeHintManager(self.spec).as_rest_ref(hint, out,
+                    as_xml=as_xml)
 
         return s
 
@@ -375,10 +376,7 @@ class ArgumentFormatter(BaseFormatter):
             name = definition.base_name
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            if as_xml:
-                name = 'sip.voidptr'
-            else:
-                name = sip_module + '.voidptr'
+            name = format_voidptr(self.spec, pep484, as_xml)
 
         elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.USTRING):
             name = 'bytes'
