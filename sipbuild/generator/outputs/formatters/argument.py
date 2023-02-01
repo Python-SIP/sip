@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -213,7 +213,13 @@ class ArgumentFormatter(BaseFormatter):
 
         return s
 
-    def py_default_value(self, embedded=False):
+    # The types that are implicitly pointers.
+    _IMPLICIT_POINTERS = (ArgumentType.PYOBJECT, ArgumentType.PYTUPLE,
+        ArgumentType.PYLIST, ArgumentType.PYDICT, ArgumentType.PYCALLABLE,
+        ArgumentType.PYSLICE, ArgumentType.PYTYPE, ArgumentType.CAPSULE,
+        ArgumentType.PYBUFFER, ArgumentType.PYENUM)
+
+    def py_default_value(self, embedded=False, as_xml=False):
         """ Return the Python representation of the argument's default value.
         """
 
@@ -229,21 +235,21 @@ class ArgumentFormatter(BaseFormatter):
         if len(arg.default_value) == 1 and arg.default_value[0].value_type is ValueType.NUMERIC:
             value = arg.default_value[0].value
 
-            if len(arg.derefs) > 0 and value == 0:
+            if value == 0 and (len(arg.derefs) > 0 or arg.type in self._IMPLICIT_POINTERS):
                 return 'None'
 
             if arg.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
                 return 'True' if value else 'False'
 
         return ValueListFormatter(self.spec, arg.default_value).py_expression(
-                embedded=embedded)
+                embedded=embedded, as_xml=as_xml)
 
-    def as_py_type(self, pep484=False, default_value=False):
+    def as_py_type(self, pep484=False, default_value=False, as_xml=False):
         """ Return the argument as a Python type. """
 
         arg = self.object
 
-        scope, name = self._py_arg(pep484)
+        scope, name = self._py_arg(pep484, as_xml)
 
         s = format_scoped_py_name(scope, name)
 
@@ -255,7 +261,7 @@ class ArgumentFormatter(BaseFormatter):
 
         return s
 
-    def as_rest_ref(self, out):
+    def as_rest_ref(self, out, as_xml=False):
         """ Return the argument as a reST reference. """
 
         arg = self.object
@@ -280,7 +286,7 @@ class ArgumentFormatter(BaseFormatter):
                 # There would normally be a type hint.
                 s += "unknown-type"
             else:
-                s += self.as_py_type()
+                s += self.as_py_type(as_xml=as_xml)
         else:
             s += TypeHintManager(self.spec).as_rest_ref(hint, out)
 
@@ -337,7 +343,7 @@ class ArgumentFormatter(BaseFormatter):
 
         return hint
 
-    def _py_arg(self, pep484):
+    def _py_arg(self, pep484, as_xml):
         """ Return an argument as a 2-tuple of scope and name. """
 
         type = self.object.type
@@ -369,7 +375,10 @@ class ArgumentFormatter(BaseFormatter):
             name = definition.base_name
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            name = sip_module + '.voidptr'
+            if as_xml:
+                name = 'sip.voidptr'
+            else:
+                name = sip_module + '.voidptr'
 
         elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.USTRING):
             name = 'bytes'

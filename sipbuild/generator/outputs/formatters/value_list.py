@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -38,12 +38,13 @@ class ValueListFormatter(BaseFormatter):
 
         return self._expression()
 
-    def py_expression(self, embedded=False):
+    def py_expression(self, embedded=False, as_xml=False):
         """ The Python representation of the value list as an expression. """
 
-        return self._expression(as_python=True, embedded=embedded)
+        return self._expression(as_python=True, embedded=embedded,
+                as_xml=as_xml)
 
-    def as_rest_ref(self):
+    def as_rest_ref(self, as_xml=False):
         """ Return the Python representation of the value list as a reST
         reference.
         """
@@ -90,7 +91,7 @@ class ValueListFormatter(BaseFormatter):
 
         return None
 
-    def _expression(self, as_python=False, embedded=False):
+    def _expression(self, as_python=False, embedded=False, as_xml=False):
         """ The representation of the value list as an expression. """
 
         s = ''
@@ -155,10 +156,12 @@ class ValueListFormatter(BaseFormatter):
                     s += arg_formatter.cpp_type()
 
                 args = [ValueListFormatter(self.spec, a)._expression(
-                                as_python=as_python, embedded=embedded)
+                                as_python=as_python, embedded=embedded,
+                                as_xml=as_xml)
                         for a in value.value.args]
 
-                s += '(' + ', '.join(args) + ')'
+                separator = ',' if as_xml else ', '
+                s += '(' + separator.join(args) + ')'
 
             elif value.value_type is ValueType.EMPTY:
                 s += '{}'
