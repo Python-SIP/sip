@@ -513,6 +513,6 @@ def format_voidptr(spec, pep484, as_xml):
         return spec.sip_module + '.voidptr'
 
     if as_xml:
-        return f':sip:ref:`~{spec.sip_module}.voidptr`'
+        return f':py:class:`~{spec.sip_module}.voidptr`'
 
     return 'voidptr'
