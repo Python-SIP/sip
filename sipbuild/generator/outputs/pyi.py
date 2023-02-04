@@ -460,7 +460,7 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
             scope = '' if module.py_name == 'QtCore' else 'QtCore.'
 
             s = _indent(indent)
-            s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtsignal]\n'
+            s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtSignal]\n'
             pf.write(s)
 
             return
