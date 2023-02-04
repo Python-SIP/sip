@@ -79,7 +79,7 @@ import {spec.sip_module}
 
     imports = []
 
-    for mod in module.imports:
+    for mod in module.all_imports:
         parts = mod.fq_py_name.name.split('.')
 
         if mod.fq_py_name.name == mod.py_name:
