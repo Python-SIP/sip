@@ -1,7 +1,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -46,7 +46,7 @@ extern "C" {
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
 #define SIP_ABI_MINOR_VERSION       4
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_MODULE_PATCH_VERSION    2
 
 
 /*
