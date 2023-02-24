@@ -176,9 +176,9 @@ static PyObject *sipArray_subscript(PyObject *self, PyObject *key)
             return NULL;
         }
 
-        return create_array(element(array->data, start), array->td,
-                array->format, array->stride, slicelength,
-                (array->flags & ~SIP_OWNS_MEMORY), array->owner);
+        return create_array(element(array, start), array->td, array->format,
+                array->stride, slicelength, (array->flags & ~SIP_OWNS_MEMORY),
+                array->owner);
     }
 
     bad_key(key);
