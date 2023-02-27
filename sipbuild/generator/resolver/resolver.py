@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -91,6 +91,10 @@ def resolve(spec, modules):
     spec.classes = []
 
     for klass in reversed_classes:
+        # Ignore undefined classes.
+        if klass.iface_file.module is None:
+            continue
+
         _set_mro(spec, klass, error_log)
 
     # Resolve the various types in the modules.
@@ -151,6 +155,10 @@ def resolve(spec, modules):
 
     # Additional class specific checks.
     for klass in spec.classes:
+        # Ignore undefined classes.
+        if klass.iface_file.module is None:
+            continue
+
         _check_helpers(spec, klass)
         _check_properties(klass, error_log)
 
