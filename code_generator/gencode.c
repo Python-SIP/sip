@@ -5839,7 +5839,14 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 break;
 
             default:
-                if (isNumberSlot(md) || isRichCompareSlot(md) || isInplaceNumberSlot(md))
+                if (isRichCompareSlot(md))
+                {
+                    prcode(fp,
+"\n"
+"    Py_XDECREF(sipParseErr);\n"
+                        );
+                }
+                else if (isNumberSlot(md) || isInplaceNumberSlot(md))
                 {
                     prcode(fp,
 "\n"
@@ -5855,6 +5862,7 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                     /* We can't extend enum slots. */
                     if (cd == NULL)
                         prcode(fp,
+"    PyErr_Clear();\n"
 "\n"
 "    Py_INCREF(Py_NotImplemented);\n"
 "    return Py_NotImplemented;\n"
