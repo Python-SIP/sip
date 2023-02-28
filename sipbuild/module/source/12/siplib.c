@@ -1,7 +1,7 @@
 /*
  * SIP library code.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -3895,6 +3895,11 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
 
     switch (*fmt++)
     {
+    case '#':
+            /* A ctor has an argument with the /Transfer/ annotation. */
+            *selfp = va_arg(va, PyObject *);
+            break;
+
     case 'B':
     case 'p':
         {
@@ -5391,6 +5396,10 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
     /* Handle the converions of "self" first. */
     switch (*fmt++)
     {
+    case '#':
+        va_arg(va, PyObject *);
+        break;
+
     case 'B':
         {
             /*

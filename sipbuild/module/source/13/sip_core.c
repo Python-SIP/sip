@@ -1,7 +1,7 @@
 /*
  * The core sip module code.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -3543,6 +3543,11 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
 
     switch (*fmt++)
     {
+    case '#':
+            /* A ctor has an argument with the /Transfer/ annotation. */
+            *selfp = va_arg(va, PyObject *);
+            break;
+
     case 'B':
     case 'p':
         {
@@ -4759,6 +4764,10 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
     /* Handle the conversions of "self" first. */
     switch (*fmt++)
     {
+    case '#':
+        va_arg(va, PyObject *);
+        break;
+
     case 'B':
         {
             /*

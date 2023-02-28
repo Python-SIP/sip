@@ -45,18 +45,21 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
-#define SIP_ABI_MINOR_VERSION       4
-#define SIP_MODULE_PATCH_VERSION    2
+#define SIP_ABI_MINOR_VERSION       5
+#define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
  *
+ * v13.5
+ *  - Added the '#' conversion character to the argument parsers.
+ *
  * v13.4
  *  - The enum implementation now supports missing members.
  *  - Published the 'array' type.
  *  - Added the ctd_sizeof, ctd_array_delete members to sipClassTypeDef.
- *  - Added the '>' conversion character to sipParseArgs().
+ *  - Added the '>' conversion character to the argument parsers.
  *
  * v13.3
  *  - Python v3.7 or later is required.

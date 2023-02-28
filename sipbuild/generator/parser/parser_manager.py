@@ -532,11 +532,6 @@ class ParserManager:
 
         ctor.transfer = self.get_transfer(p, symbol, annotations)
 
-        # /Transfer/ arguments need the wrapper.
-        for ad in py_signature.args:
-            if ad.transfer is Transfer.TRANSFER:
-                ad.get_wrapper = True
-
         scope.ctors.append(ctor)
 
     def add_dtor(self, p, symbol, name, annotations, *, exceptions,

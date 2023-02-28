@@ -11037,26 +11037,6 @@ static void generateConstructorCall(classDef *cd, ctorDef *ct, int error_flag,
                 );
 
         /*
-         * Handle any /Transfer/ arguments.  Note that this code isn't
-         * generated fi there is handrwritten code.  This is inconsistent with
-         * the handling of methods.
-         */
-        for (a = 0; a < ct->pysig.nrArgs; ++a)
-        {
-            argDef *ad = &ct->pysig.args[a];
-
-            if (!isInArg(ad))
-                continue;
-
-            if (isTransferred(ad))
-            {
-                prcode(fp,
-"\n"
-"            sipTransferTo(%aWrapper, (PyObject *)sipSelf);\n" , mod, ad, a);
-            }
-        }
-
-        /*
          * This is a bit of a hack to say we want the result transferred.  We
          * don't simply call sipTransferTo() because the wrapper object hasn't
          * been fully initialised yet.
@@ -12930,7 +12910,8 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         classDef *c_scope, mappedTypeDef *mt_scope, ctorDef *ct, overDef *od,
         FILE *fp)
 {
-    int a, optargs, arraylenarg, handle_self, single_arg, need_owner;
+    int a, optargs, arraylenarg, handle_self, single_arg, need_owner,
+            ctor_needs_self;
     ifaceFileDef *scope;
     argDef *arraylenarg_ad;
 
@@ -12965,6 +12946,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
      * values returned via arguments.
      */
     need_owner = FALSE;
+    ctor_needs_self = FALSE;
 
     for (a = 0; a < sd->nrArgs; ++a)
     {
@@ -12980,6 +12962,9 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
         if (isThisTransferred(ad))
             need_owner = TRUE;
+
+        if (ct != NULL && isTransferred(ad))
+            ctor_needs_self = TRUE;
     }
 
     if (od != NULL && need_owner)
@@ -13099,7 +13084,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         single_arg = (od != NULL && od->common->slot != no_slot && !isMultiArgSlot(od->common));
 
         prcode(fp,
-"        if (sipParseArgs(%ssipParseErr, sipArg%s, \"", (ct != NULL ? "" : "&"), (single_arg ? "" : "s"));
+"        if (sipParseArgs(&sipParseErr, sipArg%s, \"", (single_arg ? "" : "s"));
     }
 
     /* Generate the format string. */
@@ -13321,15 +13306,7 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             }
             else
             {
-                int saved_flags = ad->argflags;
-
-                /* /Transfer/ for ctor arguments is handled separately. */
-                if (ct != NULL)
-                    resetIsTransferred(ad);
-
                 fmt = getSubFormatChar('J', ad);
-
-                ad->argflags = saved_flags;
             }
 
             break;
@@ -13367,6 +13344,9 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
             ;
         }
 
+        if (ctor_needs_self)
+            prcode(fp, "#");
+
         /*
          * Get the wrapper if explicitly asked for or we are going to keep a
          * reference to.  However if it is an encoded string then we will get
@@ -13382,7 +13362,11 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
 
     /* Generate the parameters corresponding to the format string. */
 
-    if (handle_self)
+    if (ctor_needs_self)
+    {
+        prcode(fp,", sipSelf");
+    }
+    else if (handle_self)
     {
         prcode(fp,", &sipSelf");
 
