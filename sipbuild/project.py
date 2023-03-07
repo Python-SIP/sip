@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -104,13 +104,14 @@ class Project(AbstractProject, Configurable):
         # The fully qualified name of the sip module.
         Option('sip_module'),
 
-        # The list of files and directories, specified as glob patterns
-        # relative to the project directory, that should be included in a
-        # wheel.  If an element of list is a string then it is a pattern and
-        # files and directories are installed in the target directory.  If an
-        # element is a 2-tuple then the first part is the pattern and the
-        # second part is the name of a sub-directory relative to the target
-        # directory where the files and directories are installed.
+        # The list of files and directories, specified as glob patterns, that
+        # should be included in a wheel.  If a pattern is relative then it is
+        # taken as being relative to the project directory.  If an element of
+        # the list is a string then it is a pattern and files and directories
+        # are installed in the target directory.  If an element is a 2-tuple
+        # then the first part is the pattern and the second part is the name of
+        # a sub-directory relative to the target directory where the files and
+        # directories are installed.
         Option('wheel_includes', option_type=list),
 
         # The user-configurable options.

@@ -254,13 +254,14 @@ list options may contain environment markers as defined in `PEP 508
     a corresponding command line option.
 
 **wheel-includes**
-    The values is a list of files and directories, specified as *glob* patterns
-    and relative to the project directory, that should be included in a wheel.
-    If an element of list is a string then it is a pattern and files and
-    directories are installed in the target directory.  If an element is a
-    2-tuple then the first part is the pattern and the # second part is the
-    name of a sub-directory relative to the target directory where the files
-    and directories are installed.
+    The value is a list of files and directories, specified as *glob* patterns,
+    that should be included in a wheel.  If a pattern is relative then it is
+    taken as being relative to the project directory.  If an element of the
+    list is a string then it is a pattern and files and directories are
+    installed in the target directory.  If an element is a 2-tuple then the
+    first part is the pattern and the second part is the name of a
+    sub-directory relative to the target directory where the files and
+    directories are installed.
 
 
 Bindings Sections

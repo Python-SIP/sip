@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -175,7 +175,10 @@ class Builder(AbstractBuilder):
 
         # Add any wheel contents defined by the project.
         for nr, (patt, target_subdir) in enumerate(project.wheel_includes):
-            wheel_includes = glob.glob(os.path.join(project.root_dir, patt))
+            if not os.path.isabs(patt):
+                patt = os.path.join(project.root_dir, patt)
+
+            wheel_includes = glob.glob(patt)
             if wheel_includes:
                 installable = Installable(
                         'wheel_includes_{}'.format(nr) if nr else 'wheel_includes',
