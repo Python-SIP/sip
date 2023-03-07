@@ -22,7 +22,7 @@
 
 
 try:
-    import tomlib
+    import tomllib
 except ImportError:
     import tomli as tomllib
 

@@ -3,7 +3,7 @@ v6.7.8 7th March 2023
   - The latest version of ABI v12 is v12.11.2.
   - The 'wheel-includes' value of the 'tool.sip.project' section of
     pyproject.toml now supports the use of absolute file patterns.
-  - Replaced the use of the 'toml' package with the standard library 'tomlib'
+  - Replaced the use of the 'toml' package with the standard library 'tomllib'
     package for Python v3.11 and later, and the 'tomli' package for earlier
     versions of Python.
   - Bug fixes.
