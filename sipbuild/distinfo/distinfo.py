@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -214,15 +214,15 @@ def write_metadata(metadata, requires_dists, metadata_fn, project_root,
     with open(prefix_dir + metadata_fn, 'w') as metadata_f:
         description = None
 
+        # Do these first for cosmetic reasons.
+        for name in ('metadata-version', 'name', 'version', 'requires-python'):
+            _write_metadata_item(name, metadata.pop(name), metadata_f)
+
         for name, value in metadata.items():
             if name == 'description-file':
                 description = value
             else:
-                if isinstance(value, str):
-                    value = [value]
-
-                for v in value:
-                    metadata_f.write('{}: {}\n'.format(name.title(), v))
+                _write_metadata_item(name, value, metadata_f)
 
         if description is not None:
             metadata_f.write('\n')
@@ -232,3 +232,13 @@ def write_metadata(metadata, requires_dists, metadata_fn, project_root,
 
             with open(os.path.join(project_root, description)) as description_f:
                 metadata_f.write(description_f.read())
+
+
+def _write_metadata_item(name, value, metadata_f):
+    """ Write a single metadata item. """
+
+    if isinstance(value, str):
+        value = [value]
+
+    for v in value:
+        metadata_f.write('{}: {}\n'.format(name.title(), v))

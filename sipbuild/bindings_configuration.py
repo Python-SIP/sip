@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -22,10 +22,10 @@
 
 
 import os
-import toml
 
 from .exceptions import UserFileException, UserParseException
 from .module import resolve_abi_version
+from .toml import toml_load
 
 
 def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
@@ -47,7 +47,7 @@ def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
 
     # Read the configuration.
     try:
-        cfg = toml.load(toml_file)
+        cfg = toml_load(toml_file)
     except Exception as e:
         raise UserParseException(toml_file, detail=str(e))
 

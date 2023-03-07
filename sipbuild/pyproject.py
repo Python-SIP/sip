@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,11 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from collections import OrderedDict
-import toml
-
 from .exceptions import UserFileException
 from .py_versions import OLDEST_SUPPORTED_MINOR
+from .toml import toml_load
 
 
 class PyProjectException(UserFileException):
@@ -69,20 +67,20 @@ class PyProject:
         self.toml_error = None
 
         try:
-            self._pyproject = toml.load('pyproject.toml', _dict=OrderedDict)
+            self._pyproject = toml_load('pyproject.toml')
         except FileNotFoundError:
             self.toml_error = "there is no such file in the current directory"
         except Exception as e:
             self.toml_error = str(e)
 
     def get_metadata(self):
-        """ Return an OrderedDict containing the PEP 566 meta-data. """
+        """ Return a dict containing the PEP 566 meta-data. """
 
         if self.toml_error:
             # Provide a minimal default.
             return dict(name='unknown', version='0.1')
 
-        metadata = OrderedDict()
+        metadata = dict()
         name = None
         version = None
         metadata_version = None
@@ -139,10 +137,6 @@ class PyProject:
             metadata['requires-python'] = '>=3.{}'.format(
                     OLDEST_SUPPORTED_MINOR)
 
-        # This is cosmetic.
-        for name in ('requires-python', 'version', 'name', 'metadata-version'):
-            metadata.move_to_end(name, last=False)
-
         return metadata
 
     def get_section(self, section_name, *, required=False):
@@ -174,4 +168,4 @@ class PyProject:
     def _is_section(value):
         """ Returns True if a section value is itself a section. """
 
-        return isinstance(value, (OrderedDict, list))
+        return isinstance(value, (dict, list))
