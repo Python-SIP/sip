@@ -349,7 +349,8 @@ class ArgumentFormatter(BaseFormatter):
 
         type = self.object.type
         definition = self.object.definition
-        sip_module = self.spec.sip_module
+
+        sip_module_name = self.spec.sip_module + '.' if self.spec.sip_module else ''
 
         scope = None
         name = "unknown-type"
@@ -416,10 +417,10 @@ class ArgumentFormatter(BaseFormatter):
 
         elif type is ArgumentType.PYBUFFER:
             if pep484:
-                name = sip_module + '.Buffer'
+                name = sip_module_name + 'Buffer'
             else:
                 # This replicates sip.pyi.
-                name = f'Union[bytes, bytearray, memoryview, {sip_module}.array, {sip_module}.voidptr]'
+                name = f'Union[bytes, bytearray, memoryview, {sip_module_name}array, {sip_module_name}voidptr]'
 
         elif type is ArgumentType.PYENUM:
             name = 'enum.Enum'

@@ -1,4 +1,4 @@
-v6.7.8 7th March 2023
+v6.7.8 3rd April 2023
   - The latest version of ABI v13 is v13.5.0.
   - The latest version of ABI v12 is v12.11.2.
   - The 'wheel-includes' value of the 'tool.sip.project' section of

@@ -166,7 +166,7 @@ class Bindings(Configurable):
         spec, modules, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
                 project.abi_version, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs,
-                project.sip_module or 'sip')
+                project.sip_module)
 
         # Resolve the types.
         resolve(spec, modules)

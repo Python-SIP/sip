@@ -71,7 +71,8 @@ def _module(pf, spec, module):
     if spec.abi_version >= (13, 0):
         pf.write('import enum\n')
 
-    pf.write(
+    if spec.sip_module:
+        pf.write(
 f'''import typing
 
 import {spec.sip_module}
@@ -185,7 +186,7 @@ def _class(pf, spec, module, klass, defined, indent=0):
         elif klass.supertype is not None:
             # In ABI v12 the default supertype does not contain the fully
             # qualified name of the sip module so we fix it here.
-            if spec.abi_version[0] == 12 and klass.supertype.name.startswith('sip.'):
+            if spec.abi_version[0] == 12 and spec.sip_module and klass.supertype.name.startswith('sip.'):
                 s += spec.sip_module + klass.supertype.name[4:]
             else:
                 s += klass.supertype.name
@@ -193,7 +194,7 @@ def _class(pf, spec, module, klass, defined, indent=0):
         else:
             simple = 'simple' if klass.iface_file.type is IfaceFileType.NAMESPACE else ''
 
-            s += f'{spec.sip_module}.{simple}wrapper'
+            s += f'{_sip_module_name(spec)}{simple}wrapper'
 
         # See if there is anything in the class body.
         for ctor in klass.ctors:
@@ -312,7 +313,7 @@ def _mapped_type(pf, spec, module, mapped_type, defined, indent=0):
         _separate(pf, True, indent)
 
         s = _indent(indent)
-        s += f'class {mapped_type.py_name.name}({spec.sip_module}.wrapper):\n'
+        s += f'class {mapped_type.py_name.name}({_sip_module_name(spec)}wrapper):\n'
         pf.write(s)
 
         indent += 1
@@ -643,7 +644,7 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
             use_optional = True
 
     if arg.array is ArrayArgument.ARRAY:
-        s += spec.sip_module + '.array['
+        s += _sip_module_name(spec) + 'array['
 
     s += _type(spec, module, arg, defined, out=(arg_nr < 0))
 
@@ -703,3 +704,11 @@ def _fix_py_keyword(word):
         word += '_'
 
     return word
+
+
+def _sip_module_name(spec):
+    """ Return the name of the sip module to be used as a prefix to an object
+    in the module.
+    """
+
+    return spec.sip_module + '.' if spec.sip_module else ''
