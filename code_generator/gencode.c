@@ -13093,7 +13093,11 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
     if (single_arg)
         prcode(fp, "1");
 
-    if (handle_self)
+    if (ctor_needs_self)
+    {
+        prcode(fp, "#");
+    }
+    else if (handle_self)
     {
         char self_ch;
 
@@ -13343,9 +13347,6 @@ static int generateArgParser(moduleDef *mod, signatureDef *sd,
         default:
             ;
         }
-
-        if (ctor_needs_self)
-            prcode(fp, "#");
 
         /*
          * Get the wrapper if explicitly asked for or we are going to keep a
