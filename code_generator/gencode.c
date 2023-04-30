@@ -4045,7 +4045,7 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     if (nr_methods == 0)
         prcode(fp,
-"        0, 0,\n"
+"        0, SIP_NULLPTR,\n"
             );
     else
         prcode(fp,
@@ -4054,7 +4054,7 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     if (nr_enums == 0)
         prcode(fp,
-"        0, 0,\n"
+"        0, SIP_NULLPTR,\n"
             );
     else if (nr_enums > 0)
         prcode(fp,
@@ -4062,15 +4062,15 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
             , nr_enums, mtd->iff);
 
     prcode(fp,
-"        0, 0,\n"
-"        {0, 0, 0, 0, ");
+"        0, SIP_NULLPTR,\n"
+"        {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, ");
 
     if (has_ints)
         prcode(fp, "intInstances_%L", mtd->iff);
     else
-        prcode(fp, "0");
+        prcode(fp, "SIP_NULLPTR");
 
-    prcode(fp, ", 0, 0, 0, 0, 0}\n"
+    prcode(fp, ", SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}\n"
 "    },\n"
         );
 
