@@ -4074,48 +4074,41 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 "    },\n"
         );
 
-    if (noRelease(mtd))
-    {
+    if (!noAssignOp(mtd))
+        prcode(fp,
+"    assign_%L,\n"
+        , mtd->iff);
+    else
         prcode(fp,
 "    SIP_NULLPTR,\n"
-"    SIP_NULLPTR,\n"
-"    SIP_NULLPTR,\n"
+            );
+
+    if (!noDefaultCtor(mtd))
+        prcode(fp,
+"    array_%L,\n"
+        , mtd->iff);
+    else
+        prcode(fp,
 "    SIP_NULLPTR,\n"
             );
-    }
-    else
-    {
-        if (!noAssignOp(mtd))
-            prcode(fp,
-"    assign_%L,\n"
-            , mtd->iff);
-        else
-            prcode(fp,
-"    SIP_NULLPTR,\n"
-                );
 
-        if (!noDefaultCtor(mtd))
-            prcode(fp,
-"    array_%L,\n"
-            , mtd->iff);
-        else
-            prcode(fp,
-"    SIP_NULLPTR,\n"
-                );
-
-        if (!noCopyCtor(mtd))
-            prcode(fp,
+    if (!noCopyCtor(mtd))
+        prcode(fp,
 "    copy_%L,\n"
-            , mtd->iff);
-        else
-            prcode(fp,
+        , mtd->iff);
+    else
+        prcode(fp,
 "    SIP_NULLPTR,\n"
-                );
+            );
 
+    if (!noRelease(mtd))
         prcode(fp,
 "    release_%L,\n"
             , mtd->iff);
-    }
+    else
+        prcode(fp,
+"    SIP_NULLPTR,\n"
+            );
 
     if (mtd->convtocode != NULL)
     {

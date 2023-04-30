@@ -941,6 +941,11 @@ class ParserManager:
         mapped_type.no_release = annotations.get('NoRelease', False)
         mapped_type.type_hints = self.get_type_hints(p, symbol, annotations)
 
+        if mapped_type.no_release:
+            mapped_type.no_assignment_operator = True
+            mapped_type.no_copy_ctor = True
+            mapped_type.no_default_ctor = True
+
         pyqt_flags = self._get_plugin_annotation(p, symbol, annotations,
                 'PyQtFlags', 'PyQt6')
         if pyqt_flags is not None:
