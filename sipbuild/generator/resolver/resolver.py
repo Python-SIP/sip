@@ -768,7 +768,9 @@ def _set_mro(spec, klass, error_log, seen=None):
         # If the class doesn't have an explicit meta-type then inherit from the
         # module's default.
         if klass.metatype is None and len(klass.superclasses) == 0:
-            klass.metatype = klass.iface_file.module.default_metatype
+            # The class may not have been defined.
+            if klass.iface_file.module is not None:
+                klass.metatype = klass.iface_file.module.default_metatype
 
         if klass.metatype is not None and klass.iface_file.module is spec.module:
             klass.metatype.used = True
@@ -776,7 +778,9 @@ def _set_mro(spec, klass, error_log, seen=None):
         # If the class doesn't have an explicit super-type then inherit from
         # the module's default.
         if klass.supertype is None and len(klass.superclasses) == 0:
-            klass.supertype = klass.iface_file.module.default_supertype
+            # The class may not have been defined.
+            if klass.iface_file.module is not None:
+                klass.supertype = klass.iface_file.module.default_supertype
 
         if klass.supertype is not None:
             # If the super-type ends with 'sip.wrapper' then assume it is the
