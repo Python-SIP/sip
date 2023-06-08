@@ -65,10 +65,6 @@ class Project(AbstractProject, Configurable):
         # The list of GUI script entry points.
         Option('gui_scripts', option_type=list),
 
-        # The minimum GLIBC version required by the project.  This is used to
-        # determine the correct platform tag to use for Linux wheels.
-        Option('minimum_glibc_version'),
-
         # The minimum macOS version required by the project.  This is used to
         # determine the correct platform tag to use for macOS wheels.
         Option('minimum_macos_version'),
@@ -130,6 +126,10 @@ class Project(AbstractProject, Configurable):
                 help="disable the use of manylinux in the platform tag used "
                         "in the wheel name",
                 tools=['wheel']),
+        Option('minimum_glibc_version',
+                help="the minimum GLIBC version to be used in the platform "
+                        "tag of Linux wheels",
+                metavar="M.N", tools=['wheel']),
         Option('scripts_dir', default=os.path.dirname(sys.executable),
                 help="the scripts installation directory", metavar="DIR",
                 tools=['build', 'install']),

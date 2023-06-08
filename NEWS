@@ -1,4 +1,5 @@
-v6.7.10 23rd May 2023
+v6.7.10 8th June 2023
+  - Added the --minimum-glibc-version command line option to sip-wheel.
   - Bug fixes.
 
 v6.7.9 12th April 2023

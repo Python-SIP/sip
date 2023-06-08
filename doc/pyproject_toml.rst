@@ -171,7 +171,7 @@ list options may contain environment markers as defined in `PEP 508
     the major and minor version numbers.  This is used to determine the correct
     platform tag to use for Linux wheels.  The default version of GLIBC is v2.5
     which corresponds to ``manylinux1``.  It is ignored if the ``manylinux``
-    option is False.
+    option is False.  There is also a corresponding command line option.
 
 **minimum-macos-version**
     The minimum macOS version required by the project specified as a 2-tuple of

@@ -520,6 +520,14 @@ The full set of command line options is:
     disabled.  It should only be used if support for older versions of
     :program:`pip` is required.
 
+.. option:: --minimum-glibc-version M.N
+
+    ``M.N`` is the minimum GLIBC version required by the project specified as
+    the major and minor version numbers.  This is used to determine the correct
+    platform tag to use for Linux wheels.  The default version of GLIBC is v2.5
+    which corresponds to ``manylinux1``.  It is ignored if the
+    ``--no-manylinux`` option is specified.
+
 .. option:: --name NAME
 
     ``NAME`` is used instead of the PyPI project name in the
