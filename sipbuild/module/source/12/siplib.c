@@ -12597,7 +12597,11 @@ static void *sip_api_get_type_user_data(const sipWrapperType *wt)
  */
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type)
 {
+#if PY_VERSION_HEX >= 0x030c0000
+    return PyType_GetDict(py_type);
+#else
     return py_type->tp_dict;
+#endif
 }
 
 
