@@ -1279,7 +1279,7 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: void *sipMalloc(size_t nbytes)
 
     This allocates an area of memory on the heap using the Python
-    :c:func:`PyMem_Malloc()` function.  The memory is freed by calling
+    :c:func:`PyMem_RawMalloc()` function.  The memory is freed by calling
     :c:func:`sipFree()`.
 
     :param nbytes:

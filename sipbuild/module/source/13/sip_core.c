@@ -1890,7 +1890,7 @@ void *sip_api_malloc(size_t nbytes)
 {
     void *mem;
 
-    if ((mem = PyMem_Malloc(nbytes)) == NULL)
+    if ((mem = PyMem_RawMalloc(nbytes)) == NULL)
         PyErr_NoMemory();
 
     return mem;
@@ -1902,7 +1902,7 @@ void *sip_api_malloc(size_t nbytes)
  */
 void sip_api_free(void *mem)
 {
-    PyMem_Free(mem);
+    PyMem_RawFree(mem);
 }
 
 
