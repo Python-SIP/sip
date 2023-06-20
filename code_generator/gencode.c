@@ -5678,22 +5678,22 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     if (isIntArgSlot(md))
     {
         has_args = FALSE;
-        arg_str = "PyObject *sipSelf,int a0";
-        decl_arg_str = "PyObject *,int";
+        arg_str = "PyObject *sipSelf, int a0";
+        decl_arg_str = "PyObject *, int";
     }
     else if (md->slot == call_slot)
     {
         if (generating_c || useKeywordArgs(md) || noArgParser(md))
-            arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *sipKwds";
+            arg_str = "PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds";
         else
-            arg_str = "PyObject *sipSelf,PyObject *sipArgs,PyObject *";
+            arg_str = "PyObject *sipSelf, PyObject *sipArgs, PyObject *";
 
-        decl_arg_str = "PyObject *,PyObject *,PyObject *";
+        decl_arg_str = "PyObject *, PyObject *, PyObject *";
     }
     else if (isMultiArgSlot(md))
     {
-        arg_str = "PyObject *sipSelf,PyObject *sipArgs";
-        decl_arg_str = "PyObject *,PyObject *";
+        arg_str = "PyObject *sipSelf, PyObject *sipArgs";
+        decl_arg_str = "PyObject *, PyObject *";
     }
     else if (isZeroArgSlot(md))
     {
@@ -5703,18 +5703,18 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
     }
     else if (isNumberSlot(md))
     {
-        arg_str = "PyObject *sipArg0,PyObject *sipArg1";
-        decl_arg_str = "PyObject *,PyObject *";
+        arg_str = "PyObject *sipArg0, PyObject *sipArg1";
+        decl_arg_str = "PyObject *, PyObject *";
     }
     else if (md->slot == setattr_slot)
     {
-        arg_str = "PyObject *sipSelf,PyObject *sipName,PyObject *sipValue";
-        decl_arg_str = "PyObject *,PyObject *,PyObject *";
+        arg_str = "PyObject *sipSelf, PyObject *sipName, PyObject *sipValue";
+        decl_arg_str = "PyObject *, PyObject *, PyObject *";
     }
     else
     {
-        arg_str = "PyObject *sipSelf,PyObject *sipArg";
-        decl_arg_str = "PyObject *,PyObject *";
+        arg_str = "PyObject *sipSelf, PyObject *sipArg";
+        decl_arg_str = "PyObject *, PyObject *";
     }
 
     prcode(fp,
