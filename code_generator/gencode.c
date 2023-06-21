@@ -5770,7 +5770,7 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
         {
             if (cd != NULL)
                 prcode(fp,
-"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf,sipType_%C));\n"
+"    %S *sipCpp = reinterpret_cast<%S *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, sipType_%C));\n"
 "\n"
 "    if (!sipCpp)\n"
                     , fqcname, fqcname, fqcname);
@@ -5825,7 +5825,7 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                 prcode(fp,
 "\n"
 "    /* Raise an exception if the argument couldn't be parsed. */\n"
-"    sipBadOperatorArg(sipSelf,sipArg,%s);\n"
+"    sipBadOperatorArg(sipSelf, sipArg, %s);\n"
 "\n"
 "    return SIP_NULLPTR;\n"
                     ,slotName(md->slot));
@@ -6078,9 +6078,9 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
             int rgil = ((release_gil || isReleaseGILDtor(cd)) && !isHoldGILDtor(cd));
 
             /*
-             * If there is an explicit public dtor then assume there is
-                 * some way to call it which we haven't worked out (because we
-                 * don't fully understand C++).
+             * If there is an explicit public dtor then assume there is some
+             * way to call it which we haven't worked out (because we don't
+             * fully understand C++).
              */
 
             if (rgil)
@@ -6146,7 +6146,7 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
                 , classFQCName(cd));
 
         prcode(fp,
-"static int traverse_%C(void *sipCppV,visitproc sipVisit,void *sipArg)\n"
+"static int traverse_%C(void *sipCppV, visitproc sipVisit, void *sipArg)\n"
 "{\n"
 "    ", classFQCName(cd));
 
