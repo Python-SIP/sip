@@ -6277,7 +6277,6 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
             prcode(fp,
 "static void releasebuffer_%C(PyObject *%s, void *%s)\n"
-"#else\n"
                 , classFQCName(cd), argName("sipSelf", cd->releasebufcode), (generating_c || need_cpp ? "sipCppV" : ""));
         }
         else
