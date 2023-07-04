@@ -284,6 +284,8 @@ static PyMappingMethods sipArray_MappingMethods = {
 static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 {
     sipArrayObject *array = (sipArrayObject *)self;
+    const char *format;
+    Py_ssize_t itemsize;
 
     if (view == NULL)
         return 0;
@@ -297,23 +299,28 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
     view->obj = self;
     Py_INCREF(self);
 
+    /*
+     * If there is no format, ie. it is a wrapped type, then present it as
+     * bytes.
+     */
+    if ((format = array->format) == NULL)
+    {
+        format = "B";
+        itemsize = sizeof (unsigned char);
+    }
+    else
+    {
+        itemsize = array->stride;
+    }
+
     view->buf = array->data;
     view->len = array->len * array->stride;
     view->readonly = (array->flags & SIP_READ_ONLY);
-    view->itemsize = array->stride;
+    view->itemsize = itemsize;
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
-    {
-        if (array->format == NULL)
-        {
-            PyErr_SetString(PyExc_BufferError,
-                    "format has not been specified");
-            return -1;
-        }
-
-        view->format = (char *)array->format;
-    }
+        view->format = format;
 
     view->ndim = 1;
 
