@@ -1317,8 +1317,6 @@ void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct, FILE *fp);
 void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int is_method,
         FILE *fp);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
-void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        FILE *fp);
 void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);

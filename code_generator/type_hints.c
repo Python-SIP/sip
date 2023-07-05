@@ -1,7 +1,7 @@
 /*
  * The PEP 484 type hints generator for SIP.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -30,6 +30,8 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         FILE *fp);
 static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
         FILE *fp);
+static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+        FILE *fp);
 static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod, FILE *fp);
 static void prClassRef(classDef *cd, FILE *fp);
 static void prEnumRef(enumDef *ed, FILE *fp);
@@ -48,7 +50,8 @@ static void maybeAnyObject(const char *hint, FILE *fp);
 static void strip_leading(char **startp, char *end);
 static void strip_trailing(char *start, char **endp);
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes);
-static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
+static typeHintNodeDef *copyTypeHintNode(typeHintNodeDef *node);
+static typeHintNodeDef *copyTypeHintRootNode(sipSpec *pt, typeHintDef *thd,
         int out);
 static int isPyKeyword(const char *word);
 
@@ -459,7 +462,7 @@ static void prScopedEnumName(FILE *fp, enumDef *ed)
 /*
  * Generate a type hint from a /TypeHint/ annotation.
  */
-void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         FILE *fp)
 {
     parseTypeHint(pt, thd, out);
@@ -751,7 +754,19 @@ static const char *typingModule(const char *name)
  */
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 {
-    typeHintNodeDef *head, **tailp, *thnd;
+    typeHintNodeDef *head, **tailp, *thnd, *copy;
+    int no_union = TRUE;
+
+    /* Check if there is anything to do. */
+    for (thnd = nodes; thnd != NULL; thnd = thnd->next)
+        if (thnd->type == typing_node && strcmp(thnd->u.name, "Union") == 0)
+        {
+            no_union = FALSE;
+            break;
+        }
+
+    if (no_union)
+        return nodes;
 
     head = NULL;
     tailp = &head;
@@ -764,19 +779,18 @@ static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 
             for (child = thnd->children; child != NULL; child = child->next)
             {
-                *tailp = child;
-                tailp = &child->next;
+                copy = copyTypeHintNode(child);
+                *tailp = copy;
+                tailp = &copy->next;
             }
         }
         else
         {
-            /* Move this one to the new list. */
-            *tailp = thnd;
-            tailp = &thnd->next;
+            copy = copyTypeHintNode(thnd);
+            *tailp = copy;
+            tailp = &copy->next;
         }
     }
-
-    *tailp = NULL;
 
     return head;
 }
@@ -852,7 +866,7 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
                     thd = (out ? mtd->typehint_out : mtd->typehint_in);
 
                     if (thd != NULL && thd->status != being_parsed)
-                        return copyTypeHintNode(pt, thd, out);
+                        return copyTypeHintRootNode(pt, thd, out);
 
                     /*
                      * If we get here we have a recursively defined mapped type
@@ -880,7 +894,7 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
                 thd = (out ? cd->typehint_out : cd->typehint_in);
 
                 if (thd != NULL && thd->status != being_parsed)
-                    return copyTypeHintNode(pt, thd, out);
+                    return copyTypeHintRootNode(pt, thd, out);
 
                 node = sipMalloc(sizeof (typeHintNodeDef));
                 node->type = class_node;
@@ -916,9 +930,24 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
 
 
 /*
+ * Copy a type hint node.
+ */
+static typeHintNodeDef *copyTypeHintNode(typeHintNodeDef *node)
+{
+    typeHintNodeDef *copy;
+
+    copy = sipMalloc(sizeof (typeHintNodeDef));
+    *copy = *node;
+    copy->next = NULL;
+
+    return copy;
+}
+
+
+/*
  * Copy the root node of a type hint.
  */
-static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
+static typeHintNodeDef *copyTypeHintRootNode(sipSpec *pt, typeHintDef *thd,
         int out)
 {
     typeHintNodeDef *node;
@@ -928,11 +957,7 @@ static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
     if (thd->root == NULL)
         return NULL;
 
-    node = sipMalloc(sizeof (typeHintNodeDef));
-    *node = *thd->root;
-    node->next = NULL;
-
-    return node;
+    return copyTypeHintNode(thd->root);
 }
 
 
