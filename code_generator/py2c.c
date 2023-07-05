@@ -299,8 +299,6 @@ static memberDef *member_list_attr(sipSpec *pt, PyObject *obj,
 static moduleDef *module(sipSpec *pt, PyObject *obj, const char *encoding);
 static moduleDef *module_attr(sipSpec *pt, PyObject *obj, const char *name,
         const char *encoding);
-static moduleDef *module_list_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding);
 static moduleListDef *modulelist_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static mroDef *mro_list_attr(sipSpec *pt, PyObject *obj, const char *name,
@@ -1736,34 +1734,6 @@ static moduleDef *module_attr(sipSpec *pt, PyObject *obj, const char *name,
     Py_DECREF(attr);
 
     return value;
-}
-
-
-/*
- * Convert a Module list attribute.
- */
-static moduleDef *module_list_attr(sipSpec *pt, PyObject *obj,
-        const char *name, const char *encoding)
-{
-    PyObject *attr = PyObject_GetAttrString(obj, name);
-    moduleDef *head, **tail;
-    Py_ssize_t i;
-
-    assert(attr != NULL);
-
-    head = NULL;
-    tail = &head;
-
-    for (i = 0; i < PyList_Size(attr); ++i)
-    {
-        moduleDef *item = module(pt, PyList_GetItem(attr, i), encoding);
-        *tail = item;
-        tail = &item->next;
-    }
-
-    Py_DECREF(attr);
-
-    return head;
 }
 
 
