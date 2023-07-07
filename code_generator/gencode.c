@@ -1870,13 +1870,14 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
     is_inst_double = generateDoubles(pt, mod, NULL, fp);
 
     /* Generate any exceptions support. */
-    if (exceptions && mod->nrexceptions > 0)
+    if (exceptions)
     {
-        prcode(fp,
+        if (mod->nrexceptions > 0)
+            prcode(fp,
 "\n"
 "\n"
 "PyObject *sipExportedExceptions_%s[%d];\n"
-            , mname, mod->nrexceptions + 1);
+                , mname, mod->nrexceptions + 1);
 
         if (abiVersion >= ABI_13_1 || (abiVersion >= ABI_12_9 && abiVersion < ABI_13_0))
             generateExceptionHandler(pt, mod, fp);
@@ -15344,8 +15345,14 @@ static const char *userStateSuffix(argDef *ad)
 static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp)
 {
     exceptionDef *xd;
+    int need_decl = TRUE;
 
-    prcode(fp,
+    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
+        if (xd->iff->module == mod)
+        {
+            if (need_decl)
+            {
+                prcode(fp,
 "\n"
 "\n"
 "/* Handle the exceptions defined in this module. */\n"
@@ -15354,18 +15361,21 @@ static void generateExceptionHandler(sipSpec *pt, moduleDef *mod, FILE *fp)
 "    try {\n"
 "        std::rethrow_exception(sipExcPtr);\n"
 "    }\n"
-        , mod->name);
+                    , mod->name);
 
-    for (xd = pt->exceptions; xd != NULL; xd = xd->next)
-        if (xd->iff->module == mod)
+                need_decl = FALSE;
+            }
+
             generateCatchBlock(mod, xd, NULL, fp, FALSE);
+        }
 
-    prcode(fp,
+    if (!need_decl)
+        prcode(fp,
 "    catch (...) {}\n"
 "\n"
 "    return false;\n"
 "}\n"
-        );
+            );
 }
  
  

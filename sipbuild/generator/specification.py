@@ -1772,7 +1772,8 @@ class WrappedException:
     # The base exception if it is defined in the specification.
     defined_base_exception: Optional['WrappedException'] = None
 
-    # The number of the exception. (resolver)
+    # The number of the exception (only if a Python exception object is
+    # required. (resolver)
     exception_nr: int = -1
 
     # Set if this exception is needed by the module for which code is to be
