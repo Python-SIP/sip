@@ -23,8 +23,9 @@
 
 from ...version import SIP_VERSION_STR
 
+from ..python_slots import is_number_slot, reflected_slot
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        EnumBaseType, IfaceFileType, PyQtMethodSpecifier, PySlot)
+        EnumBaseType, IfaceFileType, PyQtMethodSpecifier, PySlot, Signature)
 from ..utils import append_iface_file, find_method
 
 from .formatters import (ArgumentFormatter, ClassFormatter, format_copying,
@@ -441,8 +442,9 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
         indent=0):
     """ Output the type hints for a callable. """
 
-    # Count the number of overloads.
-    nr_overloads = 0
+    # Get the non-reflected and reflected overloads.
+    nonreflected_overloads = []
+    reflected_overloads = []
 
     for overload in overloads:
         if overload.access_specifier is AccessSpecifier.PRIVATE:
@@ -466,25 +468,28 @@ def _callable(pf, spec, module, member, overloads, is_method, defined,
 
             return
 
-        nr_overloads += 1
+        if is_number_slot(overload.common.py_slot) and overload.is_reflected:
+            reflected_overloads.append(overload)
+        else:
+            nonreflected_overloads.append(overload)
 
-    # Handle each overload.
-    overload_nr = 0
+    # Handle each non-reflected overload.
+    overloaded = len(nonreflected_overloads) > 1
+    first_overload = True
 
-    for overload in overloads:
-        if overload.access_specifier is AccessSpecifier.PRIVATE:
-            continue
-
-        if overload.common is not member:
-            continue
-
-        if overload.no_type_hint:
-            continue
-
-        _overload(pf, spec, module, overload, nr_overloads > 1, overload_nr,
+    for overload in nonreflected_overloads:
+        _overload(pf, spec, module, overload, overloaded, first_overload,
                 is_method, defined, indent)
+        first_overload = False
 
-        overload_nr += 1
+    # Handle each reflected overload.
+    overloaded = len(reflected_overloads) > 1
+    first_overload = True
+
+    for overload in reflected_overloads:
+        _overload(pf, spec, module, overload, overloaded, first_overload,
+                is_method, defined, indent)
+        first_overload = False
 
 
 def _property(pf, spec, module, prop, is_setter, member, overloads, defined,
@@ -520,8 +525,8 @@ def _property(pf, spec, module, prop, is_setter, member, overloads, defined,
         break
 
 
-def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
-        defined, indent):
+def _overload(pf, spec, module, overload, overloaded, first_overload,
+        is_method, defined, indent):
     """ Output the type hints for a single overload. """
 
     # mypy recommends using 'object' as the argument type.
@@ -529,13 +534,16 @@ def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
 
     # The recommendation means any subsequent overloads are pointless.
     if is_eq_slot:
-        if overload_nr > 0:
+        if not first_overload:
             return
     elif overloaded:
         pf.write(_indent(indent) + '@typing.overload\n')
 
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
+
+    py_name = overload.common.py_name.name
+    py_signature = overload.py_signature
 
     s = _indent(indent)
 
@@ -544,10 +552,26 @@ def _overload(pf, spec, module, overload, overloaded, overload_nr, is_method,
     else:
         need_self = (is_method and not overload.is_static)
 
-        signature = _python_signature(spec, module, overload.py_signature,
-                defined, need_self=need_self)
+        if is_number_slot(overload.common.py_slot):
+            # Use the reflected name if appropriate.
+            if overload.is_reflected:
+                py_name = reflected_slot(overload.common.py_slot)
 
-    s += f'def {overload.common.py_name.name}{signature}: ...\n'
+            # A global slot will still have both arguments so pick the relevant
+            # one.
+            if len(py_signature.args) > 1:
+                if overload.is_reflected:
+                    arg = py_signature.args[0]
+                else:
+                    arg = py_signature.args[1]
+
+                py_signature = Signature(args=[arg],
+                        result=py_signature.result)
+
+        signature = _python_signature(spec, module, py_signature, defined,
+                need_self=need_self)
+
+    s += f'def {py_name}{signature}: ...\n'
 
     pf.write(s)
 

@@ -23,7 +23,7 @@
 
 from xml.etree.ElementTree import Element, SubElement
 
-from ..python_slots import is_number_slot
+from ..python_slots import is_number_slot, reflected_slot
 from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
         IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
@@ -233,7 +233,7 @@ def _overload(parent, spec, scope, overload, extends, is_static):
     """ Output the XML for an overload. """
 
     if overload.is_reflected:
-        name = _reflected_slot(overload.common.py_slot)
+        name = reflected_slot(overload.common.py_slot)
     else:
         name = None
 
@@ -394,27 +394,3 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         s += rest_ref
 
     return s
-
-
-# A map of slots and the names of their reflections.
-_SLOT_REFLECTIONS = {
-    PySlot.ADD: '__radd__',
-    PySlot.SUB: '__rsub__',
-    PySlot.MUL: '__rmul__',
-    PySlot.MATMUL: '__rmatmul__',
-    PySlot.TRUEDIV: '__rtruediv__',
-    PySlot.FLOORDIV: '__rfloordiv__',
-    PySlot.MOD: '__rmod__',
-    PySlot.LSHIFT: '__rlshift__',
-    PySlot.RSHIFT: '__rrshift__',
-    PySlot.AND: '__rand__',
-    PySlot.OR: '__ror__',
-    PySlot.XOR: '__rxor__',
-}
-
-def _reflected_slot(py_slot):
-    """ Return the name of the reflected version of a slot or None if it
-    doesn't have one.
-    """
-
-    return _SLOT_REFLECTIONS.get(py_slot)
