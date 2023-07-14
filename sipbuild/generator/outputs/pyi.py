@@ -649,9 +649,6 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
     if arg.array is ArrayArgument.ARRAY_SIZE:
         return None
 
-    optional = (arg_nr >= 0 and arg.default_value is not None)
-    use_optional = False
-
     s = ''
 
     if arg_nr >= 0 and arg.type is not ArgumentType.ELLIPSIS:
@@ -661,11 +658,11 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
             name = _fix_py_keyword(arg.name.name)
             s += f'{name}: '
 
-    if optional:
-        # Assume pointers can be None unless specified otherwise.
-        if arg.allow_none or (not arg.disallow_none and arg.derefs):
-            s += 'typing.Optional['
-            use_optional = True
+    # Assume pointers can be None unless specified otherwise.
+    used_optional = False
+    if arg.allow_none or (not arg.disallow_none and arg.derefs):
+        s += 'typing.Optional['
+        used_optional = True
 
     if arg.array is ArrayArgument.ARRAY:
         s += _sip_module_name(spec) + 'array['
@@ -681,10 +678,11 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
     if arg.array is ArrayArgument.ARRAY:
         s += ']'
 
-    if optional:
-        if use_optional:
-            s += ']'
+    if used_optional:
+        s += ']'
 
+    # See if the argument is optional.
+    if arg_nr >= 0 and arg.default_value is not None:
         s += ' = ...'
 
     return s

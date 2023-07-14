@@ -113,16 +113,13 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
+    /* Assume pointers can be None unless specified otherwise. */
     use_optional = FALSE;
 
-    if (optional)
+    if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
     {
-        /* Assume pointers can be None unless specified otherwise. */
-        if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
-        {
-            fprintf(fp, "typing.Optional[");
-            use_optional = TRUE;
-        }
+        fprintf(fp, "typing.Optional[");
+        use_optional = TRUE;
     }
 
     if (isArray(ad))
@@ -142,13 +139,12 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (isArray(ad))
         fprintf(fp, "]");
 
+    if (use_optional)
+        fprintf(fp, "]");
+
     if (optional)
     {
-        if (use_optional)
-            fprintf(fp, "]");
-
         fprintf(fp, " = ");
-
         prDefaultValue(ad, fp);
     }
 

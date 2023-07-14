@@ -1,4 +1,4 @@
-v6.7.10 12th July 2023
+v6.7.10 14th July 2023
   - Added the --minimum-glibc-version command line option to sip-wheel.
   - The latest version of ABI v13 is v13.5.2.
   - The latest version of ABI v12 is v12.12.2.
