@@ -104,7 +104,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     optional = (defaults && ad->defval && !out);
 
-    if (names && ad->atype != ellipsis_type)
+    if (names)
     {
         if (ad->name != NULL)
             fprintf(fp, "%s%s: ", ad->name->text,
@@ -126,15 +126,6 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
 
     pyiType(pt, mod, ad, out, fp);
-
-    if (names && ad->atype == ellipsis_type)
-    {
-        if (ad->name != NULL)
-            fprintf(fp, "%s%s", ad->name->text,
-                    (isPyKeyword(ad->name->text) ? "_" : ""));
-        else
-            fprintf(fp, "a%d", arg_nr);
-    }
 
     if (isArray(ad))
         fprintf(fp, "]");
@@ -283,6 +274,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
         break;
 
     case pyobject_type:
+    case ellipsis_type:
         type_name = "object";
         break;
 
@@ -317,10 +309,6 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     case pyenum_type:
         type_name = "enum.Enum";
-        break;
-
-    case ellipsis_type:
-        type_name = "*";
         break;
 
     default:
