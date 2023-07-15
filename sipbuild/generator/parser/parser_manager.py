@@ -34,12 +34,12 @@ from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, ClassKey, CodeBlock, Constructor, DocstringFormat,
-        DocstringSignature, EnumBaseType, GILAction, IfaceFile, IfaceFileType,
-        KwArgs, MappedType, Member, Module, Overload, PyQtMethodSpecifier,
-        PySlot, Qualifier, QualifierType, Signature, SourceLocation,
-        Specification, Transfer, TypeHints, WrappedClass, WrappedException,
-        WrappedEnum, WrappedEnumMember)
+        ArrayArgument, CachedName, ClassKey, CodeBlock, Constructor,
+        DocstringFormat, DocstringSignature, EnumBaseType, GILAction,
+        IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
+        PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, Signature,
+        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
+        WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import (argument_as_str, cached_name, find_iface_file,
         normalised_scoped_name, same_base_type)
@@ -1858,6 +1858,11 @@ class ParserManager:
 
         for arg in signature.args:
             if arg.type is ArgumentType.ELLIPSIS:
+                # Give the argument the standard name so that it appears in
+                # docstrings and type hints.  It is never used in generated
+                # code so there is no need to add it to the module cache.
+                arg.name = CachedName('args')
+
                 if seen_ellipsis:
                     self.parser_error(p, symbol,
                             "'...' may only be specified once")
