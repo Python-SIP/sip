@@ -1861,7 +1861,7 @@ class ParserManager:
                 # Give the argument the standard name so that it appears in
                 # docstrings and type hints.  It is never used in generated
                 # code so there is no need to add it to the module cache.
-                arg.name = CachedName('args')
+                arg.name = CachedName('*args')
 
                 if seen_ellipsis:
                     self.parser_error(p, symbol,

@@ -394,7 +394,7 @@ class ArgumentFormatter(BaseFormatter):
         elif type in (ArgumentType.BOOL, ArgumentType.CBOOL):
             name = 'bool'
 
-        elif type is ArgumentType.PYOBJECT:
+        elif type in (ArgumentType.PYOBJECT, ArgumentType.ELLIPSIS):
             name = 'typing.Any' if pep484 else 'Any'
 
         elif type is ArgumentType.PYTUPLE:
@@ -424,8 +424,5 @@ class ArgumentFormatter(BaseFormatter):
 
         elif type is ArgumentType.PYENUM:
             name = 'enum.Enum'
-
-        elif type is ArgumentType.ELLIPSIS:
-            name = '*'
 
         return scope, name

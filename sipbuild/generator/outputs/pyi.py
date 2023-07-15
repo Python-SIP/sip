@@ -651,7 +651,7 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
 
     s = ''
 
-    if arg_nr >= 0 and arg.type is not ArgumentType.ELLIPSIS:
+    if arg_nr >= 0:
         if arg.name is None:
             s += f'a{arg_nr}: '
         else:
@@ -668,12 +668,6 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
         s += _sip_module_name(spec) + 'array['
 
     s += _type(spec, module, arg, defined, out=(arg_nr < 0))
-
-    if arg_nr >= 0 and arg.type is ArgumentType.ELLIPSIS:
-        if arg.name is None:
-            s += f'a{arg_nr}'
-        else:
-            s += _fix_py_keyword(arg.name.name)
 
     if arg.array is ArrayArgument.ARRAY:
         s += ']'
