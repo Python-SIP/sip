@@ -6563,7 +6563,7 @@ static int generateClassFunctions(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (tracing)
             prcode(fp,
-"    sipTrace(SIP_TRACE_DEALLOCS,\"dealloc_%L()\\n\");\n"
+"    sipTrace(SIP_TRACE_DEALLOCS, \"dealloc_%L()\\n\");\n"
 "\n"
                 , cd->iff);
 
@@ -6672,9 +6672,9 @@ static int generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
         if (tracing)
         {
             prcode(fp,
-"    sipTrace(SIP_TRACE_CTORS,\"sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
+"    sipTrace(SIP_TRACE_CTORS, \"sip%C::sip%C(",classFQCName(cd),classFQCName(cd));
             generateCalledArgs(NULL, cd->iff, ct->cppsig, Declaration, fp);
-            prcode(fp,")%X (this=0x%%08x)\\n\",this);\n"
+            prcode(fp,")%X (this=0x%%08x)\\n\", this);\n"
 "\n"
                 ,ct->exceptions);
         }
@@ -6701,7 +6701,7 @@ static int generateShadowCode(sipSpec *pt, moduleDef *mod, classDef *cd,
 
         if (tracing)
             prcode(fp,
-"    sipTrace(SIP_TRACE_DTORS,\"sip%C::~sip%C()%X (this=0x%%08x)\\n\",this);\n"
+"    sipTrace(SIP_TRACE_DTORS, \"sip%C::~sip%C()%X (this=0x%%08x)\\n\", this);\n"
 "\n"
                 ,classFQCName(cd),classFQCName(cd),cd->dtorexceptions);
 
@@ -6873,12 +6873,12 @@ static int generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
     if (tracing)
     {
         prcode(fp,
-"    sipTrace(SIP_TRACE_CATCHERS,\"");
+"    sipTrace(SIP_TRACE_CATCHERS, \"");
 
         generateBaseType(cd->iff, res, TRUE, STRIP_GLOBAL, fp);
         prcode(fp," sip%C::%O(",classFQCName(cd),od);
         generateCalledArgs(NULL, cd->iff, od->cppsig, Declaration, fp);
-        prcode(fp,")%s%X (this=0x%%08x)\\n\",this);\n"
+        prcode(fp,")%s%X (this=0x%%08x)\\n\", this);\n"
 "\n"
             ,(isConst(od) ? " const" : ""),od->exceptions);
     }
@@ -10716,7 +10716,7 @@ static int generateTypeInit(classDef *cd, moduleDef *mod, FILE *fp)
     if (tracing)
         prcode(fp,
 "\n"
-"    sipTrace(SIP_TRACE_INITS,\"init_type_%L()\\n\");\n"
+"    sipTrace(SIP_TRACE_INITS, \"init_type_%L()\\n\");\n"
             , cd->iff);
 
     /*
@@ -11280,7 +11280,7 @@ static int generateFunction(sipSpec *pt, memberDef *md, overDef *overs,
 
         if (tracing)
             prcode(fp,
-"    sipTrace(SIP_TRACE_METHODS,\"meth_%L_%s()\\n\");\n"
+"    sipTrace(SIP_TRACE_METHODS, \"meth_%L_%s()\\n\");\n"
 "\n"
                 , cd->iff, pname);
 
