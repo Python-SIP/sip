@@ -321,6 +321,7 @@ static int isInplaceNumberSlot(memberDef *md);
 static int isRichCompareSlot(memberDef *md);
 static int usedInCode(codeBlockList *cbl, const char *str);
 static void errorScopedName(scopedNameDef *snd);
+static char *get_argument_name(argDef *arg, int arg_nr, moduleDef *module);
 
 
 /*
@@ -8926,7 +8927,6 @@ static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
         signatureDef *sd, funcArgType ftype, FILE *fp)
 {
     const char *name;
-    char buf[50];
     int a;
 
     for (a = 0; a < sd->nrArgs; ++a)
@@ -8934,21 +8934,12 @@ static void generateCalledArgs(moduleDef *mod, ifaceFileDef *scope,
         argDef *ad = &sd->args[a];
 
         if (a > 0)
-            prcode(fp,",");
-
-        name = buf;
+            prcode(fp, ", ");
 
         if (ftype == Definition)
-        {
-            if (mod != NULL && useArgNames(mod) && ad->name != NULL)
-                name = ad->name->text;
-            else
-                sprintf(buf, "a%d", a);
-        }
+            name = get_argument_name(ad, a, mod);
         else
-        {
-            buf[0] = '\0';
-        }
+            name = "";
 
         generateNamedBaseType(scope, ad, name, TRUE, STRIP_NONE, fp);
     }
@@ -11458,7 +11449,6 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
         int result_size, char *prefix, FILE *fp)
 {
     const char *vname;
-    char vnamebuf[50];
     int a, nrvals, only, has_owner;
     argDef *res, *ad;
 
@@ -11640,16 +11630,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     else
     {
         ad = &od->pysig.args[only];
-
-        if (useArgNames(mod) && ad->name != NULL)
-        {
-            vname = ad->name->text;
-        }
-        else
-        {
-            sprintf(vnamebuf, "a%d", only);
-            vname = vnamebuf;
-        }
+        vname = get_argument_name(ad, only, mod);
     }
 
     switch (ad->atype)
@@ -13863,11 +13844,7 @@ void prcode(FILE *fp, const char *fmt, ...)
                     argDef *ad = va_arg(ap, argDef *);
                     int argnr = va_arg(ap, int);
 
-                    if (useArgNames(mod) && ad->name != NULL)
-                        fprintf(fp, "%s", ad->name->text);
-                    else
-                        fprintf(fp, "a%d", argnr);
-
+                    fprintf(fp, "%s", get_argument_name(ad, argnr, mod));
                     break;
                 }
 
@@ -15833,4 +15810,20 @@ memberDef *findMethod(classDef *cd, const char *name)
 static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
 {
     pyiOverload(pt, pt->module, od, is_method, fp);
+}
+
+
+/*
+ * Return the name to use for an argument.
+ */
+static char *get_argument_name(argDef *arg, int arg_nr, moduleDef *module)
+{
+    static char buf[50];
+
+    if (useArgNames(module) && arg->name != NULL && arg->atype != ellipsis_type)
+        return arg->name->text;
+
+    sprintf(buf, "a%d", arg_nr);
+
+    return &buf[0];
 }
