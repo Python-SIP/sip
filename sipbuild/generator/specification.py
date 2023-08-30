@@ -1596,6 +1596,9 @@ class WrappedClass:
     # Set if the class is QObject or a sub-class. (resolver)
     is_qobject: bool = False
 
+    # The C++ name of any overload annotated with __len__.
+    len_cpp_name: Optional[str] = None
+
     # The methods.
     members: List[Member] = field(default_factory=list)
 

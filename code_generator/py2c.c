@@ -857,6 +857,7 @@ static classDef *class(sipSpec *pt, PyObject *obj, const char *encoding)
             encoding);
     typehints_attr(obj, "type_hints", encoding, &value->typehint_in,
             &value->typehint_out, &value->typehint_value);
+    value->len_cpp_name = str_attr(obj, "len_cpp_name", encoding);
 
     return value;
 }

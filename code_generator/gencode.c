@@ -321,7 +321,10 @@ static int isInplaceNumberSlot(memberDef *md);
 static int isRichCompareSlot(memberDef *md);
 static int usedInCode(codeBlockList *cbl, const char *str);
 static void errorScopedName(scopedNameDef *snd);
-static char *get_argument_name(argDef *arg, int arg_nr, moduleDef *module);
+static const char *get_argument_name(argDef *arg, int arg_nr,
+        moduleDef *module);
+static void generateSequenceSupport(classDef *klass, overDef *overload,
+        moduleDef *module, FILE *fp);
 
 
 /*
@@ -12348,6 +12351,9 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
 "\n"
                 );
 
+        if (c_scope != NULL && c_scope->len_cpp_name != NULL)
+            generateSequenceSupport(c_scope, od, mod, fp);
+
         if (rgil)
             prcode(fp,
 "            Py_BEGIN_ALLOW_THREADS\n"
@@ -15816,7 +15822,8 @@ static void dsOverload(sipSpec *pt, overDef *od, int is_method, FILE *fp)
 /*
  * Return the name to use for an argument.
  */
-static char *get_argument_name(argDef *arg, int arg_nr, moduleDef *module)
+static const char *get_argument_name(argDef *arg, int arg_nr,
+        moduleDef *module)
 {
     static char buf[50];
 
@@ -15826,4 +15833,39 @@ static char *get_argument_name(argDef *arg, int arg_nr, moduleDef *module)
     sprintf(buf, "a%d", arg_nr);
 
     return &buf[0];
+}
+
+
+/*
+ * Generate extra support for sequences because the class has an overload that
+ * has been annotated with __len__.
+ */
+static void generateSequenceSupport(classDef *klass, overDef *overload,
+        moduleDef *module, FILE *fp)
+{
+    argDef *arg0 = &overload->pysig.args[0];
+
+    /* We require a single int argument. */
+    if (!(overload->pysig.nrArgs == 1 && (pyAsInt(arg0->atype) || pyAsLong(arg0->atype) || pyAsULong(arg0->atype))))
+        return;
+
+    /*
+     * At the moment all we do is check that an index to __getitem__ is within
+     * range so that the class supports Python iteration.  In the future we
+     * should add support for negative indices, slices, __setitem__ and
+     * __delitem__ (which will require enhancements to the sip module ABI).
+     */
+    if (overload->common->slot == getitem_slot)
+    {
+        const char *index_arg = get_argument_name(arg0, 0, module);
+
+        prcode(fp,
+"            if (%s < 0 || %s >= sipCpp->%s())\n"
+"            {\n"
+"                PyErr_SetNone(PyExc_IndexError);\n"
+"                return SIP_NULLPTR;\n"
+"            }\n"
+"\n"
+            , index_arg, index_arg, klass->len_cpp_name);
+    }
 }

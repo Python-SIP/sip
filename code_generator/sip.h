@@ -1241,6 +1241,7 @@ typedef struct _classDef {
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
     typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */
+    const char *len_cpp_name;           /* The C++ name of any __len__ overload. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 

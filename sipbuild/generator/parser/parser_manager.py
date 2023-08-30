@@ -816,6 +816,10 @@ class ParserManager:
                 len_method_code = CodeBlock("Auto-generated",
                         text='            sipRes = (Py_ssize_t)sipCpp->{0}();\n'.format(cpp_name))
 
+                # Note that we can't currently use any %MethodCode because it
+                # does too much (ie. setting sipRes).
+                self.scope.len_cpp_name = cpp_name
+
             len_py_signature = Signature(result=Argument(ArgumentType.SSIZE))
 
             self._add_auto_slot(p, symbol, annotations, '__len__',
