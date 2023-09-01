@@ -7002,7 +7002,7 @@ static int generateVirtualCatcher(moduleDef *mod, classDef *cd, int virtNr,
         {
             argDef *ad = &od->cppsig->args[a];
 
-            prcode(fp, "%s%a", (a == 0 ? "" : ","), mod, ad, a);
+            prcode(fp, "%s%a", (a == 0 ? "" : ", "), mod, ad, a);
         }
  
         prcode(fp,");\n"
