@@ -7339,7 +7339,7 @@ static void generateCallDefaultCtor(ctorDef *ct, FILE *fp)
             break;
 
         if (a > 0)
-            prcode(fp, ",");
+            prcode(fp, ", ");
 
         /* Do what we can to provide type information to the compiler. */
         if (atype == class_type && ad->nrderefs > 0 && !isReference(ad))
