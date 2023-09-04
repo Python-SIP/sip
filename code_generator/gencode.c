@@ -7424,7 +7424,7 @@ static void generateProtectedDeclarations(classDef *cd,FILE *fp)
                 prcode(fp, " sipProtectVirt_%s(bool", od->cppname);
 
                 if (od->cppsig->nrArgs > 0)
-                    prcode(fp, ",");
+                    prcode(fp, ", ");
             }
             else
                 prcode(fp, " sipProtect_%s(", od->cppname);
@@ -7479,7 +7479,7 @@ static void generateProtectedDefinitions(moduleDef *mod, classDef *cd, FILE *fp)
                 prcode(fp, " sip%C::sipProtectVirt_%s(bool sipSelfWasArg", classFQCName(cd), mname);
 
                 if (od->cppsig->nrArgs > 0)
-                    prcode(fp, ",");
+                    prcode(fp, ", ");
             }
             else
                 prcode(fp, " sip%C::sipProtect_%s(", classFQCName(cd), mname);
@@ -7593,7 +7593,7 @@ static void generateProtectedCallArgs(moduleDef *mod, signatureDef *sd,
         argDef *ad = &sd->args[a];
 
         if (a > 0)
-            prcode(fp, ",");
+            prcode(fp, ", ");
 
         if (ad->atype == enum_type && isProtectedEnum(ad->u.ed))
             prcode(fp, "(%S)", ad->u.ed->fqcname);
