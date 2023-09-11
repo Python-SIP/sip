@@ -4456,7 +4456,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
             prcode(fp, "SIP_NULLPTR");
 
         prcode(fp, "}%s\n"
-            , ((i + 1) < nr) ? "," : "");
+            , ((i + 1) < nr) ? ", " : "");
     }
 
     prcode(fp,
@@ -8912,7 +8912,7 @@ static void generateOverloadDecl(FILE *fp, ifaceFileDef *scope, overDef *od)
         argDef *ad = &od->cppsig->args[a];
 
         if (a > 0)
-            prcode(fp, ",");
+            prcode(fp, ", ");
 
         generateBaseType(scope, ad, TRUE, STRIP_NONE, fp);
     }
@@ -8963,7 +8963,7 @@ static void generateCallArgs(moduleDef *mod, signatureDef *sd,
         argDef *ad, *py_ad;
 
         if (a > 0)
-            prcode(fp,",");
+            prcode(fp,", ");
 
         ad = &sd->args[a];
 
@@ -9500,7 +9500,7 @@ static void generateSimpleFunctionCall(fcallDef *fcd, int in_str, FILE *fp)
     for (i = 0; i < fcd->nrArgs; ++i)
     {
         if (i > 0)
-            prcode(fp,",");
+            prcode(fp,", ");
 
         generateExpression(fcd->args[i], in_str, fp);
     }
@@ -10285,7 +10285,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         argDef arg = sig->cppsig->args[a];
 
         if (a > 0)
-            prcode(fp,",");
+            prcode(fp,", ");
 
         normaliseSignalArg(&arg);
 
@@ -10316,7 +10316,7 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
             argDef arg = sig->cppsig->args[a];
 
             if (a > 0)
-                prcode(fp,",");
+                prcode(fp,", ");
 
             normaliseSignalArg(&arg);
 
@@ -12783,7 +12783,7 @@ static void generateCppFunctionCall(moduleDef *mod, ifaceFileDef *scope,
             prcode(fp, "sipCpp->sipProtectVirt_%s(sipSelfWasArg", mname);
 
             if (od->cppsig->nrArgs > 0)
-                prcode(fp, ",");
+                prcode(fp, ", ");
         }
         else
             prcode(fp, "sipCpp->sipProtect_%s(", mname);
@@ -15167,7 +15167,7 @@ static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
     for (a = 0; a < td->types.nrArgs; ++a)
     {   
         if (a > 0)
-            prcode(fp, ",");
+            prcode(fp, ", ");
         
         generateBaseType(scope, &td->types.args[a], TRUE, strip, fp);
     }       
