@@ -4023,11 +4023,11 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
 
     if (plugin)
         prcode(fp,
-"        &plugin_%L\n"
+"        &plugin_%L,\n"
             , mtd->iff);
     else
         prcode(fp,
-"        SIP_NULLPTR\n"
+"        SIP_NULLPTR,\n"
             );
 
     prcode(fp,
