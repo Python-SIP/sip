@@ -10211,9 +10211,9 @@ static int generatePyQtEmitters(classDef *cd, FILE *fp)
 "static int emit_%L_%s(void *sipCppV, PyObject *sipArgs)\n"
 "{\n"
 "    PyObject *sipParseErr = SIP_NULLPTR;\n"
-"    %V *sipCpp = reinterpret_cast<%V *>(sipCppV);\n"
+"    %U *sipCpp = reinterpret_cast<%U *>(sipCppV);\n"
                     , cd->iff, od->cppname
-                    , classFQCName(cd), classFQCName(cd));
+                    , cd, cd);
             }
 
             /*
@@ -10897,7 +10897,7 @@ static void generateCatchBlock(moduleDef *mod, exceptionDef *xd,
 "                /* Hope that there is a valid copy ctor. */\n"
 "                %S *sipExceptionCopy = new %S(sipExceptionRef);\n"
 "\n"
-"                sipRaiseTypeException(sipType_%C,sipExceptionCopy);\n"
+"                sipRaiseTypeException(sipType_%C, sipExceptionCopy);\n"
             , ename, ename
             , ename);
     else
