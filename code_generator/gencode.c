@@ -987,10 +987,10 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     {
         prcode(fp,
 "\n"
-"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *,sipTypeDef *);\n"
+"typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, sipTypeDef *);\n"
 "extern sip_qt_metaobject_func sip_%s_qt_metaobject;\n"
 "\n"
-"typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *,sipTypeDef *,QMetaObject::Call,int,void **);\n"
+"typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, sipTypeDef *, QMetaObject::Call, int, void **);\n"
 "extern sip_qt_metacall_func sip_%s_qt_metacall;\n"
 "\n"
 "typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);\n"
@@ -2126,7 +2126,7 @@ static const char *generateCpp(sipSpec *pt, moduleDef *mod,
 
     prcode(fp,
 "    /* Initialise the module now all its dependencies have been set up. */\n"
-"    if (sipInitModule(&sipModuleAPI_%s,sipModuleDict) < 0)\n"
+"    if (sipInitModule(&sipModuleAPI_%s, sipModuleDict) < 0)\n"
 "    {\n"
 "        Py_DECREF(sipModule);\n"
 "        return SIP_NULLPTR;\n"
@@ -2992,13 +2992,13 @@ static void generateTypesInline(sipSpec *pt, moduleDef *mod, FILE *fp)
             prcode(fp, "&%S", vd->fqcname);
 
         if (vd->type.atype == class_type)
-            prcode(fp, ",sipType_%C);\n"
+            prcode(fp, ", sipType_%C);\n"
                 , classFQCName(vd->type.u.cd));
         else if (vd->type.atype == enum_type)
-            prcode(fp, ",sipType_%C);\n"
+            prcode(fp, ", sipType_%C);\n"
                 , vd->type.u.ed->fqcname);
         else
-            prcode(fp, ",sipType_%T);\n"
+            prcode(fp, ", sipType_%T);\n"
                 , &vd->type);
     }
 }
@@ -11518,7 +11518,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp,",sipType_%C,%s);\n"
+                prcode(fp,", sipType_%C,%s);\n"
                     , iff->fqcname, ((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : resultOwner(od)));
 
                 /*
@@ -11539,7 +11539,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp, ",sipType_%C,%s);\n"
+                prcode(fp, ", sipType_%C,%s);\n"
                     , iff->fqcname, (need_xfer ? "SIP_NULLPTR" : resultOwner(od)));
 
                 /*
@@ -11592,12 +11592,12 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
         /* Pass the values for conversion. */
         if (res != NULL)
         {
-            prcode(fp, ",sipRes");
+            prcode(fp, ", sipRes");
 
             if (res->atype == mapped_type || res->atype == class_type)
                 prcode(fp, "Obj");
             else if (res->atype == enum_type && res->u.ed->fqcname != NULL)
-                prcode(fp, ",sipType_%C", res->u.ed->fqcname);
+                prcode(fp, ", sipType_%C", res->u.ed->fqcname);
         }
 
         for (a = 0; a < od->pysig.nrArgs; ++a)
@@ -11609,11 +11609,11 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                 prcode(fp, ",%a", mod, ad, a);
 
                 if (ad->atype == mapped_type)
-                    prcode(fp, ",sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
+                    prcode(fp, ", sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
                 else if (ad->atype == class_type)
-                    prcode(fp, ",sipType_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
+                    prcode(fp, ", sipType_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
                 else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
-                    prcode(fp,",sipType_%C", ad->u.ed->fqcname);
+                    prcode(fp,", sipType_%C", ad->u.ed->fqcname);
             }
         }
 
@@ -11657,7 +11657,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
             else
                 prcode(fp,"%s",vname);
 
-            prcode(fp, ",sipType_%C,", iff->fqcname);
+            prcode(fp, ", sipType_%C,", iff->fqcname);
 
             if (needNew || !isTransferredBack(ad))
                 prcode(fp, "SIP_NULLPTR);\n");
