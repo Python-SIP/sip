@@ -11518,7 +11518,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp,", sipType_%C,%s);\n"
+                prcode(fp,", sipType_%C, %s);\n"
                     , iff->fqcname, ((has_owner && isFactory(od)) ? "(PyObject *)sipOwner" : resultOwner(od)));
 
                 /*
@@ -11539,7 +11539,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
                 else
                     prcode(fp,"sipRes");
 
-                prcode(fp, ", sipType_%C,%s);\n"
+                prcode(fp, ", sipType_%C, %s);\n"
                     , iff->fqcname, (need_xfer ? "SIP_NULLPTR" : resultOwner(od)));
 
                 /*
@@ -11573,7 +11573,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     if (nrvals > 1)
     {
         prcode(fp,
-"            %s sipBuildResult(0,\"(",prefix);
+"            %s sipBuildResult(0, \"(",prefix);
 
         /* Build the format string. */
         if (res != NULL)
@@ -11606,12 +11606,12 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 
             if (isOutArg(ad))
             {
-                prcode(fp, ",%a", mod, ad, a);
+                prcode(fp, ", %a", mod, ad, a);
 
                 if (ad->atype == mapped_type)
-                    prcode(fp, ", sipType_%T,%s", ad, (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
+                    prcode(fp, ", sipType_%T, %s", ad, (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
                 else if (ad->atype == class_type)
-                    prcode(fp, ", sipType_%C,%s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
+                    prcode(fp, ", sipType_%C, %s", classFQCName(ad->u.cd), (isTransferredBack(ad) ? "Py_None" : "SIP_NULLPTR"));
                 else if (ad->atype == enum_type && ad->u.ed->fqcname != NULL)
                     prcode(fp,", sipType_%C", ad->u.ed->fqcname);
             }
@@ -11737,7 +11737,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case string_type:
         if (ad->nrderefs == 0)
             prcode(fp,
-"            %s PyBytes_FromStringAndSize(%s&%s,1);\n"
+"            %s PyBytes_FromStringAndSize(%s&%s, 1);\n"
                 ,prefix,(ad->atype != string_type) ? "(char *)" : "",vname);
         else
             prcode(fp,
@@ -11756,7 +11756,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
     case wstring_type:
         if (ad->nrderefs == 0)
             prcode(fp,
-"            %s PyUnicode_FromWideChar(&%s,1);\n"
+"            %s PyUnicode_FromWideChar(&%s, 1);\n"
                 , prefix, vname);
         else
             prcode(fp,
@@ -11766,7 +11766,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
 "                return Py_None;\n"
 "            }\n"
 "\n"
-"            %s PyUnicode_FromWideChar(%s,(Py_ssize_t)wcslen(%s));\n"
+"            %s PyUnicode_FromWideChar(%s, (Py_ssize_t)wcslen(%s));\n"
             , vname
             , prefix, vname, vname);
 
@@ -11867,7 +11867,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
             {
                 prcode(fp, "AndSize(");
                 generateVoidPtrCast(ad, fp);
-                prcode(fp, "%s,%a", vname, mod, &od->pysig.args[result_size], result_size);
+                prcode(fp, "%s, %a", vname, mod, &od->pysig.args[result_size], result_size);
             }
 
             prcode(fp, ");\n"
