@@ -12302,11 +12302,11 @@ static void generateFunctionCall(classDef *c_scope, mappedTypeDef *mt_scope,
         /* Note that any temporaries will leak if an exception is raised. */
         if (pyname != NULL)
             prcode(fp,
-"            if (sipDeprecated(%N,%N) < 0)\n"
+"            if (sipDeprecated(%N, %N) < 0)\n"
                 , pyname, od->common->pyname);
         else
             prcode(fp,
-"            if (sipDeprecated(SIP_NULLPTR,%N) < 0)\n"
+"            if (sipDeprecated(SIP_NULLPTR, %N) < 0)\n"
                 , od->common->pyname);
 
         prcode(fp,
