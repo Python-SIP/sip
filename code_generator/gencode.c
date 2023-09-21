@@ -2635,13 +2635,13 @@ static int generateOrdinaryFunction(sipSpec *pt, moduleDef *mod,
 
         if (!generating_c)
             prcode(fp,
-"extern \"C\" {static PyObject *func_%s(PyObject *,PyObject *%s);}\n"
+"extern \"C\" {static PyObject *func_%s(PyObject *, PyObject *%s);}\n"
                 , md->pyname->text, kw_fw_decl);
         else
             self_unused = TRUE;
 
         prcode(fp,
-"static PyObject *func_%s(PyObject *%s,PyObject *sipArgs%s)\n"
+"static PyObject *func_%s(PyObject *%s, PyObject *sipArgs%s)\n"
             , md->pyname->text, self, kw_decl);
     }
 
