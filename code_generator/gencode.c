@@ -956,7 +956,7 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
 "extern const sipAPIDef *sipAPI_%s;\n"
 "extern sipExportedModuleDef sipModuleAPI_%s;\n"
         , mname
-        , mname, mname);
+        , mname);
 
     if (mod->nr_needed_types > 0)
         prcode(fp,
@@ -9248,9 +9248,6 @@ static void generateNamedBaseType(ifaceFileDef *scope, argDef *ad,
             break;
 
         case class_type:
-            if (generating_c)
-                fprintf(fp, "%s ", (isUnion(ad->u.cd) ? "union" : "struct"));
-
             prScopedClassName(fp, scope, ad->u.cd, strip);
             break;
 
@@ -14031,9 +14028,6 @@ void prcode(FILE *fp, const char *fmt, ...)
                 {
                     classDef *cd = va_arg(ap, classDef *);
 
-                    if (generating_c)
-                        fprintf(fp, "%s ", (isUnion(cd) ? "union" : "struct"));
-
                     prScopedClassName(fp, cd->iff, cd, STRIP_NONE);
                     break;
                 }
@@ -14270,6 +14264,9 @@ static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 static void prScopedClassName(FILE *fp, ifaceFileDef *scope, classDef *cd,
         int strip)
 {
+    if (generating_c)
+        fprintf(fp, "%s ", (isUnion(cd) ? "union" : "struct"));
+
     if (useTemplateName(cd))
     {
         prTemplateType(fp, scope, cd->td, strip);
