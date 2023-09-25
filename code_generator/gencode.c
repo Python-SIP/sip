@@ -14719,10 +14719,7 @@ static void generateMemberAutoDocstring(sipSpec *pt, overDef *od,
         int is_method, FILE *fp)
 {
     if (docstrings)
-    {
         dsOverload(pt, od, is_method, fp);
-        ++currentLineNr;
-    }
 }
 
 
@@ -14866,10 +14863,7 @@ static void generateCtorAutoDocstring(sipSpec *pt, classDef *cd, ctorDef *ct,
         FILE *fp)
 {
     if (docstrings)
-    {
         pyiCtor(pt, pt->module, cd, ct, fp);
-        ++currentLineNr;
-    }
 }
 
 
