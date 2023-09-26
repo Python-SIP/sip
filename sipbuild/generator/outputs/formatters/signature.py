@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -39,9 +39,7 @@ class SignatureFormatter(BaseFormatter):
                 strip=strip, make_public=make_public, as_xml=as_xml)
                 for arg in self.object.args]
 
-        # Note the lack of separating space (although this may be for XML only
-        # to be consistent with previous implementations).
-        return ','.join(args)
+        return ', '.join(args)
 
     @property
     def py_arguments(self):
