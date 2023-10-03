@@ -14248,8 +14248,7 @@ static void prScopedName(FILE *fp, scopedNameDef *snd, char *sep)
 {
     while (snd != NULL)
     {
-        /* Precede an explicit global scope with a space to avoid '<::'. */
-        fprintf(fp, "%s", (snd->name[0] != '\0' ? snd->name : " "));
+        fprintf(fp, "%s", snd->name);
 
         if ((snd = snd->next) != NULL)
             fprintf(fp, "%s", sep);
