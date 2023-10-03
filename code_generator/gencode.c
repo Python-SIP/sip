@@ -65,7 +65,6 @@ static int exceptions;                  /* Set if exceptions are enabled. */
 static int tracing;                     /* Set if tracing is enabled. */
 static int generating_c;                /* Set if generating C. */
 static int release_gil;                 /* Set if always releasing the GIL. */
-static const char *prcode_last = NULL;  /* The last prcode format string. */
 static int prcode_xml = FALSE;          /* Set if prcode is XML aware. */
 static int docstrings;                  /* Set if generating docstrings. */
 
@@ -13830,8 +13829,6 @@ void prcode(FILE *fp, const char *fmt, ...)
     char ch;
     va_list ap;
 
-    prcode_last = fmt;
-
     va_start(ap,fmt);
 
     while ((ch = *fmt++) != '\0')
@@ -15161,9 +15158,6 @@ static void prTemplateType(FILE *fp, ifaceFileDef *scope, templateDef *td,
         
         generateBaseType(scope, &td->types.args[a], TRUE, strip, fp);
     }       
-    
-    if (prcode_last == tail)
-        prcode(fp, " ");
     
     prcode(fp, (prcode_xml ? "&gt;" : tail));
 }
