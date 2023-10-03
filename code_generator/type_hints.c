@@ -275,7 +275,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     case pyobject_type:
     case ellipsis_type:
-        type_name = "object";
+        type_name = "Any";
         break;
 
     case pytuple_type:
