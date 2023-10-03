@@ -53,7 +53,7 @@ class SignatureFormatter(BaseFormatter):
                         ArgumentFormatter(self.spec,
                                 arg).as_py_type(default_value=True))
 
-        return ', '.join(args)
+        return args
 
     @property
     def py_results(self):
@@ -72,4 +72,4 @@ class SignatureFormatter(BaseFormatter):
             if arg.is_out:
                 results.append(ArgumentFormatter(self.spec, arg).as_py_type())
 
-        return ', '.join(results)
+        return results

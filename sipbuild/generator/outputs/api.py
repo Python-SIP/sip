@@ -74,15 +74,13 @@ def _ctor(af, spec, module, ctor, scope):
     py_arguments = SignatureFormatter(spec, ctor.py_signature).py_arguments
 
     # Do the callable type form.
-    af.write(f'{py_class}?{IconNumber.CLASS}({py_arguments})\n')
+    py_args_s = ', '.join(py_arguments)
+    af.write(f'{py_class}?{IconNumber.CLASS}({py_args_s})\n')
 
     # Do the call __init__ form.
-    if py_arguments:
-        py_arguments = 'self, ' + py_arguments
-    else:
-        py_arguments = 'self'
-
-    af.write(f'{py_class}.__init__?{IconNumber.CLASS}({py_arguments})\n')
+    py_arguments.insert(0, 'self')
+    py_args_s = ', '.join(py_arguments)
+    af.write(f'{py_class}.__init__?{IconNumber.CLASS}({py_args_s})\n')
 
 
 def _enums(af, spec, module, scope=None):
@@ -116,16 +114,17 @@ def _overload(af, spec, module, overload, scope=None):
 
     s = module.py_name + '.' + OverloadFormatter(spec, overload, scope).fq_py_name
 
-    s += f'?{IconNumber.METHOD}({sig_formatter.py_arguments})'
+    py_args_s = ', '.join(sig_formatter.py_arguments)
+    s += f'?{IconNumber.METHOD}({py_args_s})'
 
     results = sig_formatter.py_results
-    if results:
+    if len(results) != 0:
         s += ' -> '
 
-        if ', ' in results:
-            s += '(' + results + ')'
+        if len(results) > 1:
+            s += '(' + ', '.join(results) + ')'
         else:
-            s += results
+            s += ', '.join(results)
 
     s += '\n'
 
