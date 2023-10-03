@@ -389,7 +389,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         fprintf(fp, " -> ");
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "Tuple[");
+            fprintf(fp, "(");
 
         if (is_res)
             need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
@@ -408,7 +408,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "]");
+            fprintf(fp, ")");
     }
 }
 
