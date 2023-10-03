@@ -3950,7 +3950,7 @@ static int generateMappedTypeCpp(mappedTypeDef *mtd, sipSpec *pt, FILE *fp)
         prcode(fp,
 "static PyObject *convertFrom_%L(void *sipCppV, PyObject *%s)\n"
 "{\n"
-"   ", mtd->iff, (need_xfer ? "sipTransferObj" : ""));
+"    ", mtd->iff, (need_xfer ? "sipTransferObj" : ""));
 
         generateMappedTypeFromVoid(mtd, "sipCpp", "sipCppV", fp);
 
@@ -4197,7 +4197,7 @@ static int generateClassCpp(classDef *cd, sipSpec *pt, int py_debug, FILE *fp)
             prcode(fp,
 "static PyObject *convertFrom_%L(void *sipCppV, PyObject *%s)\n"
 "{\n"
-"   ", cd->iff, (need_xfer ? "sipTransferObj" : ""));
+"    ", cd->iff, (need_xfer ? "sipTransferObj" : ""));
 
             generateClassFromVoid(cd, "sipCpp", "sipCppV", fp);
 
@@ -4455,7 +4455,7 @@ static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
             prcode(fp, "SIP_NULLPTR");
 
         prcode(fp, "}%s\n"
-            , ((i + 1) < nr) ? ", " : "");
+            , ((i + 1) < nr) ? "," : "");
     }
 
     prcode(fp,
@@ -9804,11 +9804,11 @@ static int generateTypeDefinition(sipSpec *pt, classDef *cd, int py_debug,
 
     if (plugin)
         prcode(fp,
-"        &plugin_%L\n"
+"        &plugin_%L,\n"
             , cd->iff);
     else
         prcode(fp,
-"        SIP_NULLPTR\n"
+"        SIP_NULLPTR,\n"
             );
 
     prcode(fp,
