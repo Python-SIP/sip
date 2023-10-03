@@ -118,7 +118,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
     {
-        fprintf(fp, "typing.Optional[");
+        fprintf(fp, "Optional[");
         use_optional = TRUE;
     }
 
