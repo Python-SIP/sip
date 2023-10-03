@@ -649,6 +649,8 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
     if arg.array is ArrayArgument.ARRAY_SIZE:
         return None
 
+    out = (arg_nr < 0)
+
     s = ''
 
     if arg_nr >= 0:
@@ -660,14 +662,14 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
 
     # Assume pointers can be None unless specified otherwise.
     used_optional = False
-    if arg.allow_none or (not arg.disallow_none and arg.derefs):
+    if _get_hint(arg, out) is None and arg.allow_none or (not arg.disallow_none and arg.derefs):
         s += 'typing.Optional['
         used_optional = True
 
     if arg.array is ArrayArgument.ARRAY:
         s += _sip_module_name(spec) + 'array['
 
-    s += _type(spec, module, arg, defined, out=(arg_nr < 0))
+    s += _type(spec, module, arg, defined, out=out)
 
     if arg.array is ArrayArgument.ARRAY:
         s += ']'
@@ -680,6 +682,22 @@ def _argument(spec, module, arg, defined, arg_nr=-1):
         s += ' = ...'
 
     return s
+
+
+def _get_hint(arg, out):
+    """ Return a raw type hint. """
+
+    # Use any explicit type hint unless the argument is constrained.
+    if arg.type_hints is None:
+        hint = None
+    elif out:
+        hint = arg.type_hints.hint_out
+    elif arg.is_constrained:
+        hint = None
+    else:
+        hint = arg.type_hints.hint_in
+
+    return hint
 
 
 def _type(spec, module, arg, defined, out=False):

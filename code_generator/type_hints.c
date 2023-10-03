@@ -95,6 +95,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         FILE *fp)
 {
     int optional, use_optional;
+    typeHintDef *thd;
 
     if (isArraySize(ad))
         return need_comma;
@@ -114,9 +115,10 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     }
 
     /* Assume pointers can be None unless specified otherwise. */
+    thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
     use_optional = FALSE;
 
-    if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
+    if (thd == NULL && isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
     {
         fprintf(fp, "Optional[");
         use_optional = TRUE;

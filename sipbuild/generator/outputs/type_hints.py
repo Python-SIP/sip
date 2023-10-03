@@ -209,6 +209,10 @@ class TypeHintManager:
             # Find the end of any name.
             name_end = self._strip_trailing(text, name_start, i)
 
+            # For Callable we need to reset the value of 'out'.
+            is_callable = text[name_start:name_end] == 'Callable'
+            saved_out = out
+
             while True:
                 # Skip the opening bracket or comma.
                 i += 1
@@ -224,6 +228,11 @@ class TypeHintManager:
                         depth -= 1
 
                     elif text[part_i] in ',]' and depth == 0:
+                        # For a callable the first child is a list of input
+                        # arguments and the second is a list of output values.
+                        if is_callable:
+                            out = len(children) != 0
+
                         # Recursively parse this part.
                         new_child = self._parse_node(out, text, i, part_i)
                         if new_child is not None:
@@ -233,6 +242,8 @@ class TypeHintManager:
                         break
                 else:
                     break
+
+            out = saved_out
 
         # See if we have a name.
         if name_start != name_end:
