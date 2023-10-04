@@ -562,7 +562,7 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
             /* For Callable we need to reset the value of 'out'. */
             saved_ch = *name_end;
             *name_end = '\0';
-            is_callable = strcmp(name_start, "Callable");
+            is_callable = strcmp(name_start, "Callable") == 0;
             *name_end = saved_ch;
             saved_out = out;
 
