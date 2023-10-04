@@ -100,7 +100,8 @@ static objectCache *cache_qual = NULL;
 static objectCache *cache_virtualerrorhandler = NULL;
 static objectCache *cache_wrappedenum = NULL;
 static objectCache *cache_wrappedtypedef = NULL;
-static strCache *cache_typehint = NULL;
+static strCache *cache_typehint_in = NULL;
+static strCache *cache_typehint_out = NULL;
 
 
 /*
@@ -121,7 +122,8 @@ static void clear_caches(void)
     clear_object_cache(&cache_virtualerrorhandler);
     clear_object_cache(&cache_wrappedenum);
     clear_object_cache(&cache_wrappedtypedef);
-    clear_str_cache(&cache_typehint);
+    clear_str_cache(&cache_typehint_in);
+    clear_str_cache(&cache_typehint_out);
 }
 
 
@@ -336,7 +338,7 @@ static throwArgs *throw_arguments(sipSpec *pt, PyObject *obj,
 static throwArgs *throw_arguments_attr(sipSpec *pt, PyObject *obj,
         const char *name, const char *encoding);
 static typeHintDef *typehint_attr(PyObject *obj, const char *name,
-        const char *encoding);
+        const char *encoding, strCache **cache);
 static void typehints_attr(PyObject *obj, const char *name,
         const char *encoding, typeHintDef **th_in, typeHintDef **th_out,
         const char **th_value);
@@ -2381,7 +2383,7 @@ static throwArgs *throw_arguments_attr(sipSpec *pt, PyObject *obj,
  * Convert an optional str attribute as a typeHintDef.
  */
 static typeHintDef *typehint_attr(PyObject *obj, const char *name,
-        const char *encoding)
+        const char *encoding, strCache **cache)
 {
     PyObject *attr = PyObject_GetAttrString(obj, name);
     typeHintDef *value;
@@ -2391,11 +2393,11 @@ static typeHintDef *typehint_attr(PyObject *obj, const char *name,
 
     if ((raw_hint = str(attr, encoding)) != NULL)
     {
-        if ((value = search_str_cache(cache_typehint, raw_hint)) == NULL)
+        if ((value = search_str_cache(*cache, raw_hint)) == NULL)
         {
             value = sipMalloc(sizeof (typeHintDef));
 
-            cache_str(&cache_typehint, raw_hint, value);
+            cache_str(cache, raw_hint, value);
 
             value->status = needs_parsing;
             value->raw_hint = raw_hint;
@@ -2425,8 +2427,9 @@ static void typehints_attr(PyObject *obj, const char *name,
 
     if (attr != Py_None)
     {
-        *th_in = typehint_attr(attr, "hint_in", encoding);
-        *th_out = typehint_attr(attr, "hint_out", encoding);
+        *th_in = typehint_attr(attr, "hint_in", encoding, &cache_typehint_in);
+        *th_out = typehint_attr(attr, "hint_out", encoding,
+                &cache_typehint_out);
         *th_value = str_attr(attr, "default_value", encoding);
     }
 
