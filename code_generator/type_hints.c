@@ -114,15 +114,16 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
-    /* Assume pointers can be None unless specified otherwise. */
     thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
-    use_optional = FALSE;
 
-    if (thd == NULL && isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
-    {
-        fprintf(fp, "Optional[");
+    /* Assume pointers can be None unless specified otherwise. */
+    if (thd == NULL && isAllowNone(ad))
         use_optional = TRUE;
-    }
+    else
+        use_optional = (!isDisallowNone(ad) && ad->nrderefs > 0);
+
+    if (use_optional)
+        fprintf(fp, "Optional[");
 
     if (isArray(ad))
         fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
