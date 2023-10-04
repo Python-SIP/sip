@@ -161,10 +161,23 @@ void prDefaultValue(argDef *ad, FILE *fp)
     /* Translate some special cases. */
     if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
     {
-        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+        if (ad->defval->u.vnum == 0)
         {
-            fprintf(fp, "None");
-            return;
+            if (ad->nrderefs > 0)
+            {
+                fprintf(fp, "None");
+                return;
+            }
+
+            if (ad->atype == pyobject_type || ad->atype == pytuple_type ||
+                ad->atype == pylist_type || ad->atype == pydict_type ||
+                ad->atype == pycallable_type || ad->atype == pyslice_type ||
+                ad->atype == pytype_type || ad->atype == capsule_type ||
+                ad->atype == pybuffer_type || ad->atype == pyenum_type)
+            {
+                fprintf(fp, "None");
+                return;
+            }
         }
 
         if (ad->atype == bool_type || ad->atype == cbool_type)
@@ -954,8 +967,6 @@ static typeHintNodeDef *copyTypeHintNode(typeHintNodeDef *node)
 static typeHintNodeDef *copyTypeHintRootNode(sipSpec *pt, typeHintDef *thd,
         int out)
 {
-    typeHintNodeDef *node;
-
     parseTypeHint(pt, thd, out);
 
     if (thd->root == NULL)
