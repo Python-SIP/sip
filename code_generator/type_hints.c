@@ -547,6 +547,8 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
     for (cp = start; cp < end; ++cp)
         if (*cp == '[')
         {
+            char saved_ch;
+            int is_callable, saved_out;
             typeHintNodeDef **tail = &children;
 
             /* The last character must be a closing bracket. */
@@ -556,6 +558,13 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
             /* Find the end of any name. */
             name_end = cp;
             strip_trailing(name_start, &name_end);
+
+            /* For Callable we need to reset the value of 'out'. */
+            saved_ch = *name_end;
+            *name_end = '\0';
+            is_callable = strcmp(name_start, "Callable");
+            *name_end = saved_ch;
+            saved_out = out;
 
             for (;;)
             {
@@ -581,6 +590,13 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
                     {
                         typeHintNodeDef *child;
 
+                        /*
+                         * For a callable the first child is a list of input
+                         * arguments and the second is a list of output values.
+                         */
+                        if (is_callable && out && children == NULL)
+                            out = FALSE;
+
                         /* Recursively parse this part. */
                         if (!parseTypeHintNode(pt, out, FALSE, cp, pp, &child))
                             return FALSE;
@@ -604,6 +620,7 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
                     break;
             }
 
+            out = saved_out;
             have_brackets = TRUE;
 
             break;

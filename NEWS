@@ -1,6 +1,7 @@
-v6.7.12 3rd October 2023
+v6.7.12 4th October 2023
   - Classes will automatically support being iterated over if they implement
     '__getitem__()' or 'operator[]' and have a method annotated with '__len__'.
+  - Bug fixes.
 
 v6.7.11 31st July 2023
   - Bug fixes.
