@@ -21,7 +21,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from copy import copy
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from typing import List, Optional, Union
@@ -30,7 +29,7 @@ from weakref import WeakKeyDictionary
 from ...exceptions import UserException
 
 from ..scoped_name import ScopedName
-from ..specification import WrappedClass, WrappedEnum
+from ..specification import MappedType, WrappedClass, WrappedEnum
 
 
 # The types defined in the typing module.
@@ -47,7 +46,7 @@ class NodeType(Enum):
     """ The node types. """
 
     TYPING = auto()
-    CLASS = auto()
+    NESTED = auto()
     ENUM = auto()
     OTHER = auto()
 
@@ -56,7 +55,6 @@ class ParseState(Enum):
     """ The different parse states of a type hint. """
 
     REQUIRED = auto()
-    PARSING = auto()
     PARSED = auto()
 
 
@@ -91,10 +89,7 @@ class TypeHintNode:
     children: Optional[List['TypeHintNode']] = None
 
     # The type-dependent definition.
-    definition: Optional[Union[str, WrappedClass, WrappedEnum]] = None
-
-    # The next sibling node.
-    next: Optional['TypeHintNode'] = None
+    definition: Optional[Union[str, MappedType, WrappedClass, WrappedEnum]] = None
 
 
 class TypeHintManager:
@@ -120,7 +115,7 @@ class TypeHintManager:
 
         return manager
 
-    def as_docstring(self, type_hint, module, out, defined):
+    def as_docstring(self, type_hint, out, context):
         """ Return the type hint as a docstring. """
 
         managed_type_hint = self._get_managed_type_hint(type_hint, out)
@@ -128,11 +123,11 @@ class TypeHintManager:
         # See if it needs rendering.
         if managed_type_hint.as_docstring is None:
             managed_type_hint.as_docstring = self._render(managed_type_hint,
-                    out, module=module, defined=defined)
+                    out, context=context)
 
         return managed_type_hint.as_docstring
 
-    def as_rest_ref(self, type_hint, out, as_xml=False):
+    def as_rest_ref(self, type_hint, out, context, as_xml=False):
         """ Return the type hint with appropriate reST references. """
 
         managed_type_hint = self._get_managed_type_hint(type_hint, out)
@@ -140,11 +135,11 @@ class TypeHintManager:
         # See if it needs rendering.
         if managed_type_hint.as_rest_ref is None:
             managed_type_hint.as_rest_ref = self._render(managed_type_hint,
-                    out, rest_ref=True, as_xml=as_xml)
+                    out, context=context, rest_ref=True, as_xml=as_xml)
 
         return managed_type_hint.as_rest_ref
 
-    def as_type_hint(self, type_hint, module, out, defined):
+    def as_type_hint(self, type_hint, out, context, defined):
         """ Return the type hint as a type hint. """
 
         managed_type_hint = self._get_managed_type_hint(type_hint, out)
@@ -152,7 +147,7 @@ class TypeHintManager:
         # Note that we always render type hints as they can be different before
         # and after a class or enum is defined in the .pyi file.
         return self._render(managed_type_hint, out, pep484=True,
-                module=module, defined=defined)
+                context=context, defined=defined)
 
     def _get_managed_type_hint(self, type_hint, out):
         """ Return the unique (for the specification) managed type hint for a
@@ -172,7 +167,6 @@ class TypeHintManager:
         """ Ensure a type hint has been parsed. """
 
         if managed_type_hint.parse_state is ParseState.REQUIRED:
-            managed_type_hint.parse_state = ParseState.PARSING
             managed_type_hint.root = self._parse_node(out,
                     managed_type_hint.type_hint)
             managed_type_hint.parse_state = ParseState.PARSED
@@ -209,10 +203,6 @@ class TypeHintManager:
             # Find the end of any name.
             name_end = self._strip_trailing(text, name_start, i)
 
-            # For Callable we need to reset the value of 'out'.
-            is_callable = text[name_start:name_end] == 'Callable'
-            saved_out = out
-
             while True:
                 # Skip the opening bracket or comma.
                 i += 1
@@ -228,22 +218,13 @@ class TypeHintManager:
                         depth -= 1
 
                     elif text[part_i] in ',]' and depth == 0:
-                        # For a callable the first child is a list of input
-                        # arguments and the second is a list of output values.
-                        if is_callable:
-                            out = len(children) != 0
-
                         # Recursively parse this part.
-                        new_child = self._parse_node(out, text, i, part_i)
-                        if new_child is not None:
-                            self._append_child(children, new_child)
+                        children.append(self._parse_node(out, text, i, part_i))
 
                         i = part_i
                         break
                 else:
                     break
-
-            out = saved_out
 
         # See if we have a name.
         if name_start != name_end:
@@ -264,9 +245,9 @@ class TypeHintManager:
                     for child in children:
                         if child.type is NodeType.TYPING and child.definition == 'Union':
                             for grandchild in child.children:
-                                self._append_child(flattened, grandchild)
+                                flattened.append(grandchild)
                         else:
-                            self._append_child(flattened, child)
+                            flattened.append(child)
 
                     children = flattened
 
@@ -286,23 +267,33 @@ class TypeHintManager:
 
         return node
 
-    def _render(self, managed_type_hint, out, pep484=False, rest_ref=False,
-            module=None, defined=None, as_xml=False):
+    def _render(self, managed_type_hint, out, context=None, defined=None,
+            pep484=False, rest_ref=False, as_xml=False, context_stack=None):
         """ Return a rendered type hint. """
 
         self._parse(managed_type_hint, out)
 
+        if context_stack is None:
+            context_stack = []
+
         if managed_type_hint.root is not None:
+            # Add any outer context.
+            if context is not None:
+                context_stack.append(context)
+
             s = self._render_node(managed_type_hint.root, out, pep484,
-                    rest_ref, module, defined, as_xml)
+                    rest_ref, defined, as_xml, context_stack)
+
+            if context is not None:
+                context_stack.pop()
         else:
             s = self._maybe_any_object(managed_type_hint.type_hint, pep484,
                     as_xml)
 
         return s
 
-    def _render_node(self, node, out, pep484, rest_ref, module, defined,
-            as_xml):
+    def _render_node(self, node, out, pep484, rest_ref, defined, as_xml,
+            context_stack):
         """ Render a single node. """
 
         if node.type is NodeType.TYPING:
@@ -314,63 +305,80 @@ class TypeHintManager:
                 s = node.definition
 
             if node.children is not None:
-                children = [self._render_node(c, out, pep484, rest_ref, module,
-                        defined, as_xml) for c in node.children]
+                children = []
+                for child in node.children:
+                    # For Callable the first argument is in and the rest (ie.
+                    # the second) is out.
+                    if node.definition == 'Callable':
+                        fixed_out = child is not node.children[0]
+                    else:
+                        fixed_out = out
+
+                    children.append(
+                            self._render_node(child, fixed_out, pep484,
+                                    rest_ref, defined, as_xml, context_stack))
 
                 s += '[' + ', '.join(children) + ']'
 
-        elif node.type is NodeType.CLASS:
+            return s
+
+        if node.type is NodeType.NESTED:
+            # Get any managed type hint.
+            type_hints = node.definition.type_hints
+            if type_hints is not None:
+                type_hint = type_hints.hint_out if out else type_hints.hint_in
+                if type_hint is not None:
+                    managed_type_hint = self._get_managed_type_hint(type_hint,
+                            out)
+
+                    if isinstance(node.definition, MappedType):
+                        return self._render(managed_type_hint, out,
+                                pep484=pep484, rest_ref=rest_ref,
+                                defined=defined, as_xml=as_xml,
+                                context_stack=context_stack)
+
+                    # If the type hint isn't in the current context then render
+                    # it.
+                    if node.definition not in context_stack:
+                        context_stack.append(node.definition)
+                        s = self._render(managed_type_hint, out,
+                                pep484=pep484, rest_ref=rest_ref,
+                                defined=defined, as_xml=as_xml,
+                                context_stack=context_stack)
+                        context_stack.pop()
+
+                        return s
+
+            # This will only happen if the mapped type doesn't have type hints.
+            if isinstance(node.definition, MappedType):
+                return node.definition.cpp_name.name
+
             from .formatters import ClassFormatter
 
             formatter = ClassFormatter(self._spec, node.definition)
 
             if rest_ref:
-                s = formatter.as_rest_ref()
-            elif pep484:
-                s = formatter.as_type_hint(module, defined)
-            else:
-                s = formatter.fq_py_name
+                return formatter.as_rest_ref()
 
-        elif node.type is NodeType.ENUM:
+            if pep484:
+                return formatter.as_type_hint(self._spec.module, defined)
+
+            return formatter.fq_py_name
+
+        if node.type is NodeType.ENUM:
             from .formatters import EnumFormatter
 
             formatter = EnumFormatter(self._spec, node.definition)
 
             if rest_ref:
-                s = formatter.as_rest_ref()
-            elif pep484:
-                s = formatter.as_type_hint(module, defined)
-            else:
-                s = formatter.fq_py_name
+                return formatter.as_rest_ref()
 
-        else:
-            s = self._maybe_any_object(node.definition, pep484, as_xml)
+            if pep484:
+                return formatter.as_type_hint(self._spec.module, defined)
 
-        return s
+            return formatter.fq_py_name
 
-    @staticmethod
-    def _append_child(children, new_child):
-        """ Append a child to an existing list of children. """
-
-        if len(children) > 1:
-            children[-1].next = new_child
-
-        children.append(new_child)
-
-    def _copy_type_hint(self, type_hint, out):
-        """ Copy the root node of a type hint. """
-
-        managed_type_hint = self._get_managed_type_hint(type_hint, out)
-
-        self._parse(managed_type_hint, out)
-
-        if managed_type_hint.root is None:
-            return None
-
-        node = copy(managed_type_hint.root)
-        node.next = None
-
-        return node
+        return self._maybe_any_object(node.definition, pep484, as_xml)
 
     def _lookup_enum(self, name, scopes):
         """ Lookup an enum using its C/C++ name. """
@@ -435,14 +443,8 @@ class TypeHintManager:
                     # If we have used the whole name then the lookup has
                     # succeeded.
                     if is_last_part:
-                        if mapped_type.type_hints is not None:
-                            type_hint = mapped_type.type_hints.hint_out if out else mapped_type.type_hints.hint_in
-
-                            if type_hint is not None:
-                                if self._get_managed_type_hint(type_hint, out).parse_state is not ParseState.PARSING:
-                                    return self._copy_type_hint(type_hint, out)
-
-                        return None
+                        return TypeHintNode(NodeType.NESTED,
+                                definition=mapped_type)
 
                     # Otherwise this is the scope for the next part.
                     scope_mapped_type = mapped_type
@@ -455,14 +457,7 @@ class TypeHintManager:
 
                 # If we have used the whole name then the lookup has succeeded.
                 if is_last_part:
-                    if klass.type_hints is not None:
-                        type_hint = klass.type_hints.hint_out if out else klass.type_hints.hint_in
-
-                        if type_hint is not None:
-                            if self._get_managed_type_hint(type_hint, out).parse_state is not ParseState.PARSING:
-                                return self._copy_type_hint(type_hint, out)
-
-                    return TypeHintNode(NodeType.CLASS, definition=klass)
+                    return TypeHintNode(NodeType.NESTED, definition=klass)
 
                 # Otherwise this is the scope for the next part.
                 scope_klass = klass
@@ -484,7 +479,7 @@ class TypeHintManager:
 
         # Don't worry if the voidptr name is qualified in any way.
         if hint.endswith('voidptr'):
-            return format_voidptr(self._spec, pep484, as_xml)
+            return format_voidptr(self._spec, as_xml)
 
         return hint
 
@@ -515,17 +510,14 @@ class TypeHintManager:
         return end
 
 
-def format_voidptr(spec, pep484, as_xml):
+def format_voidptr(spec, as_xml):
     """ Return the representation of a voidptr in the context of either a type
     hint, XML or a docstring.
     """
 
-    sip_module_name = spec.sip_module + '.' if spec.sip_module else ''
-
-    if pep484:
-        return sip_module_name + 'voidptr'
+    voidptr = spec.sip_module + ('.' if spec.sip_module else '') + 'voidptr'
 
     if as_xml:
-        return f':py:class:`~{sip_module_name}voidptr`'
+        return f':py:class:`~{voidptr}`'
 
-    return 'voidptr'
+    return voidptr

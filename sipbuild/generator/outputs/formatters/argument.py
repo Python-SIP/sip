@@ -288,7 +288,8 @@ class ArgumentFormatter(BaseFormatter):
             else:
                 s += self.as_py_type(as_xml=as_xml)
         else:
-            s += TypeHintManager(self.spec).as_rest_ref(hint, out,
+            context = arg.definition if arg.type is ArgumentType.CLASS else None
+            s += TypeHintManager(self.spec).as_rest_ref(hint, out, context,
                     as_xml=as_xml)
 
         return s
@@ -322,7 +323,8 @@ class ArgumentFormatter(BaseFormatter):
             else:
                 s += self.as_py_type(pep484=True)
         else:
-            s += TypeHintManager(self.spec).as_type_hint(hint, module, out,
+            context = arg.definition if arg.type is ArgumentType.CLASS else None
+            s += TypeHintManager(self.spec).as_type_hint(hint, out, context,
                     defined)
 
         return s
@@ -377,7 +379,7 @@ class ArgumentFormatter(BaseFormatter):
             name = definition.base_name
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            name = format_voidptr(self.spec, pep484, as_xml)
+            name = format_voidptr(self.spec, as_xml)
 
         elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.USTRING):
             name = 'bytes'

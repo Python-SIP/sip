@@ -257,7 +257,7 @@ def _class(pf, spec, module, klass, defined, indent=0):
         indent += 1
 
         if klass.type_hint_code is not None:
-            _type_hint_code(pf, [klass.type_hint_code], indent)
+            _type_hint_code(pf, [klass.type_hint_code], indent=indent)
 
     _enums(pf, spec, module, defined=defined, scope=klass, indent=indent)
 
