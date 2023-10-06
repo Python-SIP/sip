@@ -723,7 +723,6 @@ typedef enum {
 /* Type hint parse status. */
 typedef enum {
     needs_parsing,
-    being_parsed,
     parsed
 } typeHintParseStatus;
 
@@ -732,6 +731,7 @@ typedef enum {
 typedef enum {
     typing_node,
     class_node,
+    mapped_type_node,
     enum_node,
     other_node
 } typeHintNodeType;
@@ -902,6 +902,7 @@ typedef struct _typeHintNodeDef {
     union {
         const char *name;               /* For typing objects and others. */
         struct _classDef *cd;           /* For class nodes. */
+        struct _mappedTypeDef *mtd;     /* For maapped type nodes. */
         struct _enumDef *ed;            /* For enum nodes. */
     } u;
     struct _typeHintNodeDef *children;  /* The list of children. */
