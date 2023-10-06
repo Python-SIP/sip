@@ -211,7 +211,7 @@ class Bindings(Configurable):
             pyi_path = os.path.join(buildable.build_dir,
                     buildable.target + '.pyi')
 
-            output_pyi(spec, pyi_path)
+            output_pyi(spec, project, pyi_path)
 
             installable = Installable('pyi',
                     target_subdir=buildable.get_install_subdir())
