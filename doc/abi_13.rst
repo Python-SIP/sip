@@ -1463,6 +1463,10 @@ module, that can be used by handwritten code in specification files.
     This provides access to a Python type object's ``tp_dict`` field and is
     typically used when the limited Python API is enabled.
 
+   .. note::
+        With Python v3.12 and later this returns a new reference (rather than
+        borrowed) and it may be ``NULL``.
+
     :param py_type:
         the type object.
     :return:
