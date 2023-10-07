@@ -1057,6 +1057,10 @@ static int generateCompositeCpp(sipSpec *pt, const char *codeDir,
     if (fp == NULL)
         return -1;
 
+    prcode(fp,
+"\n"
+        );
+
     declareLimitedAPI(py_debug, NULL, fp);
 
     generate_include_sip_h(pt->module, fp);
@@ -2421,7 +2425,6 @@ static void generateModDefinition(moduleDef *mod, const char *methods,
         FILE *fp)
 {
     prcode(fp,
-"\n"
 "    static PyModuleDef sip_module_def = {\n"
 "        PyModuleDef_HEAD_INIT,\n"
 "        \"%s\",\n"
@@ -5859,6 +5862,7 @@ static int generateSlot(moduleDef *mod, classDef *cd, enumDef *ed,
                     /* We can't extend enum slots. */
                     if (cd == NULL)
                         prcode(fp,
+"\n"
 "    PyErr_Clear();\n"
 "\n"
 "    Py_INCREF(Py_NotImplemented);\n"
