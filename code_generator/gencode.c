@@ -11657,7 +11657,7 @@ static void generateHandleResult(moduleDef *mod, overDef *od, int isNew,
             else
                 prcode(fp,"%s",vname);
 
-            prcode(fp, ", sipType_%C,", iff->fqcname);
+            prcode(fp, ", sipType_%C, ", iff->fqcname);
 
             if (needNew || !isTransferredBack(ad))
                 prcode(fp, "SIP_NULLPTR);\n");
