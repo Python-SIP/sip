@@ -45,12 +45,17 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
-#define SIP_ABI_MINOR_VERSION       5
-#define SIP_MODULE_PATCH_VERSION    2
+#define SIP_ABI_MINOR_VERSION       6
+#define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v13.6
+ *  - Added support for Python v3.12.
+ *  - Added sipPyTypeDictRef().
+ *  - Deprecated sipPyTypeDict().
  *
  * v13.5
  *  - Added the '#' conversion character to the argument parsers.
@@ -1353,7 +1358,7 @@ typedef struct _sipAPIDef {
     void (*api_visit_wrappers)(sipWrapperVisitorFunc visitor, void *closure);
     int (*api_register_exit_notifier)(PyMethodDef *md);
     int (*api_is_enum_flag)(PyObject *o);
-    void (*unused_public_1)(void);
+    PyObject *(*api_py_type_dict_ref)(PyTypeObject *);
     void (*unused_public_2)(void);
     void (*unused_public_3)(void);
     void (*unused_public_4)(void);

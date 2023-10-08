@@ -1,4 +1,8 @@
 v6.7.12 6th October 2023
+  - The latest version of ABI v13 is v13.6.0.
+  - The latest version of ABI v12 is v12.13.0.
+  - Added sipPyTypeDictRef() to the v12 and v13 ABIs.  sipPyTypeDict() is now
+    deprecated and must not be used with Python v3.12 and later.
   - Classes will automatically support being iterated over if they implement
     '__getitem__()' or 'operator[]' and have a method annotated with '__len__'.
   - Bug fixes.

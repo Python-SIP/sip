@@ -376,6 +376,7 @@ static PyInterpreterState *sip_api_get_interpreter(void);
 static void sip_api_set_type_user_data(sipWrapperType *wt, void *data);
 static void *sip_api_get_type_user_data(const sipWrapperType *wt);
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type);
+static PyObject *sip_api_py_type_dict_ref(PyTypeObject *py_type);
 static const char *sip_api_py_type_name(const PyTypeObject *py_type);
 static int sip_api_get_method(PyObject *obj, sipMethodDef *method);
 static PyObject *sip_api_from_method(const sipMethodDef *method);
@@ -517,7 +518,7 @@ static const sipAPIDef sip_api = {
     sip_api_visit_wrappers,
     sip_api_register_exit_notifier,
     sip_api_is_enum_flag,
-    NULL,
+    sip_api_py_type_dict_ref,
     NULL,
     NULL,
     NULL,
@@ -11125,14 +11126,33 @@ static void *sip_api_get_type_user_data(const sipWrapperType *wt)
 
 
 /*
- * Get the dict of a Python type (on behalf of the limited API).
+ * Get a borrowed reference to the dict of a Python type (on behalf of the
+ * limited API).  This is deprecated in ABI v13.6 and must not be used with
+ * Python v3.12 and later.
  */
 static PyObject *sip_api_py_type_dict(const PyTypeObject *py_type)
+{
+    PyErr_WarnEx(PyExc_DeprecationWarning,
+            "sipPyTypeDict() is deprecated, the extension module should use "
+            "sipPyTypeDictRef() instead",
+            1);
+
+    return py_type->tp_dict;
+}
+
+
+/*
+ * Get a new reference to the dict of a Python type (on behalf of the limited
+ * API).
+ */
+static PyObject *sip_api_py_type_dict_ref(PyTypeObject *py_type)
 {
 #if PY_VERSION_HEX >= 0x030c0000
     return PyType_GetDict(py_type);
 #else
-    return py_type->tp_dict;
+    PyObject *ref = py_type->tp_dict;
+    Py_XINCREF(ref);
+    return ref;
 #endif
 }
 

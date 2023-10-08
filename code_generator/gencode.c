@@ -866,6 +866,12 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     /* These are dependent on the specific ABI version. */
     if (abiVersion >= ABI_13_0)
     {
+        /* ABI v13.6 and later. */
+        if (abiVersion >= ABI_13_6)
+            prcode(fp,
+"#define sipPyTypeDictRef            sipAPI_%s->api_py_type_dict_ref\n"
+                , mname);
+
         /* ABI v13.1 and later. */
         if (abiVersion >= ABI_13_1)
             prcode(fp,
@@ -885,6 +891,12 @@ static const char *generateInternalAPIHeader(sipSpec *pt, moduleDef *mod,
     }
     else
     {
+        /* ABI v12.13 and later. */
+        if (abiVersion >= ABI_12_13)
+            prcode(fp,
+"#define sipPyTypeDictRef            sipAPI_%s->api_py_type_dict_ref\n"
+                , mname);
+
         /* ABI v12.9 and later. */
         if (abiVersion >= ABI_12_9)
             prcode(fp,
