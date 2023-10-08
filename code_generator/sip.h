@@ -1308,7 +1308,7 @@ int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 char *scopedNameTail(scopedNameDef *);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
-void prDefaultValue(argDef *ad, FILE *fp);
+void prDefaultValue(argDef *ad, int voidptr, FILE *fp);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int isNumberSlot(memberDef *md);
 void appendString(stringList **headp, const char *s);

@@ -29,11 +29,10 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int names, int defaults, KwArgs kwargs,
         FILE *fp);
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        FILE *fp);
-static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+static int pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp);
+static int pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         classDef *context, classList **context_stackp, FILE *fp);
-static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
+static int pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
         moduleDef *mod, classList **context_stackp, FILE *fp);
 static void prClassRef(classDef *cd, FILE *fp);
 static void prEnumRef(enumDef *ed, FILE *fp);
@@ -48,7 +47,7 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
-static void maybeAnyObject(const char *hint, FILE *fp);
+static int maybeAnyObject(const char *hint, FILE *fp);
 static void strip_leading(char **startp, char *end);
 static void strip_trailing(char *start, char **endp);
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes);
@@ -96,7 +95,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int names, int defaults, KwArgs kwargs,
         FILE *fp)
 {
-    int optional, use_optional;
+    int voidptr, optional, use_optional;
     typeHintDef *thd;
 
     if (isArraySize(ad))
@@ -130,7 +129,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (isArray(ad))
         fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
 
-    pyiType(pt, mod, ad, out, fp);
+    voidptr = pyiType(pt, mod, ad, out, fp);
 
     if (isArray(ad))
         fprintf(fp, "]");
@@ -141,7 +140,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
     if (optional)
     {
         fprintf(fp, " = ");
-        prDefaultValue(ad, fp);
+        prDefaultValue(ad, voidptr, fp);
     }
 
     return TRUE;
@@ -151,7 +150,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 /*
  * Generate the default value of an argument.
  */
-void prDefaultValue(argDef *ad, FILE *fp)
+void prDefaultValue(argDef *ad, int voidptr, FILE *fp)
 {
     /* Use any explicitly provided documentation. */
     if (ad->typehint_value != NULL)
@@ -165,7 +164,7 @@ void prDefaultValue(argDef *ad, FILE *fp)
     {
         if (ad->defval->u.vnum == 0)
         {
-            if (ad->nrderefs > 0)
+            if (voidptr || ad->nrderefs > 0)
             {
                 fprintf(fp, "None");
                 return;
@@ -199,8 +198,9 @@ void prDefaultValue(argDef *ad, FILE *fp)
 /*
  * Generate the Python representation of a type.
  */
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
+static int pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 {
+    int voidptr = FALSE;
     const char *type_name, *sip_name;
     typeHintDef *thd;
 
@@ -211,10 +211,9 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
     {
         classList *context_stack = NULL;
 
-        pyiTypeHint(pt, thd, mod, out,
+        return pyiTypeHint(pt, thd, mod, out,
                 (ad->atype == class_type ? ad->u.cd : NULL), &context_stack,
                 fp);
-        return;
     }
 
     type_name = NULL;
@@ -249,6 +248,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     case struct_type:
     case void_type:
+        voidptr = TRUE;
         fprintf(fp, "%s.voidptr", sip_name);
         break;
 
@@ -339,6 +339,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     if (type_name != NULL)
         fprintf(fp, "%s", type_name);
+
+    return voidptr;
 }
 
 
@@ -468,9 +470,11 @@ static void prScopedEnumName(FILE *fp, enumDef *ed)
 /*
  * Generate a type hint from a /TypeHint/ annotation.
  */
-static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+static int pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         classDef *context, classList **context_stackp, FILE *fp)
 {
+    int voidptr = FALSE;
+
     parseTypeHint(pt, thd, out);
 
     if (thd->root != NULL)
@@ -478,24 +482,28 @@ static void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
         if (context != NULL)
             pushClass(context_stackp, context);
 
-        pyiTypeHintNode(pt, thd->root, out, mod, context_stackp, fp);
+        voidptr = pyiTypeHintNode(pt, thd->root, out, mod, context_stackp, fp);
 
         if (context != NULL)
             popClass(context_stackp);
     }
     else
     {
-        maybeAnyObject(thd->raw_hint, fp);
+        voidptr = maybeAnyObject(thd->raw_hint, fp);
     }
+
+    return voidptr;
 }
 
 
 /*
  * Generate a single node of a type hint.
  */
-static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
+static int pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
         moduleDef *mod, classList **context_stackp, FILE *fp)
 {
+    int voidptr = FALSE;
+
     switch (node->type)
     {
     case typing_node: {
@@ -533,7 +541,8 @@ static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
                 else
                     fixed_out = out;
 
-                pyiTypeHintNode(pt, thnd, fixed_out, mod, context_stackp, fp);
+                if (pyiTypeHintNode(pt, thnd, fixed_out, mod, context_stackp, fp))
+                    voidptr = TRUE;
             }
 
             fprintf(fp, "]");
@@ -562,7 +571,7 @@ static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
         if (thd != NULL)
         {
             pushClass(context_stackp, cd);
-            pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
+            voidptr = pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
             popClass(context_stackp);
         }
         else
@@ -578,7 +587,7 @@ static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
         typeHintDef *thd = (out ? mtd->typehint_out : mtd->typehint_in);
 
         if (thd != NULL)
-            pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
+            voidptr = pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
         else
             prcode(fp, "%s", mtd->cname->text);
 
@@ -590,9 +599,11 @@ static void pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
         break;
 
     case other_node:
-        maybeAnyObject(node->u.name, fp);
+        voidptr = maybeAnyObject(node->u.name, fp);
         break;
     }
+
+    return voidptr;
 }
 
 
@@ -1048,9 +1059,11 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 /*
  * Generate a hint taking into account that it may be any sort of object.
  */
-static void maybeAnyObject(const char *hint, FILE *fp)
+static int maybeAnyObject(const char *hint, FILE *fp)
 {
     fprintf(fp, "%s", (strcmp(hint, "Any") != 0 ? hint : "object"));
+
+    return (strstr(hint, "voidptr") != NULL);
 }
 
 

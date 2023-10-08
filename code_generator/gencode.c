@@ -178,7 +178,7 @@ static int generateClassMethodTable(sipSpec *pt, classDef *cd, FILE *fp);
 static void prMethodTable(sipSpec *pt, sortedMethTab *mtable, int nr,
         ifaceFileDef *iff, overDef *overs, FILE *fp);
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
-        mappedTypeDef *mtd, FILE *fp);
+        mappedTypeDef *mtd, moduleDef *imported_module, FILE *fp);
 static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
         mappedTypeDef *mtd, FILE *fp);
 static int generateInts(sipSpec *pt, moduleDef *mod, ifaceFileDef *iff,
@@ -2845,8 +2845,18 @@ static int generateEnumMemberTable(sipSpec *pt, moduleDef *mod, classDef *cd,
  */
 static int compareEnumMembers(const void *m1,const void *m2)
 {
-    return strcmp((*(enumMemberDef **)m1)->pyname->text,
-              (*(enumMemberDef **)m2)->pyname->text);
+    enumMemberDef *emd1 = *(enumMemberDef **)m1;
+    enumMemberDef *emd2 = *(enumMemberDef **)m2;
+
+    int cmp = strcmp(emd1->pyname->text, emd2->pyname->text);
+
+    if (cmp == 0)
+        if (emd1->ed->enumnr < emd2->ed->enumnr)
+            cmp = -1;
+        else if (emd1->ed->enumnr > emd2->ed->enumnr)
+            cmp = 1;
+
+    return cmp;
 }
 
 
@@ -8524,7 +8534,7 @@ static void generateModuleAPI(sipSpec *pt, moduleDef *mod, FILE *fp)
                 , xd->iff->fqcname, mod->name, xd->exceptionnr);
         }
 
-    generateEnumMacros(pt, mod, NULL, NULL, fp);
+    generateEnumMacros(pt, mod, NULL, NULL, NULL, fp);
 
     for (veh = pt->errorhandlers; veh != NULL; veh = veh->next)
         if (veh->mod == mod)
@@ -8551,7 +8561,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
             if (cd->iff->needed)
                 generateImportedClassAPI(cd, mod, fp);
 
-            generateEnumMacros(pt, mod, cd, NULL, fp);
+            generateEnumMacros(pt, mod, cd, NULL, immod, fp);
         }
 
     for (mtd = pt->mappedtypes; mtd != NULL; mtd = mtd->next)
@@ -8560,7 +8570,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
             if (mtd->iff->needed)
                 generateImportedMappedTypeAPI(mtd, mod, fp);
 
-            generateEnumMacros(pt, mod, NULL, mtd, fp);
+            generateEnumMacros(pt, mod, NULL, mtd, immod, fp);
         }
 
     for (xd = pt->exceptions; xd != NULL; xd = xd->next)
@@ -8570,7 +8580,7 @@ static void generateImportedModuleAPI(sipSpec *pt, moduleDef *mod,
 "#define sipException_%C sipImportedExceptions_%s_%s[%d].iexc_object\n"
                     , xd->iff->fqcname, mod->name, xd->iff->module->name, xd->exceptionnr);
 
-    generateEnumMacros(pt, mod, NULL, NULL, fp);
+    generateEnumMacros(pt, mod, NULL, NULL, immod, fp);
 }
 
 
@@ -8617,7 +8627,7 @@ static void generateMappedTypeAPI(sipSpec *pt, mappedTypeDef *mtd, FILE *fp)
         , &type, mtd->iff->module->name, mtd->iff->ifacenr
         , mtd->iff->module->name, mtd->iff);
 
-    generateEnumMacros(pt, mtd->iff->module, NULL, mtd, fp);
+    generateEnumMacros(pt, mtd->iff->module, NULL, mtd, NULL, fp);
 }
 
 
@@ -8666,7 +8676,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
             , classFQCName(cd), mname, cd->iff->ifacenr);
 
-    generateEnumMacros(pt, cd->iff->module, cd, NULL, fp);
+    generateEnumMacros(pt, cd->iff->module, cd, NULL, NULL, fp);
 
     if (!isExternal(cd) && !isHiddenNamespace(cd))
         prcode(fp,
@@ -8680,7 +8690,7 @@ static void generateClassAPI(classDef *cd, sipSpec *pt, FILE *fp)
  * Generate the type macros for enums.
  */
 static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
-        mappedTypeDef *mtd, FILE *fp)
+        mappedTypeDef *mtd, moduleDef *imported_module, FILE *fp)
 {
     enumDef *ed;
 
@@ -8704,16 +8714,21 @@ static void generateEnumMacros(sipSpec *pt, moduleDef *mod, classDef *cd,
             continue;
         }
 
-        if (mod == ed->module)
-            prcode(fp,
+        if (imported_module == NULL)
+        {
+            if (mod == ed->module)
+                prcode(fp,
 "\n"
 "#define sipType_%C sipExportedTypes_%s[%d]\n"
-                , ed->fqcname, mod->name, ed->enumnr);
-        else if (needsEnum(ed))
+                    , ed->fqcname, mod->name, ed->enumnr);
+        }
+        else if (ed->module == imported_module && needsEnum(ed))
+        {
             prcode(fp,
 "\n"
 "#define sipType_%C sipImportedTypes_%s_%s[%d].it_td\n"
                 , ed->fqcname, mod->name, ed->module->name, ed->enumnr);
+        }
     }
 }
 
@@ -10770,8 +10785,26 @@ static int countVirtuals(classDef *cd)
     nrvirts = 0;
  
     for (vod = cd->vmembers; vod != NULL; vod = vod->next)
-        if (!isPrivate(vod->od))
+    {
+        overDef *od = vod->od;
+        virtOverDef *dvod;
+
+        if (isPrivate(od))
+            continue;
+
+        /*
+         * Check we haven't already handled this C++ signature.  The same C++
+         * signature should only appear more than once for overloads that are
+         * enabled for different APIs and that differ in their /In/ and/or
+         * /Out/ annotations.
+         */
+        for (dvod = cd->vmembers; dvod != vod; dvod = dvod->next)
+            if (strcmp(dvod->od->cppname, od->cppname) == 0 && sameSignature(dvod->od->cppsig, od->cppsig, TRUE))
+                break;
+
+        if (dvod == vod)
             ++nrvirts;
+    }
  
     return nrvirts;
 }

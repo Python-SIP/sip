@@ -137,8 +137,11 @@ class ValueListFormatter(BaseFormatter):
 
                 s += quote
 
-            elif value.value_type in (ValueType.NUMERIC, ValueType.REAL):
-                s += str(value.value)
+            elif value.value_type is ValueType.NUMERIC:
+                s += str(value.value) if as_python else str(int(value.value))
+
+            elif value.value_type is ValueType.REAL:
+                s += format(value.value, 'g')
 
             elif value.value_type is ValueType.SCOPED:
                 if as_python:
