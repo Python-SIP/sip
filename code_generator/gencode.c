@@ -10311,8 +10311,9 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
     {
         argDef arg = sig->cppsig->args[a];
 
+        /* Note the lack of a separating space. */
         if (a > 0)
-            prcode(fp,", ");
+            prcode(fp,",");
 
         normaliseSignalArg(&arg);
 
@@ -10342,8 +10343,9 @@ static void generateSignalTableEntry(sipSpec *pt, classDef *cd, overDef *sig,
         {
             argDef arg = sig->cppsig->args[a];
 
+            /* Note the lack of a separating space. */
             if (a > 0)
-                prcode(fp,", ");
+                prcode(fp,",");
 
             normaliseSignalArg(&arg);
 
