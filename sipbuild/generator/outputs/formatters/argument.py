@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -24,7 +24,7 @@
 from ...scoped_name import STRIP_NONE
 from ...specification import ArgumentType, ArrayArgument, ClassKey, ValueType
 
-from ..type_hints import TypeHintManager
+from ..type_hints import format_voidptr, TypeHintManager
 
 from .base_formatter import BaseFormatter
 from .utils import format_scoped_py_name
@@ -213,7 +213,13 @@ class ArgumentFormatter(BaseFormatter):
 
         return s
 
-    def py_default_value(self, embedded=False):
+    # The types that are implicitly pointers.
+    _IMPLICIT_POINTERS = (ArgumentType.PYOBJECT, ArgumentType.PYTUPLE,
+        ArgumentType.PYLIST, ArgumentType.PYDICT, ArgumentType.PYCALLABLE,
+        ArgumentType.PYSLICE, ArgumentType.PYTYPE, ArgumentType.CAPSULE,
+        ArgumentType.PYBUFFER, ArgumentType.PYENUM)
+
+    def py_default_value(self, type_name, embedded=False, as_xml=False):
         """ Return the Python representation of the argument's default value.
         """
 
@@ -229,21 +235,21 @@ class ArgumentFormatter(BaseFormatter):
         if len(arg.default_value) == 1 and arg.default_value[0].value_type is ValueType.NUMERIC:
             value = arg.default_value[0].value
 
-            if len(arg.derefs) > 0 and value == 0:
+            if value == 0 and ('voidptr' in type_name or len(arg.derefs) > 0 or arg.type in self._IMPLICIT_POINTERS):
                 return 'None'
 
             if arg.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
                 return 'True' if value else 'False'
 
         return ValueListFormatter(self.spec, arg.default_value).py_expression(
-                embedded=embedded)
+                embedded=embedded, as_xml=as_xml)
 
-    def as_py_type(self, pep484=False, default_value=False):
+    def as_py_type(self, pep484=False, default_value=False, as_xml=False):
         """ Return the argument as a Python type. """
 
         arg = self.object
 
-        scope, name = self._py_arg(pep484)
+        scope, name = self._py_arg(pep484, as_xml)
 
         s = format_scoped_py_name(scope, name)
 
@@ -251,11 +257,11 @@ class ArgumentFormatter(BaseFormatter):
             if arg.name is not None:
                 s += ' ' + arg.name.name
 
-            s += '=' + self.py_default_value()
+            s += '=' + self.py_default_value(name)
 
         return s
 
-    def as_rest_ref(self, out):
+    def as_rest_ref(self, out, as_xml=False):
         """ Return the argument as a reST reference. """
 
         arg = self.object
@@ -280,9 +286,11 @@ class ArgumentFormatter(BaseFormatter):
                 # There would normally be a type hint.
                 s += "unknown-type"
             else:
-                s += self.as_py_type()
+                s += self.as_py_type(as_xml=as_xml)
         else:
-            s += TypeHintManager(self.spec).as_rest_ref(hint, out)
+            context = arg.definition if arg.type is ArgumentType.CLASS else None
+            s += TypeHintManager(self.spec).as_rest_ref(hint, out, context,
+                    as_xml=as_xml)
 
         return s
 
@@ -315,7 +323,8 @@ class ArgumentFormatter(BaseFormatter):
             else:
                 s += self.as_py_type(pep484=True)
         else:
-            s += TypeHintManager(self.spec).as_type_hint(hint, module, out,
+            context = arg.definition if arg.type is ArgumentType.CLASS else None
+            s += TypeHintManager(self.spec).as_type_hint(hint, out, context,
                     defined)
 
         return s
@@ -337,12 +346,13 @@ class ArgumentFormatter(BaseFormatter):
 
         return hint
 
-    def _py_arg(self, pep484):
+    def _py_arg(self, pep484, as_xml):
         """ Return an argument as a 2-tuple of scope and name. """
 
         type = self.object.type
         definition = self.object.definition
-        sip_module = self.spec.sip_module
+
+        sip_module_name = self.spec.sip_module + '.' if self.spec.sip_module else ''
 
         scope = None
         name = "unknown-type"
@@ -369,7 +379,7 @@ class ArgumentFormatter(BaseFormatter):
             name = definition.base_name
 
         elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            name = sip_module + '.voidptr'
+            name = format_voidptr(self.spec, as_xml)
 
         elif type in (ArgumentType.STRING, ArgumentType.SSTRING, ArgumentType.USTRING):
             name = 'bytes'
@@ -386,7 +396,7 @@ class ArgumentFormatter(BaseFormatter):
         elif type in (ArgumentType.BOOL, ArgumentType.CBOOL):
             name = 'bool'
 
-        elif type is ArgumentType.PYOBJECT:
+        elif type in (ArgumentType.PYOBJECT, ArgumentType.ELLIPSIS):
             name = 'typing.Any' if pep484 else 'Any'
 
         elif type is ArgumentType.PYTUPLE:
@@ -409,15 +419,12 @@ class ArgumentFormatter(BaseFormatter):
 
         elif type is ArgumentType.PYBUFFER:
             if pep484:
-                name = sip_module + '.Buffer'
+                name = sip_module_name + 'Buffer'
             else:
                 # This replicates sip.pyi.
-                name = f'Union[bytes, bytearray, memoryview, {sip_module}.array, {sip_module}.voidptr]'
+                name = f'Union[bytes, bytearray, memoryview, {sip_module_name}array, {sip_module_name}voidptr]'
 
         elif type is ArgumentType.PYENUM:
             name = 'enum.Enum'
-
-        elif type is ArgumentType.ELLIPSIS:
-            name = '*'
 
         return scope, name

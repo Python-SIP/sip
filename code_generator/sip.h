@@ -1,7 +1,7 @@
 /*
  * The main header file for SIP.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -26,9 +26,11 @@
 
 /* Use symbolic names for (significant) ABI versions. */
 
+#define ABI_13_6    0x0d06
 #define ABI_13_4    0x0d04
 #define ABI_13_1    0x0d01
 #define ABI_13_0    0x0d00
+#define ABI_12_13   0x0c0d
 #define ABI_12_11   0x0c0b
 #define ABI_12_9    0x0c09
 #define ABI_12_8    0x0c08
@@ -72,7 +74,6 @@
 
 #define MOD_HAS_DELAYED_DTORS   0x0001  /* It has a class with a delayed dtor. */
 #define MOD_IS_UNUSED           0x0002  /* This flag is unused. */
-#define MOD_IS_COMPOSITE        0x0004  /* It is a composite module. */
 #define MOD_IS_TRANSFORMED      0x0008  /* It's types have been transformed. */
 #define MOD_USE_ARG_NAMES       0x0010  /* Use real argument names. */
 #define MOD_USE_LIMITED_API     0x0020  /* Use the limited API. */
@@ -85,8 +86,6 @@
 
 #define hasDelayedDtors(m)  ((m)->modflags & MOD_HAS_DELAYED_DTORS)
 #define setHasDelayedDtors(m)   ((m)->modflags |= MOD_HAS_DELAYED_DTORS)
-#define isComposite(m)      ((m)->modflags & MOD_IS_COMPOSITE)
-#define setIsComposite(m)   ((m)->modflags |= MOD_IS_COMPOSITE)
 #define setIsTransformed(m) ((m)->modflags |= MOD_IS_TRANSFORMED)
 #define isTransformed(m)    ((m)->modflags & MOD_IS_TRANSFORMED)
 #define setUseArgNames(m)   ((m)->modflags |= MOD_USE_ARG_NAMES)
@@ -726,7 +725,6 @@ typedef enum {
 /* Type hint parse status. */
 typedef enum {
     needs_parsing,
-    being_parsed,
     parsed
 } typeHintParseStatus;
 
@@ -735,6 +733,7 @@ typedef enum {
 typedef enum {
     typing_node,
     class_node,
+    mapped_type_node,
     enum_node,
     other_node
 } typeHintNodeType;
@@ -905,6 +904,7 @@ typedef struct _typeHintNodeDef {
     union {
         const char *name;               /* For typing objects and others. */
         struct _classDef *cd;           /* For class nodes. */
+        struct _mappedTypeDef *mtd;     /* For maapped type nodes. */
         struct _enumDef *ed;            /* For enum nodes. */
     } u;
     struct _typeHintNodeDef *children;  /* The list of children. */
@@ -954,7 +954,6 @@ typedef struct _moduleDef {
     int next_key;                       /* The next key to allocate. */
     licenseDef *license;                /* The software license. */
     struct _classDef *proxies;          /* The list of proxy classes. */
-    struct _moduleDef *container;       /* The container module, if any. */
     struct _ifaceFileList *used;        /* Interface files used. */
     struct _moduleListDef *allimports;  /* The list of all imports. */
     struct _moduleListDef *imports;     /* The list of direct imports. */
@@ -1245,6 +1244,7 @@ typedef struct _classDef {
     typeHintDef *typehint_in;           /* The PEP 484 input type hint. */
     typeHintDef *typehint_out;          /* The PEP 484 output type hint. */
     const char *typehint_value;         /* The type hint value. */
+    const char *len_cpp_name;           /* The C++ name of any __len__ overload. */
     struct _classDef *next;             /* Next in the list. */
 } classDef;
 
@@ -1259,7 +1259,6 @@ typedef struct _autoPyNameDef {
 /* The parse tree corresponding to the specification file. */
 typedef struct {
     moduleDef *module;                  /* The module being generated. */
-    moduleDef *modules;                 /* The list of modules. */
     nameDef *namecache;                 /* The name cache. */
     ifaceFileDef *ifacefiles;           /* The list of interface files. */
     classDef *classes;                  /* The list of classes. */
@@ -1275,6 +1274,7 @@ typedef struct {
     codeBlockList *exptypehintcode;     /* Exported type hint code. */
     classDef *qobject_cd;               /* QObject class, NULL if none. */
     int genc;                           /* Set if we are generating C code. */
+    int is_composite;                   /* Set if the main module is composite. */
     struct _stringList *plugins;        /* The list of plugins. */
     struct _extractDef *extracts;       /* The list of extracts. */
 } sipSpec;
@@ -1310,7 +1310,7 @@ int compareScopedNames(scopedNameDef *snd1, scopedNameDef *snd2);
 char *scopedNameTail(scopedNameDef *);
 void prcode(FILE *fp, const char *fmt, ...);
 void prCopying(FILE *fp, moduleDef *mod, const char *comment);
-void prDefaultValue(argDef *ad, FILE *fp);
+void prDefaultValue(argDef *ad, int voidptr, FILE *fp);
 void prScopedPythonName(FILE *fp, classDef *scope, const char *pyname);
 int isNumberSlot(memberDef *md);
 void appendString(stringList **headp, const char *s);
@@ -1321,8 +1321,6 @@ void pyiCtor(sipSpec *pt, moduleDef *mod, classDef *cd, ctorDef *ct, FILE *fp);
 void pyiOverload(sipSpec *pt, moduleDef *mod, overDef *od, int is_method,
         FILE *fp);
 scopedNameDef *removeGlobalScope(scopedNameDef *snd);
-void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        FILE *fp);
 void generateBaseType(ifaceFileDef *scope, argDef *ad, int use_typename,
         int strip, FILE *fp);
 void normaliseArgs(signatureDef *sd);

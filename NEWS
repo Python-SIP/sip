@@ -1,4 +1,43 @@
-v6.7.5 15th November 2022
+v6.7.12 10th October 2023
+  - The latest version of ABI v13 is v13.6.0.
+  - The latest version of ABI v12 is v12.13.0.
+  - Added sipPyTypeDictRef() to the v12 and v13 ABIs.  sipPyTypeDict() is now
+    deprecated and must not be used with Python v3.12 and later.
+  - Classes will automatically support being iterated over if they implement
+    '__getitem__()' or 'operator[]' and have a method annotated with '__len__'.
+  - Bug fixes.
+
+v6.7.11 31st July 2023
+  - Bug fixes.
+
+v6.7.10 17th July 2023
+  - Added the --minimum-glibc-version command line option to sip-wheel.
+  - The latest version of ABI v13 is v13.5.2.
+  - The latest version of ABI v12 is v12.12.2.
+  - Bug fixes.
+
+v6.7.9 12th April 2023
+  - The latest version of ABI v13 is v13.5.1.
+  - The latest version of ABI v12 is v12.12.1.
+  - Bug fixes.
+
+v6.7.8 4th April 2023
+  - The latest version of ABI v13 is v13.5.0.
+  - The latest version of ABI v12 is v12.12.0.
+  - The 'wheel-includes' value of the 'tool.sip.project' section of
+    pyproject.toml now supports the use of absolute file patterns.
+  - Replaced the use of the 'toml' package with the standard library 'tomllib'
+    package for Python v3.11 and later, and the 'tomli' package for earlier
+    versions of Python.
+  - Bug fixes.
+
+v6.7.7 4th February 2023
+  - Bug fixes.
+
+v6.7.6 25th January 2023
+  - The latest version of ABI v13 is v13.4.1.
+  - The latest version of ABI v12 is v12.11.1.
+  - Significantly reduced the memory requirements.
   - Bug fixes.
 
 v6.7.4 29th October 2022

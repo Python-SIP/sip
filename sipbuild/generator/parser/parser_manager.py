@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -34,12 +34,12 @@ from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, ClassKey, CodeBlock, Constructor, DocstringFormat,
-        DocstringSignature, EnumBaseType, GILAction, IfaceFile, IfaceFileType,
-        KwArgs, MappedType, Member, Module, Overload, PyQtMethodSpecifier,
-        PySlot, Qualifier, QualifierType, Signature, SourceLocation,
-        Specification, Transfer, TypeHints, WrappedClass, WrappedException,
-        WrappedEnum, WrappedEnumMember)
+        ArrayArgument, CachedName, ClassKey, CodeBlock, Constructor,
+        DocstringFormat, DocstringSignature, EnumBaseType, GILAction,
+        IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
+        PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, Signature,
+        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
+        WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import (argument_as_str, cached_name, find_iface_file,
         normalised_scoped_name, same_base_type)
@@ -81,10 +81,12 @@ class ParserManager:
                 tuple([int(v) for v in abi_version.split('.')]), is_strict,
                 sip_module)
 
+        # The module is initially unnamed.
+        self.modules = [self.spec.module]
+
         self.c_bindings = None
         self.code_block = None
         self.module_state = None
-        self.module_states = []
         self.paren_depth = 0
         self.parsing_template = False
         self.parsing_virtual = False
@@ -530,11 +532,6 @@ class ParserManager:
 
         ctor.transfer = self.get_transfer(p, symbol, annotations)
 
-        # /Transfer/ arguments need the wrapper.
-        for ad in py_signature.args:
-            if ad.transfer is Transfer.TRANSFER:
-                ad.get_wrapper = True
-
         scope.ctors.append(ctor)
 
     def add_dtor(self, p, symbol, name, annotations, *, exceptions,
@@ -819,6 +816,10 @@ class ParserManager:
                 len_method_code = CodeBlock("Auto-generated",
                         text='            sipRes = (Py_ssize_t)sipCpp->{0}();\n'.format(cpp_name))
 
+                # Note that we can't currently use any %MethodCode because it
+                # does too much (ie. setting sipRes).
+                self.scope.len_cpp_name = cpp_name
+
             len_py_signature = Signature(result=Argument(ArgumentType.SSIZE))
 
             self._add_auto_slot(p, symbol, annotations, '__len__',
@@ -943,6 +944,11 @@ class ParserManager:
         mapped_type.no_default_ctor = annotations.get('NoDefaultCtor', False)
         mapped_type.no_release = annotations.get('NoRelease', False)
         mapped_type.type_hints = self.get_type_hints(p, symbol, annotations)
+
+        if mapped_type.no_release:
+            mapped_type.no_assignment_operator = True
+            mapped_type.no_copy_ctor = True
+            mapped_type.no_default_ctor = True
 
         pyqt_flags = self._get_plugin_annotation(p, symbol, annotations,
                 'PyQtFlags', 'PyQt6')
@@ -1202,13 +1208,8 @@ class ParserManager:
         sip_file, raw_sip_file, input, lineno, lexpos, module_state = self._file_stack.pop()
 
         if module_state is None:
+            self._import_module(self._sip_file)
             module_state = self.module_state
-
-            # The current file was %Included so create a new Module and
-            # ModuleState as if it had been %Imported.
-            module = Module()
-            self.spec.modules.append(module)
-            self.module_state = ModuleState(module, self._sip_file, self)
 
         self._file_stack.append(
                 (sip_file, raw_sip_file, input, lineno, lexpos, module_state))
@@ -1317,7 +1318,7 @@ class ParserManager:
     def find_qualifier(self, p, symbol, name, required=True):
         """ Return a Qualifier or None if one doesn't exist. """
 
-        for module in self.spec.modules:
+        for module in self.modules:
             for qual in module.qualifiers:
                 if qual.name == name:
                     return qual
@@ -1456,9 +1457,7 @@ class ParserManager:
         code will be generated for.
         """
 
-        module = self.module_state.module
-
-        return module is self.spec.modules[0] or module.composite is not None
+        return self.module_state.module is self.spec.module
 
     def instantiate_class_template(self, p, symbol, fq_cpp_name, template,
             py_name, no_type_name, docstring):
@@ -1487,9 +1486,10 @@ class ParserManager:
                         column=self._get_column_from_lexpos(t.lexpos)))
 
     def parse(self, sip_file):
-        """ Parse a .sip file and return a Specification object and a list of
-        the .sip files that specify the module to be generated.  A
-        UserException is raised if there was an error.
+        """ Parse a .sip file and return a 3-tuple of a Specification object, a
+        list of Module objects and a list of the .sip files that specify the
+        module to be generated.  A UserException is raised if there was an
+        error.
         """
 
         # Note that the retention of the 'raw' filename, ie. that which was
@@ -1499,7 +1499,7 @@ class ParserManager:
         raw_sip_file = sip_file
         sip_file = os.path.abspath(sip_file)
 
-        self.module_state = ModuleState(self.spec.modules[0], sip_file, self)
+        self.module_state = ModuleState(self.spec.module, sip_file)
 
         try:
             self._parser.parse(self._read(sip_file, raw_sip_file),
@@ -1538,7 +1538,7 @@ class ParserManager:
         for klass in self._template_arg_classes:
             self.spec.classes.remove(klass)
 
-        return self.spec, self._sip_files
+        return self.spec, self.modules, self._sip_files
 
     def parser_error(self, p, symbol, text):
         """ Record an error caused by a symbol in a production. """
@@ -1633,46 +1633,16 @@ class ParserManager:
                         "'{0}' is being read recursively".format(sip_file))
                 return
 
+        # Ignore the file if we have already read it.
+        if sip_file in self._all_sip_files:
+            return
+
         if new_module:
-            importing_from = self.module_state.module
-
-            # Create a new module if it has not already been defined.
-            for module_state in self.module_states:
-                if module_state.sip_file == sip_file:
-                    module = module_state.module
-                    break
-            else:
-                module = Module()
-                self.spec.modules.append(module)
-
-                module.default_exception = self.module_state.module.default_exception
-                old_module_state = self.module_state
-                self.module_state = ModuleState(module, sip_file, self)
-
-                # Get the configuration of the new module.
-                mod_tags, mod_disabled = get_bindings_configuration(
-                        self.spec.abi_version[0], sip_file, self._include_dirs)
-
-                for tag in mod_tags:
-                    if tag not in self.tags:
-                        self.tags.append(tag)
-
-                for feature in mod_disabled:
-                    if feature not in self._disabled_features:
-                        self._disabled_features.append(feature)
-
-            # Add the new import unless it has already been imported.
-            if module not in importing_from.imports:
-                importing_from.imports.insert(0, module)
+            old_module_state = self.module_state
+            self._import_module(sip_file)
         else:
             # This means that the file was %Included rather than %Imported.
             old_module_state = None
-
-        # Ignore the file if we have already read it. This replicates the
-        # behaviour of the old parser but shouldn't be required for a well
-        # specified project.
-        if sip_file in self._all_sip_files:
-            return
 
         # Save the state of the current .sip file.
         self._file_stack.append(
@@ -1892,6 +1862,11 @@ class ParserManager:
 
         for arg in signature.args:
             if arg.type is ArgumentType.ELLIPSIS:
+                # Give the argument the standard name so that it appears in
+                # docstrings and type hints.  It is never used in generated
+                # code so there is no need to add it to the module cache.
+                arg.name = CachedName('*args')
+
                 if seen_ellipsis:
                     self.parser_error(p, symbol,
                             "'...' may only be specified once")
@@ -2112,6 +2087,34 @@ class ParserManager:
         # call_super_init defaults to False if it wasn't specified.
         module.call_super_init = bool(module_state.call_super_init)
 
+    def _import_module(self, sip_file):
+        """ Create a new Module object and corresponding ModuleState object for
+        a .sip file and make it current.
+        """
+
+        importing_from = self.module_state.module
+
+        module = Module()
+        self.modules.append(module)
+
+        module.default_exception = self.module_state.module.default_exception
+        self.module_state = ModuleState(module, sip_file)
+
+        # Get the configuration of the new module.
+        mod_tags, mod_disabled = get_bindings_configuration(
+                self.spec.abi_version[0], sip_file, self._include_dirs)
+
+        for tag in mod_tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+
+        for feature in mod_disabled:
+            if feature not in self._disabled_features:
+                self._disabled_features.append(feature)
+
+        # Add the new import.
+        importing_from.imports.append(module)
+
     def _read(self, sip_file, raw_sip_file):
         """ Return the contents of the current .sip file. """
 
@@ -2145,7 +2148,7 @@ class ParserManager:
 class ModuleState:
     """ Encapsulate the parser-related state for a module. """
 
-    def __init__(self, module, sip_file, pm):
+    def __init__(self, module, sip_file):
         """ Initialise the state. """
 
         self.module = module
@@ -2157,8 +2160,6 @@ class ModuleState:
         self.default_encoding = None
         self.kw_args = KwArgs.NONE
         self.nr_timelines = 0
-
-        pm.module_states.append(self)
 
 
 class ScopeState:

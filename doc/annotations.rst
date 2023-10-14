@@ -788,6 +788,11 @@ Function Annotations
     automatically generated that will use the method being annotated to compute
     the value that the ``__len__()`` method will return.
 
+    If the class has a ``__getitem__()`` method or an ``operator[]`` operator
+    with an integer argument then those will raise an ``IndexError`` exception
+    if the argument is out of range.  This means that the class will
+    automatically support being iterated over.
+
 
 .. function-annotation:: __matmul__
 

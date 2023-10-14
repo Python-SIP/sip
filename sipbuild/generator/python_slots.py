@@ -179,3 +179,27 @@ def is_zero_arg_slot(slot):
     """ Return True if a slot takes zero arguments. """
 
     return slot in _ZERO_ARG_SLOTS
+
+
+# A map of slots and the names of their reflections.
+_SLOT_REFLECTIONS = {
+    PySlot.ADD: '__radd__',
+    PySlot.SUB: '__rsub__',
+    PySlot.MUL: '__rmul__',
+    PySlot.MATMUL: '__rmatmul__',
+    PySlot.TRUEDIV: '__rtruediv__',
+    PySlot.FLOORDIV: '__rfloordiv__',
+    PySlot.MOD: '__rmod__',
+    PySlot.LSHIFT: '__rlshift__',
+    PySlot.RSHIFT: '__rrshift__',
+    PySlot.AND: '__rand__',
+    PySlot.OR: '__ror__',
+    PySlot.XOR: '__rxor__',
+}
+
+def reflected_slot(slot):
+    """ Return the name of the reflected version of a slot or None if it
+    doesn't have one.
+    """
+
+    return _SLOT_REFLECTIONS.get(slot)

@@ -1,7 +1,7 @@
 /*
  * The PEP 484 type hints generator for SIP.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -18,6 +18,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "sip.h"
@@ -28,9 +29,11 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
 static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int names, int defaults, KwArgs kwargs,
         FILE *fp);
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out,
-        FILE *fp);
-static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod, FILE *fp);
+static int pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp);
+static int pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+        classDef *context, classList **context_stackp, FILE *fp);
+static int pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
+        moduleDef *mod, classList **context_stackp, FILE *fp);
 static void prClassRef(classDef *cd, FILE *fp);
 static void prEnumRef(enumDef *ed, FILE *fp);
 static void prScopedEnumName(FILE *fp, enumDef *ed);
@@ -44,13 +47,14 @@ static enumDef *lookupEnum(sipSpec *pt, const char *name, classDef *scope_cd,
 static mappedTypeDef *lookupMappedType(sipSpec *pt, const char *name);
 static classDef *lookupClass(sipSpec *pt, const char *name,
         classDef *scope_cd);
-static void maybeAnyObject(const char *hint, FILE *fp);
+static int maybeAnyObject(const char *hint, FILE *fp);
 static void strip_leading(char **startp, char *end);
 static void strip_trailing(char *start, char **endp);
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes);
-static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
-        int out);
+static typeHintNodeDef *copyTypeHintNode(typeHintNodeDef *node);
 static int isPyKeyword(const char *word);
+static void pushClass(classList **headp, classDef *cd);
+static void popClass(classList **headp);
 
 
 /*
@@ -91,7 +95,8 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
         int out, int need_comma, int names, int defaults, KwArgs kwargs,
         FILE *fp)
 {
-    int optional, use_optional;
+    int voidptr, optional, use_optional;
+    typeHintDef *thd;
 
     if (isArraySize(ad))
         return need_comma;
@@ -101,7 +106,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 
     optional = (defaults && ad->defval && !out);
 
-    if (names && ad->atype != ellipsis_type)
+    if (names)
     {
         if (ad->name != NULL)
             fprintf(fp, "%s%s: ", ad->name->text,
@@ -110,43 +115,32 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
             fprintf(fp, "a%d: ", arg_nr);
     }
 
-    use_optional = FALSE;
+    thd = (out ? ad->typehint_out : (isConstrained(ad) ? NULL : ad->typehint_in));
 
-    if (optional)
-    {
-        /* Assume pointers can be None unless specified otherwise. */
-        if (isAllowNone(ad) || (!isDisallowNone(ad) && ad->nrderefs > 0))
-        {
-            fprintf(fp, "typing.Optional[");
-            use_optional = TRUE;
-        }
-    }
+    /* Assume pointers can be None unless specified otherwise. */
+    if (thd == NULL && isAllowNone(ad))
+        use_optional = TRUE;
+    else
+        use_optional = (!isDisallowNone(ad) && ad->nrderefs > 0);
+
+    if (use_optional)
+        fprintf(fp, "Optional[");
 
     if (isArray(ad))
         fprintf(fp, "%s.array[", (sipName != NULL) ? sipName : "sip");
 
-    pyiType(pt, mod, ad, out, fp);
-
-    if (names && ad->atype == ellipsis_type)
-    {
-        if (ad->name != NULL)
-            fprintf(fp, "%s%s", ad->name->text,
-                    (isPyKeyword(ad->name->text) ? "_" : ""));
-        else
-            fprintf(fp, "a%d", arg_nr);
-    }
+    voidptr = pyiType(pt, mod, ad, out, fp);
 
     if (isArray(ad))
         fprintf(fp, "]");
 
+    if (use_optional)
+        fprintf(fp, "]");
+
     if (optional)
     {
-        if (use_optional)
-            fprintf(fp, "]");
-
         fprintf(fp, " = ");
-
-        prDefaultValue(ad, fp);
+        prDefaultValue(ad, voidptr, fp);
     }
 
     return TRUE;
@@ -156,7 +150,7 @@ static int pyiArgument(sipSpec *pt, moduleDef *mod, argDef *ad, int arg_nr,
 /*
  * Generate the default value of an argument.
  */
-void prDefaultValue(argDef *ad, FILE *fp)
+void prDefaultValue(argDef *ad, int voidptr, FILE *fp)
 {
     /* Use any explicitly provided documentation. */
     if (ad->typehint_value != NULL)
@@ -168,10 +162,23 @@ void prDefaultValue(argDef *ad, FILE *fp)
     /* Translate some special cases. */
     if (ad->defval->next == NULL && ad->defval->vtype == numeric_value)
     {
-        if (ad->nrderefs > 0 && ad->defval->u.vnum == 0)
+        if (ad->defval->u.vnum == 0)
         {
-            fprintf(fp, "None");
-            return;
+            if (voidptr || ad->nrderefs > 0)
+            {
+                fprintf(fp, "None");
+                return;
+            }
+
+            if (ad->atype == pyobject_type || ad->atype == pytuple_type ||
+                ad->atype == pylist_type || ad->atype == pydict_type ||
+                ad->atype == pycallable_type || ad->atype == pyslice_type ||
+                ad->atype == pytype_type || ad->atype == capsule_type ||
+                ad->atype == pybuffer_type || ad->atype == pyenum_type)
+            {
+                fprintf(fp, "None");
+                return;
+            }
         }
 
         if (ad->atype == bool_type || ad->atype == cbool_type)
@@ -191,8 +198,9 @@ void prDefaultValue(argDef *ad, FILE *fp)
 /*
  * Generate the Python representation of a type.
  */
-static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
+static int pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 {
+    int voidptr = FALSE;
     const char *type_name, *sip_name;
     typeHintDef *thd;
 
@@ -201,8 +209,11 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     if (thd != NULL)
     {
-        pyiTypeHint(pt, thd, mod, out, fp);
-        return;
+        classList *context_stack = NULL;
+
+        return pyiTypeHint(pt, thd, mod, out,
+                (ad->atype == class_type ? ad->u.cd : NULL), &context_stack,
+                fp);
     }
 
     type_name = NULL;
@@ -237,6 +248,7 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
 
     case struct_type:
     case void_type:
+        voidptr = TRUE;
         fprintf(fp, "%s.voidptr", sip_name);
         break;
 
@@ -284,7 +296,8 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
         break;
 
     case pyobject_type:
-        type_name = "object";
+    case ellipsis_type:
+        type_name = "Any";
         break;
 
     case pytuple_type:
@@ -320,16 +333,14 @@ static void pyiType(sipSpec *pt, moduleDef *mod, argDef *ad, int out, FILE *fp)
         type_name = "enum.Enum";
         break;
 
-    case ellipsis_type:
-        type_name = "*";
-        break;
-
     default:
         type_name = "object";
     }
 
     if (type_name != NULL)
         fprintf(fp, "%s", type_name);
+
+    return voidptr;
 }
 
 
@@ -400,7 +411,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         fprintf(fp, " -> ");
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "Tuple[");
+            fprintf(fp, "(");
 
         if (is_res)
             need_comma = pyiArgument(pt, mod, &sd->result, -1, TRUE, FALSE,
@@ -419,7 +430,7 @@ static void pyiPythonSignature(sipSpec *pt, moduleDef *mod, signatureDef *sd,
         }
 
         if ((is_res && nr_out > 0) || nr_out > 1)
-            fprintf(fp, "]");
+            fprintf(fp, ")");
     }
 }
 
@@ -459,63 +470,140 @@ static void prScopedEnumName(FILE *fp, enumDef *ed)
 /*
  * Generate a type hint from a /TypeHint/ annotation.
  */
-void pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
-        FILE *fp)
+static int pyiTypeHint(sipSpec *pt, typeHintDef *thd, moduleDef *mod, int out,
+        classDef *context, classList **context_stackp, FILE *fp)
 {
+    int voidptr = FALSE;
+
     parseTypeHint(pt, thd, out);
 
     if (thd->root != NULL)
-        pyiTypeHintNode(thd->root, mod, fp);
+    {
+        if (context != NULL)
+            pushClass(context_stackp, context);
+
+        voidptr = pyiTypeHintNode(pt, thd->root, out, mod, context_stackp, fp);
+
+        if (context != NULL)
+            popClass(context_stackp);
+    }
     else
-        maybeAnyObject(thd->raw_hint, fp);
+    {
+        voidptr = maybeAnyObject(thd->raw_hint, fp);
+    }
+
+    return voidptr;
 }
 
 
 /*
  * Generate a single node of a type hint.
  */
-static void pyiTypeHintNode(typeHintNodeDef *node, moduleDef *mod, FILE *fp)
+static int pyiTypeHintNode(sipSpec *pt, typeHintNodeDef *node, int out,
+        moduleDef *mod, classList **context_stackp, FILE *fp)
 {
+    int voidptr = FALSE;
+
     switch (node->type)
     {
-    case typing_node:
+    case typing_node: {
+        int is_callable;
+
         if (node->u.name != NULL)
+        {
             fprintf(fp, "%s", node->u.name);
+            is_callable = (strcmp(node->u.name, "Callable") == 0);
+        }
+        else
+        {
+            is_callable = FALSE;
+        }
 
         if (node->children != NULL)
         {
-            int need_comma = FALSE;
             typeHintNodeDef *thnd;
 
             fprintf(fp, "[");
 
             for (thnd = node->children; thnd != NULL; thnd = thnd->next)
             {
-                if (need_comma)
+                int fixed_out;
+
+                if (thnd != node->children)
                     fprintf(fp, ", ");
 
-                need_comma = TRUE;
+                /*
+                 * For Callable the first argument is in and the rest (ie. the
+                 * second) is out.
+                 */
+                if (is_callable)
+                    fixed_out = (thnd != node->children);
+                else
+                    fixed_out = out;
 
-                pyiTypeHintNode(thnd, mod, fp);
+                if (pyiTypeHintNode(pt, thnd, fixed_out, mod, context_stackp, fp))
+                    voidptr = TRUE;
             }
 
             fprintf(fp, "]");
         }
 
         break;
+    }
 
-    case class_node:
-        prClassRef(node->u.cd, fp);
+    case class_node: {
+        classDef *cd = node->u.cd;
+        typeHintDef *thd = (out ? cd->typehint_out : cd->typehint_in);
+
+        /* See if the type hint is in the current context. */
+        if (thd != NULL)
+        {
+            classList *sp;
+
+            for (sp = *context_stackp; sp != NULL; sp = sp->next)
+                if (sp->cd == cd)
+                {
+                    thd = NULL;
+                    break;
+                }
+        }
+
+        if (thd != NULL)
+        {
+            pushClass(context_stackp, cd);
+            voidptr = pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
+            popClass(context_stackp);
+        }
+        else
+        {
+            prClassRef(cd, fp);
+        }
+
         break;
+    }
+
+    case mapped_type_node: {
+        mappedTypeDef *mtd = node->u.mtd;
+        typeHintDef *thd = (out ? mtd->typehint_out : mtd->typehint_in);
+
+        if (thd != NULL)
+            voidptr = pyiTypeHint(pt, thd, mod, out, NULL, context_stackp, fp);
+        else
+            prcode(fp, "%s", mtd->cname->text);
+
+        break;
+    }
 
     case enum_node:
         prEnumRef(node->u.ed, fp);
         break;
 
     case other_node:
-        maybeAnyObject(node->u.name, fp);
+        voidptr = maybeAnyObject(node->u.name, fp);
         break;
     }
+
+    return voidptr;
 }
 
 
@@ -526,7 +614,6 @@ static void parseTypeHint(sipSpec *pt, typeHintDef *thd, int out)
 {
     if (thd->status == needs_parsing)
     {
-        thd->status = being_parsed;
         parseTypeHintNode(pt, out, TRUE, thd->raw_hint,
                 thd->raw_hint + strlen(thd->raw_hint), &thd->root);
         thd->status = parsed;
@@ -542,7 +629,9 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
 {
     char *cp, *name_start, *name_end;
     int have_brackets = FALSE;
-    typeHintNodeDef *node, *children = NULL;
+    typeHintNodeDef **tail, *node, *children = NULL;
+
+    tail = &children;
 
     /* Assume there won't be a node. */
     *thnp = NULL;
@@ -557,8 +646,6 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
     for (cp = start; cp < end; ++cp)
         if (*cp == '[')
         {
-            typeHintNodeDef **tail = &children;
-
             /* The last character must be a closing bracket. */
             if (end[-1] != ']')
                 return FALSE;
@@ -595,16 +682,9 @@ static int parseTypeHintNode(sipSpec *pt, int out, int top_level, char *start,
                         if (!parseTypeHintNode(pt, out, FALSE, cp, pp, &child))
                             return FALSE;
 
-                        if (child != NULL)
-                        {
-                            /*
-                             * Append the child to the list of children.  There
-                             * might not be a child if we have detected a
-                             * recursive definition.
-                             */
-                            *tail = child;
-                            tail = &child->next;
-                        }
+                        /* Append the child to the list of children. */
+                        *tail = child;
+                        tail = &child->next;
 
                         cp = pp;
                         break;
@@ -751,7 +831,19 @@ static const char *typingModule(const char *name)
  */
 static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 {
-    typeHintNodeDef *head, **tailp, *thnd;
+    typeHintNodeDef *head, **tailp, *thnd, *copy;
+    int no_union = TRUE;
+
+    /* Check if there is anything to do. */
+    for (thnd = nodes; thnd != NULL; thnd = thnd->next)
+        if (thnd->type == typing_node && strcmp(thnd->u.name, "Union") == 0)
+        {
+            no_union = FALSE;
+            break;
+        }
+
+    if (no_union)
+        return nodes;
 
     head = NULL;
     tailp = &head;
@@ -764,19 +856,18 @@ static typeHintNodeDef *flatten_unions(typeHintNodeDef *nodes)
 
             for (child = thnd->children; child != NULL; child = child->next)
             {
-                *tailp = child;
-                tailp = &child->next;
+                copy = copyTypeHintNode(child);
+                *tailp = copy;
+                tailp = &copy->next;
             }
         }
         else
         {
-            /* Move this one to the new list. */
-            *tailp = thnd;
-            tailp = &thnd->next;
+            copy = copyTypeHintNode(thnd);
+            *tailp = copy;
+            tailp = &copy->next;
         }
     }
-
-    *tailp = NULL;
 
     return head;
 }
@@ -791,7 +882,6 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
     char *sp, *ep;
     classDef *scope_cd;
     mappedTypeDef *scope_mtd;
-    typeHintDef *thd;
     typeHintNodeDef *node;
 
     /* Start searching at the global level. */
@@ -849,16 +939,11 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
                  */
                 if (ep == NULL)
                 {
-                    thd = (out ? mtd->typehint_out : mtd->typehint_in);
+                    node = sipMalloc(sizeof (typeHintNodeDef));
+                    node->type = mapped_type_node;
+                    node->u.mtd = mtd;
 
-                    if (thd != NULL && thd->status != being_parsed)
-                        return copyTypeHintNode(pt, thd, out);
-
-                    /*
-                     * If we get here we have a recursively defined mapped type
-                     * so we simply omit it.
-                     */
-                    return NULL;
+                    return node;
                 }
 
                 /* Otherwise this is the scope for the next part. */
@@ -877,11 +962,6 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
             /* If we have used the whole name then the lookup has succeeded. */
             if (ep == NULL)
             {
-                thd = (out ? cd->typehint_out : cd->typehint_in);
-
-                if (thd != NULL && thd->status != being_parsed)
-                    return copyTypeHintNode(pt, thd, out);
-
                 node = sipMalloc(sizeof (typeHintNodeDef));
                 node->type = class_node;
                 node->u.cd = cd;
@@ -916,23 +996,17 @@ static typeHintNodeDef *lookupType(sipSpec *pt, char *name, int out)
 
 
 /*
- * Copy the root node of a type hint.
+ * Copy a type hint node.
  */
-static typeHintNodeDef *copyTypeHintNode(sipSpec *pt, typeHintDef *thd,
-        int out)
+static typeHintNodeDef *copyTypeHintNode(typeHintNodeDef *node)
 {
-    typeHintNodeDef *node;
+    typeHintNodeDef *copy;
 
-    parseTypeHint(pt, thd, out);
+    copy = sipMalloc(sizeof (typeHintNodeDef));
+    *copy = *node;
+    copy->next = NULL;
 
-    if (thd->root == NULL)
-        return NULL;
-
-    node = sipMalloc(sizeof (typeHintNodeDef));
-    *node = *thd->root;
-    node->next = NULL;
-
-    return node;
+    return copy;
 }
 
 
@@ -985,9 +1059,11 @@ static classDef *lookupClass(sipSpec *pt, const char *name, classDef *scope_cd)
 /*
  * Generate a hint taking into account that it may be any sort of object.
  */
-static void maybeAnyObject(const char *hint, FILE *fp)
+static int maybeAnyObject(const char *hint, FILE *fp)
 {
     fprintf(fp, "%s", (strcmp(hint, "Any") != 0 ? hint : "object"));
+
+    return (strstr(hint, "voidptr") != NULL);
 }
 
 
@@ -1014,4 +1090,30 @@ static int isPyKeyword(const char *word)
             return TRUE;
 
     return FALSE;
+}
+
+
+/*
+ * Push a class onto a stack.
+ */
+static void pushClass(classList **headp, classDef *cd)
+{
+    classList *new = sipMalloc(sizeof (classList));
+
+    new->cd = cd;
+    new->next = *headp;
+
+    *headp = new;
+}
+
+
+/*
+ * Pop the top of a class stack.
+ */
+static void popClass(classList **headp)
+{
+    classList *top = *headp;
+
+    *headp = top->next;
+    free(top);
 }

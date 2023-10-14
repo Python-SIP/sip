@@ -24,10 +24,10 @@
 def format_copying(copying, comment):
     """ Return a formatted %Copying text. """
 
-    s = comment + ' ' + ''.join([b.text for b in copying]).rstrip().replace('\n', '\n' + comment + ' ')
+    s = ''.join([b.text for b in copying]).rstrip().replace('\n', '\n' + comment + ' ')
 
     if s:
-        s = comment + '\n' + s
+        s = comment + '\n' + comment + ' ' + s + '\n'
 
     return s
 

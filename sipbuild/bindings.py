@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -163,19 +163,19 @@ class Bindings(Configurable):
         encoding = 'UTF-8'
 
         # Parse the input file.
-        spec, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
+        spec, modules, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
                 project.abi_version, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs,
-                project.sip_module or 'sip')
+                project.sip_module)
 
         # Resolve the types.
-        resolve(spec)
+        resolve(spec, modules)
 
         pt = py2c(spec, encoding)
 
-        module = spec.modules[0]
+        module = spec.module
 
-        uses_limited_api = module.use_limited_api or module.is_composite
+        uses_limited_api = module.use_limited_api or spec.is_composite
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
@@ -211,7 +211,7 @@ class Bindings(Configurable):
             pyi_path = os.path.join(buildable.build_dir,
                     buildable.target + '.pyi')
 
-            output_pyi(spec, pyi_path)
+            output_pyi(spec, project, pyi_path)
 
             installable = Installable('pyi',
                     target_subdir=buildable.get_install_subdir())

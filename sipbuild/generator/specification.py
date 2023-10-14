@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -979,9 +979,6 @@ class Module:
     # Set if wrapped ctors should support cooperative multi-inheritance.
     call_super_init: bool = False
 
-    # The containing composite module.
-    composite: Optional['Module'] = None
-
     # The text specified by any %Copying directives.
     copying: List[CodeBlock] = field(default_factory=list)
 
@@ -1022,9 +1019,6 @@ class Module:
 
     # The code specified by any %InitialisationCode directives.
     initialisation_code: List[CodeBlock] = field(default_factory=list)
-
-    # Set if the module is a composite module.
-    is_composite: bool = False
 
     # The software license.
     license: Optional[License] = None
@@ -1289,8 +1283,9 @@ class Specification:
     # Set if the specification is strict.
     is_strict: bool
 
-    # The name of the sip module.
-    sip_module: str
+    # The fully qualified name of the sip module.  If it is None then there is
+    # no shared sip module.
+    sip_module: Optional[str]
 
     # Set if the bindings are for C rather than C++.
     c_bindings: bool = False
@@ -1316,14 +1311,17 @@ class Specification:
     # The interface files.
     iface_files: List[IfaceFile] = field(default_factory=list)
 
+    # Set if the specification is for a composite module.
+    is_composite: bool = False
+
     # The mapped type templates.
     mapped_type_templates: List[MappedTypeTemplate] = field(default_factory=list)
 
     # The mapped types.
     mapped_types: List[MappedType] = field(default_factory=list)
 
-    # The list of modules.  Initially there is an unnamed module.
-    modules: List[Module] = field(default_factory=lambda: [Module()])
+    # The module for which code is to be generated.
+    module: Module = field(default_factory=Module)
 
     # The cache of names that may be required as strings in the generated code.
     name_cache: Dict[int, List[CachedName]] = field(default_factory=dict)
@@ -1598,6 +1596,9 @@ class WrappedClass:
     # Set if the class is QObject or a sub-class. (resolver)
     is_qobject: bool = False
 
+    # The C++ name of any overload annotated with __len__.
+    len_cpp_name: Optional[str] = None
+
     # The methods.
     members: List[Member] = field(default_factory=list)
 
@@ -1774,7 +1775,8 @@ class WrappedException:
     # The base exception if it is defined in the specification.
     defined_base_exception: Optional['WrappedException'] = None
 
-    # The number of the exception. (resolver)
+    # The number of the exception (only if a Python exception object is
+    # required. (resolver)
     exception_nr: int = -1
 
     # Set if this exception is needed by the module for which code is to be

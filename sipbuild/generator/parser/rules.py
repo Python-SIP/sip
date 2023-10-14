@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -201,6 +201,12 @@ def p_composite_module(p):
     if pm.skipping:
         return
 
+    # A composite module must be the first one in the specification.
+    if not pm.in_main_module:
+        pm.parser_error(p, 1, "a %CompositeModule cannot be %Imported")
+
+    pm.spec.is_composite = True
+
     if len(p) == 4:
         name = p[2]
         body = p[3]
@@ -210,15 +216,7 @@ def p_composite_module(p):
 
     module = pm.module_state.module
 
-    if module is not pm.spec.modules[0]:
-        pm.parser_error(p, 1, "a %CompositeModule cannot be %Imported")
-
-    if module.fq_py_name is not None:
-        pm.parser_error(p, 1,
-                "%CompositeModule must appear before any %Module directive")
-
     module.fq_py_name = cached_name(pm.spec, str(name))
-    module.is_composite = True
 
     for directive in body:
         if isinstance(directive, Docstring):
@@ -1035,22 +1033,15 @@ def p_module(p):
     if pm.skipping:
         return
 
-    module_state = pm.module_state
-    module = module_state.module
-
     # See if this %Module is part of a %CompositeModule.
-    if module.is_composite or module.composite is not None:
+    if pm.spec.is_composite:
         # Historically we %Include modules although conceptually we actually
         # %Import them.  Ensure that the scopes etc. are correct in either
         # case.
         pm.ensure_import()
 
-        # The module state may have changed.
-        module_state = pm.module_state
-
-        module_state.module.composite = module if module.is_composite else module.composite
-
-        module = module_state.module
+    module_state = pm.module_state
+    module = module_state.module
 
     if module.fq_py_name is not None:
         pm.parser_error(p, 1, "%Module has already been specified")

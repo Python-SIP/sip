@@ -1,7 +1,7 @@
 /*
  * The implementation of the different descriptors.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -230,6 +230,7 @@ static int sipMethodDescr_clear(PyObject *self)
  */
 static void sipMethodDescr_dealloc(PyObject *self)
 {
+    PyObject_GC_UnTrack(self);
     sipMethodDescr_clear(self);
     Py_TYPE(self)->tp_free(self);
 }
@@ -491,6 +492,7 @@ static int sipVariableDescr_clear(PyObject *self)
  */
 static void sipVariableDescr_dealloc(PyObject *self)
 {
+    PyObject_GC_UnTrack(self);
     sipVariableDescr_clear(self);
     Py_TYPE(self)->tp_free(self);
 }

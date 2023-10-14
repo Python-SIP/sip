@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -65,10 +65,6 @@ class Project(AbstractProject, Configurable):
         # The list of GUI script entry points.
         Option('gui_scripts', option_type=list),
 
-        # The minimum GLIBC version required by the project.  This is used to
-        # determine the correct platform tag to use for Linux wheels.
-        Option('minimum_glibc_version'),
-
         # The minimum macOS version required by the project.  This is used to
         # determine the correct platform tag to use for macOS wheels.
         Option('minimum_macos_version'),
@@ -104,13 +100,14 @@ class Project(AbstractProject, Configurable):
         # The fully qualified name of the sip module.
         Option('sip_module'),
 
-        # The list of files and directories, specified as glob patterns
-        # relative to the project directory, that should be included in a
-        # wheel.  If an element of list is a string then it is a pattern and
-        # files and directories are installed in the target directory.  If an
-        # element is a 2-tuple then the first part is the pattern and the
-        # second part is the name of a sub-directory relative to the target
-        # directory where the files and directories are installed.
+        # The list of files and directories, specified as glob patterns, that
+        # should be included in a wheel.  If a pattern is relative then it is
+        # taken as being relative to the project directory.  If an element of
+        # the list is a string then it is a pattern and files and directories
+        # are installed in the target directory.  If an element is a 2-tuple
+        # then the first part is the pattern and the second part is the name of
+        # a sub-directory relative to the target directory where the files and
+        # directories are installed.
         Option('wheel_includes', option_type=list),
 
         # The user-configurable options.
@@ -129,6 +126,10 @@ class Project(AbstractProject, Configurable):
                 help="disable the use of manylinux in the platform tag used "
                         "in the wheel name",
                 tools=['wheel']),
+        Option('minimum_glibc_version',
+                help="the minimum GLIBC version to be used in the platform "
+                        "tag of Linux wheels",
+                metavar="M.N", tools=['wheel']),
         Option('scripts_dir', default=os.path.dirname(sys.executable),
                 help="the scripts installation directory", metavar="DIR",
                 tools=['build', 'install']),

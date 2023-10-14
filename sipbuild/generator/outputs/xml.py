@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,7 +23,7 @@
 
 from xml.etree.ElementTree import Element, SubElement
 
-from ..python_slots import is_number_slot
+from ..python_slots import is_number_slot, reflected_slot
 from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
         IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
@@ -42,17 +42,16 @@ def output_xml(spec, module_name):
 
     # Note that we don't yet handle mapped types, templates or exceptions.
 
-    for module in spec.modules:
-        if module.py_name == module_name:
-            break
-    else:
+    module = spec.module
+
+    if module.py_name != module_name:
         return None
 
     root = Element('Module', version=_XML_VERSION_NR, name=module.py_name)
 
     for klass in spec.classes:
         if klass.iface_file.module is module and not klass.external:
-            _xml_class(root, spec, module, klass)
+            _class(root, spec, module, klass)
 
     for klass in module.proxies:
         _class(root, spec, module, klass)
@@ -234,7 +233,7 @@ def _overload(parent, spec, scope, overload, extends, is_static):
     """ Output the XML for an overload. """
 
     if overload.is_reflected:
-        name = _reflected_slot(overload.common.py_slot)
+        name = reflected_slot(overload.common.py_slot)
     else:
         name = None
 
@@ -378,7 +377,9 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and arg.default_value is not None):
             s += arg.name.name + ': '
 
-    s += ArgumentFormatter(spec, arg).as_rest_ref(out)
+    arg_formatter = ArgumentFormatter(spec, arg)
+    arg_rest_ref = arg_formatter.as_rest_ref(out, as_xml=True)
+    s += arg_rest_ref
 
     if not out and arg.name is not None and arg.default_value is not None:
         s += ' = '
@@ -387,32 +388,9 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         # hard but will get most cases.
         rest_ref = ValueListFormatter(spec, arg.default_value).as_rest_ref()
         if rest_ref is None:
-            rest_ref = formatter.py_default_value()
+            rest_ref = arg_formatter.py_default_value(arg_rest_ref,
+                    as_xml=True)
 
         s += rest_ref
 
     return s
-
-
-# A map of slots and the names of their reflections.
-_SLOT_REFLECTIONS = {
-    PySlot.ADD: '__radd__',
-    PySlot.SUB: '__rsub__',
-    PySlot.MUL: '__rmul__',
-    PySlot.MATMUL: '__rmatmul__',
-    PySlot.TRUEDIV: '__rtruediv__',
-    PySlot.FLOORDIV: '__rfloordiv__',
-    PySlot.MOD: '__rmod__',
-    PySlot.LSHIFT: '__rlshift__',
-    PySlot.RSHIFT: '__rrshift__',
-    PySlot.AND: '__rand__',
-    PySlot.OR: '__ror__',
-    PySlot.XOR: '__rxor__',
-}
-
-def _reflected_slot(py_slot):
-    """ Return the name of the reflected version of a slot or None if it
-    doesn't have one.
-    """
-
-    return _SLOT_REFLECTIONS.get(py_slot)
