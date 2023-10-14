@@ -23,153 +23,140 @@
 
 from ...specification import ValueType
 
-from .argument import ArgumentFormatter
-from .base_formatter import BaseFormatter
-from .enum import EnumFormatter
-from .variable import VariableFormatter
+from .argument import fmt_argument_as_cpp_type, fmt_argument_as_py_type
+from .enum import fmt_enum_member_as_rest_ref
 
 
-class ValueListFormatter(BaseFormatter):
-    """ This creates various string representations of a list of values. """
+def fmt_value_list_as_cpp_expression(spec, value_list):
+    """ Return the C++ representation of a value list as an expression. """
 
-    @property
-    def cpp_expression(self):
-        """ The C++ representation of the value list as an expression. """
+    return _expression(spec, value_list)
 
-        return self._expression()
 
-    def py_expression(self, embedded=False, as_xml=False):
-        """ The Python representation of the value list as an expression. """
+def fmt_value_list_as_py_expression(spec, value_list, embedded=False,
+        as_xml=False):
+    """ The Python representation of a value list as an expression. """
 
-        return self._expression(as_python=True, embedded=embedded,
-                as_xml=as_xml)
+    return _expression(spec, value_list, as_python=True, embedded=embedded,
+            as_xml=as_xml)
 
-    def as_rest_ref(self, as_xml=False):
-        """ Return the Python representation of the value list as a reST
-        reference.
-        """
 
-        value_list = self.object
+def fmt_value_list_as_rest_ref(spec, value_list, as_xml=False):
+    """ Return the Python representation of a value list as a reST reference.
+    """
 
-        # The value must be a scoped name and we don't handle expressions.
-        if len(value_list) != 1 or value_list[0].value_type is not ValueType.SCOPED:
-            return None
-
-        target = value_list[0].value
-
-        # See if it is an attribute.
-        for variable in self.spec.variables:
-            if variable.fq_cpp_name == target:
-                return VariableFormatter(self.spec, variable).as_rest_ref()
-
-        # See if it is an enum member.
-        target_scope = target.scope
-        if target_scope is not None:
-            target_scope.make_absolute()
-
-        target_base_name = target.base_name
-
-        for enum in self.spec.enums:
-            # Look for the member name first before working out if it is the
-            # correct enum.
-            for member in enum.members:
-                if member.cpp_name == target_base_name:
-                    formatter = EnumFormatter(self.spec, enum)
-
-                    if enum.is_scoped:
-                        # It's a scoped enum so the fully qualified name of the
-                        # enum must match the scope of the name.
-                        if target_scope is not None and enum.fq_cpp_name == target_scope:
-                            return formatter.member_as_rest_ref(member)
-                    else:
-                        # It's a traditional enum so the scope of the enum must
-                        # match the scope of the name.
-                        if (enum.scope is None and target_scope is None) or (enum.scope is not None and target_scope is not None and enum.scope.iface_file.fq_cpp_name == target_scope):
-                            return formatter.member_as_rest_ref(member)
-
-                    break
-
+    # The value must be a scoped name and we don't handle expressions.
+    if len(value_list) != 1 or value_list[0].value_type is not ValueType.SCOPED:
         return None
 
-    def _expression(self, as_python=False, embedded=False, as_xml=False):
-        """ The representation of the value list as an expression. """
+    target = value_list[0].value
 
-        s = ''
+    # See if it is an attribute.
+    for variable in spec.variables:
+        if variable.fq_cpp_name == target:
+            return fmt_variable_as_rest_ref(variable)
 
-        for value in self.object:
-            if value.cast is not None and not as_python:
-                s += '(' + value.cast.as_cpp + ')'
+    # See if it is an enum member.
+    target_scope = target.scope
+    if target_scope is not None:
+        target_scope.make_absolute()
 
-            if value.unary_operator is not None:
-                s += value.unary_operator
+    target_base_name = target.base_name
 
-            if value.value_type is ValueType.QCHAR:
-                if value.value == '"' and embedded:
-                    s += "'\\\"'"
-                elif value.value.isprintable():
-                    s += "'" + value.value + "'"
+    for enum in spec.enums:
+        # Look for the member name first before working out if it is the
+        # correct enum.
+        for member in enum.members:
+            if member.cpp_name == target_base_name:
+                if enum.is_scoped:
+                    # It's a scoped enum so the fully qualified name of the
+                    # enum must match the scope of the name.
+                    if target_scope is not None and enum.fq_cpp_name == target_scope:
+                        return fmt_enum_member_as_rest_ref(member)
                 else:
-                    s += f"'\\{ord(value.value):03o}'"
+                    # It's a traditional enum so the scope of the enum must
+                    # match the scope of the name.
+                    if (enum.scope is None and target_scope is None) or (enum.scope is not None and target_scope is not None and enum.scope.iface_file.fq_cpp_name == target_scope):
+                        return fmt_enum_member_as_rest_ref(member)
 
-            elif value.value_type is ValueType.STRING:
-                quote = "\\\"" if embedded else "\""
+                break
 
-                s += quote
+    return None
 
-                for ch in value.value:
-                    escape = True
 
-                    if ch in "\\\"":
-                        pass
-                    elif ch == '\n':
-                        ch = 'n';
-                    elif ch == '\r':
-                        ch = 'r'
-                    elif ch == '\t':
-                        ch = 't'
-                    else:
-                        escape = False
+def _expression(spec, value_list, as_python=False, embedded=False,
+        as_xml=False):
+    """ The representation of a value list as an expression. """
 
-                    if escape:
-                        s += "\\"
+    s = ''
 
-                    s += ch
+    for value in value_list:
+        if value.cast is not None and not as_python:
+            s += '(' + value.cast.as_cpp + ')'
 
-                s += quote
+        if value.unary_operator is not None:
+            s += value.unary_operator
 
-            elif value.value_type is ValueType.NUMERIC:
-                s += str(value.value) if as_python else str(int(value.value))
+        if value.value_type is ValueType.QCHAR:
+            if value.value == '"' and embedded:
+                s += "'\\\"'"
+            elif value.value.isprintable():
+                s += "'" + value.value + "'"
+            else:
+                s += f"'\\{ord(value.value):03o}'"
 
-            elif value.value_type is ValueType.REAL:
-                s += format(value.value, 'g')
+        elif value.value_type is ValueType.STRING:
+            quote = "\\\"" if embedded else "\""
 
-            elif value.value_type is ValueType.SCOPED:
-                if as_python:
-                    s += value.value.as_py
+            s += quote
+
+            for ch in value.value:
+                escape = True
+
+                if ch in "\\\"":
+                    pass
+                elif ch == '\n':
+                    ch = 'n';
+                elif ch == '\r':
+                    ch = 'r'
+                elif ch == '\t':
+                    ch = 't'
                 else:
-                    s += value.value.as_cpp
+                    escape = False
 
-            elif value.value_type is ValueType.FCALL:
-                arg_formatter = ArgumentFormatter(self.spec,
-                        value.value.result)
+                if escape:
+                    s += "\\"
 
-                if as_python:
-                    s += arg_formatter.as_py_type()
-                else:
-                    s += arg_formatter.cpp_type()
+                s += ch
 
-                args = [ValueListFormatter(self.spec, a)._expression(
-                                as_python=as_python, embedded=embedded,
-                                as_xml=as_xml)
-                        for a in value.value.args]
+            s += quote
 
-                separator = ',' if as_xml else ', '
-                s += '(' + separator.join(args) + ')'
+        elif value.value_type is ValueType.NUMERIC:
+            s += str(value.value) if as_python else str(int(value.value))
 
-            elif value.value_type is ValueType.EMPTY:
-                s += '{}'
+        elif value.value_type is ValueType.REAL:
+            s += format(value.value, 'g')
 
-            if value.binary_operator is not None:
-                s += value.binary_operator
+        elif value.value_type is ValueType.SCOPED:
+            s += value.value.as_py if as_python else value.value.as_cpp
 
-        return s
+        elif value.value_type is ValueType.FCALL:
+            if as_python:
+                s += fmt_argument_as_py_type(spec, value.value.result)
+            else:
+                s += fmt_argument_as_cpp_type(spec, value.value.result)
+
+            args = [_expression(spec, arg, as_python=as_python,
+                            embedded=embedded, as_xml=as_xml)
+                    for arg in value.value.args]
+
+            separator = ',' if as_xml else ', '
+            s += '(' + separator.join(args) + ')'
+
+        elif value.value_type is ValueType.EMPTY:
+            s += '{}'
+
+        if value.binary_operator is not None:
+            s += value.binary_operator
+
+    return s

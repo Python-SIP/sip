@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -129,12 +129,36 @@ def is_inplace_number_slot(slot):
     return slot in _INPLACE_NUMBER_SLOTS
 
 
+_INPLACE_SEQUENCE_SLOTS = (PySlot.ICONCAT, PySlot.IREPEAT)
+
+def is_inplace_sequence_slot(slot):
+    """ Return True if a slot is an inplace sequence slot. """
+
+    return slot in _INPLACE_SEQUENCE_SLOTS
+
+
+_INT_ARG_SLOTS = (PySlot.REPEAT, PySlot.IREPEAT)
+
+def is_int_arg_slot(slot):
+    """ Return True if a slot taks an int argument. """
+
+    return slot in _INT_ARG_SLOTS
+
+
 _INT_RETURN_SLOTS = (PySlot.BOOL, PySlot.CONTAINS)
 
 def is_int_return_slot(slot):
     """ Return True if a slot returns an int. """
 
     return slot in _INT_RETURN_SLOTS
+
+
+_MULTI_ARG_SLOTS = (PySlot.SETITEM, PySlot.CALL)
+
+def is_multi_arg_slot(slot):
+    """ Return True if a slot takes more than one argument. """
+
+    return slot in _MULTI_ARG_SLOTS
 
 
 _NUMBER_SLOTS = (PySlot.ADD, PySlot.SUB, PySlot.MUL, PySlot.MOD,

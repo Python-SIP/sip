@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,18 +21,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from .scoped import EmbeddedScopeFormatter
+def fmt_variable_as_rest_ref(variable):
+    """ Return the fully qualified Python name as a reST reference. """
 
+    module_name = variable.module.fq_py_name.name
+    variable_name = fmt_scoped_py_name(self.scope, variable.py_name.name)
 
-class VariableFormatter(EmbeddedScopeFormatter):
-    """ This creates various string representations of a variable. """
-
-    def as_rest_ref(self):
-        """ Return the fully qualified Python name as a reST reference. """
-
-        variable = self.object
-        module_name = variable.module.fq_py_name.name
-        variable_name = format_scoped_py_name(self.scope,
-                variable.py_name.name)
-
-        return f':sip:ref:`~{module_name}.{variable_name}`'
+    return f':sip:ref:`~{module_name}.{variable_name}`'

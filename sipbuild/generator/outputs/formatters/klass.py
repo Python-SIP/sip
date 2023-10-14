@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,53 +23,49 @@
 
 from ...scoped_name import STRIP_NONE
 
-from .scoped import EmbeddedScopeFormatter
-from .template import TemplateFormatter
-from .utils import format_scoped_py_name, iface_is_defined
+from .misc import fmt_scoped_py_name, iface_is_defined
+from .template import fmt_template_as_cpp_type
 
 
-class ClassFormatter(EmbeddedScopeFormatter):
-    """ This creates various string representations of a class. """
+def fmt_class_as_rest_ref(klass):
+    """ Return a fully qualified Python name as a reST reference. """
 
-    def as_rest_ref(self):
-        """ Return the fully qualified Python name as a reST reference. """
+    module_name = klass.iface_file.module.fq_py_name.name
+    klass_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
 
-        klass = self.object
-        module_name = klass.iface_file.module.fq_py_name.name
-        klass_name = format_scoped_py_name(self.scope, klass.py_name.name)
+    return f':sip:ref:`~{module_name}.{klass_name}`'
 
-        return f':sip:ref:`~{module_name}.{klass_name}`'
 
-    def scoped_name(self, *, scope=None, strip=STRIP_NONE, make_public=False,
-            as_xml=False):
-        """ Return an appropriately scoped class name. """
+def fmt_class_as_scoped_name(spec, klass, scope=None, strip=STRIP_NONE,
+        make_public=False, as_xml=False):
+    """ Return a class's scoped name. """
 
-        klass = self.object
+    if klass.no_type_name:
+        return fmt_template_as_cpp_type(spec, klass.template, strip=strip,
+                as_xml=as_xml)
 
-        if klass.no_type_name:
-            return TemplateFormatter(self.spec, klass.template).cpp_type(
-                    scope=scope, strip=strip, as_xml=as_xml)
+    # Protected classes have to be explicitly scoped.
+    if klass.is_protected and not make_public:
+        # This should never happen.
+        if scope is None:
+            scope = klass.iface_file
 
-        # Protected classes have to be explicitly scoped.
-        if klass.is_protected and not make_public:
-            # This should never happen.
-            if scope is None:
-                scope = klass.iface_file
+        return f'sip{scope.fq_cpp_name.as_word}::sip{klass.iface_file.fq_cpp_name.base_name}'
 
-            return 'sip{scope.fq_cpp_name.as_word}::sip{klass.iface_file.fq_cpp_name.base_name}'
+    return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
 
-        return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
 
-    def as_type_hint(self, module, defined):
-        """ Return the type hint. """
+def fmt_class_as_type_hint(spec, klass, defined):
+    """ Return the type hint. """
 
-        klass = self.object
+    module = spec.module
 
-        # We assume that an external class will be handled properly by some
-        # handwritten type hint code.
-        quote = '' if klass.external or iface_is_defined(klass.iface_file, klass.scope, module, defined) else "'"
+    # We assume that an external class will be handled properly by some
+    # handwritten type hint code.
+    quote = '' if klass.external or iface_is_defined(klass.iface_file, klass.scope, module, defined) else "'"
 
-        # Include the module name if it is not the current one.
-        module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module else ''
+    # Include the module name if it is not the current one.
+    module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module and defined is not None else ''
+    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
 
-        return f'{quote}{module_name}{self.fq_py_name}{quote}'
+    return f'{quote}{module_name}{py_name}{quote}'

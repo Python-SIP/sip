@@ -294,6 +294,13 @@ _PY_AUTO = (ArgumentType.BOOL, ArgumentType.BYTE, ArgumentType.SBYTE,
 _PY_CONSTRAINED = (ArgumentType.CBOOL, ArgumentType.CINT, ArgumentType.CFLOAT,
         ArgumentType.CDOUBLE)
 
+
+def py_as_int(type):
+    """ Return True if Python will interpret a type as int. """
+
+    return type.type in _PY_INT or type.type in _PY_LONG or type.type in _PY_ULONG
+
+
 def same_argument_type(spec, arg1, arg2, strict=True):
     """ Compare two argument types and return True if they are the same.
     'strict' means as C++ would see it, rather than Python.

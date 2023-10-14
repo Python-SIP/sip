@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,10 +23,9 @@
 
 from enum import IntEnum
 
-from ..specification import AccessSpecifier
+from ..specification import AccessSpecifier, ArgumentType, ArrayArgument
 
-from .formatters import (ClassFormatter, EnumFormatter, OverloadFormatter,
-        SignatureFormatter, VariableFormatter)
+from .formatters import fmt_argument_as_py_type, fmt_scoped_py_name
 
 
 class IconNumber(IntEnum):
@@ -70,17 +69,18 @@ def output_api(spec, api_filename):
 def _ctor(af, spec, module, ctor, scope):
     """ Generate an API ctor. """
 
-    py_class = module.py_name + '.' + ClassFormatter(spec, scope).fq_py_name
-    py_arguments = SignatureFormatter(spec, ctor.py_signature).py_arguments
+    py_class = module.py_name + '.' + fmt_scoped_py_name(scope.scope, scope.py_name.name)
+    py_arguments = _get_py_arguments(spec, ctor.py_signature)
 
     # Do the callable type form.
-    py_args_s = ', '.join(py_arguments)
-    af.write(f'{py_class}?{IconNumber.CLASS}({py_args_s})\n')
+    args_s = ', '.join(py_arguments)
+    af.write(f'{py_class}?{IconNumber.CLASS}({args_s})\n')
 
     # Do the call __init__ form.
     py_arguments.insert(0, 'self')
-    py_args_s = ', '.join(py_arguments)
-    af.write(f'{py_class}.__init__?{IconNumber.CLASS}({py_args_s})\n')
+
+    args_s = ', '.join(py_arguments)
+    af.write(f'{py_class}.__init__?{IconNumber.CLASS}({args_s})\n')
 
 
 def _enums(af, spec, module, scope=None):
@@ -88,13 +88,19 @@ def _enums(af, spec, module, scope=None):
 
     for enum in spec.enums:
         if enum.module is module and enum.scope is scope:
-            formatter = EnumFormatter(spec, enum)
-
             if enum.py_name is not None:
-                af.write(f'{module.py_name}.{formatter.fq_py_name}?{IconNumber.ENUM}\n')
+                py_name = fmt_scoped_py_name(enum.scope, enum.py_name.name)
+                af.write(f'{module.py_name}.{py_name}?{IconNumber.ENUM}\n')
 
-            for member_s in formatter.fq_py_member_names:
-                af.write(f'{member_s}?{IconNumber.ENUM}\n')
+            for member in enum.members:
+                enum_name = enum.module.py_name
+
+                if enum.py_name is not None:
+                    enum_name += '.'
+                    enum_name += fmt_scoped_py_name(enum.scope,
+                            enum.py_name.name)
+
+                af.write(f'{enum_name}.{member.py_name.name}?{IconNumber.ENUM}\n')
 
 
 def _variables(af, spec, module, scope=None):
@@ -102,30 +108,59 @@ def _variables(af, spec, module, scope=None):
 
     for variable in spec.variables:
         if variable.module is module and variable.scope is scope:
-            formatter = VariableFormatter(spec, variable)
-
-            af.write(f'{module.py_name}.{formatter.fq_py_name}?{IconNumber.VARIABLE}\n')
+            py_name = fmt_scoped_py_name(variable.scope, variable.py_name.name)
+            af.write(f'{module.py_name}.{py_name}?{IconNumber.VARIABLE}\n')
 
 
 def _overload(af, spec, module, overload, scope=None):
     """ Generate a single API overload. """
 
-    sig_formatter = SignatureFormatter(spec, overload.py_signature)
+    py_arguments = _get_py_arguments(spec, overload.py_signature)
+    py_results = _get_py_results(spec, overload.py_signature)
 
-    s = module.py_name + '.' + OverloadFormatter(spec, overload, scope).fq_py_name
+    scoped_py_name = fmt_scoped_py_name(scope, overload.common.py_name.name)
+    args_s = ', '.join(py_arguments)
 
-    py_args_s = ', '.join(sig_formatter.py_arguments)
-    s += f'?{IconNumber.METHOD}({py_args_s})'
+    s = f'{module.py_name}.{scoped_py_name}?{IconNumber.METHOD}({args_s})'
 
-    results = sig_formatter.py_results
-    if len(results) != 0:
+    if len(py_results) != 0:
         s += ' -> '
 
-        if len(results) > 1:
-            s += '(' + ', '.join(results) + ')'
+        results_s = ', '.join(py_results)
+
+        if len(py_results) > 1:
+            s += '(' + results_s + ')'
         else:
-            s += ', '.join(results)
+            s += results_s
 
     s += '\n'
 
     af.write(s)
+
+
+def _get_py_arguments(spec, py_signature):
+    """ Return the list of Python arguments. """
+
+    args = []
+
+    for arg in py_signature.args:
+        if arg.array is not ArrayArgument.ARRAY_SIZE and arg.is_in:
+            args.append(fmt_argument_as_py_type(spec, arg, default_value=True))
+
+    return args
+
+
+def _get_py_results(spec, py_signature):
+    """ Return the list of Python results. """
+
+    results = []
+
+    if py_signature.result is not None:
+        if py_signature.result.type is not ArgumentType.VOID or len(py_signature.result.derefs) != 0:
+            results.append(fmt_argument_as_py_type(spec,py_signature.result))
+
+    for arg in py_signature.args:
+        if arg.is_out:
+            results.append(fmt_argument_as_py_type(spec, arg))
+
+    return results

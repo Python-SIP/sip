@@ -3127,6 +3127,15 @@ def p_variable(p):
     annos_symbol = 3
     body = p[4]
 
+    # We don't currently support /AllowNone/ and /DisallowNone/ for variables.
+    # Generated variable setters support allow None for some (pointer) types
+    # but not others.  For pointer types we explicity disallow None.  This
+    # doesn't affect the generated code but does mean that type hints match
+    # those from previous versions.  This should be changed to properly support
+    # the annotations.
+    if len(type.derefs) != 0:
+        type.disallow_none = True
+
     annotations = p[annos_symbol]
 
     pm.check_annotations(p, annos_symbol, "variable", _VARIABLE_ANNOTATIONS)

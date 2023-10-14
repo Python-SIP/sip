@@ -24,8 +24,6 @@
 from functools import partial
 import os
 
-from ply import lex, yacc
-
 from ...bindings_configuration import get_bindings_configuration
 from ...exceptions import UserException
 
@@ -47,6 +45,7 @@ from ..utils import (argument_as_str, cached_name, find_iface_file,
 from . import rules
 from . import tokens
 from .annotations import InvalidAnnotation, validate_annotation_value
+from .ply import lex, yacc
 
 
 class ParserManager:
@@ -611,7 +610,7 @@ class ParserManager:
             elif base_type_s == 'IntEnum':
                 base_type = EnumBaseType.INT_ENUM
             elif base_type_s == 'UIntEnum':
-                base_type = EnumBaseType.UNSIGNED_INT_ENUM
+                base_type = EnumBaseType.UINT_ENUM
             elif base_type_s == 'IntFlag':
                 base_type = EnumBaseType.INT_FLAG
             else:

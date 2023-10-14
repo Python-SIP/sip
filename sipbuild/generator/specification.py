@@ -304,7 +304,7 @@ class EnumBaseType(Enum):
     INT_FLAG = 3
 
     # enum.IntEnum with unsigned values.
-    UNSIGNED_INT_ENUM = 4
+    UINT_ENUM = 4
 
 
 class GILAction(Enum):
@@ -679,6 +679,11 @@ class Argument:
     # The non-default type hints.
     type_hints: Optional['TypeHints'] = None
 
+    def __hash__(self):
+        """ Reimplemented so an Argument object can be used as a dict key. """
+
+        return id(self)
+
 
 @dataclass
 class CachedName:
@@ -959,6 +964,9 @@ class Member:
     # Set if /Sequence/ was specified.
     is_sequence: bool = False
 
+    # The number of the member. (outputter)
+    member_nr: int = -1
+
     # The original interface file if the function was defined in a namespace.
     namespace_iface_file: Optional[IfaceFile] = None
 
@@ -1095,7 +1103,7 @@ class Overload:
     # The member common to all overloads.
     common: Member
 
-    # The C/C++ name.
+    # The C/C++ name if not a operator/slot.
     cpp_name: str
 
     # The C/C++ signature.
@@ -1255,7 +1263,7 @@ class Signature:
     # The list of arguments.
     args: List[Argument] = field(default_factory=list)
 
-    # The type of the optional result.
+    # The type of the result.
     result: Optional[Argument] = None
 
 
@@ -1685,6 +1693,11 @@ class WrappedClass:
     # The visible member functions. (resolver)
     visible_members: List[VisibleMember] = field(default_factory=list)
 
+    def __hash__(self):
+        """ Reimplemented so an Argument object can be used as a dict key. """
+
+        return id(self)
+
 
 @dataclass
 class WrappedEnum:
@@ -1702,7 +1715,7 @@ class WrappedEnum:
     # The cached fully qualified C++ name.
     cached_fq_cpp_name: Optional[CachedName] = None
 
-    # Set if the enum is defined in the protected section.
+    # Set if the enum is defined in a protected section.
     is_protected: bool = False
 
     # Set if the enum is a scoped enum.
@@ -1736,6 +1749,11 @@ class WrappedEnum:
 
     # The generated type number. (resolver)
     type_nr: int = -1
+
+    def __hash__(self):
+        """ Reimplemented so an Argument object can be used as a dict key. """
+
+        return id(self)
 
 
 @dataclass

@@ -30,13 +30,11 @@ import sys
 
 from .abstract_builder import AbstractBuilder
 from .buildable import BuildableFromSources
-from .code_generator import set_globals
 from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
 from .module import copy_sip_h, copy_sip_pyi
 from .py_versions import OLDEST_SUPPORTED_MINOR
-from .version import SIP_VERSION, SIP_VERSION_STR
 
 
 class Builder(AbstractBuilder):
@@ -238,7 +236,7 @@ class Builder(AbstractBuilder):
 
         project = self.project
 
-        abi_major_version, abi_minor_version = project.abi_version.split('.')
+        abi_major_version, _ = project.abi_version.split('.')
 
         # Get the list of directories to search for .sip files.
         sip_include_dirs = list(project.sip_include_dirs)
@@ -260,11 +258,6 @@ class Builder(AbstractBuilder):
             # Generate the sip.h file for the shared sip module.
             copy_sip_h(abi_major_version, project.build_dir,
                     project.sip_module, version_info=project.version_info)
-
-        set_globals(SIP_VERSION,
-                SIP_VERSION_STR if project.version_info else None,
-                int(abi_major_version), int(abi_minor_version),
-                project.sip_module, UserException)
 
         # Generate the code for each set of bindings.
         api_files = []

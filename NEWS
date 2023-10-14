@@ -1,3 +1,6 @@
+v6.8.0 14the October 2023
+  - The conversion to a pure Python implementation is now complete.
+
 v6.7.12 10th October 2023
   - The latest version of ABI v13 is v13.6.0.
   - The latest version of ABI v12 is v12.13.0.

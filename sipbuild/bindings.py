@@ -25,11 +25,11 @@ import os
 import sys
 
 from .buildable import BuildableBindings
-from .code_generator import generateCode, py2c
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .generator import parse, resolve
-from .generator.outputs import output_api, output_extract, output_pyi
+from .generator.outputs import (output_api, output_code, output_extract,
+        output_pyi)
 from .installable import Installable
 from .module import copy_nonshared_sources
 from .version import SIP_VERSION
@@ -171,8 +171,6 @@ class Bindings(Configurable):
         # Resolve the types.
         resolve(spec, modules)
 
-        pt = py2c(spec, encoding)
-
         module = spec.module
 
         uses_limited_api = module.use_limited_api or spec.is_composite
@@ -219,17 +217,9 @@ class Bindings(Configurable):
             buildable.installables.append(installable)
 
         # Generate the bindings.
-        header, sources = generateCode(pt, buildable.build_dir,
-                self.source_suffix, self.exceptions, self.tracing,
-                self.release_gil, self.concatenate, self.tags,
-                self.disabled_features, self.docstrings, project.py_debug)
-
-        if header:
-            buildable.headers.append(header)
+        output_code(spec, self, project, buildable)
 
         buildable.headers.extend(self.headers)
-
-        buildable.sources.extend(sources)
 
         # Add the sip module code if it is not shared.
         buildable.include_dirs.append(buildable.build_dir)

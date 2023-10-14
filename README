@@ -21,7 +21,7 @@ to create the bindings extension module.  Several extension modules may be
 installed in the same Python package.  Extension modules can be built so that
 they are are independent of the version of Python being used.  In other words a
 wheel created from them can be installed with any version of Python starting
-with v3.5.
+with v3.8.
 
 The specification files contain a description of the interface of the C or C++
 library, i.e. the classes, methods, functions and variables.  The format of a
@@ -32,7 +32,7 @@ corresponding header file.
 The sip module provides support functions to the automatically generated
 code.  The sip module is installed as part of the same Python package as the
 generated extension modules.  Unlike the extension modules the sip module is
-specific to a particular version of Python (e.g. v3.5, v3.6, v3.7, v3.8).
+specific to a particular version of Python (e.g. v3.8, v3.9, v3.10, v3.11).
 
 SIP makes it easy to exploit existing C or C++ libraries in a productive
 interpretive programming environment.  SIP also makes it easy to take a Python

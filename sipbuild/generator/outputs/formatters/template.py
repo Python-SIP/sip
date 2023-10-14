@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,35 +21,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ...scoped_name import STRIP_GLOBAL, STRIP_NONE
+from ...scoped_name import STRIP_NONE
 
-from .scoped import ScopedFormatter
-from .signature import SignatureFormatter
+from .signature import fmt_signature_as_cpp_declaration
 
 
-class TemplateFormatter(ScopedFormatter):
-    """ This creates various string representations of a template. """
+def fmt_template_as_cpp_type(spec, template, strip=STRIP_NONE, as_xml=False):
+    """ Return the C++ representation of a template type. """
 
-    def cpp_type(self, *, strip=STRIP_NONE, as_xml=False):
-        """ Return the C++ representation of the template type. """
+    sig_s = fmt_signature_as_cpp_declaration(spec, template.types, strip=strip,
+            as_xml=as_xml)
 
-        template = self.object
-
-        s = ''
-
-        if as_xml:
-            strip = STRIP_GLOBAL
-
-        s += template.cpp_name.cpp_stripped(strip)
-
-        s += '<'
-
-        s += SignatureFormatter(self.spec, template.types).cpp_arguments(
-                strip=strip, as_xml=as_xml)
-
-        if s.endswith('>') and not as_xml:
-            s += ' '
-
-        s += '>'
-
-        return s
+    return template.cpp_name.cpp_stripped(strip) + '<' + sig_s + '>'

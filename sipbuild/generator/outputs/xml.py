@@ -28,9 +28,9 @@ from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
         IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
 
-from .formatters import (ArgumentFormatter, ClassFormatter, EnumFormatter,
-        format_scoped_py_name, SignatureFormatter, ValueListFormatter,
-        VariableFormatter)
+from .formatters import (fmt_argument_as_rest_ref, fmt_class_as_rest_ref,
+        fmt_scoped_py_name, fmt_signature_as_cpp_declaration,
+        fmt_value_list_as_rest_ref)
 
 
 # The schema version number.
@@ -91,7 +91,7 @@ def _class(parent, spec, module, klass):
 
     if klass.is_opaque:
         return SubElement(parent, 'OpaqueClass',
-                name=ClassFormatter(spec, klass).fq_py_name)
+                name=fmt_scoped_py_name(klass.scope, klass.py_name.name))
 
     if klass.is_hidden_namespace:
         parent_klass = parent
@@ -115,11 +115,10 @@ def _class(parent, spec, module, klass):
 
         if len(klass.superclasses) != 0:
             attrib['inherits'] = ' '.join(
-                    [ClassFormatter(spec, s).as_rest_ref()
-                            for s in klass.superclasses])
+                    [fmt_class_as_rest_ref(sc) for sc in klass.superclasses])
 
         parent_klass = SubElement(parent, 'Class', attrib,
-                name=ClassFormatter(spec, klass).fq_py_name,
+                name=fmt_scoped_py_name(klass.scope, klass.py_name.name),
                 realname=_realname(klass.iface_file.fq_cpp_name))
 
     for ctor in klass.ctors:
@@ -141,18 +140,18 @@ def _enums(parent, spec, module, scope=None):
             if enum.py_name is None:
                 for member in enum.members:
                     SubElement(parent, 'Member',
-                            name=format_scoped_py_name(enum.scope,
+                            name=fmt_scoped_py_name(enum.scope,
                                     member.py_name.name),
                             realname=_realname(enum.scope, member.cpp_name),
                             const='1', typename='int')
             else:
                 enum_el = SubElement(parent, 'Enum',
-                        name=format_scoped_py_name(enum.scope,
+                        name=fmt_scoped_py_name(enum.scope,
                                 enum.py_name.name),
                         realname=_realname(enum.fq_cpp_name))
 
                 for member in enum.members:
-                    name = format_scoped_py_name(enum.scope, enum.py_name.name) + '.' + member.py_name.name
+                    name = fmt_scoped_py_name(enum.scope, enum.py_name.name) + '.' + member.py_name.name
 
                     SubElement(enum_el, 'EnumMember', name=name,
                             realname=_realname(enum.fq_cpp_name,
@@ -164,8 +163,6 @@ def _variables(parent, spec, module, scope=None):
 
     for variable in spec.variables:
         if variable.module is module and variable.scope is scope:
-            formatter = VariableFormatter(spec, variable)
-
             attrib = {}
 
             if variable.type.is_const or scope is None:
@@ -174,7 +171,9 @@ def _variables(parent, spec, module, scope=None):
             if variable.is_static:
                 attrib['static'] = '1'
 
-            SubElement(parent, 'Member', attrib, name=formatter.fq_py_name,
+            SubElement(parent, 'Member', attrib,
+                    name=fmt_scoped_py_name(variable.scope,
+                            variable.py_name.name),
                     realname=_realname(variable.fq_cpp_name),
                     typename=_typename(spec, variable.type))
 
@@ -188,7 +187,7 @@ def _ctor(parent, spec, scope, ctor):
         attrib['cppsig'] = _cpp_signature(spec, ctor.cpp_signature)
 
     function_el = SubElement(parent, 'Function', attrib,
-            name=format_scoped_py_name(scope, '__init__'),
+            name=fmt_scoped_py_name(scope, '__init__'),
             realname=_realname(scope, '__init__'))
 
     for arg in ctor.py_signature.args:
@@ -212,7 +211,7 @@ def _function(parent, spec, member, overloads, scope=None):
                             overload.cpp_signature)
 
                 signal_el = SubElement(parent, 'Signal', attrib,
-                        name=format_scoped_py_name(scope, member.py_name.name),
+                        name=fmt_scoped_py_name(scope, member.py_name.name),
                         realname=_realname(scope, overload.cpp_name))
 
                 for arg in overload.py_signature.args:
@@ -262,10 +261,11 @@ def _overload(parent, spec, scope, overload, extends, is_static):
         attrib['virtual'] = '1'
 
     if extends is not None:
-        attrib['extends'] = ClassFormatter(spec, extends).fq_py_name
+        attrib['extends'] = fmt_scoped_py_name(extends.scope,
+                extends.py_name.name)
 
     function_el = SubElement(parent, 'Function', attrib,
-            name=format_scoped_py_name(scope, name),
+            name=fmt_scoped_py_name(scope, name),
             realname=_realname(scope, cpp_name))
 
     # An empty type hint specifies a void return.
@@ -329,13 +329,11 @@ def _has_cpp_signature(signature):
     return True
 
 
-def _cpp_signature(spec, signature, is_const=False):
+def _cpp_signature(spec, cpp_signature, is_const=False):
     """ Return the XML for a C++ signature. """
 
-    formatter = SignatureFormatter(spec, signature)
-
-    args = formatter.cpp_arguments(strip=STRIP_GLOBAL, make_public=True,
-        as_xml=True)
+    args = fmt_signature_as_cpp_declaration(spec, cpp_signature,
+            strip=STRIP_GLOBAL, make_public=True, as_xml=True)
     const = ' const' if is_const else ''
 
     return f'({args}){const}'
@@ -377,8 +375,7 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
         if kw_args is KwArgs.ALL or (kw_args is KwArgs.OPTIONAL and arg.default_value is not None):
             s += arg.name.name + ': '
 
-    arg_formatter = ArgumentFormatter(spec, arg)
-    arg_rest_ref = arg_formatter.as_rest_ref(out, as_xml=True)
+    arg_rest_ref = fmt_argument_as_rest_ref(spec, arg, out, as_xml=True)
     s += arg_rest_ref
 
     if not out and arg.name is not None and arg.default_value is not None:
@@ -386,10 +383,10 @@ def _typename(spec, arg, kw_args=KwArgs.NONE, out=False):
 
         # Try and convert the value to a reST reference.  We don't try very
         # hard but will get most cases.
-        rest_ref = ValueListFormatter(spec, arg.default_value).as_rest_ref()
+        rest_ref = fmt_value_list_as_rest_ref(spec, arg.default_value)
         if rest_ref is None:
-            rest_ref = arg_formatter.py_default_value(arg_rest_ref,
-                    as_xml=True)
+            rest_ref = fmt_argument_as_py_default_value(spec, arg,
+                    arg_rest_ref, as_xml=True)
 
         s += rest_ref
 

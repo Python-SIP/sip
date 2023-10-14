@@ -21,10 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import glob
 import os
 
-from setuptools import Extension, find_packages, setup
+from setuptools import find_packages, setup
 
 
 # Get the version number.
@@ -40,24 +39,18 @@ except FileNotFoundError:
     version_file.write('SIP_VERSION = 0\nSIP_VERSION_STR = \'%s\'\n' % version)
     version_file.close()
 
-# Build the code generator extension module.
-code_gen_src = sorted(glob.glob(os.path.join('code_generator', '*.c')))
-code_gen_module = Extension('sipbuild.code_generator', code_gen_src,
-        include_dirs=['code_generator'], py_limited_api=True)
-
 # Do the setup.
 setup(
         name='sip',
         version=version,
         license='SIP',
         python_requires='>=3.7',
-        install_requires=['packaging', 'ply', 'setuptools',
+        install_requires=['packaging', 'setuptools',
                 'tomli;python_version<"3.11"'],
         packages=find_packages(),
         package_data={
             'sipbuild.module': ['source/*/*'],
         },
-        ext_modules=[code_gen_module],
         entry_points={
             'console_scripts': [
                 'sip-distinfo = sipbuild.distinfo.main:main',

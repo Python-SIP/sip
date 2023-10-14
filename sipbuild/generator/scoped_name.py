@@ -63,7 +63,7 @@ class ScopedName:
         return self._name[self._normalised_index(index)]
 
     def __len__(self):
-        """ Return the length of the name, ie. the number of indivual names.
+        """ Return the length of the name, ie. the number of individual names.
         """
 
         nr_names = len(self._name)
@@ -123,13 +123,7 @@ class ScopedName:
     def as_cpp(self):
         """ The C++ representation of the name. """
 
-        cpp = '::'.join(self._name)
-
-        # Precede an explicit global scope with a space to avoid '<::'.
-        if cpp.startswith('::'):
-            cpp = ' ' + cpp
-
-        return cpp
+        return '::'.join(self._name)
 
     @property
     def as_py(self):

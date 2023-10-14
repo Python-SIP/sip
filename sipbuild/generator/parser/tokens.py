@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,9 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from ply.lex import TOKEN
-
 from ..specification import CodeBlock
+
+from .ply.lex import TOKEN
 
 
 # The lexer states.

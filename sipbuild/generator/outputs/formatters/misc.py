@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-def format_copying(copying, comment):
+def fmt_copying(copying, comment):
     """ Return a formatted %Copying text. """
 
     s = ''.join([b.text for b in copying]).rstrip().replace('\n', '\n' + comment + ' ')
@@ -32,13 +32,13 @@ def format_copying(copying, comment):
     return s
 
 
-def format_scoped_py_name(scope, py_name):
+def fmt_scoped_py_name(scope, py_name):
     """ Return a formatted scoped Python name. """
 
     if scope is None or scope.is_hidden_namespace:
         scope_s = ''
     else:
-        scope_s = format_scoped_py_name(scope.scope, None) + scope.py_name.name + '.'
+        scope_s = fmt_scoped_py_name(scope.scope, None) + scope.py_name.name + '.'
 
     if py_name is None:
         py_name_s = ''
@@ -52,6 +52,10 @@ def iface_is_defined(iface_file, scope, module, defined):
     """ Return True if a type corresponding to an interface file has been
     defined in the context of a module.
     """
+
+    # It is implicitly defined if we are not keeping a record.
+    if defined is None:
+        return True
 
     # A type in another module would have been imported.
     if iface_file.module is not module:

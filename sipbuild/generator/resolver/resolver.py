@@ -30,10 +30,10 @@ from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_inplace_number_slot, is_rich_compare_slot, is_ssize_return_slot,
         is_void_return_slot, is_zero_arg_slot)
 from ..scoped_name import ScopedName
-from ..specification import (AccessSpecifier, Argument, ArgumentType, ClassKey,
-        Constructor, IfaceFileType, MappedType, Member, PyQtMethodSpecifier,
-        PySlot, Signature, Transfer, ValueType, VirtualHandler,
-        VirtualOverload, VisibleMember, WrappedClass)
+from ..specification import (AccessSpecifier, Argument, ArgumentType,
+        ArrayArgument, ClassKey, Constructor, IfaceFileType, MappedType,
+        Member, PyQtMethodSpecifier, PySlot, Signature, Transfer, ValueType,
+        VirtualHandler, VirtualOverload, VisibleMember, WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
@@ -47,6 +47,7 @@ def resolve(spec, modules):
     """
 
     error_log = ErrorLog()
+    final_checks = []
 
     # Build the list of all imports for each module.
     for mod in modules:
@@ -98,7 +99,7 @@ def resolve(spec, modules):
         _set_mro(spec, klass, error_log)
 
     # Resolve the various types in the modules.
-    _resolve_module(spec, spec.module, error_log)
+    _resolve_module(spec, spec.module, error_log, final_checks)
 
     # Handle default ctors now that the argument types are resolved.
     for klass in spec.classes:
@@ -190,20 +191,15 @@ def resolve(spec, modules):
             if enum.module is spec.module:
                 _enum_iface_file_is_used(enum, spec.module)
 
-    # Create the name cache as seen by the legacy code.
-    name_cache = spec.name_cache
-    spec.name_cache = []
-
-    for k in sorted(name_cache.keys(), reverse=True):
-        spec.name_cache.extend(sorted(name_cache[k], key=lambda k: k.name))
-
-    _set_string_pool_offsets(spec)
+    # Perform any final checks.
+    for check in final_checks:
+        check()
 
     # Raise an exception for any errors.
     error_log.as_exception()
 
 
-def _resolve_module(spec, mod, error_log, seen=None):
+def _resolve_module(spec, mod, error_log, final_checks, seen=None):
     """ Resolve a module and the modules it imports. """
 
     if seen is None:
@@ -216,12 +212,12 @@ def _resolve_module(spec, mod, error_log, seen=None):
     # might generate new template-based types and they must be defined in the
     # right module.
     for imported_mod in mod.imports:
-        _resolve_module(spec, imported_mod, error_log, seen=seen)
+        _resolve_module(spec, imported_mod, error_log, final_checks, seen=seen)
 
     # Resolve typedefs, variables and global functions.
     _resolve_typedefs(spec, mod, error_log)
     _resolve_variables(spec, mod, error_log)
-    _resolve_scope_overloads(spec, mod.overloads, error_log)
+    _resolve_scope_overloads(spec, mod.overloads, error_log, final_checks)
 
     # Resolve class ctors, functions and casts.
     for klass in spec.classes:
@@ -232,44 +228,13 @@ def _resolve_module(spec, mod, error_log, seen=None):
             _set_needed_exceptions(spec, mod, klass.dtor_throw_args)
 
             _resolve_scope_overloads(spec, klass.overloads, error_log,
-                    scope=klass)
+                    final_checks, scope=klass)
             _transform_casts(spec, klass, error_log)
 
     # Resolve mapped types based on templates.
-    _resolve_mapped_types(spec, mod, error_log)
+    _resolve_mapped_types(spec, mod, error_log, final_checks)
 
     seen.append(mod)
-
-
-def _set_string_pool_offsets(spec):
-    """ Set the offset into the string pool for every used name. """
-
-    offset = 0
-
-    for name in spec.name_cache:
-        if not name.used:
-            continue
-
-        name_len = len(name.name)
-
-        # See if the tail of a previous used name could be used instead.
-        for prev_name in spec.name_cache:
-            prev_name_len = len(prev_name.name)
-
-            if prev_name_len <= name_len:
-                break
-
-            if not prev_name.used or prev_name.is_substring:
-                continue
-
-            if prev_name.name.endswith(name.name):
-                name.is_substring = True
-                name.offset = prev_name.offset + prev_name_len - name_len;
-                break
-
-        if not name.is_substring:
-            name.offset = offset
-            offset += name_len + 1
 
 
 # The map of slots and their compliments.
@@ -827,7 +792,7 @@ def _resolve_typedefs(spec, mod, error_log):
                     error_log)
 
 
-def _resolve_mapped_types(spec, mod, error_log):
+def _resolve_mapped_types(spec, mod, error_log, final_checks):
     """ Resolve the data types for mapped types based on a template. """
 
     for mapped_type in spec.mapped_types:
@@ -836,7 +801,7 @@ def _resolve_mapped_types(spec, mod, error_log):
                 _resolve_mapped_type_types(spec, mapped_type, error_log)
             else:
                 _resolve_scope_overloads(spec, mapped_type.overloads,
-                        error_log, scope=mapped_type)
+                        error_log, final_checks, scope=mapped_type)
 
 
 def _resolve_ctors(spec, klass, error_log):
@@ -936,12 +901,13 @@ def _add_default_copy_ctor(klass):
     klass.ctors.append(ctor)
 
 
-def _resolve_scope_overloads(spec, overloads, error_log, scope=None):
+def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
+        scope=None):
     """ Resolve the data types for a scope's overloads. """
 
     for overload in overloads:
         _resolve_func_types(spec, overload.common.module, scope, overload,
-                error_log)
+                error_log, final_checks)
 
         # Now check that the Python signature doesn't conflict with an earlier
         # one.  If there is %MethodCode then assume that it will handle any
@@ -1271,7 +1237,7 @@ def _resolve_ctor_types(spec, scope, ctor, error_log):
         _scope_default_value(spec, scope, arg)
 
 
-def _resolve_func_types(spec, mod, scope, overload, error_log):
+def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
     """ Resolve the types of a function. """
 
     # Handle any exceptions.
@@ -1292,7 +1258,8 @@ def _resolve_func_types(spec, mod, scope, overload, error_log):
             _resolve_type(spec, mod, scope, arg, error_log, allow_defined=True)
  
     # Handle the Python signature.
-    _resolve_py_signature_types(spec, mod, scope, overload, error_log)
+    _resolve_py_signature_types(spec, mod, scope, overload, error_log,
+            final_checks)
 
     result = overload.py_signature.result
 
@@ -1334,7 +1301,8 @@ def _resolve_func_types(spec, mod, scope, overload, error_log):
                     scope=scope)
 
 
-def _resolve_py_signature_types(spec, mod, scope, overload, error_log):
+def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
+        final_checks):
     """ Resolve the types of a Python signature. """
 
     result = overload.py_signature.result
@@ -1384,8 +1352,41 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log):
                             arg_nr + 1),
                     overload, scope=scope)
 
+        # Check that the argument support /Array/.
+        if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and arg.array is ArrayArgument.ARRAY:
+            # This is delayed because the class must be complete.  Be careful
+            # not to pass any non-local changing variables.
+            local_arg_nr = arg_nr
+            final_checks.append(
+                    lambda: _check_array_support(overload, local_arg_nr, scope,
+                            error_log))
+
         if scope is not None:
             _scope_default_value(spec, scope, arg)
+
+
+def _check_array_support(overload, arg_nr, scope, error_log):
+    """ Check that an argument supports /Array/. """
+
+    arg = overload.py_signature.args[arg_nr]
+
+    if len(arg.derefs) != 1 or not arg.is_in or arg.is_reference:
+        _log_overload_error(error_log,
+                "argument {0} is a mapped type or class with /Array/ and so must be a pointer".format(
+                        arg_nr + 1),
+                overload, scope=scope)
+
+    if arg.type is ArgumentType.MAPPED and arg.definition.no_release:
+        _log_overload_error(error_log,
+                "argument {0} is a mapped type that does not support /Array/ because /NoRelease/ has been specified for it".format(
+                        arg_nr + 1),
+                overload, scope=scope)
+
+    if arg.type is ArgumentType.CLASS and not arg.definition.needs_array_helper:
+        _log_overload_error(error_log,
+                "argument {0} is a class that does not support /Array/".format(
+                        arg_nr + 1),
+                overload, scope=scope)
 
 
 # Various type classifications.
