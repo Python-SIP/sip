@@ -1661,12 +1661,19 @@ def _enum_member_table(sf, spec, scope=None):
         if enum.module is not spec.module:
             continue
 
-        if enum.scope is not scope:
-            continue
+        enum_py_scope = _py_scope(enum.scope)
 
-        # Note that this should be detected and handled as an error by the
-        # resolver.
-        if enum.is_protected and isinstance(scope, WrappedClass) and not scope.has_shadow:
+        if isinstance(scope, WrappedClass):
+            # The scope is a class.
+            if enum_py_scope is not scope or (enum.is_protected and not scope.has_shadow):
+                continue
+
+        elif scope is not None:
+            # The scope is a mapped type.
+            if enum.scope != scope:
+                continue
+
+        elif enum_py_scope is not None or isinstance(enum.scope, MappedType) or enum.fq_cpp_name is None:
             continue
 
         enum_members.extend(enum.members)
