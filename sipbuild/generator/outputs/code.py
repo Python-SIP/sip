@@ -1565,18 +1565,18 @@ def _ordinary_function(sf, spec, bindings, member, scope=None):
 
     if scope is None:
         overloads = spec.module.overloads
-        scope_prefix = ''
+        py_scope_prefix = ''
     else:
         overloads = scope.overloads
 
-        scope = _py_scope(scope)
-        scope_prefix = '' if scope is None else scope.iface_file.fq_cpp_name.as_word + '_'
+        py_scope = _py_scope(scope)
+        py_scope_prefix = '' if py_scope is None else py_scope.iface_file.fq_cpp_name.as_word + '_'
 
     sf.write('\n\n')
 
     # Generate the docstrings.
     if _has_member_docstring(bindings, member, overloads):
-        sf.write(f'PyDoc_STRVAR(doc_{scope_prefix}{member_name}, "')
+        sf.write(f'PyDoc_STRVAR(doc_{py_scope_prefix}{member_name}, "')
         has_auto_docstring = _member_docstring(sf, spec, bindings, member,
                 overloads)
         sf.write('");\n\n')
@@ -1591,7 +1591,7 @@ def _ordinary_function(sf, spec, bindings, member, scope=None):
 
     sip_self_unused = False
 
-    if scope is None:
+    if py_scope is None:
         if not spec.c_bindings:
             sf.write(f'extern "C" {{static PyObject *func_{member_name}(PyObject *, PyObject *{kw_fw_decl});}}\n')
             sip_self = ''
@@ -1602,9 +1602,9 @@ def _ordinary_function(sf, spec, bindings, member, scope=None):
         sf.write(f'static PyObject *func_{member_name}(PyObject *{sip_self}, PyObject *sipArgs{kw_decl})\n')
     else:
         if not spec.c_bindings:
-            sf.write(f'extern "C" {{static PyObject *meth_{scope_prefix}{member_name}(PyObject *, PyObject *{kw_fw_decl});}}\n')
+            sf.write(f'extern "C" {{static PyObject *meth_{py_scope_prefix}{member_name}(PyObject *, PyObject *{kw_fw_decl});}}\n')
 
-        sf.write(f'static PyObject *meth_{scope_prefix}{member_name}(PyObject *, PyObject *sipArgs{kw_decl})\n')
+        sf.write(f'static PyObject *meth_{py_scope_prefix}{member_name}(PyObject *, PyObject *sipArgs{kw_decl})\n')
 
     sf.write('{\n')
 
@@ -1638,7 +1638,7 @@ f'''
     sipNoFunction(sipParseErr, {_cached_name_ref(member.py_name)}, ''')
 
         if has_auto_docstring:
-            sf.write(f'doc_{scope_prefix}{member_name}')
+            sf.write(f'doc_{py_scope_prefix}{member_name}')
         else:
             sf.write('SIP_NULLPTR')
 
