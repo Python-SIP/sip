@@ -160,6 +160,10 @@ class ScopedName:
             if strip != STRIP_GLOBAL:
                 start += strip
 
+                # Never strip the base name.
+                if start >= len(self._name):
+                    return self._name[-1]
+
         return '::'.join(self._name[start:])
 
     @property
