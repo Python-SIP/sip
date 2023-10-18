@@ -1562,14 +1562,15 @@ def _ordinary_function(sf, spec, bindings, member, scope=None):
     """ Generate an ordinary function. """
 
     member_name = member.py_name.name
-    scope = _py_scope(scope)
 
     if scope is None:
         overloads = spec.module.overloads
         scope_prefix = ''
     else:
         overloads = scope.overloads
-        scope_prefix = scope.iface_file.fq_cpp_name.as_word + '_'
+
+        scope = _py_scope(scope)
+        scope_prefix = '' if scope is None else scope.iface_file.fq_cpp_name.as_word + '_'
 
     sf.write('\n\n')
 
