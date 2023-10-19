@@ -1565,10 +1565,10 @@ def _ordinary_function(sf, spec, bindings, member, scope=None):
 
     if scope is None:
         overloads = spec.module.overloads
+        py_scope = None
         py_scope_prefix = ''
     else:
         overloads = scope.overloads
-
         py_scope = _py_scope(scope)
         py_scope_prefix = '' if py_scope is None else py_scope.iface_file.fq_cpp_name.as_word + '_'
 
