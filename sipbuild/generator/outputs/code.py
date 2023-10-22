@@ -5358,10 +5358,11 @@ def _call_args(sf, spec, cpp_signature, py_signature):
                 indirection = '&'
 
         # See if we need to cast a Python void * to the correct C/C++ pointer
-        # type.
+        # type.  Note that we assume that the arguments correspond and are just
+        # different types.
         need_cast = False
 
-        if py_signature is not cpp_signature:
+        if py_signature is not cpp_signature and len(py_signature.args) == len(cpp_signature.args):
             py_arg = py_signature.args[arg_nr]
 
             VOID_TYPES = (ArgumentType.VOID, ArgumentType.CAPSULE)
