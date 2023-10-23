@@ -2424,7 +2424,7 @@ def _get_method_table(klass):
 
         for overload in visible_member.scope.overloads:
             # Skip protected methods if we don't have the means to handle them.
-            if overload.access_specifier is AccessSpecifier.PROTECTED and not overload.has_shadow:
+            if overload.access_specifier is AccessSpecifier.PROTECTED and not klass.has_shadow:
                 continue
 
             if not _skip_overload(overload, visible_member.member, klass, visible_member.scope):
