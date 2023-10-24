@@ -3901,8 +3901,6 @@ void *sip{klass_name}::qt_metacast(const char *_clname)
 def _protected_enums(sf, spec, klass):
     """ Generate the protected enums for a class. """
 
-    klass_cpp_name = klass.iface_file.fq_cpp_name.as_cpp
-
     for enum in spec.enums:
         if not enum.is_protected:
             continue
@@ -3925,11 +3923,12 @@ def _protected_enums(sf, spec, klass):
         sf.write(' {')
 
         eol = '\n'
+        scope_cpp_name = enum.scope.iface_file.fq_cpp_name.as_cpp
 
         for member in enum.members:
             member_cpp_name = member.cpp_name
 
-            sf.write(f'{eol}        {member_cpp_name} = {klass_cpp_name}::{member_cpp_name}')
+            sf.write(f'{eol}        {member_cpp_name} = {scope_cpp_name}::{member_cpp_name}')
 
             eol = ',\n'
 
@@ -4472,7 +4471,7 @@ f'''
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_definition(spec,
-                handler.cpp_signature, make_public=True))
+                handler.cpp_signature))
 
     # Define the extra arguments for kept references.
     if result_is_returned and _keep_py_reference(result):
