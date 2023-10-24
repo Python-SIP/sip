@@ -9078,10 +9078,16 @@ class SourceFile:
             return
 
         for code_block in code_blocks:
-            self.write(f'#line {code_block.line_nr} "{code_block.sip_file}"\n')
+            self.write(f'#line {code_block.line_nr} "{self._posix_path(code_block.sip_file)}"\n')
             self.write(code_block.text)
 
-        self.write(f'#line {self._line_nr + 1} "{self._f.name}"\n')
+        self.write(f'#line {self._line_nr + 1} "{self._posix_path(self._f.name)}"\n')
+
+    @staticmethod
+    def _posix_path(path):
+        """ Return the POSIX format of a path. """
+
+        return path.replace('\\', '/')
 
     def _write_header_comments(self, description, module, version_info):
         """ Write the comments at the start of the file. """
