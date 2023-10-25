@@ -3942,7 +3942,7 @@ def _virtual_catcher(sf, spec, bindings, klass, virtual_overload, virt_nr):
     result = overload.cpp_signature.result
 
     result_type = fmt_argument_as_cpp_type(spec, result,
-            scope=klass.iface_file)
+            scope=klass.iface_file, make_public=True)
     klass_name = klass.iface_file.fq_cpp_name.as_word
     overload_cpp_name = _overload_cpp_name(overload)
     throw_specifier = _throw_specifier(bindings, overload.throw_args)
@@ -4053,7 +4053,7 @@ def _virtual_handler_call(sf, spec, klass, virtual_overload, result):
     protection_state = _fake_protected_args(handler.cpp_signature)
 
     result_type = fmt_argument_as_cpp_type(spec, overload.cpp_signature.result,
-            scope=klass.iface_file, make_public=True)
+            scope=klass.iface_file)
 
     sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *')
 
