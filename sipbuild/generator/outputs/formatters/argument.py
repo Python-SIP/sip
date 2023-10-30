@@ -325,7 +325,9 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
     hint = _get_hint(arg, out)
 
     # Assume pointers can be None unless specified otherwise.
-    if hint is None and arg.allow_none:
+    allow_none = arg.allow_none or (arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and arg.definition.handles_none)
+
+    if hint is None and allow_none:
         use_optional = True
     else:
         use_optional = (not arg.disallow_none and len(arg.derefs) != 0)
