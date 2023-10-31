@@ -1,4 +1,7 @@
-v6.8.0 30th October 2023
+v6.8.0 31st October 2023
+  - Added support for specifying the project metadata using the '[project]'
+    section of pyproject.toml as defined in PEP 621.  The use of the
+    '[tool.sip.metadata]' is now deprecated.
   - The conversion to a pure Python implementation is now complete.
 
 v6.7.12 10th October 2023

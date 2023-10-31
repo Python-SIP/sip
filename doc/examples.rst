@@ -35,9 +35,9 @@ The ``[build-system]`` section is used by build frontends to determine what
 version of what build backend is to be used.  :program:`pip`, for example, will
 download, install and invoke an appropriate version automatically.
 
-The ``[tool.sip.metadata]`` section specified the name of the project (as it
-would appear on PyPI).  This is the minimum information needed to build a
-standalone project.
+The ``[project]`` section specified the name of the project (as it would appear
+on PyPI).  This is the minimum information needed to build a standalone
+project.
 
 Next is the module's :file:`.sip` specification file (downloadable from
 :download:`here <../examples/standalone/fib.sip>`) which we also show in its
@@ -98,8 +98,8 @@ like that shown below.
     requires = ["sip >=6, <7"]
     build-backend = "sipbuild.api"
 
-    # Specify the PEP 566 metadata for the project.
-    [tool.sip.metadata]
+    # Specify the PEP 621 metadata for the project.
+    [project]
     name = "fib"
 
     # Configure the building of the fib bindings.
@@ -286,9 +286,8 @@ Compared to the standalone project's version of the file we have added the
 ``[tool.sip.bindings.core]`` section to specify that the project contains a
 single set of bindings called :mod:`~examples.core`.  We need to do this
 because the name is no longer the same as the name of the project itself as
-defined by the ``name`` key of the ``[tool.sip.metadata]`` section.  The
-bindings section is empty because all the default values are appropriate in
-this case.
+defined by the ``name`` key of the ``[project]`` section.  The bindings section
+is empty because all the default values are appropriate in this case.
 
 We have also added the ``[tool.sip.project]`` section containing the
 ``sip-module`` key, which specifies the full package name of the
@@ -353,10 +352,10 @@ project (downloadable from
 .. literalinclude:: ../examples/package/extras/pyproject.toml
 
 Compared to the ``examples-core`` project's version of the file we have added
-the ``requires-dist`` key to the ``[tool.sip.metadata]`` section which will
-ensure that the ``examples-core`` project will be automatically installed as a
-prerequisite of the ``examples-extras`` project.  SIP will automatically add a
-similar line to ensure the :mod:`~examples.sip` module is also installed.
+the ``dependencies`` key to the ``[project]`` section which will ensure that
+the ``examples-core`` project will be automatically installed as a prerequisite
+of the ``examples-extras`` project.  SIP will automatically add a similar line
+to ensure the :mod:`~examples.sip` module is also installed.
 
 Of course we have specifed an appropriately named bindings section.
 

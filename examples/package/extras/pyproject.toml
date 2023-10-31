@@ -3,10 +3,10 @@
 requires = ["sip >=6, <7"]
 build-backend = "sipbuild.api"
 
-# Specify the PEP 566 metadata for the project.
-[tool.sip.metadata]
+# Specify the PEP 621 metadata for the project.
+[project]
 name = "examples-extras"
-requires-dist = "examples-core"
+dependencies = ["examples-core"]
 
 # Specify each set of bindings.
 [tool.sip.bindings.extras]

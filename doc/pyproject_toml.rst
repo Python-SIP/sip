@@ -64,6 +64,12 @@ system extensions may do so.
 ``[tool.sip.metadata]`` Section
 -------------------------------
 
+.. deprecated:: 6.8
+
+    The ``[project]`` section as defined in
+    `PEP 621 <https://www.python.org/dev/peps/pep-0621/>`__ should be used
+    instead.
+
 The key/values in this section are interpreted as meta-data describing the
 project as specified in `PEP 566
 <https://www.python.org/dev/peps/pep-0566/>`__.  SIP will provide default

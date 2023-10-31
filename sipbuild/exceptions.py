@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -23,6 +23,8 @@
 
 import os
 import sys
+
+from .version import SIP_VERSION
 
 
 class UserException(Exception):
@@ -79,3 +81,16 @@ def handle_exception(e):
             file=sys.stderr)
 
     raise e
+
+
+def deprecated(thing, *, filename, line_nr, instead=None):
+    """ Tell the user about a deprecation. """
+
+    next_major_version = (SIP_VERSION >> 16) + 1
+
+    message = f"{filename}: line {line_nr}: {thing} is deprecated and will be removed in SIP v{next_major_version}.0.0"
+
+    if instead is not None:
+        message += f", use {instead} instead"
+
+    print(message, file=sys.stderr)
