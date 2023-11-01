@@ -21,11 +21,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import os
-
 from .exceptions import deprecated, UserFileException
 from .py_versions import OLDEST_SUPPORTED_MINOR
-from .toml import toml_load
+from .toml import toml_loads
 
 
 class PyProjectException(UserFileException):
@@ -86,23 +84,28 @@ class PyProject:
     def __init__(self):
         """ Initialise the object. """
 
-        self.toml_error = None
-
-        # This is called with the TOML file in the current directory but it
-        # might have changed by the time get_metadata() is called.
-        self._pyproject_toml = os.path.abspath('pyproject.toml')
-
         try:
-            self._pyproject = toml_load('pyproject.toml')
+            with open('pyproject.toml', encoding='UTF-8') as f:
+                self._raw_toml = f.read()
+
+            self.pyproject = toml_loads(self._raw_toml)
+
         except FileNotFoundError:
-            self.toml_error = "there is no such file in the current directory"
+            # Delay the exception in case the user is asking for help.
+            self.pyproject = None
+
+        except UnicodeDecodeError as e:
+            raise PyProjectException("is not a UTF-8 encoded file",
+                    details=str(e))
+
         except Exception as e:
-            self.toml_error = str(e)
+            # Raise the exception now about a possibly badly formed file.
+            raise PyProjectException(str(e))
 
     def get_metadata(self):
         """ Return a dict containing the PEP 566 metadata. """
 
-        if self.toml_error:
+        if self.pyproject is None:
             # Provide a minimal default.
             return dict(name='unknown', version='0.1')
 
@@ -167,10 +170,10 @@ class PyProject:
     def get_section(self, section_name, *, required=False):
         """ Return a sub-section with a dotted name. """
 
-        if self.toml_error:
+        if self.pyproject is None:
             return None
 
-        section = self._pyproject
+        section = self.pyproject
 
         for part in section_name.split('.'):
             try:
@@ -254,16 +257,15 @@ class PyProject:
         string.
         """
 
-        with open(self._pyproject_toml) as f:
-            for line_nr, line in enumerate(f):
-                line = line.strip()
+        for line_nr, line in enumerate(self._raw_toml.split('\n')):
+            line = line.strip()
 
-                # Ignore comments.
-                if line.startswith('#'):
-                    continue
+            # Ignore comments.
+            if line.startswith('#'):
+                continue
 
-                if target in line:
-                    return line_nr + 1
+            if target in line:
+                return line_nr + 1
 
         # The target wasn't present.
         return None

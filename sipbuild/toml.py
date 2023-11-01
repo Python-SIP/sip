@@ -32,3 +32,9 @@ def toml_load(toml_file):
 
     with open(toml_file, 'rb') as f:
         return tomllib.load(f)
+
+
+def toml_loads(toml_str):
+    """ Return a dict containing the decoded contents of a TOML string. """
+
+    return tomllib.loads(toml_str)

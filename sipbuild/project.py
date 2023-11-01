@@ -577,10 +577,11 @@ class Project(AbstractProject, Configurable):
         # parts of the configuration.
         self._configure_from_arguments(tool, tool_description)
 
-        # Now that any help has been given we can report a problematic
+        # Now that any help has been given we can report a missing
         # pyproject.toml file.
-        if pyproject.toml_error:
-            raise PyProjectException(pyproject.toml_error)
+        if pyproject.pyproject is None:
+            raise PyProjectException(
+                    "there is no such file in the current directory")
 
         # Make sure the configuration is complete.
         self.apply_user_defaults(tool)
