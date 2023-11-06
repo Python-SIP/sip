@@ -1,7 +1,7 @@
 /*
  * This file implements the API for the voidptr type.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
+ * Copyright (c) 2023 Riverbank Computing Limited <info@riverbankcomputing.com>
  *
  * This file is part of SIP.
  *
@@ -520,9 +520,7 @@ PyTypeObject sipVoidPtr_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
-#if PY_VERSION_HEX >= 0x03080000
     0,                      /* tp_vectorcall */
-#endif
 };
 
 

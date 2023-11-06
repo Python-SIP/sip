@@ -103,9 +103,7 @@ PyTypeObject sipWrapperType_Type = {
     0,                      /* tp_del */
     0,                      /* tp_version_tag */
     0,                      /* tp_finalize */
-#if PY_VERSION_HEX >= 0x03080000
     0,                      /* tp_vectorcall */
-#endif
 };
 
 
@@ -171,9 +169,7 @@ static sipWrapperType sipWrapper_Type = {
             0,              /* tp_del */
             0,              /* tp_version_tag */
             0,              /* tp_finalize */
-#if PY_VERSION_HEX >= 0x03080000
             0,              /* tp_vectorcall */
-#endif
         },
         {
             0,              /* am_await */
@@ -892,10 +888,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 
     PyObject *obj;
     PyMethodDef *md;
-
-#if PY_VERSION_HEX < 0x03070000 && defined(WITH_THREAD)
-    PyEval_InitThreads();
-#endif
 
     if (sip_enum_init() < 0)
         return NULL;
@@ -9632,9 +9624,7 @@ sipWrapperType sipSimpleWrapper_Type = {
             0,              /* tp_del */
             0,              /* tp_version_tag */
             0,              /* tp_finalize */
-#if PY_VERSION_HEX >= 0x03080000
             0,              /* tp_vectorcall */
-#endif
         },
         {
             0,              /* am_await */
@@ -11823,22 +11813,18 @@ PyObject *sip_get_qualname(const sipTypeDef *td, PyObject *name)
 
 
 /*
- * Implement PySlice_GetIndicesEx() (or its subsequent replacement).
+ * Unpack a slice object.
  */
 int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength)
 {
-#if PY_VERSION_HEX >= 0x03070000
     if (PySlice_Unpack(slice, start, stop, step) < 0)
         return -1;
 
     *slicelength = PySlice_AdjustIndices(length, start, stop, *step);
 
     return 0;
-#else
-    return PySlice_GetIndicesEx(slice, length, start, stop, step, slicelength);
-#endif
 }
 
 

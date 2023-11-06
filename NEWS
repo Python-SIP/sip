@@ -1,4 +1,7 @@
 v6.8.0 1st November 2023
+  - Python v3.7 is no longer supported.
+  - The latest version of ABI v13 is v13.7.0.
+  - The latest version of ABI v12 is v12.14.0.
   - Added support for specifying the project metadata using the '[project]'
     section of pyproject.toml as defined in PEP 621.  The use of the
     '[tool.sip.metadata]' is now deprecated.
