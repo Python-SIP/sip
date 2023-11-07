@@ -3850,11 +3850,10 @@ def _shadow_code(sf, spec, bindings, klass):
 
     # The meta methods if required.
     if (_pyqt5(spec) or _pyqt6(spec)) and klass.is_qobject:
+        module_name = spec.module.py_name
         gto_name = _gto_name(klass)
 
         if not klass.pyqt_no_qmetaobject:
-            module_name = spec.module.py_name
-
             sf.write(
 f'''
 const QMetaObject *sip{klass_name}::metaObject() const
