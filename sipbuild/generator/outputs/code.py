@@ -8408,7 +8408,7 @@ def _class_docstring(sf, spec, bindings, klass):
     else:
         is_first = True
 
-    if klass.docstring is None or klass.docstring.signature is not SocstringSignature.DISCARDED:
+    if klass.docstring is None or klass.docstring.signature is not DocstringSignature.DISCARDED:
         for ctor in klass.ctors:
             if ctor.access_specifier is AccessSpecifier.PRIVATE:
                 continue
