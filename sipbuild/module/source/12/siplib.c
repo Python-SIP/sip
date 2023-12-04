@@ -3896,7 +3896,7 @@ static int parsePass1(PyObject **parseErrp, sipSimpleWrapper **selfp,
     {
     case '#':
             /* A ctor has an argument with the /Transfer/ annotation. */
-            *selfp = va_arg(va, PyObject *);
+            *selfp = (sipSimpleWrapper *)va_arg(va, PyObject *);
             break;
 
     case 'B':
