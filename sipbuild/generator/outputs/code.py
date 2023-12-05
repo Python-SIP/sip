@@ -4251,7 +4251,7 @@ def _call_default_ctor(spec, ctor):
 
         # Do what we can to provide type information to the compiler.
         if arg.type is ArgumentType.CLASS and len(arg.derefs) > 0 and not arg.is_reference:
-            class_type = fmt_argument_as_cpp_type(spec, arg.definition)
+            class_type = fmt_argument_as_cpp_type(spec, arg)
             arg_s = f'static_cast<{class_type}>(0)'
         elif arg.type is ArgumentType.ENUM:
             enum_type = fmt_enum_as_cpp_type(arg.definition)
