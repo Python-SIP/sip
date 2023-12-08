@@ -7593,7 +7593,7 @@ def _arg_parser(sf, spec, scope, py_signature, ctor=None, overload=None):
             operator = '!='
             sip_value = 'sipValue'
 
-        parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair('
+        parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
         args.append('&sipParseErr')
         args.append('sipName')
         args.append('sipValue')
