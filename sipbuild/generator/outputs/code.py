@@ -6177,7 +6177,7 @@ def _catch_block(sf, spec, exception, py_signature=None, release_gil=False):
     # with older versions of SIP.
     exception_cpp_stripped = exception_fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
 
-    sip_exception_ref = 'sipExceptionRef' if exception.class_exception is not None or _is_used_in_code(exception.raise_code) else ''
+    sip_exception_ref = 'sipExceptionRef' if exception.class_exception is not None or _is_used_in_code(exception.raise_code, 'sipExceptionRef') else ''
 
     sf.write(
 f'''            catch ({exception_cpp_stripped} &{sip_exception_ref})
