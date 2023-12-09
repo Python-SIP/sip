@@ -8013,7 +8013,7 @@ def _delete_temporaries(sf, spec, py_signature):
             if spec.c_bindings or not arg.is_const:
                 sf.write(f'            sipFree({arg_name});\n')
             else:
-                sf.write(f'            sipFree(const_cast<wchar_t *>({arg_nr}));\n')
+                sf.write(f'            sipFree(const_cast<wchar_t *>({arg_name}));\n')
 
         else:
             convert_to_type_code = _get_convert_to_type_code(arg)
