@@ -7596,7 +7596,7 @@ def _arg_parser(sf, spec, scope, py_signature, ctor=None, overload=None):
         parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
         args.append('&sipParseErr')
         args.append('sipName')
-        args.append('sipValue')
+        args.append(sip_value)
 
     elif (overload is not None and overload.common.allow_keyword_args) or ctor is not None:
         # We handle keywords if we might have been passed some (because one of
