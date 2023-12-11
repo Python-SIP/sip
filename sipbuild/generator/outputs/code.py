@@ -1894,7 +1894,7 @@ def _char_instances(sf, spec, scope=None):
 
     return _write_instances_table(sf, scope, instances,
 '''/* Define the chars to be added to this {dict_type} dictionary. */
-"static sipCharInstanceDef charInstances{suffix}[]''')
+static sipCharInstanceDef charInstances{suffix}[]''')
 
 
 def _string_instances(sf, spec, scope=None):
@@ -1905,7 +1905,7 @@ def _string_instances(sf, spec, scope=None):
     instances = []
 
     for variable in _variables_in_scope(spec, scope):
-        if variable.type.type not in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING) or len(variable.type.derefs) == 0 or variable.type.type is ArgumentType.WSTRING:
+        if (variable.type.type not in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING) or len(variable.type.derefs) == 0) and variable.type.type is not ArgumentType.WSTRING:
             continue
 
         si_name = _cached_name_ref(variable.py_name)
