@@ -192,9 +192,14 @@ def t_DIRECTIVE(t):
 def t_code_END(t):
     r'%End'
 
-    t.type = 'CODE_BLOCK'
-    t.value = t.lexer.pm.code_block
+    code_block = t.lexer.pm.code_block
     t.lexer.pm.code_block = None
+
+    # Ignore any indentation preceding the # %End.
+    code_block.text = code_block.text.rstrip(' \t')
+
+    t.type = 'CODE_BLOCK'
+    t.value = code_block
     t.lexer.begin('INITIAL')
 
     return t
