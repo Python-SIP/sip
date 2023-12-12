@@ -521,7 +521,7 @@ def _module_code(spec, bindings, project, py_debug, buildable):
             sf.write(
 f'''
 
-void sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t{state_name})
+void sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t {state_name})
 {{
 ''')
 
