@@ -6104,12 +6104,20 @@ def _count_virtual_overloads(spec, klass):
     return len(list(_unique_class_virtual_overloads(spec, klass)))
 
  
+def _handling_exceptions(bindings, throw_args):
+    """ Return True if exceptions from a callable are being handled. """
+
+    # Handle any exceptions if there was no throw specifier, or a non-empty
+    # throw specifier.
+    return bindings.exceptions and (throw_args is None or len(throw_args.arguments) != 0)
+
+
 def _try(sf, bindings, throw_args):
     """ Generate the try block for a call. """
 
     # Generate the block if there was no throw specifier, or a non-empty throw
     # specifier.
-    if _throw_specifier(bindings, throw_args) != '':
+    if _handling_exceptions(bindings, throw_args):
         sf.write(
 '''            try
             {
@@ -6119,9 +6127,7 @@ def _try(sf, bindings, throw_args):
 def _catch(sf, spec, bindings, py_signature, throw_args, release_gil):
     """ Generate the catch blocks for a call. """
 
-    # Generate the blocks if there was no throw specifier, or a non-empty throw
-    # specifier.
-    if _throw_specifier(bindings, throw_args) != '':
+    if _handling_exceptions(bindings, throw_args):
         use_handler = (spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)))
 
         sf.write('            }\n')
