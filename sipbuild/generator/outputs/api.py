@@ -42,7 +42,7 @@ class IconNumber(IntEnum):
 def output_api(spec, api_filename):
     """ Output a QScintilla API file. """
 
-    with open(api_filename, 'w') as af:
+    with open(api_filename, 'w', encoding='UTF-8') as af:
         module = spec.module
 
         _enums(af, spec, module)

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -55,6 +55,6 @@ def output_extract(spec, extract_ref):
                         extract_id))
 
     # Write the parts to the file.
-    with open(extract_file, 'w') as ef:
+    with open(extract_file, 'w', encoding='UTF-8') as ef:
         for extract_part in ordered_parts:
             ef.write(extract_part.text)

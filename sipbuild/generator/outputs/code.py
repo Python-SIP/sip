@@ -9054,7 +9054,7 @@ class SourceFile:
     def open(self, source_name, project):
         """ Open a source file and make it current. """
 
-        self._f = open(source_name, 'w')
+        self._f = open(source_name, 'w', encoding='UTF-8')
 
         self._line_nr = 1
 
