@@ -25,7 +25,7 @@ from functools import partial
 import os
 
 from ...bindings_configuration import get_bindings_configuration
-from ...exceptions import UserException
+from ...exceptions import deprecated, UserException
 
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_class
@@ -1197,6 +1197,12 @@ class ParserManager:
 
         # Return any value of the right type.
         return KwArgs.OPTIONAL
+
+    def deprecated(self, p, symbol, instead=None):
+        """ Issue a deprecation message about a symbol. """
+
+        deprecated(f"'{p[symbol]}'", instead=instead, filename=self._sip_file,
+                line_nr=p.lineno(symbol))
 
     def ensure_import(self):
         """ We allow %Modules that are part of a %CompositeModule to be either
