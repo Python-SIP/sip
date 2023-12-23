@@ -718,7 +718,8 @@ class Project(AbstractProject, Configurable):
         from argparse import SUPPRESS
         from .argument_parser import ArgumentParser
 
-        parser = ArgumentParser(tool_description, argument_default=SUPPRESS)
+        parser = ArgumentParser(tool_description, build_tool=True,
+                argument_default=SUPPRESS)
 
         # Add the user configurable options to the parser.
         all_options = {}
