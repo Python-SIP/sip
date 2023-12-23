@@ -27,6 +27,17 @@ import sys
 from .version import SIP_VERSION
 
 
+# Set if deprecations should be treated as errors.
+_deprecations_are_errors = False
+
+
+def set_deprecations_are_errors(deprecations_are_errors):
+    """ If set then deprecations will be handled as errors. """
+
+    global _deprecations_are_errors
+    _deprecations_are_errors = deprecations_are_errors
+
+
 class UserException(Exception):
     """ An exception capturing user friendly information. """
 
@@ -92,5 +103,8 @@ def deprecated(thing, *, filename, line_nr, instead=None):
 
     if instead is not None:
         message += f", use {instead} instead"
+
+    if _deprecations_are_errors:
+        raise UserException(message)
 
     print(message, file=sys.stderr)

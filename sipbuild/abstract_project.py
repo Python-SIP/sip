@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -25,8 +25,9 @@ from abc import ABC, abstractmethod
 import importlib
 import importlib.util
 import os
+import sys
 
-from .exceptions import UserException
+from .exceptions import set_deprecations_are_errors, UserException
 from .pyproject import PyProject, PyProjectOptionException
 
 
@@ -38,6 +39,10 @@ class AbstractProject(ABC):
         """ Return an AbstractProject instance fully configured for a
         particular command line tool.
         """
+
+        # We have to do this very early.
+        if '--deprecations-are-errors' in sys.argv:
+            set_deprecations_are_errors(True)
 
         # Get the contents of the pyproject.toml file.
         pyproject = PyProject()

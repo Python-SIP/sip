@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -36,3 +36,8 @@ class ArgumentParser(ArgParser):
 
         self.add_argument('-V', '--version', action='version',
                 version=SIP_VERSION_STR)
+
+        # This option is handled by the bootstrap process and is only here to
+        # contribute to the help.
+        self.add_argument('--deprecations-are-errors', action='store_true',
+                help="using deprecated features is an error")
