@@ -6,5 +6,3 @@ build
 doc/html
 sip.egg-info
 sipbuild/version.py
-sipbuild/*.pyd
-sipbuild/*.so

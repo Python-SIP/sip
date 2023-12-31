@@ -1,4 +1,4 @@
-v6.8.2 23rd December 2023
+v6.8.2 31st December 2023
   - Added the --deprecations-are-errors command line option to all build tools.
   - All generated files are UTF-8 encoded.
 
