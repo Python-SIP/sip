@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Riverbank Computing Limited
+# Copyright (c) 2024, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -147,7 +147,7 @@ class PyProject:
                     core_name = self._PEP621_CORE_MAP.get(md_name)
                     if core_name is None:
                         raise PyProjectOptionException(md_name,
-                                "is an invalid project key",
+                                "is an unsupported project key",
                                 section_name='project')
 
                     core_metadata[core_name] = md_value
