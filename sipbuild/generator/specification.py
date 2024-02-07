@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Riverbank Computing Limited
+# Copyright (c) 2024, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,7 +21,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from dataclasses import dataclass, field
+from dataclasses import auto, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
@@ -31,16 +31,14 @@ from .scoped_name import ScopedName
 class AccessSpecifier(Enum):
     """ The class access specifiers. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # Private access.
-    PRIVATE = 0x04
+    PRIVATE = auto()
 
     # Protected access.
-    PROTECTED = 0x02
+    PROTECTED = auto()
 
     # Public access.
-    PUBLIC = 0x01
+    PUBLIC = auto()
 
 
 class ArgumentType(Enum):
@@ -227,45 +225,38 @@ class ArgumentType(Enum):
 class ArrayArgument(Enum):
     """ The array support provided by an argument. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # /Array/ was specified.
-    ARRAY = 0
+    ARRAY = auto()
 
     # /ArraySize/ was specified.
-    ARRAY_SIZE = 1
+    ARRAY_SIZE = auto()
 
     # The argument provides no array support.
-    NONE = 2
+    NONE = auto()
 
 
 class ClassKey(Enum):
     """ The key that identifies a particular type of class. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # A class.
-    CLASS = 0
+    CLASS = auto()
 
     # A struct.
-    STRUCT = 1
+    STRUCT = auto()
 
     # A union.
-    UNION = 2
+    UNION = auto()
 
 
 class DocstringFormat(Enum):
     """ The formatting applied to the text of the docstring. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
-    # The signature is appended to the docstring.
     # Any leading spaces common to all non-blank lines in the docstring are
     # removed.
-    DEINDENTED = 1
+    DEINDENTED = auto()
 
     # The docstring is used as it is specified in the .sip file.
-    RAW = 0
+    RAW = auto()
 
 
 class DocstringSignature(Enum):
@@ -274,338 +265,318 @@ class DocstringSignature(Enum):
     docstring then it applies to all the class's ctors.
     """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # The signature is appended to the docstring.
-    APPENDED = 2
+    APPENDED = auto()
 
     # The signature is discard.
-    DISCARDED = 0
+    DISCARDED = auto()
 
     # The signature is prepended to the docstring.
-    PREPENDED = 1
+    PREPENDED = auto()
 
 
 class EnumBaseType(Enum):
     """ The different base types fo an enum. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # enum.Enum
-    ENUM = 0
+    ENUM = auto()
 
     # enum.Flag
-    FLAG = 1
+    FLAG = auto()
 
     # enum.IntEnum
-    INT_ENUM = 2
+    INT_ENUM = auto()
 
     # enum.IntFlag
-    INT_FLAG = 3
+    INT_FLAG = auto()
 
     # enum.IntEnum with unsigned values.
-    UINT_ENUM = 4
+    UINT_ENUM = auto()
 
 
 class GILAction(Enum):
     """ The action to take with the GIL when calling C/C++ code. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # The default action.
-    DEFAULT = 0
+    DEFAULT = auto()
 
     # Hold the GIL.
-    HOLD = 1
+    HOLD = auto()
 
     # Release the GIL.
-    RELEASE = 2
+    RELEASE = auto()
 
 
 class IfaceFileType(Enum):
     """ The type of an interface file. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
+    # A class.
+    CLASS = auto()
 
     # An %Exception.
-    EXCEPTION = 0
+    EXCEPTION = auto()
 
     # A %MappedType.
-    MAPPED_TYPE = 1
+    MAPPED_TYPE = auto()
 
     # A namespace.
-    NAMESPACE = 2
-
-    # A class.
-    CLASS = 3
+    NAMESPACE = auto()
 
 
 class KwArgs(Enum):
     """ The level of support for passing argument as keyword arguments. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # All named arguments can be passed as keyword arguments.
-    ALL = 1
+    ALL = auto()
 
     # Keyword arguments are not supported.
-    NONE = 0
+    NONE = auto()
 
     # All named optional arguments (ie. those with a default value) can be
     # passed as keyword arguments.
-    OPTIONAL = 2
+    OPTIONAL = auto()
 
 
 class PyQtMethodSpecifier(Enum):
     """ The PyQt-specific method specifier. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # A signal.
-    SIGNAL = 0x10
+    SIGNAL = auto()
 
     # A slot.
-    SLOT = 0x08
+    SLOT = auto()
 
 
 class PySlot(Enum):
     """ The Python slots corresponding to entries in a type object. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # tp_str
-    STR = 0
+    STR = auto()
 
     # tp_as_number.nb_int
-    INT = 1
+    INT = auto()
 
     # tp_as_number.nb_float
-    FLOAT = 2
+    FLOAT = auto()
 
     # tp.as_mapping.mp_length and tp.as_sequence.sq_length
-    LEN = 3
+    LEN = auto()
 
     # tp.as_sequence.sq_contains
-    CONTAINS = 4
+    CONTAINS = auto()
 
     # tp_as_number.nb_add
-    ADD = 5
+    ADD = auto()
 
     # tp.as_sequence.sq_concat
-    CONCAT = 6
+    CONCAT = auto()
 
     # tp_as_number.nb_subtract
-    SUB = 7
+    SUB = auto()
 
     # tp_as_number.nb_multiply
-    MUL = 8
+    MUL = auto()
 
     # tp.as_sequence.sq_repeat
-    REPEAT = 9
+    REPEAT = auto()
 
     # tp_as_number.nb_remainder
-    MOD = 11
+    MOD = auto()
 
     # tp_as_number.nb_floor_divide
-    FLOORDIV = 12
+    FLOORDIV = auto()
 
     # tp_as_number.nb_true_divide
-    TRUEDIV = 13
+    TRUEDIV = auto()
 
     # tp_as_number.nb_and
-    AND = 14
+    AND = auto()
 
     # tp_as_number.nb_or
-    OR = 15
+    OR = auto()
 
     # tp_as_number.nb_xor
-    XOR = 16
+    XOR = auto()
 
     # tp_as_number.nb_lshift
-    LSHIFT = 17
+    LSHIFT = auto()
 
     # tp_as_number.nb_rshift
-    RSHIFT = 18
+    RSHIFT = auto()
 
     # tp_as_number.nb_inplace_add
-    IADD = 19
+    IADD = auto()
 
     # tp.as_sequence.sq_inplace_concat
-    ICONCAT = 20
+    ICONCAT = auto()
 
     # tp_as_number.nb_inplace_subtract
-    ISUB = 21
+    ISUB = auto()
 
     # tp_as_number.nb_inplace_multiply
-    IMUL = 22
+    IMUL = auto()
 
     # tp.as_sequence.sq_inplace_repeat
-    IREPEAT = 23
+    IREPEAT = auto()
 
     # tp_as_number.nb_inplace_remainder
-    IMOD = 25
+    IMOD = auto()
 
     # tp_as_number.nb_inplace_floor_divide
-    IFLOORDIV = 26
+    IFLOORDIV = auto()
 
     # tp_as_number.nb_inplace_true_divide
-    ITRUEDIV = 27
+    ITRUEDIV = auto()
 
     # tp_as_number.nb_inplace_and
-    IAND = 28
+    IAND = auto()
 
     # tp_as_number.nb_inplace_or
-    IOR = 29
+    IOR = auto()
 
     # tp_as_number.nb_inplace_xor
-    IXOR = 30
+    IXOR = auto()
 
     # tp_as_number.nb_inplace_lshift
-    ILSHIFT = 31
+    ILSHIFT = auto()
 
     # tp_as_number.nb_inplace_rshift
-    IRSHIFT = 32
+    IRSHIFT = auto()
 
     # tp_as_number.nb_invert
-    INVERT = 33
+    INVERT = auto()
 
     # tp_call
-    CALL = 34
+    CALL = auto()
 
     # tp.as_mapping.mp_subscript and tp.as_sequence.sq_item
-    GETITEM = 35
+    GETITEM = auto()
 
     # tp.as_mapping.mp_ass_subscript and tp.as_sequence.sq_ass_item
-    SETITEM = 36
+    SETITEM = auto()
 
     # tp.as_mapping.mp_ass_subscript and tp.as_sequence.sq_ass_item
-    DELITEM = 37
+    DELITEM = auto()
 
     # tp_richcompare (Py_LT)
-    LT = 38
+    LT = auto()
 
     # tp_richcompare (Py_LE)
-    LE = 39
+    LE = auto()
 
     # tp_richcompare (Py_EQ)
-    EQ = 40
+    EQ = auto()
 
     # tp_richcompare (Py_NE)
-    NE = 41
+    NE = auto()
 
     # tp_richcompare (Py_GT)
-    GT = 42
+    GT = auto()
 
     # tp_richcompare (Py_GE)
-    GE = 43
+    GE = auto()
 
     # tp_as_number.nb_bool
-    BOOL = 45
+    BOOL = auto()
 
     # tp_as_number.nb_negative
-    NEG = 46
+    NEG = auto()
 
     # tp_as_number.nb_positive
-    POS = 47
+    POS = auto()
 
     # tp_as_number.nb_absolute
-    ABS = 48
+    ABS = auto()
 
     # tp_repr
-    REPR = 49
+    REPR = auto()
 
     # tp_hash
-    HASH = 50
+    HASH = auto()
 
     # tp_as_number.nb_index
-    INDEX = 51
+    INDEX = auto()
 
     # tp_iter
-    ITER = 52
+    ITER = auto()
 
     # tp_iter_next
-    NEXT = 53
+    NEXT = auto()
 
     # tp_setattr
-    SETATTR = 54
+    SETATTR = auto()
 
     # Internal to the parser (implemented as tp_setattr)
-    DELATTR = 55
+    DELATTR = auto()
 
     # tp_as_number.nb_matrix_multiply
-    MATMUL = 56
+    MATMUL = auto()
 
     # tp_as_number.nb_inplace_matrix_multiply
-    IMATMUL = 57
+    IMATMUL = auto()
 
     # tp_as_async.am_await
-    AWAIT = 58
+    AWAIT = auto()
 
     # tp_as_async.am_aiter
-    AITER = 59
+    AITER = auto()
 
     # tp_as_async.am_anext
-    ANEXT = 60
+    ANEXT = auto()
 
 
 class QualifierType(Enum):
     """ The type of a qualifier used in %If/%End directives. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # The qualifier is a feature.
-    FEATURE = 2
+    FEATURE = auto()
 
     # The qualifier is a platform.
-    PLATFORM = 1
+    PLATFORM = auto()
 
     # The qualifier is part of a timeline.
-    TIME = 0
+    TIME = auto()
 
 
 class Transfer(Enum):
     """ The different types of ownership transfer. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # No transfer of ownership.
-    NONE = 0
+    NONE = auto()
 
     # /Transfer/ was specified.
-    TRANSFER = 1
+    TRANSFER = auto()
 
     # /TransferBack/ was specified.
-    TRANSFER_BACK = 2
+    TRANSFER_BACK = auto()
 
     # /TransferThis/ was specified.
-    TRANSFER_THIS = 3
+    TRANSFER_THIS = auto()
 
 
 class ValueType(Enum):
     """ The different types of a value in an expression. """
 
-    # TODO: Change the values to auto() once the C code has been replaced.
-
     # A quoted character.
-    QCHAR = 0
+    QCHAR = auto()
 
     # A string.
-    STRING = 1
+    STRING = auto()
 
     # A number.
-    NUMERIC = 2
+    NUMERIC = auto()
 
     # A floating point number.
-    REAL = 3
+    REAL = auto()
 
     # A scoped name.
-    SCOPED = 4
+    SCOPED = auto()
 
     # A function call.
-    FCALL = 5
+    FCALL = auto()
 
     # A placeholder.
-    EMPTY = 6
+    EMPTY = auto()
 
 
 @dataclass
