@@ -141,7 +141,7 @@ file.
 
     *special-method-name* ::= [**__abs__** | **__add__** | **__and__** |
             **__aiter__** | **__anext__** | **__await__** | **__bool__** |
-            **__call__** | **__cmp__** | **__contains__** | **__delattr__** |
+            **__call__** | **__contains__** | **__delattr__** |
             **__delitem__** | **__div__** | **__eq__** | **__float__** |
             **__floordiv__** | **__ge__** | **__getattr__** |
             **__getattribute__** | **__getitem__** | **__gt__** |
@@ -152,9 +152,9 @@ file.
             **__iter__** | **__itruediv__** | **__ixor__** | **__le__** |
             **__len__** | **__lshift__** | **__lt__** | **__matmul** |
             **__mod__** | **__mul__** | **__ne__** | **__neg__** |
-            **__next__** | **__nonzero__** | **__or__** | **__pos__** |
-            **__repr__** | **__rshift__** | **__setattr__** | **__setitem__** |
-            **__str__** | **__sub__** | **__truediv__** | **__xor__**]
+            **__next__** | **__or__** | **__pos__** | **__repr__** |
+            **__rshift__** | **__setattr__** | **__setitem__** | **__str__** |
+            **__sub__** | **__truediv__** | **__xor__**]
 
     *operator* ::= *operator-type*
             **(** [*argument-list*] **)** [**const**] [**final**]
