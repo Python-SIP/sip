@@ -740,7 +740,7 @@ class Constructor:
     # Set if a Python exception is raised.
     raises_py_exception: bool = False
 
-    # The optional throw arguments.
+    # The optional throw arguments.  Replace with 'noexcept' in SIP v7.
     throw_args: Optional['ThrowArguments'] = None
 
     # Any transfer of ownership.
@@ -1170,7 +1170,7 @@ class Overload:
     # The source location.
     source_location: Optional['SourceLocation'] = None
 
-    # The optional throw arguments.
+    # The optional throw arguments.  Replace with 'noexcept' in SIP v7.
     throw_args: Optional['ThrowArguments'] = None
 
     # Any transfer of ownership.
@@ -1521,7 +1521,7 @@ class WrappedClass:
     # The action required on the GIL.
     dtor_gil_action: GILAction = GILAction.DEFAULT
 
-    # The optional dtor throw arguments.
+    # The optional dtor throw arguments.  Replace with 'noexcept' in SIP v7.
     dtor_throw_args: Optional[ThrowArguments] = None
 
     # The code specified by any dtor %VirtualCatcherCode directive.

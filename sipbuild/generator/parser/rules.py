@@ -2797,6 +2797,7 @@ def p_opt_exceptions(p):
 
     if p[1] == 'throw':
         p[0] = p[3]
+        p.parser.pm.deprecated(p, 1)
     elif p[1] == 'noexcept':
         p[0] = ThrowArguments()
     else:
