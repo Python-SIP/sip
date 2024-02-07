@@ -21,8 +21,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from dataclasses import auto, dataclass, field
-from enum import Enum
+from dataclasses import dataclass, field
+from enum import auto, Enum
 from typing import Any, Dict, List, Optional, Union
 
 from .scoped_name import ScopedName

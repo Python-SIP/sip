@@ -35,7 +35,7 @@ from .abstract_builder import AbstractBuilder
 from .abstract_project import AbstractProject
 from .bindings import Bindings
 from .configurable import Configurable, Option
-from .exceptions import UserException
+from .exceptions import deprecated, UserException
 from .module import resolve_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
@@ -668,6 +668,16 @@ class Project(AbstractProject, Configurable):
         # minor version.)
         self.abi_version = resolve_abi_version(self.abi_version, module=False)
 
+        # These ABI versions are deprecated because we have deprecated any
+        # arguments to 'throw()' which these versions rely on.
+        abi_version = tuple([int(v) for v in self.abi_version.split('.')])
+
+        if abi_version < (12, 9):
+            self._deprecated_abi_version('12.9')
+
+        if abi_version == (13, 0):
+            self._deprecated_abi_version('12.1')
+
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:
             # Check there is only one set of bindings.
@@ -759,6 +769,13 @@ class Project(AbstractProject, Configurable):
             raise ValueError()
 
         return int(parts[0]), int(parts[1])
+
+    def _deprecated_abi_version(self, instead):
+        """ Issue a deprecation warning about an old ABI version. """
+
+        major, minor = self.abi_version
+
+        deprecated(f"ABI v{major}.{minor}", instead=f"v{instead} or later")
 
     def _enable_disable_bindings(self):
         """ Check the enabled bindings are valid and remove any disabled ones.

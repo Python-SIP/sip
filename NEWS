@@ -2,6 +2,8 @@ v6.8.3 7th February 2024
   - The use of 'throw' specifiers is now deprecated and will be removed in SIP
     v7.  Instead of 'throw()', 'noexcept' should be used.  Other forms of
     'throw' are no longer required.
+  - Support for ABI v13.0 and ABI v12.8 and older is now deprecated and will be
+    removed in SIP v7.
   - Documentation fixes.
   - Bug fixes.
 
