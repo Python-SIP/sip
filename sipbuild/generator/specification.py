@@ -1350,7 +1350,7 @@ class ThrowArguments:
     """ Encapsulate the arguments to a C++ throw(). """
 
     # The list of the argument names. If it is None then 'noexcept' was
-    # specified.
+    # specified, otherwise there will be at least one argument.
     arguments: Optional[List['WrappedException']] = None
 
 
