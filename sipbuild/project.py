@@ -676,7 +676,7 @@ class Project(AbstractProject, Configurable):
             self._deprecated_abi_version('12.9')
 
         if abi_version == (13, 0):
-            self._deprecated_abi_version('12.1')
+            self._deprecated_abi_version('13.1')
 
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:
@@ -773,9 +773,7 @@ class Project(AbstractProject, Configurable):
     def _deprecated_abi_version(self, instead):
         """ Issue a deprecation warning about an old ABI version. """
 
-        major, minor = self.abi_version
-
-        deprecated(f"ABI v{major}.{minor}", instead=f"v{instead} or later")
+        deprecated(f"ABI v{self.abi_version}", instead=f"v{instead} or later")
 
     def _enable_disable_bindings(self):
         """ Check the enabled bindings are valid and remove any disabled ones.
