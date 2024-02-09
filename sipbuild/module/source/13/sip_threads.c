@@ -1,21 +1,11 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+
 /*
  * Thread support for the SIP library.  This module provides the hooks for
  * C++ classes that provide a thread interface to interact properly with the
  * Python threading infrastructure.
  *
- * Copyright (c) 2022 Riverbank Computing Limited <info@riverbankcomputing.com>
- *
- * This file is part of SIP.
- *
- * This copy of SIP is licensed for use under the terms of the SIP License
- * Agreement.  See the file LICENSE for more details.
- *
- * This copy of SIP may also used under the terms of the GNU General Public
- * License v2 or v3 as published by the Free Software Foundation which can be
- * found in the files LICENSE-GPL2 and LICENSE-GPL3 included in this package.
- *
- * SIP is supplied WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
  */
 
 
