@@ -1228,6 +1228,8 @@ def p_plugin(p):
     if pm.skipping:
         return
 
+    pm.deprecated(p, 1)
+
     pm.spec.plugins.append(p[2])
 
 
@@ -1663,6 +1665,9 @@ def p_pod_type(p):
         else:
             p[0] = _UNSIGNED_MAP[p[2]]
     else:
+        if p[1] == 'SIP_SSIZE_T':
+            p.parser.pm.deprecated(p, 1, instead="'Py_ssize_t'")
+
         p[0] = _ONE_WORD_MAP[p[1]]
 
 
@@ -1942,10 +1947,21 @@ def p_class_line(p):
         | type_code
         | type_header_code
         | type_hint_code
-        | BIGetReadBufferCode CODE_BLOCK
-        | BIGetWriteBufferCode CODE_BLOCK
-        | BIGetSegCountCode CODE_BLOCK
-        | BIGetCharBufferCode CODE_BLOCK"""
+        | deprecated_code_directives CODE_BLOCK"""
+
+
+def p_deprecated_code_directives(p):
+    """deprecated_code_directives : BIGetReadBufferCode
+        | BIGetWriteBufferCode
+        | BIGetSegCountCode
+        | BIGetCharBufferCode"""
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    pm.deprecated(p, 1)
 
 
 # The ctor annotations.
@@ -2781,6 +2797,7 @@ def p_opt_exceptions(p):
 
     if p[1] == 'throw':
         p[0] = p[3]
+        p.parser.pm.deprecated(p, 1)
     elif p[1] == 'noexcept':
         p[0] = ThrowArguments()
     else:
@@ -2791,7 +2808,7 @@ def p_opt_exception_list(p):
     """opt_exception_list : exception_list
         | empty"""
 
-    p[0] = ThrowArguments(arguments=[]) if p[1] is None else p[1]
+    p[0] = ThrowArguments() if p[1] is None else p[1]
 
 
 def p_exception_list(p):

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -21,7 +21,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-import importlib
 import os
 
 from .exceptions import UserException
@@ -151,14 +150,14 @@ class BuildableModule(BuildableFromSources):
         if self.project.py_platform == 'win32':
             return '.pyd'
 
-        suffixes = importlib.machinery.EXTENSION_SUFFIXES
+        from importlib.machinery import EXTENSION_SUFFIXES
 
         if self.uses_limited_api:
-            for s in suffixes:
+            for s in EXTENSION_SUFFIXES:
                 if '.abi3' in s:
                     return s
 
-        return suffixes[0]
+        return EXTENSION_SUFFIXES[0]
 
 
 class BuildableBindings(BuildableModule):

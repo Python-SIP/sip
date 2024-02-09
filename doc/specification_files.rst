@@ -110,18 +110,18 @@ file.
             **signals:**]
 
     *constructor* ::= [**explicit**] *name* **(** [*argument-list*] **)**
-            [*exceptions*] [*function-annotations*]
+            [**noexcept**] [*function-annotations*]
             [*c++-constructor-signature*] **;** [:directive:`%Docstring`]
             [:directive:`%MethodCode`]
 
     *c++-constructor-signature* ::= **[(** [*argument-list*] **)]**
 
-    *destructor* ::= [**virtual**] **~** *name* **()** [*exceptions*] [**= 0**]
+    *destructor* ::= [**virtual**] **~** *name* **()** [**noexcept**] [**= 0**]
             [*function-annotations*] **;** [:directive:`%MethodCode`]
             [:directive:`%VirtualCatcherCode`]
 
     *method* ::= [**Q_SIGNAL**] [**Q_SLOT**] *type* *name* **(**
-            [*argument-list*] **)** [**const**] [**final**] [*exceptions*]
+            [*argument-list*] **)** [**const**] [**final**] [**noexcept**]
             [**= 0**] [*function-annotations*] [*c++-signature*] **;**
             [:directive:`%Docstring`] [:directive:`%MethodCode`]
 
@@ -131,7 +131,7 @@ file.
 
     *virtual-method* ::= [**Q_SIGNAL**] [**Q_SLOT**] **virtual** *type* *name*
             **(** [*argument-list*] **)** [**const**] [**final**]
-            [*exceptions*] [**= 0**] [*function-annotations*] [*c++-signature*]
+            [**noexcept**] [**= 0**] [*function-annotations*] [*c++-signature*]
             **;** [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
             [:directive:`%VirtualCallCode`]
 
@@ -141,7 +141,7 @@ file.
 
     *special-method-name* ::= [**__abs__** | **__add__** | **__and__** |
             **__aiter__** | **__anext__** | **__await__** | **__bool__** |
-            **__call__** | **__cmp__** | **__contains__** | **__delattr__** |
+            **__call__** | **__contains__** | **__delattr__** |
             **__delitem__** | **__div__** | **__eq__** | **__float__** |
             **__floordiv__** | **__ge__** | **__getattr__** |
             **__getattribute__** | **__getitem__** | **__gt__** |
@@ -152,18 +152,18 @@ file.
             **__iter__** | **__itruediv__** | **__ixor__** | **__le__** |
             **__len__** | **__lshift__** | **__lt__** | **__matmul** |
             **__mod__** | **__mul__** | **__ne__** | **__neg__** |
-            **__next__** | **__nonzero__** | **__or__** | **__pos__** |
-            **__repr__** | **__rshift__** | **__setattr__** | **__setitem__** |
-            **__str__** | **__sub__** | **__truediv__** | **__xor__**]
+            **__next__** | **__or__** | **__pos__** | **__repr__** |
+            **__rshift__** | **__setattr__** | **__setitem__** | **__str__** |
+            **__sub__** | **__truediv__** | **__xor__**]
 
     *operator* ::= *operator-type*
             **(** [*argument-list*] **)** [**const**] [**final**]
-            [*exceptions*] [*function-annotations*] **;**
+            [**noexcept**] [*function-annotations*] **;**
             [:directive:`%MethodCode`]
 
     *virtual-operator* ::= **virtual** *operator-type*
             **(** [*argument-list*] **)** [**const**] [**final**]
-            [*exceptions*] [**= 0**] [*function-annotations*] **;**
+            [**noexcept**] [**= 0**] [*function-annotations*] **;**
             [:directive:`%MethodCode`] [:directive:`%VirtualCatcherCode`]
             [:directive:`%VirtualCallCode`]
 
@@ -192,7 +192,7 @@ file.
 
     *enum-line* ::= [:directive:`%If` | *name* [*enum-annotations*] **,**
 
-    *function* ::= *type* *name* **(** [*argument-list*] **)** [*exceptions*]
+    *function* ::= *type* *name* **(** [*argument-list*] **)** [**noexcept**]
             [*function-annotations*] **;** [:directive:`%Docstring`]
             [:directive:`%MethodCode`]
 
@@ -250,10 +250,6 @@ file.
             **SIP_PendingDeprecationWarning** | **SIP_ResourceWarning** |
             **SIP_RuntimeWarning** | **SIP_SyntaxWarning** |
             **SIP_UnicodeWarning** | **SIP_UserWarning**]
-
-    *exceptions* ::= **noexcept** | **throw (** [*exception-list*] **)**
-
-    *exception-list* ::= *scoped-name* [**,** *exception-list*]
 
     *argument-list* ::= *argument* [**,** *argument-list*] [**,** **...**]
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Riverbank Computing Limited
+# Copyright (c) 2023, Riverbank Computing Limited
 # All rights reserved.
 #
 # This copy of SIP is licensed for use under the terms of the SIP License
@@ -63,8 +63,6 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
 
     i_class.iface_file.type_header_code = template_code_blocks(pm.spec, used,
             proto_class.iface_file.type_header_code, expansions)
-    i_class.iface_file.type_header_code.extend(
-            proto_class.iface_file.type_header_code)
 
     # Make a copy of the used list and add the enclosing scope.
     for iface_file in proto_class.iface_file.used:

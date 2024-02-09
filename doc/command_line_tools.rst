@@ -36,6 +36,11 @@ The full set of command line options is:
 
     Display the SIP version number.
 
+.. option:: --deprecations-are-errors
+
+    The use of any deprecated feature is handled as an error rather than a
+    warning.
+
 .. option:: --quiet
 
     All progress messages are disabled.
@@ -240,6 +245,11 @@ The full set of command line options is:
 
     Display the SIP version number.
 
+.. option:: --deprecations-are-errors
+
+    The use of any deprecated feature is handled as an error rather than a
+    warning.
+
 .. option:: --quiet
 
     All progress messages are disabled.
@@ -436,6 +446,11 @@ The full set of command line options is:
 
     Display the SIP version number.
 
+.. option:: --deprecations-are-errors
+
+    The use of any deprecated feature is handled as an error rather than a
+    warning.
+
 .. option:: --name NAME
 
     ``NAME`` is used instead of the PyPI project name in the
@@ -463,6 +478,11 @@ The full set of command line options is:
 .. option:: -V, --version
 
     Display the SIP version number.
+
+.. option:: --deprecations-are-errors
+
+    The use of any deprecated feature is handled as an error rather than a
+    warning.
 
 .. option:: --quiet
 

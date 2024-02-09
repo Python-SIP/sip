@@ -521,7 +521,7 @@ def _module_code(spec, bindings, project, py_debug, buildable):
             sf.write(
 f'''
 
-void sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t{state_name})
+void sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t {state_name})
 {{
 ''')
 
@@ -1894,7 +1894,7 @@ def _char_instances(sf, spec, scope=None):
 
     return _write_instances_table(sf, scope, instances,
 '''/* Define the chars to be added to this {dict_type} dictionary. */
-"static sipCharInstanceDef charInstances{suffix}[]''')
+static sipCharInstanceDef charInstances{suffix}[]''')
 
 
 def _string_instances(sf, spec, scope=None):
@@ -1905,7 +1905,7 @@ def _string_instances(sf, spec, scope=None):
     instances = []
 
     for variable in _variables_in_scope(spec, scope):
-        if variable.type.type not in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING) or len(variable.type.derefs) == 0 or variable.type.type is ArgumentType.WSTRING:
+        if (variable.type.type not in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING) or len(variable.type.derefs) == 0) and variable.type.type is not ArgumentType.WSTRING:
             continue
 
         si_name = _cached_name_ref(variable.py_name)
@@ -4251,7 +4251,7 @@ def _call_default_ctor(spec, ctor):
 
         # Do what we can to provide type information to the compiler.
         if arg.type is ArgumentType.CLASS and len(arg.derefs) > 0 and not arg.is_reference:
-            class_type = fmt_argument_as_cpp_type(spec, arg.definition)
+            class_type = fmt_argument_as_cpp_type(spec, arg)
             arg_s = f'static_cast<{class_type}>(0)'
         elif arg.type is ArgumentType.ENUM:
             enum_type = fmt_enum_as_cpp_type(arg.definition)
@@ -6104,12 +6104,20 @@ def _count_virtual_overloads(spec, klass):
     return len(list(_unique_class_virtual_overloads(spec, klass)))
 
  
+def _handling_exceptions(bindings, throw_args):
+    """ Return True if exceptions from a callable are being handled. """
+
+    # Handle any exceptions if there was no throw specifier, or a non-empty
+    # throw specifier.
+    return bindings.exceptions and (throw_args is None or throw_args.arguments is not None)
+
+
 def _try(sf, bindings, throw_args):
     """ Generate the try block for a call. """
 
     # Generate the block if there was no throw specifier, or a non-empty throw
     # specifier.
-    if _throw_specifier(bindings, throw_args) != '':
+    if _handling_exceptions(bindings, throw_args):
         sf.write(
 '''            try
             {
@@ -6119,9 +6127,7 @@ def _try(sf, bindings, throw_args):
 def _catch(sf, spec, bindings, py_signature, throw_args, release_gil):
     """ Generate the catch blocks for a call. """
 
-    # Generate the blocks if there was no throw specifier, or a non-empty throw
-    # specifier.
-    if _throw_specifier(bindings, throw_args) != '':
+    if _handling_exceptions(bindings, throw_args):
         use_handler = (spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)))
 
         sf.write('            }\n')
@@ -6177,7 +6183,7 @@ def _catch_block(sf, spec, exception, py_signature=None, release_gil=False):
     # with older versions of SIP.
     exception_cpp_stripped = exception_fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
 
-    sip_exception_ref = 'sipExceptionRef' if exception.class_exception is not None or _is_used_in_code(exception.raise_code) else ''
+    sip_exception_ref = 'sipExceptionRef' if exception.class_exception is not None or _is_used_in_code(exception.raise_code, 'sipExceptionRef') else ''
 
     sf.write(
 f'''            catch ({exception_cpp_stripped} &{sip_exception_ref})
@@ -6220,7 +6226,7 @@ f'''
 def _throw_specifier(bindings, throw_args):
     """ Return a throw specifier. """
 
-    return ' noexcept' if bindings.exceptions and throw_args is not None and len(throw_args.arguments) == 0 else ''
+    return ' noexcept' if bindings.exceptions and throw_args is not None and throw_args.arguments is None else ''
 
 
 def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
@@ -7593,10 +7599,10 @@ def _arg_parser(sf, spec, scope, py_signature, ctor=None, overload=None):
             operator = '!='
             sip_value = 'sipValue'
 
-        parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair('
+        parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
         args.append('&sipParseErr')
         args.append('sipName')
-        args.append('sipValue')
+        args.append(sip_value)
 
     elif (overload is not None and overload.common.allow_keyword_args) or ctor is not None:
         # We handle keywords if we might have been passed some (because one of
@@ -8013,7 +8019,7 @@ def _delete_temporaries(sf, spec, py_signature):
             if spec.c_bindings or not arg.is_const:
                 sf.write(f'            sipFree({arg_name});\n')
             else:
-                sf.write(f'            sipFree(const_cast<wchar_t *>({arg_nr}));\n')
+                sf.write(f'            sipFree(const_cast<wchar_t *>({arg_name}));\n')
 
         else:
             convert_to_type_code = _get_convert_to_type_code(arg)
@@ -8408,7 +8414,7 @@ def _class_docstring(sf, spec, bindings, klass):
     else:
         is_first = True
 
-    if klass.docstring is None or klass.docstring.signature is not SocstringSignature.DISCARDED:
+    if klass.docstring is None or klass.docstring.signature is not DocstringSignature.DISCARDED:
         for ctor in klass.ctors:
             if ctor.access_specifier is AccessSpecifier.PRIVATE:
                 continue
@@ -9048,7 +9054,7 @@ class SourceFile:
     def open(self, source_name, project):
         """ Open a source file and make it current. """
 
-        self._f = open(source_name, 'w')
+        self._f = open(source_name, 'w', encoding='UTF-8')
 
         self._line_nr = 1
 
