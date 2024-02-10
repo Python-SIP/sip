@@ -8,27 +8,18 @@ bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.  SIP can also be used write self contained extension
 modules, i.e. without a library to be wrapped.
 
-This version of SIP generates bindings for Python v3.7 and later.
+This version of SIP generates bindings for Python v3.8 and later.
 
-SIP can be installed from the `Python Package Index
-<https://pypi.org/project/SIP/>`__ using :program:`pip`.
+SIP is hosted at `GitHub <https://github.com/Python-SIP/sip>`__.
 
-The homepage is https://www.riverbankcomputing.com/software/sip.  Here you can
-find the latest development source packages and the latest version of this
-documentation.
-
-SIP can also be downloaded from the
-`Mercurial <https://www.mercurial-scm.org>`__ repository at
-https://www.riverbankcomputing.com/hg/sip.
+The documentation is hosted at
+`Read the Docs <https://python-sip.readthedocs.io>`__.
 
 
 License
 -------
 
-SIP is licensed under similar terms as Python itself.  SIP is also licensed
-under the GPL (both v2 and v3).  It is your choice as to which license you
-use.  If you choose the GPL then any bindings you create must be distributed
-under the terms of the GPL.
+SIP is licensed under the BSD 2 clause license.
 
 
 Features
@@ -238,4 +229,4 @@ Support for Old Versions of Python
 
 When a Python version reaches it's end-of-life, support for it will be removed
 in the next minor release of SIP.  For example, if the current version of SIP
-is v5.x.y then the support will be removed in v5.x+1.0.
+is v6.x.y then the support will be removed in v6.x+1.0.

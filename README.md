@@ -41,6 +41,12 @@ items can be managed, compared with new versions etc. and from which the `.sip`
 specification files can be generated from.
 
 
+## Documentation
+
+The documentation can be found at
+[Read the Docs](https://python-sip.readthedocs.io).
+
+
 ## License
 
 SIP is licensed under the BSD 2 clause license.
@@ -67,7 +73,14 @@ will be created from a checkout in the current directory by running:
     python -m build --outdir .
 
 
-## Documentation
+## Building the Documentation
 
-The documentation for the latest release can be found
-[here](https://www.riverbankcomputing.com/static/Docs/sip/).
+The documentation is built using [Sphinx](https://pypi.org/project/Sphinx/),
+[myst_parser](https://pypi.org/project/myst-parser/) and the
+[sphinx-rtd-theme](https://pypi.org/project/sphinx-rtd-theme/) theme.
+
+Change to the `docs` directory of a checkout and run:
+
+    make html
+
+The HTML documentation can then be found in the `_build/html` subdirectory.

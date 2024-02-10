@@ -1,8 +1,9 @@
-Reference Guide
-===============
+SIP Documentation
+=================
 
 .. toctree::
     :maxdepth: 2
+    :caption: Contents
 
     introduction
     examples
@@ -16,3 +17,4 @@ Reference Guide
     abi_12
     pyproject_toml
     sipbuild_api
+    releases

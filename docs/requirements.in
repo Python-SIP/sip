@@ -1,0 +1,4 @@
+# Rin `pip-compile requirements.in` to create requirements.txt
+sphinx==7.2.6
+sphinx_rtd_theme==2.0.0
+myst_parser==2.0.0
