@@ -4,7 +4,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 from datetime import date
-from importlib.metadata import version as get_version
 
 
 # -- Project information -----------------------------------------------------
@@ -14,7 +13,7 @@ project = 'sip'
 copyright = '{0} Phil Thompson <phil@riverbankcomputing.com>'.format(
         date.today().year)
 author = 'Phil Thompson'
-version = 'v' + get_version('sip')
+version = 'v6.9.0'
 
 
 # -- General configuration ---------------------------------------------------
