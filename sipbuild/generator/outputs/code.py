@@ -1849,7 +1849,8 @@ def _void_pointer_instances(sf, spec, scope=None):
             continue
 
         vi_name = _cached_name_ref(variable.py_name)
-        vi_val = _const_cast(spec, variable.type, variable.fq_cpp_name.as_cpp)
+        vi_val = _const_cast(spec, variable.type,
+                variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL))
         instances.append((vi_name, vi_val))
 
     return _write_instances_table(sf, scope, instances,
@@ -1869,7 +1870,7 @@ def _char_instances(sf, spec, scope=None):
             continue
 
         ci_name = _cached_name_ref(variable.py_name)
-        ci_val = variable.fq_cpp_name.as_cpp
+        ci_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
         ci_encoding = "'" + _get_encoding(variable.type) + "'"
 
         instances.append((ci_name, ci_val, ci_encoding))
@@ -1891,7 +1892,7 @@ def _string_instances(sf, spec, scope=None):
             continue
 
         si_name = _cached_name_ref(variable.py_name)
-        si_val = variable.fq_cpp_name.as_cpp
+        si_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
 
         # This is the hack for handling wchar_t and wchar_t*.
         encoding = _get_encoding(variable.type)
@@ -1945,7 +1946,7 @@ def _int_instances(sf, spec, scope=None):
             continue
 
         ii_name = _cached_name_ref(variable.py_name)
-        ii_val = variable.fq_cpp_name.as_word
+        ii_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
         instances.append((ii_name, ii_val))
 
     # Anonymous enum members are handled as int variables.
@@ -2021,7 +2022,7 @@ def _write_int_instances(sf, spec, scope, target_type, type_name):
             continue
 
         ii_name = _cached_name_ref(variable.py_name)
-        ii_val = variable.fq_cpp_name.as_cpp
+        ii_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
         instances.append((ii_name, ii_val))
 
     table_type_name = type_name.title().replace(' ', '')
@@ -2045,7 +2046,7 @@ def _double_instances(sf, spec, scope=None):
             continue
 
         di_name = _cached_name_ref(variable.py_name)
-        di_val = variable.fq_cpp_name.as_cpp
+        di_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
         instances.append((di_name, di_val))
 
     return _write_instances_table(sf, scope, instances,
