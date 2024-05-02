@@ -10,9 +10,9 @@ from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
         IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
 
-from .formatters import (fmt_argument_as_rest_ref, fmt_class_as_rest_ref,
-        fmt_scoped_py_name, fmt_signature_as_cpp_declaration,
-        fmt_value_list_as_rest_ref)
+from .formatters import (fmt_argument_as_py_default_value,
+        fmt_argument_as_rest_ref, fmt_class_as_rest_ref, fmt_scoped_py_name,
+        fmt_signature_as_cpp_declaration, fmt_value_list_as_rest_ref)
 
 
 # The schema version number.
