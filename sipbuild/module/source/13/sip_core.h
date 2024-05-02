@@ -14,6 +14,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <stdbool.h>
+
 #include "sip.h"
 
 
@@ -143,9 +145,7 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define sip_set_bool(p, v)    (*(_Bool *)(p) = (v))
-#endif
 
 
 #ifdef __cplusplus

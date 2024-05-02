@@ -44,6 +44,7 @@ extern "C" {
  *
  * v12.14
  *  - Python v3.8 or later is required.
+ *  - C99 support is assumed.
  *
  * v12.13
  *  - Added support for Python v3.12.

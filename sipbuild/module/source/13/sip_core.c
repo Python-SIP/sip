@@ -24,12 +24,6 @@
 #include "sip_core.h"
 
 
-/* There doesn't seem to be a standard way of checking for C99 support. */
-#if !defined(va_copy)
-#define va_copy(d, s)   ((d) = (s))
-#endif
-
-
 /*
  * The Python metatype for a C++ wrapper type.  We inherit everything from the
  * standard Python metatype except the init and getattro methods and the size
