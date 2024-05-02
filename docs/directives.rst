@@ -1357,7 +1357,7 @@ For example::
 
 .. parsed-literal::
     template<*type-list*>
-    %MappedType *type*
+    %MappedType *base-type*
     {
         [:directive:`%TypeCode`]
         [:directive:`%TypeHeaderCode`]
@@ -1366,7 +1366,7 @@ For example::
         [:directive:`%ReleaseCode`]
     };
 
-    %MappedType *type*
+    %MappedType *base-type*
     {
         [:directive:`%TypeCode`]
         [:directive:`%TypeHeaderCode`]
