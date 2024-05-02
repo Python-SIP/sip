@@ -8,17 +8,18 @@
  */
 
 
+#include <stdint.h>
 #include <string.h>
 
 #include "sip_core.h"
 
 
-#define hash_1(k,s) (((unsigned long)(k)) % (s))
+#define hash_1(k,s) (((uintptr_t)(k)) % (s))
 #define hash_2(k,s) ((s) - 2 - (hash_1((k),(s)) % ((s) - 2)))
 
 
 /* Prime numbers to use as hash table sizes. */
-static unsigned long hash_primes[] = {
+static uintptr_t hash_primes[] = {
     521,        1031,       2053,       4099,
     8209,       16411,      32771,      65537,      131101,     262147,
     524309,     1048583,    2097169,    4194319,    8388617,    16777259,
@@ -27,7 +28,7 @@ static unsigned long hash_primes[] = {
 };
 
 
-static sipHashEntry *newHashTable(unsigned long);
+static sipHashEntry *newHashTable(uintptr_t);
 static sipHashEntry *findHashEntry(sipObjectMap *,void *);
 static void add_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val);
 static void add_aliases(sipObjectMap *om, void *addr, sipSimpleWrapper *val,
@@ -63,7 +64,7 @@ void sipOMFinalise(sipObjectMap *om)
 /*
  * Allocate and initialise a new hash table.
  */
-static sipHashEntry *newHashTable(unsigned long size)
+static sipHashEntry *newHashTable(uintptr_t size)
 {
     size_t nbytes;
     sipHashEntry *hashtab;
@@ -83,7 +84,7 @@ static sipHashEntry *newHashTable(unsigned long size)
  */
 static sipHashEntry *findHashEntry(sipObjectMap *om,void *key)
 {
-    unsigned long hash, inc;
+    uintptr_t hash, inc;
     void *hek;
 
     hash = hash_1(key,om -> size);
@@ -302,7 +303,7 @@ static void add_object(sipObjectMap *om, void *addr, sipSimpleWrapper *val)
  */
 static void reorganiseMap(sipObjectMap *om)
 {
-    unsigned long old_size, i;
+    uintptr_t old_size, i;
     sipHashEntry *ohe, *old_tab;
 
     /* Don't bother if it still has more than 12% available. */
