@@ -4,9 +4,8 @@
 
 
 from ..argument_parser import ArgumentParser
+from ..distinfo import distinfo
 from ..exceptions import handle_exception
-
-from .distinfo import distinfo
 
 
 def main():
@@ -68,3 +67,9 @@ def main():
         handle_exception(e)
 
     return 0
+
+
+if __name__ == '__main__':
+    import sys
+
+    sys.exit(main())

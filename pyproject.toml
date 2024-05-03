@@ -23,8 +23,8 @@ name = "Phil Thompson"
 email = "phil@riverbankcomputing.com"
 
 [project.scripts]
-sip-distinfo = "sipbuild.distinfo.main:main"
-sip-module = "sipbuild.module.main:main"
+sip-distinfo = "sipbuild.tools.distinfo:main"
+sip-module = "sipbuild.tools.module:main"
 sip-build = "sipbuild.tools.build:main"
 sip-install = "sipbuild.tools.install:main"
 sip-sdist = "sipbuild.tools.sdist:main"

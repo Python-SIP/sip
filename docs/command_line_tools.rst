@@ -1,17 +1,17 @@
 Command Line Tools
 ==================
 
-Note that, for the build tools, the command line options described in this
-section are the standard options.  Any of these options could be removed, or
-new options added, by build system extensions including project-specific
-:file:`project.py` files.
-
-The build tools can also be invoked using the ``-m`` command line option of the
+The tools can also be invoked using the ``-m`` command line option of the
 Python interpreter.  For example, the following two command lines are
 equivalent::
 
     sip-build -h
     python -m sipbuild.tools.build -h
+
+Note that, for the build tools, the command line options described in this
+section are the standard options.  Any of these options could be removed, or
+new options added, by build system extensions including project-specific
+:file:`project.py` files.
 
 
 :program:`sip-build`
