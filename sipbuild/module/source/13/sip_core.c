@@ -7,6 +7,7 @@
  */
 
 
+/* Remove when Python v3.12 is no longer supported. */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
@@ -2297,7 +2298,7 @@ static PyObject *buildObject(PyObject *obj, const char *fmt, va_list va)
             break;
 
         case '=':
-            el = PyLong_FromUnsignedLong(va_arg(va, size_t));
+            el = PyLong_FromSize_t(va_arg(va, size_t));
             break;
 
         case 'N':
@@ -4919,6 +4920,8 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
 
                 if (flags & FMT_AP_TRANSFER_THIS)
                     owner = va_arg(va, PyObject **);
+                else
+                    owner = NULL;
 
                 if (flags & FMT_AP_NO_CONVERTORS)
                 {
@@ -4945,7 +4948,7 @@ static int parsePass2(PyObject *self, int selfarg, PyObject *sipArgs,
                     if (iserr)
                         return FALSE;
 
-                    if (flags & FMT_AP_TRANSFER_THIS && *p != NULL)
+                    if (owner != NULL && *p != NULL)
                         *owner = arg;
                 }
 
@@ -9479,6 +9482,10 @@ static PyObject *slot_richcompare(PyObject *self, PyObject *arg, int op)
     case Py_GE:
         st = ge_slot;
         break;
+
+    default:
+        /* Suppress a compiler warning. */
+        st = -1;
     }
 
     /* It might not exist if not all the above have been implemented. */

@@ -43,6 +43,7 @@ extern "C" {
  * The change history of the ABI.
  *
  * v12.14
+ *  - Added support for Python v3.13.
  *  - Python v3.8 or later is required.
  *  - C99 support is assumed.
  *

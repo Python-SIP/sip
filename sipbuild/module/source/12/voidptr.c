@@ -7,6 +7,7 @@
  */
 
 
+/* Remove when Python v3.12 is no longer supported. */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
@@ -61,7 +62,11 @@ static PyObject *sipVoidPtr_ascapsule(sipVoidPtrObject *v, PyObject *arg)
 static PyObject *sipVoidPtr_asarray(sipVoidPtrObject *v, PyObject *args,
         PyObject *kw)
 {
+#if PY_VERSION_HEX >= 0x030d0000
+    static char * const kwlist[] = {"size", NULL};
+#else
     static char *kwlist[] = {"size", NULL};
+#endif
 
     Py_ssize_t size = -1;
 
@@ -82,7 +87,11 @@ static PyObject *sipVoidPtr_asarray(sipVoidPtrObject *v, PyObject *args,
 static PyObject *sipVoidPtr_asstring(sipVoidPtrObject *v, PyObject *args,
         PyObject *kw)
 {
+#if PY_VERSION_HEX >= 0x030d0000
+    static char * const kwlist[] = {"size", NULL};
+#else
     static char *kwlist[] = {"size", NULL};
+#endif
 
     Py_ssize_t size = -1;
 
@@ -425,7 +434,11 @@ static PyBufferProcs sipVoidPtr_BufferProcs = {
 static PyObject *sipVoidPtr_new(PyTypeObject *subtype, PyObject *args,
         PyObject *kw)
 {
+#if PY_VERSION_HEX >= 0x030d0000
+    static char * const kwlist[] = {"address", "size", "writeable", NULL};
+#else
     static char *kwlist[] = {"address", "size", "writeable", NULL};
+#endif
 
     struct vp_values vp_conversion;
     Py_ssize_t size = -1;

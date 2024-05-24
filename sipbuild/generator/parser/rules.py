@@ -1059,6 +1059,7 @@ def p_module(p):
         elif pm.c_bindings != c_bindings:
             pm.parser_error(p, 1, "cannot mix 'C' and 'C++' modules")
 
+    # Deprecate and remove when Python v3.12 is no longer supported.
     if 'py_ssize_t_clean' in args:
         module.py_ssize_t_clean = args['py_ssize_t_clean']
 

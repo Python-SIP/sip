@@ -7,6 +7,7 @@
  */
 
 
+/* Remove when Python v3.12 is no longer supported. */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
@@ -309,7 +310,8 @@ static int sipArray_getbuffer(PyObject *self, Py_buffer *view, int flags)
 
     view->format = NULL;
     if ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
-        view->format = format;
+        /* Note that the need for a cast is probably a Python bug. */
+        view->format = (char *)format;
 
     view->ndim = 1;
 
@@ -373,7 +375,11 @@ static PyObject *sipArray_repr(PyObject *self)
  */
 static PyObject *sipArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
 {
+#if PY_VERSION_HEX >= 0x030d0000
+    static char * const kwlist[] = {"", "", NULL};
+#else
     static char *kwlist[] = {"", "", NULL};
+#endif
 
     Py_ssize_t length;
     PyObject *array, *type;

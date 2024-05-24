@@ -11,10 +11,12 @@
 #define _SIP_CORE_H
 
 
+/* Remove when Python v3.12 is no longer supported. */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "sip.h"
 
@@ -47,9 +49,9 @@ typedef struct
 typedef struct
 {
     int primeIdx;               /* Index into table sizes. */
-    unsigned long size;         /* Size of hash table. */
-    unsigned long unused;       /* Nr. unused in hash table. */
-    unsigned long stale;        /* Nr. stale in hash table. */
+    uintptr_t size;             /* Size of hash table. */
+    uintptr_t unused;           /* Nr. unused in hash table. */
+    uintptr_t stale;            /* Nr. stale in hash table. */
     sipHashEntry *hash_array;   /* Current hash table. */
 } sipObjectMap;
 

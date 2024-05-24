@@ -8,6 +8,7 @@
  */
 
 
+/* Remove when Python v3.12 is no longer supported. */
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
@@ -123,12 +124,28 @@ PyObject *sip_api_invoke_slot_ex(const sipSlot *slot, PyObject *sigargs,
         sref = slot->pyobj;
         Py_INCREF(sref);
     }
-    else if (slot -> weakSlot == NULL)
+    else if (slot->weakSlot == NULL)
+    {
         sref = NULL;
-    else if ((sref = PyWeakref_GetObject(slot -> weakSlot)) == NULL)
-        return NULL;
+    }
     else
+    {
+#if PY_VERSION_HEX >= 0x030d0000
+        if (PyWeakref_GetRef(slot->weakSlot, &sref) < 0)
+            return NULL;
+
+        if (sref == NULL)
+        {
+            sref = Py_None;
+            Py_INCREF(sref);
+        }
+#else
+        if ((sref = PyWeakref_GetObject(slot->weakSlot)) == NULL)
+            return NULL;
+
         Py_INCREF(sref);
+#endif
+    }
 
     if (sref == Py_None)
     {
