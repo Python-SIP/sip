@@ -16,11 +16,18 @@ import warnings
 from .abstract_builder import AbstractBuilder
 from .abstract_project import AbstractProject
 from .bindings import Bindings
+from .buildable import BuildableFromSources
 from .configurable import Configurable, Option
 from .exceptions import deprecated, UserException
 from .module import resolve_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
+
+
+# The macOS minimum version of the latest supported version of Python.  v10.13
+# is the minimum version required by Python v3.13.
+MACOS_MIN_OS_MAJOR = 10
+MACOS_MIN_OS_MINOR = 13
 
 
 class Project(AbstractProject, Configurable):
@@ -155,6 +162,17 @@ class Project(AbstractProject, Configurable):
         self._temp_build_dir = None
 
         self.initialise_options(kwargs)
+
+    @property
+    def all_modules_use_limited_abi(self):
+        """ True if all modules in the project use the limited ABI. """
+
+        for buildable in self.buildables:
+            if isinstance(buildable, BuildableFromSources):
+                if not buildable.uses_limited_api:
+                    return False
+
+        return True
 
     def apply_nonuser_defaults(self, tool):
         """ Set default values for non-user options that haven't been set yet.
@@ -308,20 +326,36 @@ class Project(AbstractProject, Configurable):
 
         platform_tag = sysconfig.get_platform()
 
-        if self.py_platform == 'darwin' and self.minimum_macos_version:
+        if self.py_platform == 'darwin':
             # We expect a three part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 3:
-                min_major = int(self.minimum_macos_version[0])
-                min_minor = int(self.minimum_macos_version[1])
+                min_major, min_minor = parts[1].split('.')
+                min_major = int(min_major)
+                min_minor = int(min_minor)
 
-                # For arm64 binaries enforce a valid minimum macOS version.
+                # Use the user supplied value if it is later than the platform
+                # value.
+                if self.minimum_macos_version:
+                    user_min_major = int(self.minimum_macos_version[0])
+                    user_min_minor = int(self.minimum_macos_version[1])
+
+                    if (min_major, min_minor) < (user_min_major, user_min_minor):
+                        min_major = user_min_major
+                        min_minor = user_min_minor
+
+                # Enforce a minimum macOS version for limited ABI projects.
+                if self.all_modules_use_limited_abi and (min_major, min_minor) < (MACOS_MIN_OS_MAJOR, MACOS_MIN_OS_MINOR):
+                    min_major = MACOS_MIN_OS_MAJOR
+                    min_minor = MACOS_MIN_OS_MINOR
+
+                # Enforce a minimum macOS version for arm64 binaries.
                 if parts[2] == 'arm64' and min_major < 11:
                     min_major = 11
                     min_minor = 0
 
-                parts[1] = '{}.{}'.format(min_major, min_minor)
-
+                # Reassemble the tag.
+                parts[1] = f'{min_major}.{min_minor}'
                 platform_tag = '-'.join(parts)
 
         elif self.py_platform == 'linux' and self.manylinux:
@@ -334,7 +368,7 @@ class Project(AbstractProject, Configurable):
                     major, minor = 2, 5
 
                 parts[0] = 'manylinux'
-                parts.insert(1, '{}.{}'.format(major, minor))
+                parts.insert(1, f'{major}.{minor}')
 
                 platform_tag = '-'.join(parts)
 
@@ -362,8 +396,7 @@ class Project(AbstractProject, Configurable):
 
         next_abi_major = int(self.abi_version.split('.')[0]) + 1
 
-        return ['{} (>={}, <{})'.format(sip_project_name, self.abi_version,
-                next_abi_major)]
+        return [f'{sip_project_name} (>={self.abi_version}, <{next_abi_major})']
 
     def get_sip_distinfo_command_line(self, sip_distinfo, inventory,
             generator=None, wheel_tag=None, generator_version=None):

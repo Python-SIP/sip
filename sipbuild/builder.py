@@ -11,7 +11,6 @@ import stat
 import sys
 
 from .abstract_builder import AbstractBuilder
-from .buildable import BuildableFromSources
 from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
@@ -121,18 +120,11 @@ class Builder(AbstractBuilder):
         # Build the wheel contents.
         self._generate_bindings()
 
-        # If all buildables use the limited API then the wheel does.
-        all_use_limited_api = True
-        for buildable in project.buildables:
-            if isinstance(buildable, BuildableFromSources):
-                if not buildable.uses_limited_api:
-                    all_use_limited_api = False
-                    break
-
-        # Create the wheel tag.
+        # Create the wheel tag.  If all buildables use the limited API then the
+        # wheel does.
         wheel_tag = []
 
-        if all_use_limited_api:
+        if project.all_modules_use_limited_abi:
             # When the ABI tag is 'abi3' the interpreter tag is interpreted as
             # a minimum Python version.  This doesn't seem to be defined in a
             # PEP but is implemented in current pips.
