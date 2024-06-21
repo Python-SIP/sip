@@ -3,20 +3,6 @@
 
 ## v6.8.4
 
-### ABI v13
-
-The latest ABI v13 is v13.7.1:
-
-- added support for Python v3.13
-- C99 support is assumed.
-
-### ABI v12
-
-The latest ABI v12 is v12.4.1:
-
-- added support for Python v3.13
-- C99 support is assumed.
-
 ### Added support for Python v3.13
 
 Python v3.13 raises the minimum macOS version to 10.13.  Ensure that this
