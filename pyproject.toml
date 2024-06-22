@@ -12,7 +12,7 @@ name = "sip"
 description = "A Python bindings generator for C/C++ libraries"
 readme = "README.md"
 urls.homepage = "https://github.com/Python-SIP/sip"
-dependencies = ["packaging", "tomli; python_version<'3.11'"]
+dependencies = ["packaging", "setuptools", "tomli; python_version<'3.11'"]
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: BSD License"]
