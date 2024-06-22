@@ -1,6 +1,22 @@
 # Release Notes
 
 
+## v6.8.5
+
+### Missing dependency in `pyproject.toml`
+
+Added `setuptools` as a project dependency.
+
+Resolves [#26](https://github.com/Python-SIP/sip/issues/26)
+
+### V6.8.4 release notes are incorrect
+
+The incorrect entries in the v6.8.4 release notes regarding the latest ABI
+version numbers were removed.
+
+Resolves [#24](https://github.com/Python-SIP/sip/issues/24)
+
+
 ## v6.8.4
 
 ### Added support for Python v3.13
