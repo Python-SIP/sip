@@ -3,3 +3,4 @@ exclude .readthedocs.yaml
 prune docs
 prune examples
 prune test
+graft sipbuild/module/source
