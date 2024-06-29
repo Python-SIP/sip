@@ -47,7 +47,7 @@ class SIPTestCase(unittest.TestCase):
 
         # Build the extension module.
         cwd = os.getcwd()
-        subprocess.run(['sip-build', '--verbose'], cwd=test_dir).check_returncode()
+        subprocess.run([sys.executable, '-m', 'sipbuild.tools.build', '--verbose'], cwd=test_dir).check_returncode()
         os.chdir(cwd)
 
         # Move the extension module to the test directory.
