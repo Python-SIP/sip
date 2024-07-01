@@ -2672,6 +2672,19 @@ static int parseResult(PyObject *method, PyObject *res,
 
                 break;
 
+            case 'I':
+                {
+                    char *p = va_arg(va, char *);
+                    char v = sip_api_long_as_char(arg);
+
+                    if (PyErr_Occurred())
+                        invalid = TRUE;
+                    else if (p != NULL)
+                        *p = v;
+                }
+
+                break;
+
             case 'L':
                 {
                     signed char *p = va_arg(va, signed char *);
@@ -4299,9 +4312,28 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
                 break;
             }
 
+        case 'I':
+            {
+                /* Char as an integer. */
+
+                char *p = va_arg(va, char *);
+
+                if (arg != NULL)
+                {
+                    char v = sip_api_long_as_char(arg);
+
+                    if (PyErr_Occurred())
+                        handle_failed_int_conversion(&failure, arg);
+                    else
+                        *p = v;
+                }
+
+                break;
+            }
+
         case 'L':
             {
-                /* Signed char. */
+                /* Signed char as an integer. */
 
                 signed char *p = va_arg(va, signed char *);
 
@@ -4320,7 +4352,7 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
 
         case 'M':
             {
-                /* Unsigned char. */
+                /* Unsigned char as an integer. */
 
                 unsigned char *p = va_arg(va, unsigned char *);
 

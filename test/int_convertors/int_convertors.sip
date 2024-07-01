@@ -1,6 +1,13 @@
 %Module(name=int_convertors)
 
 
+%PostInitialisationCode
+#if SIP_API_MAJOR_NR == 12
+sipEnableOverflowChecking(1);
+#endif
+%End
+
+
 %ModuleHeaderCode
 
 #include <limits.h>

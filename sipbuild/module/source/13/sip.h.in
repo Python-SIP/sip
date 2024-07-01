@@ -35,12 +35,15 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
-#define SIP_ABI_MINOR_VERSION       7
+#define SIP_ABI_MINOR_VERSION       8
 #define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v13.8
+ *  - Added the 'I' conversion character to the argument and result parsers.
  *
  * v13.7
  *  - Added support for Python v3.13.

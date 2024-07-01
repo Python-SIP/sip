@@ -15,8 +15,11 @@ import unittest
 class SIPTestCase(unittest.TestCase):
     """ Encapsulate a test case that tests a set of standalone bindings. """
 
-    # The ABI version to use.  None implies the latest version.
-    abi_version = None
+    # The ABI version to use.  None implies the latest major version.  Note
+    # that the enum tests are specific to ABI v13.
+    #abi_version = None
+    abi_version = '13.8'
+    #abi_version = '12.15'
 
     @classmethod
     def setUpClass(cls):
@@ -141,7 +144,7 @@ _PYPROJECT_TOML = """
 requires = ["sip >=6"]
 build-backend = "sipbuild.api"
 
-[tool.sip.metadata]
+[project]
 name = "{module_name}"
 
 [tool.sip.project]

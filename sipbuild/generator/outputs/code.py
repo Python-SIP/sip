@@ -953,7 +953,7 @@ f'''
 PyObject *sipExportedExceptions_{module_name}[{module.nr_exceptions + 1}];
 ''')
 
-        if spec.abi_version >= (13, 1) or ((12, 9) <= spec.abi_version < (13, 0)):
+        if _abi_has_next_exception_handler(spec):
             _exception_handler(sf, spec)
 
     # Generate any Qt support API.
@@ -1061,7 +1061,7 @@ f'''    {module.nr_typedefs},
 ''')
 
     exception_handler = _optional_ptr(
-            ((spec.abi_version >= (13, 1) or (12, 9) <= spec.abi_version < (13, 0)) and bindings.exceptions and module.nr_exceptions > 0),
+            (_abi_has_next_exception_handler(spec) and bindings.exceptions and module.nr_exceptions > 0),
             'sipExceptionHandler_' + module_name)
 
     sf.write(
@@ -4617,13 +4617,13 @@ f'''
             fmt += '('
 
         if result_is_returned:
-            fmt += _get_parse_result_format(result,
+            fmt += _get_parse_result_format(result, spec,
                     result_is_reference=result_is_reference,
                     transfer_result=handler.transfer_result)
 
         for arg in handler.py_signature.args:
             if arg.is_out:
-                fmt += _get_parse_result_format(arg)
+                fmt += _get_parse_result_format(arg, spec)
 
         if nr_values > 1:
             fmt += ')'
@@ -4702,7 +4702,7 @@ def _add_parse_result_extra_params(params, spec, module, arg, arg_nr=-1):
             params.append(fmt_argument_as_name(spec, arg, arg_nr) + 'Key')
 
 
-def _get_parse_result_format(arg, result_is_reference=False,
+def _get_parse_result_format(arg, spec, result_is_reference=False,
         transfer_result=False):
     """ Return the format characters used by sipParseResultEx() for a
     particular type.
@@ -4751,9 +4751,10 @@ def _get_parse_result_format(arg, result_is_reference=False,
     if arg.type is ArgumentType.ENUM:
         return 'F' if arg.definition.fq_cpp_name is not None else 'e'
 
-    if arg.type in (ArgumentType.BYTE, ArgumentType.SBYTE):
-        # Note that this assumes that char is signed.  We should not make that
-        # assumption.
+    if arg.type is ArgumentType.BYTE:
+        return 'I' if _abi_has_working_char_conversion(spec) else 'L'
+
+    if arg.type is ArgumentType.SBYTE:
         return 'L'
 
     if arg.type is ArgumentType.UBYTE:
@@ -4878,6 +4879,8 @@ def _tuple_builder(spec, signature):
             if arg.array is ArrayArgument.ARRAY_SIZE:
                 array_len_arg_nr = arg_nr
             else:
+                # Note that this is the correct thing to do even if char is
+                # unsigned.
                 format_ch = 'L'
 
         elif arg.type is ArgumentType.UBYTE:
@@ -6111,7 +6114,7 @@ def _catch(sf, spec, bindings, py_signature, throw_args, release_gil):
     """ Generate the catch blocks for a call. """
 
     if _handling_exceptions(bindings, throw_args):
-        use_handler = (spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)))
+        use_handler = _abi_has_next_exception_handler(spec)
 
         sf.write('            }\n')
 
@@ -6871,6 +6874,7 @@ def _get_build_result_format(type):
         return 'F' if type.definition.fq_cpp_name is not None else 'e'
 
     if type.type in (ArgumentType.BYTE, ArgumentType.SBYTE):
+        # Note that this is the correct thing to do even if char is unsigned.
         return 'L'
 
     if type.type is ArgumentType.UBYTE:
@@ -7728,7 +7732,11 @@ def _arg_parser(sf, spec, scope, py_signature, ctor=None, overload=None):
         elif arg.type is ArgumentType.CINT:
             format_s += 'Xi'
 
-        elif arg.type in (ArgumentType.BYTE, ArgumentType.SBYTE):
+        elif arg.type is ArgumentType.BYTE:
+            if arg.array is not ArrayArgument.ARRAY_SIZE:
+                format_s += 'I' if _abi_has_working_char_conversion(spec) else 'L'
+
+        elif arg.type is ArgumentType.SBYTE:
             if arg.array is not ArrayArgument.ARRAY_SIZE:
                 format_s += 'L'
 
@@ -8818,10 +8826,30 @@ f'''            if ({index_arg} < 0 || {index_arg} >= sipCpp->{klass.len_cpp_nam
 ''')
 
 
+def _abi_has_next_exception_handler(spec):
+    """ Return True if the ABI implements sipNextExceptionHandler(). """
+
+    return _abi_version_check(spec, (12, 9), (13, 1))
+
+
+def _abi_has_working_char_conversion(spec):
+    """ Return True if the ABI has working char to/from a Python integer
+    converters (ie. char is not assumed to be signed).
+    """
+
+    return _abi_version_check(spec, (12, 15), (13, 8))
+
+
 def _abi_supports_array(spec):
     """ Return True if the ABI supports sip.array. """
 
-    return spec.abi_version >= (13, 4) or (spec.abi_version >= (12, 11) and spec.abi_version < (13, 0))
+    return _abi_version_check(spec, (12, 11), (13, 4))
+
+
+def _abi_version_check(spec, min_12, min_13):
+    """ Return True if the ABI version meets minimum version requirements. """
+
+    return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
 
 
 def _cached_name_ref(cached_name, as_nr=False):
