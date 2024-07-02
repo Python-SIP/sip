@@ -330,9 +330,15 @@ class Project(AbstractProject, Configurable):
             # We expect a three part tag so leave anything else unchanged.
             parts = platform_tag.split('-')
             if len(parts) == 3:
-                min_major, min_minor = parts[1].split('.')
-                min_major = int(min_major)
-                min_minor = int(min_minor)
+                version = parts[1]
+
+                if '.' in version:
+                    min_major, min_minor = version.split('.')
+                    min_major = int(min_major)
+                    min_minor = int(min_minor)
+                else:
+                    min_major = int(version)
+                    min_minor = 0
 
                 # Use the user supplied value if it is later than the platform
                 # value.
