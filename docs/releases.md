@@ -1,6 +1,39 @@
 # Release Notes
 
 
+## v6.8.6
+
+### Handle single number macOS deployment targets
+
+If the macOS deployment target (as returned by `sysconfig.get_platform()`)
+was just a major version number then SIP would crash.
+
+Resolves [#31](https://github.com/Python-SIP/sip/issues/31)
+
+### Support for architectures where `char` is unsigned
+
+Conversions to and from `char` and Python integer objects on architectures
+where `char` was unsigned (eg. Linux on ARM) have been fixed.
+
+The latest `sip` module ABI versions are v12.15 and v13.8.
+
+Resolves [#29](https://github.com/Python-SIP/sip/issues/29)
+
+### Support for building from git archives
+
+`.git_archival.txt` and `.gitattributes` were added so that git archives
+contain the necessary metadata for [setuptools-scm](https://setuptools-scm.readthedocs.io/en/stable/usage#git-archives).
+
+Pull request [#30](https://github.com/Python-SIP/sip/pull/30)
+
+### Run the tests using the current Python version
+
+The tests are run using the current Python version instead of the default
+one to make it easier to test using multiple Python versions.
+
+Pull request [#27](https://github.com/Python-SIP/sip/pull/27)
+
+
 ## v6.8.5
 
 ### Missing dependency in `pyproject.toml`
