@@ -3810,7 +3810,7 @@ def _shadow_code(sf, spec, bindings, klass):
             args = fmt_signature_as_cpp_declaration(spec, ctor.cpp_signature,
                     scope=klass.iface_file)
 
-            sf.write(f'    sipTrace(SIP_TRACE_CTORS, "sip{klass_name}::sip{klass_name}({args}){throw_specifier} (this=0x%%08x)\\n", this);\n\n')
+            sf.write(f'    sipTrace(SIP_TRACE_CTORS, "sip{klass_name}::sip{klass_name}({args}){throw_specifier} (this=0x%08x)\\n", this);\n\n')
 
         if nr_virtuals > 0:
             sf.write('    memset(sipPyMethods, 0, sizeof (sipPyMethods));\n')
@@ -3824,7 +3824,7 @@ def _shadow_code(sf, spec, bindings, klass):
         sf.write(f'\nsip{klass_name}::~sip{klass_name}(){throw_specifier}\n{{\n')
 
         if bindings.tracing:
-            sf.write(f'    sipTrace(SIP_TRACE_DTORS, "sip{klass_name}::~sip{klass_name}(){throw_specifier} (this=0x%%08x)\\n", this);\n\n')
+            sf.write(f'    sipTrace(SIP_TRACE_DTORS, "sip{klass_name}::~sip{klass_name}(){throw_specifier} (this=0x%08x)\\n", this);\n\n')
 
         if klass.dtor_virtual_catcher_code is not None:
             sf.write_code(klass.dtor_virtual_catcher_code)
@@ -3940,7 +3940,7 @@ def _virtual_catcher(sf, spec, bindings, klass, virtual_overload, virt_nr):
     if bindings.tracing:
         args = fmt_signature_as_cpp_declaration(spec, overload.cpp_signature,
                 scope=klass.iface_file)
-        sf.write(f'    sipTrace(SIP_TRACE_CATCHERS, "{result_type} sip{klass_name}::{overload_cpp_name}({args}){const}{throw_specifier} (this=0x%%08x)\\n", this);\n\n')
+        sf.write(f'    sipTrace(SIP_TRACE_CATCHERS, "{result_type} sip{klass_name}::{overload_cpp_name}({args}){const}{throw_specifier} (this=0x%08x)\\n", this);\n\n')
 
     _restore_protections(protection_state)
 
