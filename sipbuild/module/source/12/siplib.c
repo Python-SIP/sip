@@ -12955,7 +12955,6 @@ static void *sip_api_unicode_data(PyObject *obj, int *char_size,
  */
 static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
 {
-    int rc;
     Py_buffer *buffer;
 
     if (!PyObject_CheckBuffer(obj))
@@ -12969,26 +12968,15 @@ static int sip_api_get_buffer_info(PyObject *obj, sipBufferInfoDef *bi)
 
     buffer = (Py_buffer *)bi->bi_internal;
 
-    if (PyObject_GetBuffer(obj, buffer, PyBUF_FORMAT) < 0)
+    if (PyObject_GetBuffer(obj, buffer, PyBUF_SIMPLE) < 0)
         return -1;
 
-    if (buffer->ndim == 1)
-    {
-        bi->bi_buf = buffer->buf;
-        bi->bi_obj = buffer->obj;
-        bi->bi_len = buffer->len;
-        bi->bi_format = buffer->format;
+    bi->bi_buf = buffer->buf;
+    bi->bi_obj = buffer->obj;
+    bi->bi_len = buffer->len;
+    bi->bi_format = buffer->format;
 
-        rc = 1;
-    }
-    else
-    {
-        PyErr_SetString(PyExc_TypeError, "a 1-dimensional buffer is required");
-        PyBuffer_Release(buffer);
-        rc = -1;
-    }
-
-    return rc;
+    return 1;
 }
 
 
