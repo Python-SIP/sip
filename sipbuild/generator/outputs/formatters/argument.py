@@ -455,13 +455,13 @@ def _py_arg(spec, arg, pep484, as_xml):
         name = 'typing.Any' if pep484 else 'Any'
 
     elif type is ArgumentType.PYTUPLE:
-        name = 'typing.Tuple' if pep484 else 'Tuple'
+        name = 'tuple'
 
     elif type is ArgumentType.PYLIST:
-        name = 'typing.List' if pep484 else 'List'
+        name = 'list'
 
     elif type is ArgumentType.PYDICT:
-        name = 'typing.Dict' if pep484 else 'Dict'
+        name = 'dict'
 
     elif type is ArgumentType.PYCALLABLE:
         name = 'typing.Callable[..., None]' if pep484 else 'Callable[..., None]'

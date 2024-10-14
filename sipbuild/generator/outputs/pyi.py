@@ -50,20 +50,21 @@ def _module(pf, spec):
 
     # Generate the imports. Note that we assume the super-types are the
     # standard SIP ones.
+    stdlib_imports = ['collections', 're', 'typing']
+
     if spec.abi_version >= (13, 0):
         for enum in spec.enums:
             if enum.module is spec.module:
-                first = _separate(pf, first=first)
-                pf.write('import enum\n')
+                stdlib_imports.append('enum')
                 break
 
-    if spec.sip_module:
+    if stdlib_imports:
         first = _separate(pf, first=first)
-        pf.write(
-f'''import typing
+        pf.write('import ' + ', '.join(stdlib_imports) + '\n')
 
-import {spec.sip_module}
-''')
+    if spec.sip_module:
+        first = _separate(pf, first=first, minimum=1)
+        pf.write(f'import {spec.sip_module}\n')
 
     imports = []
 

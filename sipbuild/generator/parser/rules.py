@@ -1211,8 +1211,6 @@ def p_plugin(p):
     if pm.skipping:
         return
 
-    pm.deprecated(p, 1)
-
     pm.spec.plugins.append(p[2])
 
 

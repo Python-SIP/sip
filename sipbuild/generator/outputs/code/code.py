@@ -5,21 +5,21 @@
 
 import os
 
-from ...exceptions import UserException
-from ...version import SIP_VERSION_STR
+from ....exceptions import UserException
+from ....version import SIP_VERSION_STR
 
-from ..python_slots import (is_hash_return_slot, is_inplace_number_slot,
+from ...python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_inplace_sequence_slot, is_int_arg_slot, is_int_return_slot,
         is_multi_arg_slot, is_number_slot, is_rich_compare_slot,
         is_ssize_return_slot, is_void_return_slot, is_zero_arg_slot)
-from ..scoped_name import STRIP_GLOBAL, STRIP_NONE
-from ..specification import (AccessSpecifier, Argument, ArgumentType,
+from ...scoped_name import STRIP_GLOBAL, STRIP_NONE
+from ...specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CodeBlock, DocstringSignature, GILAction, IfaceFileType,
         KwArgs, MappedType, PyQtMethodSpecifier, PySlot, QualifierType,
         Transfer, ValueType, WrappedClass, WrappedEnum)
-from ..utils import find_method, py_as_int, same_signature
+from ...utils import find_method, py_as_int, same_signature
 
-from .formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
+from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_class_as_scoped_name, fmt_copying, fmt_enum_as_cpp_type,
         fmt_scoped_py_name, fmt_signature_as_cpp_declaration,
         fmt_signature_as_cpp_definition, fmt_signature_as_type_hint,

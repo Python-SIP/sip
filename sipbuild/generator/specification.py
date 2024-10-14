@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass, field
 from enum import auto, Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .scoped_name import ScopedName
 
@@ -575,14 +575,14 @@ class Argument:
     array: ArrayArgument = ArrayArgument.NONE
 
     # The optional default value.
-    default_value: Optional[List['Value']] = None
+    default_value: Optional[list['Value']] = None
 
     # The optional definition.  What this is depends on the type.
     definition: Any = None
 
     # The sequence of dereferences.  An element is True if the corresponding
     # dereference is const.
-    derefs: List[bool] = field(default_factory=list)
+    derefs: list[bool] = field(default_factory=list)
 
     # Set if /DisallowNone/ was specified.
     disallow_none: bool = False
@@ -762,7 +762,7 @@ class FunctionCall:
     result: Argument
 
     # The list of arguments.
-    args: List[List['Value']]
+    args: list[list['Value']]
 
 
 @dataclass
@@ -796,10 +796,10 @@ class IfaceFile:
     needed: bool = False
 
     # The %TypeHeaderCode.
-    type_header_code: List[CodeBlock] = field(default_factory=list)
+    type_header_code: list[CodeBlock] = field(default_factory=list)
 
     # The interface files used by this one (either directly or indirectly).
-    used: List['IfaceFile'] = field(default_factory=list)
+    used: list['IfaceFile'] = field(default_factory=list)
 
 
 @dataclass
@@ -845,7 +845,7 @@ class MappedType:
     instance_code: Optional[CodeBlock] = None
 
     # The member functions.
-    members: List['Member'] = field(default_factory=list)
+    members: list['Member'] = field(default_factory=list)
 
     # Set if the handwritten code requires user state information.
     needs_user_state: bool = False
@@ -863,7 +863,7 @@ class MappedType:
     no_release: bool = False
 
     # The overloaded member functions.
-    overloads: List['Overload'] = field(default_factory=list)
+    overloads: list['Overload'] = field(default_factory=list)
 
     # The Python name.  It will be None for mapped type templates.
     py_name: Optional[CachedName] = None
@@ -875,7 +875,7 @@ class MappedType:
     release_code: Optional[CodeBlock] = None
 
     # The %TypeCode.
-    type_code: List[CodeBlock] = field(default_factory=list)
+    type_code: list[CodeBlock] = field(default_factory=list)
 
     # The %TypeHintCode.
     type_hint_code: Optional[CodeBlock] = None
@@ -935,13 +935,13 @@ class Module:
     """ Encapsulate a module. """
 
     # The list of all (explicit and implied) imports. (resolver)
-    all_imports: List['Module'] = field(default_factory=list)
+    all_imports: list['Module'] = field(default_factory=list)
 
     # Set if wrapped ctors should support cooperative multi-inheritance.
     call_super_init: bool = False
 
     # The text specified by any %Copying directives.
-    copying: List[CodeBlock] = field(default_factory=list)
+    copying: list[CodeBlock] = field(default_factory=list)
 
     # The default docstring format.
     default_docstring_format: DocstringFormat = DocstringFormat.RAW
@@ -970,25 +970,25 @@ class Module:
     fq_py_name: Optional[CachedName] = None
 
     # The global functions.
-    global_functions: List[Member] = field(default_factory=list)
+    global_functions: list[Member] = field(default_factory=list)
 
     # Set if any class defined in the module has a delayed dtor.
     has_delayed_dtors: bool = False
 
     # The list of direct imports.
-    imports: List['Module'] = field(default_factory=list)
+    imports: list['Module'] = field(default_factory=list)
 
     # The code specified by any %InitialisationCode directives.
-    initialisation_code: List[CodeBlock] = field(default_factory=list)
+    initialisation_code: list[CodeBlock] = field(default_factory=list)
 
     # The software license.
     license: Optional[License] = None
 
     # The %ModuleCode.
-    module_code: List[CodeBlock] = field(default_factory=list)
+    module_code: list[CodeBlock] = field(default_factory=list)
 
     # The %ModuleHeaderCode.
-    module_header_code: List[CodeBlock] = field(default_factory=list)
+    module_header_code: list[CodeBlock] = field(default_factory=list)
 
     # The next key to auto-allocate.
     next_key: int = -1
@@ -997,7 +997,7 @@ class Module:
     nr_exceptions: int = 0
 
     # The generated types needed by this module. (resolver)
-    needed_types: List[Argument] = field(default_factory=list)
+    needed_types: list[Argument] = field(default_factory=list)
 
     # The number of typedefs defined in this module.
     nr_typedefs: int = 0
@@ -1006,16 +1006,16 @@ class Module:
     nr_virtual_error_handlers: int = 0
 
     # The overloaded global functions.
-    overloads: List['Overload'] = field(default_factory=list)
+    overloads: list['Overload'] = field(default_factory=list)
 
     # The code specified by any %PostInitialisationCode directives.
-    postinitialisation_code: List[CodeBlock] = field(default_factory=list)
+    postinitialisation_code: list[CodeBlock] = field(default_factory=list)
 
     # The proxy classes.
-    proxies: List['WrappedClass'] = field(default_factory=list)
+    proxies: list['WrappedClass'] = field(default_factory=list)
 
     # The code specified by any %PreInitialisationCode directives.
-    preinitialisation_code: List[CodeBlock] = field(default_factory=list)
+    preinitialisation_code: list[CodeBlock] = field(default_factory=list)
 
     # The name of the module. (resolver)
     py_name: Optional[str] = None
@@ -1024,16 +1024,16 @@ class Module:
     py_ssize_t_clean: bool = False
 
     # The list of qualifiers.
-    qualifiers: List['Qualifier'] = field(default_factory=list)
+    qualifiers: list['Qualifier'] = field(default_factory=list)
 
     # The %TypeHintCode.
-    type_hint_code: List[CodeBlock] = field(default_factory=list)
+    type_hint_code: list[CodeBlock] = field(default_factory=list)
 
     # The %UnitCode.
-    unit_code: List[CodeBlock] = field(default_factory=list)
+    unit_code: list[CodeBlock] = field(default_factory=list)
 
     # The %UnitPostIncludeCode.
-    unit_postinclude_code: List[CodeBlock] = field(default_factory=list)
+    unit_postinclude_code: list[CodeBlock] = field(default_factory=list)
 
     # Set if the actual argument names to wrapped callables should be used in
     # the generated bindings rather than automatically generated ones.
@@ -1043,7 +1043,7 @@ class Module:
     use_limited_api: bool = False
 
     # The interface files used by the module.
-    used: List[IfaceFile] = field(default_factory=list)
+    used: list[IfaceFile] = field(default_factory=list)
 
 
 @dataclass
@@ -1214,7 +1214,7 @@ class Signature:
     """ Encapsulate a signature (including the optional result). """
 
     # The list of arguments.
-    args: List[Argument] = field(default_factory=list)
+    args: list[Argument] = field(default_factory=list)
 
     # The type of the result.
     result: Optional[Argument] = None
@@ -1252,62 +1252,62 @@ class Specification:
     c_bindings: bool = False
 
     # The list of classes.
-    classes: List['WrappedClass'] = field(default_factory=list)
+    classes: list['WrappedClass'] = field(default_factory=list)
 
     # The list of enums.
-    enums: List['WrappedEnum'] = field(default_factory=list)
+    enums: list['WrappedEnum'] = field(default_factory=list)
 
     # The list of exceptions.
-    exceptions: List['WrappedException'] = field(default_factory=list)
+    exceptions: list['WrappedException'] = field(default_factory=list)
 
     # The %ExportedHeaderCode.
-    exported_header_code: List[CodeBlock] = field(default_factory=list)
+    exported_header_code: list[CodeBlock] = field(default_factory=list)
 
     # The %ExportedTypeHintCode.
-    exported_type_hint_code: List[CodeBlock] = field(default_factory=list)
+    exported_type_hint_code: list[CodeBlock] = field(default_factory=list)
 
     # The extracts.
-    extracts: List[Extract] = field(default_factory=list)
+    extracts: list[Extract] = field(default_factory=list)
 
     # The interface files.
-    iface_files: List[IfaceFile] = field(default_factory=list)
+    iface_files: list[IfaceFile] = field(default_factory=list)
 
     # Set if the specification is for a composite module.
     is_composite: bool = False
 
     # The mapped type templates.
-    mapped_type_templates: List[MappedTypeTemplate] = field(default_factory=list)
+    mapped_type_templates: list[MappedTypeTemplate] = field(default_factory=list)
 
     # The mapped types.
-    mapped_types: List[MappedType] = field(default_factory=list)
+    mapped_types: list[MappedType] = field(default_factory=list)
 
     # The module for which code is to be generated.
     module: Module = field(default_factory=Module)
 
     # The cache of names that may be required as strings in the generated code.
-    name_cache: Dict[int, List[CachedName]] = field(default_factory=dict)
+    name_cache: dict[int, list[CachedName]] = field(default_factory=dict)
 
     # The number of virtual handlers. (resolver)
     nr_virtual_handlers: int = 0
 
     # The list of plugins.  Note that these are PyQt-specific and will be
     # removed in SIP v7.
-    plugins: List[str] = field(default_factory=list)
+    plugins: list[str] = field(default_factory=list)
 
     # The QObject class.
     pyqt_qobject: Optional['WrappedClass'] = None
 
     # The list of typedefs.
-    typedefs: List['WrappedTypedef'] = field(default_factory=list)
+    typedefs: list['WrappedTypedef'] = field(default_factory=list)
 
     # The list of variables.
-    variables: List['WrappedVariable'] = field(default_factory=list)
+    variables: list['WrappedVariable'] = field(default_factory=list)
 
     # The list of virtual error handlers.
-    virtual_error_handlers: List['VirtualErrorHandler'] = field(default_factory=list)
+    virtual_error_handlers: list['VirtualErrorHandler'] = field(default_factory=list)
 
     # The list of virtual handlers. (resolver)
-    virtual_handlers: List['VirtualHandler'] = field(default_factory=list)
+    virtual_handlers: list['VirtualHandler'] = field(default_factory=list)
 
     def __hash__(self):
         """ Reimplemented so a Specification object can be used as a dict key.
@@ -1333,7 +1333,7 @@ class ThrowArguments:
 
     # The list of the argument names. If it is None then 'noexcept' was
     # specified, otherwise there will be at least one argument.
-    arguments: Optional[List['WrappedException']] = None
+    arguments: Optional[list['WrappedException']] = None
 
 
 @dataclass
@@ -1465,7 +1465,7 @@ class WrappedClass:
     cannot_copy: bool = False
 
     # The list of operator casts.
-    casts: List[Argument] = field(default_factory=list)
+    casts: list[Argument] = field(default_factory=list)
 
     # The specific type of class.  It will be None for namespaces.
     class_key: Optional[ClassKey] = None
@@ -1480,10 +1480,10 @@ class WrappedClass:
     convert_to_type_code: Optional[CodeBlock] = None
 
     # The constructors.
-    ctors: List[Constructor] = field(default_factory=list)
+    ctors: list[Constructor] = field(default_factory=list)
 
     # The dtor's %PreMethodCode and %MethodCode.
-    dealloc_code: List[CodeBlock] = field(default_factory=list)
+    dealloc_code: list[CodeBlock] = field(default_factory=list)
 
     # The constructor that has /Default/ specified.
     default_ctor: Optional[Constructor] = None
@@ -1561,7 +1561,7 @@ class WrappedClass:
     len_cpp_name: Optional[str] = None
 
     # The methods.
-    members: List[Member] = field(default_factory=list)
+    members: list[Member] = field(default_factory=list)
 
     # The value of /Metatype/ if specified.
     metatype: Optional[CachedName] = None
@@ -1571,7 +1571,7 @@ class WrappedClass:
 
     # The list of all classes in the class hierarchy starting with itself.
     # (resolver)
-    mro: List['WrappedClass'] = field(default_factory=list)
+    mro: list['WrappedClass'] = field(default_factory=list)
 
     # Set if the class needs an array helper. (resolver)
     needs_array_helper: bool = False
@@ -1593,19 +1593,19 @@ class WrappedClass:
     no_type_name: bool = False
 
     # The overloaded methods.
-    overloads: List[Overload] = field(default_factory=list)
+    overloads: list[Overload] = field(default_factory=list)
 
     # The %PickleCode.
     pickle_code: Optional[CodeBlock] = None
 
     # The properties.
-    properties: List[Property] = field(default_factory=list)
+    properties: list[Property] = field(default_factory=list)
 
     # The /PyQtFlags/.
     pyqt_flags: int = 0
 
     # The /PyQtFlagsEnums/.
-    pyqt_flags_enums: Optional[List[str]] = None
+    pyqt_flags_enums: Optional[list[str]] = None
 
     # The /PyQtInterface/.
     pyqt_interface: Optional[str] = None
@@ -1620,7 +1620,7 @@ class WrappedClass:
     subclass_base: Optional['WrappedClass'] = None
 
     # The super-classes.
-    superclasses: List['WrappedClass'] = field(default_factory=list)
+    superclasses: list['WrappedClass'] = field(default_factory=list)
 
     # The value of /Supertype/ if specified.
     supertype: Optional[CachedName] = None
@@ -1629,7 +1629,7 @@ class WrappedClass:
     template: Optional[Template] = None
 
     # The %TypeCode.
-    type_code: List[CodeBlock] = field(default_factory=list)
+    type_code: list[CodeBlock] = field(default_factory=list)
 
     # The %TypeHintCode.
     type_hint_code: Optional[CodeBlock] = None
@@ -1641,10 +1641,10 @@ class WrappedClass:
     virtual_error_handler: Optional[str] = None
 
     # The virtual overloaded methods. (resolver)
-    virtual_overloads: List[VirtualOverload] = field(default_factory=list)
+    virtual_overloads: list[VirtualOverload] = field(default_factory=list)
 
     # The visible member functions. (resolver)
-    visible_members: List[VisibleMember] = field(default_factory=list)
+    visible_members: list[VisibleMember] = field(default_factory=list)
 
     def __hash__(self):
         """ Reimplemented so an Argument object can be used as a dict key. """
@@ -1675,7 +1675,7 @@ class WrappedEnum:
     is_scoped: bool = False
 
     # The members.
-    members: List['WrappedEnumMember'] = field(default_factory=list)
+    members: list['WrappedEnumMember'] = field(default_factory=list)
 
     # Set if this enum is needed by the module for which code is to be
     # generated. (resolver)
@@ -1688,7 +1688,7 @@ class WrappedEnum:
     no_type_hint: bool = False
 
     # The overloaded slot member functions. (resolver)
-    overloads: List['Overload'] = field(default_factory=list)
+    overloads: list['Overload'] = field(default_factory=list)
 
     # The Python name.
     py_name: Optional[CachedName] = None
@@ -1698,7 +1698,7 @@ class WrappedEnum:
 
     # The slot member functions.  These can only be created by global operators
     # being moved. (resolver)
-    slots: List[Member] = field(default_factory=list)
+    slots: list[Member] = field(default_factory=list)
 
     # The generated type number. (resolver)
     type_nr: int = -1
