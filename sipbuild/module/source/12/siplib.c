@@ -2893,7 +2893,7 @@ static int parseResult(PyObject *method, PyObject *res,
             case 'a':
                 {
                     char *p = va_arg(va, char *);
-                    int enc;
+                    int enc = -1;
 
                     switch (*fmt++)
                     {
@@ -2908,9 +2908,6 @@ static int parseResult(PyObject *method, PyObject *res,
                     case '8':
                         enc = parseString_AsUTF8Char(arg, p);
                         break;
-
-                    default:
-                        enc = -1;
                     }
 
                     if (enc < 0)
@@ -3181,7 +3178,7 @@ static int parseResult(PyObject *method, PyObject *res,
                 {
                     int key = va_arg(va, int);
                     const char **p = va_arg(va, const char **);
-                    PyObject *keep;
+                    PyObject *keep = NULL;
 
                     switch (*fmt++)
                     {
@@ -3196,9 +3193,6 @@ static int parseResult(PyObject *method, PyObject *res,
                     case '8':
                         keep = parseString_AsUTF8String(arg, p);
                         break;
-
-                    default:
-                        keep = NULL;
                     }
 
                     if (keep == NULL)
@@ -5785,7 +5779,7 @@ static int parsePass2(sipSimpleWrapper *self, int selfarg, PyObject *sipArgs,
 
                 if (arg != NULL)
                 {
-                    int enc;
+                    int enc = -1;
 
                     switch (sub_fmt)
                     {
