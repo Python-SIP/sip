@@ -27,8 +27,8 @@ corresponding header file.
 The `sip` module provides support functions to the automatically generated
 code.  The `sip` module is installed as part of the same Python package as the
 generated extension modules.  Unlike the extension modules the `sip` module is
-specific to a particular version of Python (e.g. v3.8, v3.9, v3.10, v3.11,
-v3.12).
+specific to a particular version of Python (e.g. v3.9, v3.10, v3.11, v3.12,
+v3.13).
 
 SIP makes it easy to exploit existing C or C++ libraries in a productive
 interpretive programming environment.  SIP also makes it easy to take a Python

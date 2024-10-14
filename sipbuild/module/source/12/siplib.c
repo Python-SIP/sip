@@ -223,9 +223,7 @@ static sipWrapperType sipWrapper_Type = {
         0,                  /* ht_slots */
         0,                  /* ht_qualname */
         0,                  /* ht_cached_keys */
-#if PY_VERSION_HEX >= 0x03090000
         0,                  /* ht_module */
-#endif
 #if !defined(STACKLESS)
     },
 #endif
@@ -10994,9 +10992,7 @@ sipWrapperType sipSimpleWrapper_Type = {
         0,                  /* ht_slots */
         0,                  /* ht_qualname */
         0,                  /* ht_cached_keys */
-#if PY_VERSION_HEX >= 0x03090000
         0,                  /* ht_module */
-#endif
 #if !defined(STACKLESS)
     },
 #endif
@@ -12827,28 +12823,22 @@ static int sip_api_is_user_type(const sipWrapperType *wt)
 
 
 /*
- * Return a frame from the execution stack.  Note that we use 'struct _frame'
- * rather than PyFrameObject because the latter wasn't exposed to the limited
- * API until Python v3.9.
+ * Return a frame from the execution stack.
  */
-static struct _frame *sip_api_get_frame(int depth)
+static PyFrameObject *sip_api_get_frame(int depth)
 {
 #if defined(PYPY_VERSION)
     /* PyPy only supports a depth of 0. */
     return NULL;
 #else
-    struct _frame *frame = PyEval_GetFrame();
+    PyFrameObject *frame = PyEval_GetFrame();
 
     while (frame != NULL && depth > 0)
     {
-#if PY_VERSION_HEX < 0x03090000
-        frame = frame->f_back;
-#else
         frame = PyFrame_GetBack(frame);
 
         /* Historically we return a borrowed reference. */
         Py_XDECREF(frame);
-#endif
         --depth;
     }
 

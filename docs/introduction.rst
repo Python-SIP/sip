@@ -8,7 +8,7 @@ bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.  SIP can also be used write self contained extension
 modules, i.e. without a library to be wrapped.
 
-This version of SIP generates bindings for Python v3.8 and later.
+This version of SIP generates bindings for Python v3.9 and later.
 
 SIP is hosted at `GitHub <https://github.com/Python-SIP/sip>`__.
 

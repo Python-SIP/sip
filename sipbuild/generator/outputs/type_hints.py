@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass, field
 from enum import auto, Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 from weakref import WeakKeyDictionary
 
 from ...exceptions import UserException
@@ -14,14 +14,46 @@ from ..scoped_name import ScopedName
 from ..specification import MappedType, WrappedClass, WrappedEnum
 
 
-# The types defined in the typing module.
-_TYPING_MODULE = (
-    'Any', 'NoReturn', 'Tuple', 'Union', 'Optional', 'Callable', 'Type',
-    'Literal', 'ClassVar', 'Final', 'Annotated', 'AnyStr', 'Protocol',
-    'NamedTuple', 'Dict', 'List', 'Set', 'FrozenSet', 'IO', 'TextIO',
-    'BinaryIO', 'Pattern', 'Match', 'Text', 'Iterable', 'Iterator',
-    'Generator', 'Mapping', 'Sequence',
-)
+# The pre-PEP 585 types.
+_LEGACY_TYPES = ('Dict', 'FrozenSet', 'List', 'Set', 'Tuple', 'Type')
+
+# The modules defining standard types.
+_ABC_MODULE = 'collections.abc'
+_RE_MODULE = 're'
+_TYPING_MODULE = 'typing'
+
+# The standard types and their defining modules.
+_STANDARD_TYPES = {
+    'Annotated':    _TYPING_MODULE,
+    'Any':          _TYPING_MODULE,
+    'AnyStr':       _TYPING_MODULE,
+    'BinaryIO':     _TYPING_MODULE,
+    'Callable':     _ABC_MODULE,
+    'ClassVar':     _TYPING_MODULE,
+    'dict':         None,
+    'Final':        _TYPING_MODULE,
+    'frozenset':    None,
+    'Generator':    _ABC_MODULE,
+    'IO':           _TYPING_MODULE,
+    'Iterable':     _ABC_MODULE,
+    'Iterator':     _ABC_MODULE,
+    'list':         None,
+    'Literal':      _TYPING_MODULE,
+    'Mapping':      _ABC_MODULE,
+    'Match':        _RE_MODULE,
+    'NamedTuple':   _TYPING_MODULE,
+    'NoReturn':     _TYPING_MODULE,
+    'Optional':     _TYPING_MODULE,
+    'Pattern':      _RE_MODULE,
+    'Protocol':     _TYPING_MODULE,
+    'Sequence':     _ABC_MODULE,
+    'set':          None,
+    'Text':         _TYPING_MODULE,
+    'TextIO':       _TYPING_MODULE,
+    'tuple':        None,
+    'type':         None,
+    'Union':        _TYPING_MODULE,
+}
 
 
 class NodeType(Enum):
@@ -69,10 +101,13 @@ class TypeHintNode:
     type: NodeType
 
     # The list of child nodes.
-    children: Optional[List['TypeHintNode']] = None
+    children: Optional[list['TypeHintNode']] = None
 
     # The type-dependent definition.
     definition: Optional[Union[str, MappedType, WrappedClass, WrappedEnum]] = None
+
+    # The PEP 484 definition if it is a TYPING node.
+    pep484_definition: Optional[str] = None
 
 
 class TypeHintManager:
@@ -214,8 +249,14 @@ class TypeHintManager:
             # Get the name. */
             name = text[name_start:name_end]
 
-            # See if it is an object in the typing module.
-            if name in _TYPING_MODULE:
+            # Convert pre-PEP 585 types.
+            if name in _LEGACY_TYPES:
+                name = name.lower()
+
+            # See if it is a standard type.
+            try:
+                type_module = _STANDARD_TYPES[name]
+
                 if name == 'Union':
                     # If there are no children assume it is because they have
                     # been omitted.
@@ -234,9 +275,12 @@ class TypeHintManager:
 
                     children = flattened
 
+                pep484_definition = name if type_module is None else type_module + '.' + name
+
                 node = TypeHintNode(NodeType.TYPING, children=children,
-                        definition=name)
-            else:
+                        definition=name, pep484_definition=pep484_definition)
+
+            except KeyError:
                 # Search for the type.
                 node = self._lookup_type(name, out, children)
         else:
@@ -283,7 +327,7 @@ class TypeHintManager:
             if node.definition is None:
                 s = ''
             elif pep484:
-                s = 'typing.' + node.definition
+                s = node.pep484_definition
             else:
                 s = node.definition
 

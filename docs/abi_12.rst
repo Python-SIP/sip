@@ -958,7 +958,8 @@ module, that can be used by handwritten code in specification files.
 
 .. c:function:: PyFrameObject *sipGetFrame(int depth)
 
-    This retrieves a frame object from the current execution stack.
+    This retrieves a borrowed reference to the frame object from the current
+    execution stack.
 
     .. note::
         On PyPy this will always return NULL.
