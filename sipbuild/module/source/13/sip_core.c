@@ -227,9 +227,7 @@ static sipWrapperType sipWrapper_Type = {
         0,                  /* ht_slots */
         0,                  /* ht_qualname */
         0,                  /* ht_cached_keys */
-#if PY_VERSION_HEX >= 0x03090000
         0,                  /* ht_module */
-#endif
 #if !defined(STACKLESS)
     },
 #endif
@@ -9720,9 +9718,7 @@ sipWrapperType sipSimpleWrapper_Type = {
         0,                  /* ht_slots */
         0,                  /* ht_qualname */
         0,                  /* ht_cached_keys */
-#if PY_VERSION_HEX >= 0x03090000
         0,                  /* ht_module */
-#endif
 #if !defined(STACKLESS)
     },
 #endif
