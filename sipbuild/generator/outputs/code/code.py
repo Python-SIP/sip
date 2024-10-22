@@ -1195,8 +1195,8 @@ f'''
     sipExportedExceptions_{module_name}[{module.nr_exceptions}] = SIP_NULLPTR;
 ''')
 
-    # Generate the enum meta-type registrations for PyQt6 so that they can be
-    # used in queued connections.
+    # Generate the enum and QFlag meta-type registrations for PyQt6.  (It may
+    # be possible to create these dynamically on demand.)
     if _pyqt6(spec):
         for enum in spec.enums:
             if enum.module is not module or enum.fq_cpp_name is None:
@@ -1209,6 +1209,17 @@ f'''
                 continue
 
             sf.write(f'    qMetaTypeId<{enum.fq_cpp_name.as_cpp}>();\n')
+
+        for mapped_type in spec.mapped_types:
+            if mapped_type.iface_file.module is not module:
+                continue
+
+            if mapped_type.pyqt_flags == 0:
+                continue
+
+            mapped_type_type = fmt_argument_as_cpp_type(spec, mapped_type.type,
+                    plain=True, no_derefs=True)
+            sf.write(f'    qMetaTypeId<{mapped_type_type}>();\n')
 
     # Generate any post-initialisation code. */
     sf.write_code(module.postinitialisation_code)
