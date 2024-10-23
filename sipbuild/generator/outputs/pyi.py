@@ -61,7 +61,14 @@ def _module(pf, spec):
     if stdlib_imports:
         first = _separate(pf, first=first)
         pf.write('import ' + ', '.join(stdlib_imports) + '\n')
-
+        pf.write(
+f'''
+try:
+    from warnings import deprecated
+except ImportError:
+    pass
+''')
+            
     if spec.sip_module:
         first = _separate(pf, first=first, minimum=1)
         pf.write(f'import {spec.sip_module}\n')
@@ -519,6 +526,10 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
+    if overload.deprecated:
+        deprecated_message = f'"""{overload.deprecated_message}"""'  if overload.deprecated_message else ""
+        pf.write(_indent(indent) + f'@deprecated({deprecated_message})\n')
+        
     py_name = overload.common.py_name.name
     py_signature = overload.py_signature
 
