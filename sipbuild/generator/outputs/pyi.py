@@ -61,6 +61,7 @@ def _module(pf, spec):
         first = _separate(pf, first=first)
         pf.write(
 f'''import typing
+from typing_extensions import deprecated
 
 import {spec.sip_module}
 ''')
@@ -518,6 +519,9 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
+    if overload.deprecated_message:
+        pf.write(_indent(indent) + '@deprecated("""' + overload.deprecated_message + '""")\n')
+        
     py_name = overload.common.py_name.name
     py_signature = overload.py_signature
 
