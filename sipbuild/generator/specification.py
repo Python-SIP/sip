@@ -1074,6 +1074,9 @@ class Overload:
     # Set if /Deprecated/ was specified.
     deprecated: bool = False
 
+    # Set /Deprecated/ message if specificed.
+    deprecated_message: Optional[Docstring] = None
+    
     # The docstring.
     docstring: Optional[Docstring] = None
 
@@ -1493,6 +1496,9 @@ class WrappedClass:
 
     # Set if /Deprecated/ was specified.
     deprecated: bool = False
+
+    # Set /Deprecated/ message if specificed.
+    deprecated_message: Optional[Docstring] = None
 
     # The docstring.
     docstring: Optional[Docstring] = None
