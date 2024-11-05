@@ -1409,7 +1409,7 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    int (*api_deprecated)(const char *classname, const char *method);
+    int (*api_deprecated)(const char *classname, const char *method, const char *message);
     void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
     int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,

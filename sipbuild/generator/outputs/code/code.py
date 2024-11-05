@@ -7084,10 +7084,11 @@ f'''            if (!sipOrigSelf)
     if overload.deprecated:
         scope_py_name_ref = _cached_name_ref(scope.py_name) if scope is not None and scope.py_name is not None else 'SIP_NULLPTR'
         error_return = '-1' if is_void_return_slot(py_slot) or is_int_return_slot(py_slot) or is_ssize_return_slot(py_slot) or is_hash_return_slot(py_slot) else 'SIP_NULLPTR'
-
+        str_deprecated_message = f'''"{overload.deprecated_message}"''' if overload.deprecated_message else "NULL"
+        
         # Note that any temporaries will leak if an exception is raised.
         sf.write(
-f'''            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)
+f'''            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)
                 return {error_return};
 
 ''')
