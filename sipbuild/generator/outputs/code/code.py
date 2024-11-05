@@ -6247,8 +6247,10 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
 
     if ctor.deprecated:
         # Note that any temporaries will leak if an exception is raised.
+
+        str_deprecated_message = f'''"{ctor.deprecated_message}"''' if ctor.deprecated_message else "NULL"
         sf.write(
-f'''            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)
+f'''            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)
                 return SIP_NULLPTR;
 
 ''')
