@@ -44,6 +44,7 @@ extern "C" {
  *
  * v12.16
  *  - Python v3.9 or later is required.
+ *  - Add the possibility to define a message to Deprecated annotation and generate @deprecated macro in pyi files
  *
  * v12.15
  *  - Added the 'I' conversion character to the argument and result parsers.
