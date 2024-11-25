@@ -336,6 +336,10 @@ def _ctor(pf, spec, ctor, overloaded, defined, indent):
         s += '@typing.overload\n'
         pf.write(s)
 
+    if ctor.deprecated is not None:
+        deprecated_message = f'"""{ctor.deprecated}"""'
+        pf.write(_indent(indent) + f'@deprecated({deprecated_message})\n')
+        
     s = _indent(indent)
     s += 'def __init__'
     s += _python_signature(spec, ctor.py_signature, defined)

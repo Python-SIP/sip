@@ -6269,9 +6269,9 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
 
         if _abi_has_deprecated_message(spec):
             str_deprecated_message = f'''"{ctor.deprecated}"''' if ctor.deprecated else "NULL"
-            sf.write('            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
         else:
-            sf.write('            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)')
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)')
             
         sf.write(f'                return SIP_NULLPTR;')
 
