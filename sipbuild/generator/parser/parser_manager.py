@@ -190,11 +190,8 @@ class ParserManager:
                         last_resort = ctor
                 else:
                     klass.default_ctor = last_resort
-
-            klass.deprecated = annotations.get('Deprecated')
-            if not _abi_has_deprecated_message(self.spec) and klass.deprecated:
-                self.parser_error(p, symbol,
-                        "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
+                    
+            klass.deprecated = annotations.get('Deprecated', False)
             
             if klass.convert_to_type_code is not None and annotations.get('AllowNone', False):
                 klass.handles_none = True
