@@ -182,8 +182,7 @@ class ParserManager:
                 else:
                     klass.default_ctor = last_resort
 
-            klass.deprecated_message = annotations.get('Deprecated')
-            klass.deprecated = klass.deprecated_message is not None
+            klass.deprecated = annotations.get('Deprecated')
             
             if klass.convert_to_type_code is not None and annotations.get('AllowNone', False):
                 klass.handles_none = True
@@ -491,8 +490,7 @@ class ParserManager:
 
         ctor.docstring = docstring
         ctor.gil_action = self._get_gil_action(p, symbol, annotations)
-        ctor.deprecated_message = annotations.get('Deprecated')
-        ctor.deprecated = ctor.deprecated_message is not None
+        ctor.deprecated = annotations.get('Deprecated')
 
         if access_specifier is not AccessSpecifier.PRIVATE:
             ctor.kw_args = self._get_kw_args(p, symbol, annotations,
@@ -731,8 +729,7 @@ class ParserManager:
 
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
         overload.factory = annotations.get('Factory', False)
-        overload.deprecated_message = annotations.get('Deprecated')
-        overload.deprecated = overload.deprecated_message is not None
+        overload.deprecated = annotations.get('Deprecated')
         overload.new_thread = annotations.get('NewThread', False)
         overload.transfer = self.get_transfer(p, symbol, annotations)
 

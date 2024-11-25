@@ -526,8 +526,8 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
-    if overload.deprecated:
-        deprecated_message = f'"""{overload.deprecated_message}"""'  if overload.deprecated_message else ""
+    if overload.deprecated is not None:
+        deprecated_message = f'"""{overload.deprecated}"""'
         pf.write(_indent(indent) + f'@deprecated({deprecated_message})\n')
         
     py_name = overload.common.py_name.name
