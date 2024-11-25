@@ -1409,7 +1409,7 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    int (*api_deprecated)(const char *classname, const char *method, const char *message);
+    int (*api_deprecated)(const char *classname, const char *method);
     void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
     int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
@@ -1428,7 +1428,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_is_py_method_12_8)(sip_gilstate_t *gil, char *pymc,
             sipSimpleWrapper **sipSelfp, const char *cname, const char *mname);
     sipExceptionHandler (*api_next_exception_handler)(void **statep);
-    void (*unused_private_2)(void);
+    int (*api_deprecated_13_9)(const char *classname, const char *method, const char *message);
     void (*unused_private_3)(void);
     void (*unused_private_4)(void);
     void (*unused_private_5)(void);

@@ -181,7 +181,6 @@ f'''
 #define sipConvertFromVoidPtrAndSize    sipAPI_{module_name}->api_convert_from_void_ptr_and_size
 #define sipConvertFromConstVoidPtrAndSize   sipAPI_{module_name}->api_convert_from_const_void_ptr_and_size
 #define sipWrappedTypeName(wt)      ((wt)->wt_td->td_cname)
-#define sipDeprecated               sipAPI_{module_name}->api_deprecated
 #define sipGetReference             sipAPI_{module_name}->api_get_reference
 #define sipKeepReference            sipAPI_{module_name}->api_keep_reference
 #define sipRegisterProxyResolver    sipAPI_{module_name}->api_register_proxy_resolver
@@ -242,6 +241,16 @@ f'''
 
     # These are dependent on the specific ABI version.
     if spec.abi_version >= (13, 0):
+        # ABI v13.9 and later
+        if spec.abi_version >= (13, 9):
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated_13_9
+''')
+        else:
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated
+''')
+                    
         # ABI v13.6 and later.
         if spec.abi_version >= (13, 6):
             sf.write(
@@ -253,7 +262,7 @@ f'''#define sipPyTypeDictRef            sipAPI_{module_name}->api_py_type_dict_r
             sf.write(
 f'''#define sipNextExceptionHandler     sipAPI_{module_name}->api_next_exception_handler
 ''')
-
+            
         # ABI v13.0 and later. */
         sf.write(
 f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
@@ -262,6 +271,16 @@ f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
 #define sipReleaseTypeUS            sipAPI_{module_name}->api_release_type_us
 ''')
     else:
+        # ABI v12.16 and later
+        if spec.abi_version >= (12, 16):
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated_12_16
+''')
+        else:
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated
+''')
+            
         # ABI v12.13 and later.
         if spec.abi_version >= (12, 13):
             sf.write(
