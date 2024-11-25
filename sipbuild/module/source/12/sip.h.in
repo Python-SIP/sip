@@ -1575,7 +1575,7 @@ typedef struct _sipAPIDef {
     int (*api_unicode_as_wchar)(PyObject *obj);
     int *(*api_unicode_as_wstring)(PyObject *obj);
 #endif
-    int (*api_deprecated)(const char *classname, const char *method, const char *message);
+    int (*api_deprecated)(const char *classname, const char *method);
     void (*api_keep_reference)(PyObject *self, int key, PyObject *obj);
     int (*api_parse_kwd_args)(PyObject **parseErrp, PyObject *sipArgs,
             PyObject *sipKwdArgs, const char **kwdlist, PyObject **unused,
@@ -1679,6 +1679,12 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     PyObject *(*api_py_type_dict_ref)(PyTypeObject *);
+
+    /*
+     * The following are part of the public API.
+     */
+    int (*api_deprecated_12_16)(const char *classname, const char *method, const char *message);
+
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);
