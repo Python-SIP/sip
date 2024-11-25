@@ -1491,8 +1491,8 @@ class WrappedClass:
     # Set if /DelayDtor/ was specified.
     delay_dtor: bool = False
 
-    # Set if /Deprecated/ was specified.
-    deprecated: bool = False
+    # deprecated message if /Deprecated/ was specified.
+    deprecated: Optional[str] = None
 
     # The docstring.
     docstring: Optional[Docstring] = None
