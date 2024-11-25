@@ -6267,12 +6267,13 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
     if ctor.deprecated:
         # Note that any temporaries will leak if an exception is raised.
 
-        str_deprecated_message = f'''"{ctor.deprecated_message}"''' if ctor.deprecated_message else "NULL"
-        sf.write(
-f'''            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)
-                return SIP_NULLPTR;
-
-''')
+        if _abi_has_deprecated_message(spec):
+            str_deprecated_message = f'''"{ctor.deprecated_message}"''' if ctor.deprecated_message else "NULL"
+            sf.write('            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
+        else:
+            sf.write('            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)')
+            
+        sf.write(f'                return SIP_NULLPTR;')
 
     # Call any pre-hook.
     if ctor.prehook is not None:
@@ -7105,14 +7106,15 @@ f'''            if (!sipOrigSelf)
     if overload.deprecated:
         scope_py_name_ref = _cached_name_ref(scope.py_name) if scope is not None and scope.py_name is not None else 'SIP_NULLPTR'
         error_return = '-1' if is_void_return_slot(py_slot) or is_int_return_slot(py_slot) or is_ssize_return_slot(py_slot) or is_hash_return_slot(py_slot) else 'SIP_NULLPTR'
-        str_deprecated_message = f'''"{overload.deprecated_message}"''' if overload.deprecated_message else "NULL"
-        
-        # Note that any temporaries will leak if an exception is raised.
-        sf.write(
-f'''            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)
-                return {error_return};
 
-''')
+        # Note that any temporaries will leak if an exception is raised.
+        if _abi_has_deprecated_message(spec):
+            str_deprecated_message = f'''"{overload.deprecated_message}"''' if overload.deprecated_message else "NULL"
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)')
+        else:
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)')
+        
+        sf.write(f'                return {error_return};')
 
     # Call any pre-hook.
     if overload.prehook is not None:
@@ -8871,6 +8873,11 @@ def _abi_has_working_char_conversion(spec):
     """
 
     return _abi_version_check(spec, (12, 15), (13, 8))
+
+def _abi_has_deprecated_message(spec):
+    """ Return True if the ABI implements sipDeprecated() with message. """
+
+    return _abi_version_check(spec, (12, 16), (13, 9))
 
 
 def _abi_supports_array(spec):
