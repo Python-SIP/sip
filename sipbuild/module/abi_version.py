@@ -77,7 +77,9 @@ def resolve_abi_version(abi_version, module=True):
                         f"'{abi_version}' is not a valid ABI version")
     else:
         abi_major_version = sorted(os.listdir(_module_source_dir), key=int)[-1]
-        minimum_minor_version = 0
+        # v13.0 is deprecated so explicitly exclude it to avoid a later
+        # deprecation warning.
+        minimum_minor_version = 1 if abi_major_version == '13' else 0
 
     # Get the minor version of what we actually have.
     module_version = get_sip_module_version(abi_major_version)

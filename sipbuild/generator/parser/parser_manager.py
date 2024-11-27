@@ -1289,7 +1289,7 @@ class ParserManager:
 
             return True
 
-        # See if there is a selected qualifier withing range.
+        # See if there is a selected qualifier within range.
         for qual in module.qualifiers:
             if qual.type is QualifierType.TIME and qual.timeline == timeline and qual.name in self.tags:
                 if lower_qual is not None and qual.order < lower_qual.order:

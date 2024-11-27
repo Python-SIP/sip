@@ -1206,7 +1206,8 @@ class Qualifier:
     order: int = 0
 
     # The timeline number within the defining module if it is a TIME qualifier.
-    timeline: int = 0
+    # A negative value implies the SIP timeline.
+    timeline: int = -1
 
 
 @dataclass

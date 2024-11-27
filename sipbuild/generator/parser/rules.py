@@ -3213,10 +3213,15 @@ def p_annotation(p):
     """annotation : NAME
         | NAME '=' annotation_value"""
 
+    p[0] = {}
+
+    if p.parser.pm.skipping:
+        return
+
     value = None if len(p) == 2 else p[3]
     value = p.parser.pm.validate_annotation(p, 1, value)
 
-    p[0] = {p[1]: value}
+    p[0][1] = value
 
 
 def p_annotation_value(p):
