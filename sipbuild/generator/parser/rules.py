@@ -3221,7 +3221,7 @@ def p_annotation(p):
     value = None if len(p) == 2 else p[3]
     value = p.parser.pm.validate_annotation(p, 1, value)
 
-    p[0][1] = value
+    p[0][p[1]] = value
 
 
 def p_annotation_value(p):
