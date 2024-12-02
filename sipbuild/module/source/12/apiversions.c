@@ -178,9 +178,6 @@ PyObject *sipGetAPI(PyObject *self, PyObject *args)
 
     (void)self;
 
-    if (sip_api_deprecated(NULL, "getapi") < 0)
-        return NULL;
-
     if (!PyArg_ParseTuple(args, "s:getapi", &api))
         return NULL;
 
@@ -204,9 +201,6 @@ PyObject *sipSetAPI(PyObject *self, PyObject *args)
     const apiVersionDef *avd;
 
     (void)self;
-
-    if (sip_api_deprecated(NULL, "setapi") < 0)
-        return NULL;
 
     if (!PyArg_ParseTuple(args, "si:setapi", &api, &version_nr))
         return NULL;

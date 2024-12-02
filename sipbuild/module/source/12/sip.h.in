@@ -44,6 +44,7 @@ extern "C" {
  *
  * v12.16
  *  - Python v3.9 or later is required.
+ *  - Add the possibility to define a message to Deprecated annotation and generate @deprecated macro in pyi files
  *
  * v12.15
  *  - Added the 'I' conversion character to the argument and result parsers.
@@ -1679,6 +1680,12 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     PyObject *(*api_py_type_dict_ref)(PyTypeObject *);
+
+    /*
+     * The following are part of the private API.
+     */
+    int (*api_deprecated_12_16)(const char *classname, const char *method, const char *message);
+
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);
