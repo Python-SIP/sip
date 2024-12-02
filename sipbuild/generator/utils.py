@@ -492,7 +492,8 @@ def abi_version_check(spec, min_12, min_13):
 
     return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
 
+
 def abi_has_deprecated_message(spec):
-    """ Return True if the ABI implements sipDeprecated() with message. """
+    """ Return True if the ABI implements sipDeprecated() with a message. """
 
     return abi_version_check(spec, (12, 16), (13, 9))

@@ -44,7 +44,8 @@ extern "C" {
  *
  * v13.9
  *  - Python v3.9 or later is required.
- *  - Add the possibility to define a message to Deprecated annotation and generate @deprecated macro in pyi files
+ *  - Added a new implementation of sipDeprecated() that takes an optional
+ *    supplementary message.
  *
  * v13.8
  *  - Added the 'I' conversion character to the argument and result parsers.

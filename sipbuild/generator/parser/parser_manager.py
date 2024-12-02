@@ -21,8 +21,8 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
         WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
-from ..utils import (argument_as_str, cached_name, find_iface_file,
-                     normalised_scoped_name, same_base_type, abi_has_deprecated_message)
+from ..utils import (abi_has_deprecated_message, argument_as_str, cached_name,
+        find_iface_file, normalised_scoped_name, same_base_type)
 
 from . import rules
 from . import tokens
