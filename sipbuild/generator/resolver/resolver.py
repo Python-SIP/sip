@@ -649,8 +649,8 @@ def _set_mro(spec, klass, error_log, seen=None):
     if klass.scope is not None:
         _set_mro(spec, klass.scope, error_log, seen=seen)
 
-        if klass.scope.deprecated and not klass.deprecated :
-            klass.deprecated = klass.scope.deprecated
+        if klass.scope.deprecated:
+            klass.deprecated = True
 
     if klass.iface_file.type is IfaceFileType.CLASS:
         # The first thing is itself.
@@ -687,11 +687,8 @@ def _set_mro(spec, klass, error_log, seen=None):
                 if klass.iface_file.module is spec.module:
                     superklass_mro.iface_file.needed = True
 
-                if scope.deprecated and not overload.deprecated :
-                    overload.deprecated = scope.deprecated
-
-                if superklass_mro.deprecated and not klass.deprecated:
-                    klass.deprecated = superklass_mro.deprecated
+                if superklass_mro.deprecated:
+                    klass.deprecated = True
 
                 # If the super-class is a QObject sub-class then this one is as
                 # well.
@@ -819,8 +816,8 @@ def _resolve_ctors(spec, klass, error_log):
                                     klass.iface_file.fq_cpp_name))
                     break
 
-        if klass.deprecated and not ctor.deprecated :
-            ctor.deprecated = klass.deprecated
+        if klass.deprecated:
+            ctor.deprecated = True
 
 
 def _transform_casts(spec, klass, error_log):
@@ -876,8 +873,8 @@ def _add_default_copy_ctor(klass):
     ctor = Constructor(AccessSpecifier.PUBLIC, py_signature=signature,
             cpp_signature=signature)
 
-    if klass.deprecated and not ctor.deprecated :
-        ctor.deprecated = klass.deprecated
+    if klass.deprecated:
+        ctor.deprecated = True
 
     if not klass.is_abstract:
         klass.can_create = True
@@ -922,9 +919,8 @@ def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
                     break
 
         if isinstance(scope, WrappedClass):
-            
-            if scope.deprecated and not overload.deprecated :
-                overload.deprecated = scope.deprecated
+            if scope.deprecated:
+                overload.deprecated = True
 
             if overload.is_abstract:
                 scope.is_abstract = True

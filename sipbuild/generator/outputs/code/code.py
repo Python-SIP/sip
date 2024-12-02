@@ -17,8 +17,8 @@ from ...specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CodeBlock, DocstringSignature, GILAction, IfaceFileType,
         KwArgs, MappedType, PyQtMethodSpecifier, PySlot, QualifierType,
         Transfer, ValueType, WrappedClass, WrappedEnum)
-from ...utils import (find_method, py_as_int, same_signature, abi_version_check,
-                      abi_has_deprecated_message)
+from ...utils import (abi_has_deprecated_message, abi_version_check,
+        find_method, py_as_int, same_signature)
 
 from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_class_as_scoped_name, fmt_copying, fmt_enum_as_cpp_type,
@@ -6269,12 +6269,12 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
         # Note that any temporaries will leak if an exception is raised.
 
         if abi_has_deprecated_message(spec):
-            str_deprecated_message = f'''"{ctor.deprecated}"''' if ctor.deprecated else "NULL"
-            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
+            str_deprecated_message = f'"{ctor.deprecated}"' if ctor.deprecated else 'SIP_NULLPTR'
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)\n')
         else:
-            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)')
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)\n')
             
-        sf.write(f'                return SIP_NULLPTR;')
+        sf.write(f'                return SIP_NULLPTR;\n\n')
 
     # Call any pre-hook.
     if ctor.prehook is not None:
@@ -7110,12 +7110,12 @@ f'''            if (!sipOrigSelf)
 
         # Note that any temporaries will leak if an exception is raised.
         if abi_has_deprecated_message(spec):
-            str_deprecated_message = f'''"{overload.deprecated}"''' if overload.deprecated else "NULL"
-            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)')
+            str_deprecated_message = f'"{overload.deprecated}"' if overload.deprecated else 'SIP_NULLPTR'
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)\n')
         else:
-            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)')
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)\n')
         
-        sf.write(f'                return {error_return};')
+        sf.write(f'                return {error_return};\n\n')
 
     # Call any pre-hook.
     if overload.prehook is not None:
