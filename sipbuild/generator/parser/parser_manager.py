@@ -181,10 +181,7 @@ class ParserManager:
                 else:
                     klass.default_ctor = last_resort
 
-            klass.deprecated = annotations.get('Deprecated')
-            if not abi_has_deprecated_message(self.spec) and klass.deprecated:
-                self.parser_error(p, symbol,
-                                  "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
+            klass.deprecated = self.get_deprecated(p, symbol, annotations)
 
             if klass.convert_to_type_code is not None and annotations.get('AllowNone', False):
                 klass.handles_none = True
@@ -492,10 +489,7 @@ class ParserManager:
 
         ctor.docstring = docstring
         ctor.gil_action = self._get_gil_action(p, symbol, annotations)
-        ctor.deprecated = annotations.get('Deprecated')
-        if not abi_has_deprecated_message(self.spec) and ctor.deprecated:
-            self.parser_error(p, symbol,
-                              "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
+        ctor.deprecated = self.get_deprecated(p, symbol, annotations)
 
         if access_specifier is not AccessSpecifier.PRIVATE:
             ctor.kw_args = self._get_kw_args(p, symbol, annotations,
@@ -734,11 +728,7 @@ class ParserManager:
 
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
         overload.factory = annotations.get('Factory', False)
-        overload.deprecated = annotations.get('Deprecated')
-        if not abi_has_deprecated_message(self.spec) and overload.deprecated:
-            self.parser_error(p, symbol,
-                              "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
-
+        overload.deprecated = self.get_deprecated(p, symbol, annotations)
         overload.new_thread = annotations.get('NewThread', False)
         overload.transfer = self.get_transfer(p, symbol, annotations)
 
@@ -1541,6 +1531,19 @@ class ParserManager:
 
         self._error_log.log(text, self.get_source_location(p, symbol))
 
+    def get_deprecated(self, p, symbol, annotations):
+        """ Return deprecated annotation and raise an error if its format is not compatible
+        with abi version
+        """
+
+        deprecated = annotations.get('Deprecated')
+        if not abi_has_deprecated_message(self.spec) and deprecated:
+            self.parser_error(p, symbol,
+                              "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
+
+        return deprecated
+            
+        
     def pop_file(self):
         """ Restore the current .sip file from the stack and make it current.
         An IndexError is raised if the stack is empty.
