@@ -22,22 +22,12 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import (argument_as_str, cached_name, find_iface_file,
-        normalised_scoped_name, same_base_type)
+                     normalised_scoped_name, same_base_type, abi_has_deprecated_message)
 
 from . import rules
 from . import tokens
 from .annotations import InvalidAnnotation, validate_annotation_value
 from .ply import lex, yacc
-
-def _abi_has_deprecated_message(spec):
-    """ Return True if the ABI implements sipDeprecated() with message. """
-
-    return _abi_version_check(spec, (12, 16), (13, 9))
-
-def _abi_version_check(spec, min_12, min_13):
-    """ Return True if the ABI version meets minimum version requirements. """
-
-    return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
 
 class ParserManager:
     """ This object manages the actual lexer and parser objects providing them
@@ -192,7 +182,7 @@ class ParserManager:
                     klass.default_ctor = last_resort
 
             klass.deprecated = annotations.get('Deprecated')
-            if not _abi_has_deprecated_message(self.spec) and klass.deprecated:
+            if not abi_has_deprecated_message(self.spec) and klass.deprecated:
                 self.parser_error(p, symbol,
                                   "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
 
@@ -503,7 +493,7 @@ class ParserManager:
         ctor.docstring = docstring
         ctor.gil_action = self._get_gil_action(p, symbol, annotations)
         ctor.deprecated = annotations.get('Deprecated')
-        if not _abi_has_deprecated_message(self.spec) and ctor.deprecated:
+        if not abi_has_deprecated_message(self.spec) and ctor.deprecated:
             self.parser_error(p, symbol,
                               "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
 
@@ -745,7 +735,7 @@ class ParserManager:
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
         overload.factory = annotations.get('Factory', False)
         overload.deprecated = annotations.get('Deprecated')
-        if not _abi_has_deprecated_message(self.spec) and overload.deprecated:
+        if not abi_has_deprecated_message(self.spec) and overload.deprecated:
             self.parser_error(p, symbol,
                               "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
 

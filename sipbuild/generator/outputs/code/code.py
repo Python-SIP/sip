@@ -17,7 +17,8 @@ from ...specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CodeBlock, DocstringSignature, GILAction, IfaceFileType,
         KwArgs, MappedType, PyQtMethodSpecifier, PySlot, QualifierType,
         Transfer, ValueType, WrappedClass, WrappedEnum)
-from ...utils import find_method, py_as_int, same_signature
+from ...utils import (find_method, py_as_int, same_signature, abi_version_check,
+                      abi_has_deprecated_message)
 
 from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_class_as_scoped_name, fmt_copying, fmt_enum_as_cpp_type,
@@ -6267,7 +6268,7 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
     if ctor.deprecated is not None:
         # Note that any temporaries will leak if an exception is raised.
 
-        if _abi_has_deprecated_message(spec):
+        if abi_has_deprecated_message(spec):
             str_deprecated_message = f'''"{ctor.deprecated}"''' if ctor.deprecated else "NULL"
             sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
         else:
@@ -7108,7 +7109,7 @@ f'''            if (!sipOrigSelf)
         error_return = '-1' if is_void_return_slot(py_slot) or is_int_return_slot(py_slot) or is_ssize_return_slot(py_slot) or is_hash_return_slot(py_slot) else 'SIP_NULLPTR'
 
         # Note that any temporaries will leak if an exception is raised.
-        if _abi_has_deprecated_message(spec):
+        if abi_has_deprecated_message(spec):
             str_deprecated_message = f'''"{overload.deprecated}"''' if overload.deprecated else "NULL"
             sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)')
         else:
@@ -8864,33 +8865,19 @@ f'''            if ({index_arg} < 0 || {index_arg} >= sipCpp->{klass.len_cpp_nam
 def _abi_has_next_exception_handler(spec):
     """ Return True if the ABI implements sipNextExceptionHandler(). """
 
-    return _abi_version_check(spec, (12, 9), (13, 1))
-
+    return abi_version_check(spec, (12, 9), (13, 1))
 
 def _abi_has_working_char_conversion(spec):
     """ Return True if the ABI has working char to/from a Python integer
     converters (ie. char is not assumed to be signed).
     """
 
-    return _abi_version_check(spec, (12, 15), (13, 8))
-
-def _abi_has_deprecated_message(spec):
-    """ Return True if the ABI implements sipDeprecated() with message. """
-
-    return _abi_version_check(spec, (12, 16), (13, 9))
-
+    return abi_version_check(spec, (12, 15), (13, 8))
 
 def _abi_supports_array(spec):
     """ Return True if the ABI supports sip.array. """
 
-    return _abi_version_check(spec, (12, 11), (13, 4))
-
-
-def _abi_version_check(spec, min_12, min_13):
-    """ Return True if the ABI version meets minimum version requirements. """
-
-    return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
-
+    return abi_version_check(spec, (12, 11), (13, 4))
 
 def _cached_name_ref(cached_name, as_nr=False):
     """ Return a reference to a cached name. """
