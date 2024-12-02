@@ -177,8 +177,7 @@ def _class(pf, spec, klass, defined, indent=0):
         s = _indent(indent)
 
         if klass.deprecated is not None:
-            deprecated_message = f'"""{klass.deprecated}"""'
-            s += f'@deprecated({deprecated_message})\n' + _indent(indent)
+            s += f'@deprecated("{klass.deprecated}")\n' + _indent(indent)
 
         s += f'class {klass.py_name.name}('
 
