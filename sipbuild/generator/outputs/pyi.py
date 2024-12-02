@@ -61,7 +61,14 @@ def _module(pf, spec):
     if stdlib_imports:
         first = _separate(pf, first=first)
         pf.write('import ' + ', '.join(stdlib_imports) + '\n')
-
+        pf.write(
+f'''
+try:
+    from warnings import deprecated
+except ImportError:
+    pass
+''')
+            
     if spec.sip_module:
         first = _separate(pf, first=first, minimum=1)
         pf.write(f'import {spec.sip_module}\n')
@@ -168,6 +175,9 @@ def _class(pf, spec, klass, defined, indent=0):
         _separate(pf, indent=indent)
 
         s = _indent(indent)
+
+        if klass.deprecated is not None:
+            s += f'@deprecated("{klass.deprecated}")\n' + _indent(indent)
 
         s += f'class {klass.py_name.name}('
 
@@ -329,6 +339,10 @@ def _ctor(pf, spec, ctor, overloaded, defined, indent):
         s += '@typing.overload\n'
         pf.write(s)
 
+    if ctor.deprecated is not None:
+        deprecated_message = f'"""{ctor.deprecated}"""'
+        pf.write(_indent(indent) + f'@deprecated({deprecated_message})\n')
+        
     s = _indent(indent)
     s += 'def __init__'
     s += _python_signature(spec, ctor.py_signature, defined)
@@ -519,6 +533,10 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
     if is_method and overload.is_static:
         pf.write(_indent(indent) + '@staticmethod\n')
 
+    if overload.deprecated is not None:
+        deprecated_message = f'"""{overload.deprecated}"""'
+        pf.write(_indent(indent) + f'@deprecated({deprecated_message})\n')
+        
     py_name = overload.common.py_name.name
     py_signature = overload.py_signature
 

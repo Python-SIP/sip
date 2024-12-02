@@ -125,8 +125,12 @@ def validate_name(pm, p, symbol, name, value, *, allow_dots, optional):
 name = bind(validate_name, allow_dots=False, optional=False)
 
 
-def validate_string(pm, p, symbol, name, value):
-    """ Return a valid string value. """
+def validate_string(pm, p, symbol, name, value, optional):
+    """ Return a valid, possibly optional, string value. """
+
+    if value is None:
+        if optional:
+            return ''
 
     if not isinstance(value, str):
         raise InvalidAnnotation(name, "must be a quoted string", use='')
@@ -149,7 +153,7 @@ def validate_string(pm, p, symbol, name, value):
     # No value was selected so ignore the annotation completely.
     return None
 
-string = bind(validate_string)
+string = bind(validate_string, optional=False)
 
 
 def validate_string_list(pm, p, symbol, name, value):
@@ -177,7 +181,7 @@ _ANNOTATION_TYPES = {
     'BaseType':                 name(),
     'Capsule':                  boolean(),
     'Constrained':              boolean(),
-    'Deprecated':               boolean(),
+    'Deprecated':               string(optional=True),
     'Default':                  boolean(),
     'DelayDtor':                boolean(),
     'DisallowNone':             boolean(),

@@ -17,7 +17,8 @@ from ...specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CodeBlock, DocstringSignature, GILAction, IfaceFileType,
         KwArgs, MappedType, PyQtMethodSpecifier, PySlot, QualifierType,
         Transfer, ValueType, WrappedClass, WrappedEnum)
-from ...utils import find_method, py_as_int, same_signature
+from ...utils import (find_method, py_as_int, same_signature, abi_version_check,
+                      abi_has_deprecated_message)
 
 from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_class_as_scoped_name, fmt_copying, fmt_enum_as_cpp_type,
@@ -181,7 +182,6 @@ f'''
 #define sipConvertFromVoidPtrAndSize    sipAPI_{module_name}->api_convert_from_void_ptr_and_size
 #define sipConvertFromConstVoidPtrAndSize   sipAPI_{module_name}->api_convert_from_const_void_ptr_and_size
 #define sipWrappedTypeName(wt)      ((wt)->wt_td->td_cname)
-#define sipDeprecated               sipAPI_{module_name}->api_deprecated
 #define sipGetReference             sipAPI_{module_name}->api_get_reference
 #define sipKeepReference            sipAPI_{module_name}->api_keep_reference
 #define sipRegisterProxyResolver    sipAPI_{module_name}->api_register_proxy_resolver
@@ -242,6 +242,16 @@ f'''
 
     # These are dependent on the specific ABI version.
     if spec.abi_version >= (13, 0):
+        # ABI v13.9 and later
+        if spec.abi_version >= (13, 9):
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated_13_9
+''')
+        else:
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated
+''')
+                    
         # ABI v13.6 and later.
         if spec.abi_version >= (13, 6):
             sf.write(
@@ -253,7 +263,7 @@ f'''#define sipPyTypeDictRef            sipAPI_{module_name}->api_py_type_dict_r
             sf.write(
 f'''#define sipNextExceptionHandler     sipAPI_{module_name}->api_next_exception_handler
 ''')
-
+            
         # ABI v13.0 and later. */
         sf.write(
 f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
@@ -262,6 +272,16 @@ f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
 #define sipReleaseTypeUS            sipAPI_{module_name}->api_release_type_us
 ''')
     else:
+        # ABI v12.16 and later
+        if spec.abi_version >= (12, 16):
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated_12_16
+''')
+        else:
+            sf.write(
+f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated
+''')
+            
         # ABI v12.13 and later.
         if spec.abi_version >= (12, 13):
             sf.write(
@@ -6245,13 +6265,16 @@ def _constructor_call(sf, spec, bindings, klass, ctor, error_flag,
     elif old_error_flag:
         sf.write('            int sipIsErr = 0;\n\n')
 
-    if ctor.deprecated:
+    if ctor.deprecated is not None:
         # Note that any temporaries will leak if an exception is raised.
-        sf.write(
-f'''            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)
-                return SIP_NULLPTR;
 
-''')
+        if abi_has_deprecated_message(spec):
+            str_deprecated_message = f'''"{ctor.deprecated}"''' if ctor.deprecated else "NULL"
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR, {str_deprecated_message}) < 0)')
+        else:
+            sf.write(f'            if (sipDeprecated({_cached_name_ref(klass.py_name)}, SIP_NULLPTR) < 0)')
+            
+        sf.write(f'                return SIP_NULLPTR;')
 
     # Call any pre-hook.
     if ctor.prehook is not None:
@@ -7081,16 +7104,18 @@ f'''            if (!sipOrigSelf)
 
 ''')
 
-    if overload.deprecated:
+    if overload.deprecated is not None:
         scope_py_name_ref = _cached_name_ref(scope.py_name) if scope is not None and scope.py_name is not None else 'SIP_NULLPTR'
         error_return = '-1' if is_void_return_slot(py_slot) or is_int_return_slot(py_slot) or is_ssize_return_slot(py_slot) or is_hash_return_slot(py_slot) else 'SIP_NULLPTR'
 
         # Note that any temporaries will leak if an exception is raised.
-        sf.write(
-f'''            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)
-                return {error_return};
-
-''')
+        if abi_has_deprecated_message(spec):
+            str_deprecated_message = f'''"{overload.deprecated}"''' if overload.deprecated else "NULL"
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}, {str_deprecated_message}) < 0)')
+        else:
+            sf.write(f'            if (sipDeprecated({scope_py_name_ref}, {_cached_name_ref(overload.common.py_name)}) < 0)')
+        
+        sf.write(f'                return {error_return};')
 
     # Call any pre-hook.
     if overload.prehook is not None:
@@ -8840,28 +8865,19 @@ f'''            if ({index_arg} < 0 || {index_arg} >= sipCpp->{klass.len_cpp_nam
 def _abi_has_next_exception_handler(spec):
     """ Return True if the ABI implements sipNextExceptionHandler(). """
 
-    return _abi_version_check(spec, (12, 9), (13, 1))
-
+    return abi_version_check(spec, (12, 9), (13, 1))
 
 def _abi_has_working_char_conversion(spec):
     """ Return True if the ABI has working char to/from a Python integer
     converters (ie. char is not assumed to be signed).
     """
 
-    return _abi_version_check(spec, (12, 15), (13, 8))
-
+    return abi_version_check(spec, (12, 15), (13, 8))
 
 def _abi_supports_array(spec):
     """ Return True if the ABI supports sip.array. """
 
-    return _abi_version_check(spec, (12, 11), (13, 4))
-
-
-def _abi_version_check(spec, min_12, min_13):
-    """ Return True if the ABI version meets minimum version requirements. """
-
-    return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
-
+    return abi_version_check(spec, (12, 11), (13, 4))
 
 def _cached_name_ref(cached_name, as_nr=False):
     """ Return a reference to a cached name. """

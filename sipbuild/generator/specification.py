@@ -689,8 +689,8 @@ class Constructor:
     # The C/C++ signature.  It will be none if /NoDerived/ was specified.
     cpp_signature: Optional['Signature'] = None
 
-    # Set if /Deprecated/ was specified.
-    deprecated: bool = False
+    # deprecated message if /Deprecated/ was specified.
+    deprecated: Optional[str] = None
 
     # The docstring.
     docstring: Optional['Docstring'] = None
@@ -1071,9 +1071,9 @@ class Overload:
     # Set if the overload is really protected.
     access_is_really_protected: bool = False
 
-    # Set if /Deprecated/ was specified.
-    deprecated: bool = False
-
+    # deprecated message if /Deprecated/ was specified.
+    deprecated: Optional[str] = None
+    
     # The docstring.
     docstring: Optional[Docstring] = None
 
@@ -1492,8 +1492,8 @@ class WrappedClass:
     # Set if /DelayDtor/ was specified.
     delay_dtor: bool = False
 
-    # Set if /Deprecated/ was specified.
-    deprecated: bool = False
+    # deprecated message if /Deprecated/ was specified.
+    deprecated: Optional[str] = None
 
     # The docstring.
     docstring: Optional[Docstring] = None

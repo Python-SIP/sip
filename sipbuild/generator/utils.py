@@ -485,3 +485,14 @@ def search_typedefs(spec, cpp_name, type):
     # Remember the original typedef.
     if type.original_typedef is None:
         type.original_typedef = typedef
+
+        
+def abi_version_check(spec, min_12, min_13):
+    """ Return True if the ABI version meets minimum version requirements. """
+
+    return spec.abi_version >= min_13 or (min_12 <= spec.abi_version < (13, 0))
+
+def abi_has_deprecated_message(spec):
+    """ Return True if the ABI implements sipDeprecated() with message. """
+
+    return abi_version_check(spec, (12, 16), (13, 9))

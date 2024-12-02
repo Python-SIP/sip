@@ -151,6 +151,7 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength);
 int sip_api_deprecated(const char *classname, const char *method);
+int sip_api_deprecated_12_16(const char *classname, const char *method, const char *message);
 
 
 /*

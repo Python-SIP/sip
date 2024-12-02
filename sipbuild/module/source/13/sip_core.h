@@ -120,7 +120,8 @@ void *sip_api_force_convert_to_type_us(PyObject *pyObj, const sipTypeDef *td,
 int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength);
-int sip_api_deprecated(const char *classname, const char *method);
+  int sip_api_deprecated(const char *classname, const char *method);
+  int sip_api_deprecated_13_9(const char *classname, const char *method, const char* message);
 const sipTypeDef *sip_api_type_scope(const sipTypeDef *td);
 
 

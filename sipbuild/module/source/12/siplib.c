@@ -604,6 +604,10 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_py_type_dict_ref,
+    /*
+     * The following are part of the private API.
+     */
+    sip_api_deprecated_12_16,
 };
 
 
@@ -7772,13 +7776,21 @@ static void sip_api_abstract_method(const char *classname, const char *method)
             classname, method);
 }
 
-
 /*
  * Report a deprecated class or method.
  */
 int sip_api_deprecated(const char *classname, const char *method)
 {
-    char buf[100];
+  return sip_api_deprecated_12_16( classname, method, NULL );
+}
+
+/*
+ * Report a deprecated class or method with a given message.
+ */
+int sip_api_deprecated_12_16(const char *classname, const char *method, const char *message)
+{
+    const unsigned int bufsize = 100 + ( message ? strlen(message) : 0 );
+    char buf[bufsize];
 
     if (classname == NULL)
         PyOS_snprintf(buf, sizeof (buf), "%s() is deprecated", method);
@@ -7786,8 +7798,10 @@ int sip_api_deprecated(const char *classname, const char *method)
         PyOS_snprintf(buf, sizeof (buf), "%s constructor is deprecated",
                 classname);
     else
-        PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname,
-                method);
+        PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname, method);
+
+    if (message != NULL)
+      PyOS_snprintf(&buf[strlen(buf)], sizeof (buf), ": %s", message);
 
     return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
 }
