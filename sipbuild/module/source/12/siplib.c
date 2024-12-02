@@ -7800,11 +7800,8 @@ int sip_api_deprecated_12_16(const char *classname, const char *method, const ch
     else
         PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname, method);
 
-    if ( message )
-    {
-      int i = strlen(buf);
-      PyOS_snprintf(buf+i, sizeof (buf), " : %s", message);
-    }
+    if (message != NULL)
+      PyOS_snprintf(&buf[strlen(buf)], sizeof (buf), ": %s", message);
 
     return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
 }
