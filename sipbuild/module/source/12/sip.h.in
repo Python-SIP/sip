@@ -1682,7 +1682,7 @@ typedef struct _sipAPIDef {
     PyObject *(*api_py_type_dict_ref)(PyTypeObject *);
 
     /*
-     * The following are part of the public API.
+     * The following are part of the private API.
      */
     int (*api_deprecated_12_16)(const char *classname, const char *method, const char *message);
 

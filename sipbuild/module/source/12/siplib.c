@@ -605,7 +605,7 @@ static const sipAPIDef sip_api = {
      */
     sip_api_py_type_dict_ref,
     /*
-     * The following are part of the public API.
+     * The following are part of the private API.
      */
     sip_api_deprecated_12_16,
 };
