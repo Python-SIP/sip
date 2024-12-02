@@ -126,7 +126,7 @@ name = bind(validate_name, allow_dots=False, optional=False)
 
 
 def validate_string(pm, p, symbol, name, value, optional):
-    """ Return a valid string value. """
+    """ Return a valid, possibly optional, string value. """
 
     if value is None:
         if optional:
