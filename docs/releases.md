@@ -1,6 +1,45 @@
 # Release Notes
 
 
+## v6.9.0
+
+### Removal of support for Python v3.8
+
+- Generated bindings now require Python v3.9 or later.
+- Type hints now conform to PEP 585.
+- The latest `sip` module ABI versions are v12.16 and v13.9.
+
+Resolves [#37](https://github.com/Python-SIP/sip/issues/37)
+
+### Added support for the `deprecated()` decorator in `.pyi` files
+
+- `.pyi` files now use the `deprecated()` decorator when the `/Deprecated/`
+  annotation is specified.
+- The `/Deprecated/` annotation may now specify an optional string which will
+  be appended to the default deprecation warning.
+
+Resolves [#8](https://github.com/Python-SIP/sip/issues/8)
+
+### PyQt-specific support for registering `QFlags` types
+
+Calls to `qMetaTypeId()` for all `QFlags` mapped types are now automatically
+generated for PyQt using ABI v13.
+
+Resolves [#43](https://github.com/Python-SIP/sip/issues/43)
+
+### Bug fixes
+
+- The handling of the SIP versions timeline was fixed.  (Resolves
+  [#47](https://github.com/Python-SIP/sip/issues/47))
+- Annotations are now only validated if they are known to be needed.
+- The buffer protocol support for byte objects was fixed. (Resolves
+  [#36](https://github.com/Python-SIP/sip/issues/36))
+- All outstanding compiler warnings were eliminated when building the `sip`
+  module.  (Resolves [#32](https://github.com/Python-SIP/sip/issues/32))
+- Redundant `%` in trace output of `this` pointer in were removed.  (Pull
+  request [#33](https://github.com/Python-SIP/sip/pull/33))
+
+
 ## v6.8.6
 
 ### Handle single number macOS deployment targets
