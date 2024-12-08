@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 
-from ..py_versions import OLDEST_SUPPORTED_MINOR
+from ..py_versions import MINIMUM_SETUPTOOLS, OLDEST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abi_version import (get_module_source_dir, get_sip_module_version,
@@ -111,24 +111,24 @@ def _create_patches(sip_module, abi_major_version, project='',
     return {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
-        '@SIP_MODULE_FQ_NAME@':         sip_module,
-        '@SIP_MODULE_PROJECT_NAME@':    project,
-        '@SIP_MODULE_PACKAGE_NAME@':    sip_module_package_name,
-        '@SIP_MODULE_VERSION@':         get_sip_module_version(
-                                                abi_major_version),
+        '@SIP_MODULE_FQ_NAME@':                 sip_module,
+        '@SIP_MODULE_PROJECT_NAME@':            project,
+        '@SIP_MODULE_PACKAGE_NAME@':            sip_module_package_name,
+        '@SIP_MODULE_VERSION@':                 get_sip_module_version(
+                                                        abi_major_version),
 
-        # These are internal to setup.cfg and sip.h.
+        # These are internal.
+        '@_SIP_MINIMUM_SETUPTOOLS@':            MINIMUM_SETUPTOOLS,
+        '@_SIP_MODULE_FQ_NAME@':                sip_module,
+        '@_SIP_MODULE_NAME@':                   sip_module_name,
+        '@_SIP_MODULE_SHARED@':                 '1' if sip_module else '0',
+        '@_SIP_MODULE_ENTRY@':                  'PyInit_' + sip_module_name,
+        '@_SIP_MODULE_LEGACY@':                 "1" if legacy else "0",
         '@_SIP_OLDEST_SUPPORTED_MINOR@':        str(OLDEST_SUPPORTED_MINOR),
-        '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR, '02x'),
-
-        # These are internal to sip.h.
-        '@_SIP_MODULE_FQ_NAME@':        sip_module,
-        '@_SIP_MODULE_NAME@':           sip_module_name,
-        '@_SIP_MODULE_SHARED@':         '1' if sip_module else '0',
-        '@_SIP_MODULE_ENTRY@':          'PyInit_' + sip_module_name,
-        '@_SIP_MODULE_LEGACY@':         "1" if legacy else "0",
-        '@_SIP_VERSION@':               hex(sip_version),
-        '@_SIP_VERSION_STR@':           sip_version_str
+        '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR,
+                                                        '02x'),
+        '@_SIP_VERSION@':                       hex(sip_version),
+        '@_SIP_VERSION_STR@':                   sip_version_str
     }
 
 
