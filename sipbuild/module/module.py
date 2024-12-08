@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 
+from ..py_versions import OLDEST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abi_version import (get_module_source_dir, get_sip_module_version,
@@ -115,6 +116,10 @@ def _create_patches(sip_module, abi_major_version, project='',
         '@SIP_MODULE_PACKAGE_NAME@':    sip_module_package_name,
         '@SIP_MODULE_VERSION@':         get_sip_module_version(
                                                 abi_major_version),
+
+        # These are internal to setup.cfg and sip.h.
+        '@_SIP_OLDEST_SUPPORTED_MINOR@':        str(OLDEST_SUPPORTED_MINOR),
+        '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR, '02x'),
 
         # These are internal to sip.h.
         '@_SIP_MODULE_FQ_NAME@':        sip_module,

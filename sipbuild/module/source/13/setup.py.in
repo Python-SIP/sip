@@ -18,6 +18,6 @@ setup(
         name='@SIP_MODULE_PROJECT_NAME@',
         version='@SIP_MODULE_VERSION@',
         license='SIP',
-        python_requires='>=3.8',
+        python_requires='>=3.@_SIP_OLDEST_SUPPORTED_MINOR@',
         ext_modules=[module]
      )
