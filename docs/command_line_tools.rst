@@ -434,6 +434,11 @@ The syntax of the :program:`sip-sdist` command line is::
 
     sip-sdist [options]
 
+.. versionchanged:: 6.9.1
+
+    The name of the sdist file now conforms to PEP 625 (i.e. it is all lower
+    case).
+
 The full set of command line options is:
 
 .. program:: sip-sdist

@@ -187,8 +187,7 @@ Collectively the above are SIP's *build tools*.
 
 :program:`pip` can also be used as a build frontend.  This has the advantage
 that the user does not need to explicitly install SIP, :program:`pip` will do
-that automatically.  However it has the disadvantage that :program:`pip` does
-not (yet) allow the user to configure the backend using command line options.
+that automatically.
 
 SIP also includes some additional command line tools.
 

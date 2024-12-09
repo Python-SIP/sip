@@ -48,7 +48,7 @@ class Builder(AbstractBuilder):
         project = self.project
 
         # The sdist name.
-        sdist_name = '{}-{}'.format(project.name.replace('-', '_'),
+        sdist_name = '{}-{}'.format(project.name.replace('-', '_').lower(),
                 project.version_str)
 
         # Create the sdist root directory.
