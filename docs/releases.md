@@ -1,6 +1,32 @@
 # Release Notes
 
 
+## v6.9.1
+
+### `sip-sdist` creates PEP 625 compatible file names
+
+The sdists created by `sip-sdist` are now compatible with PEP 625 in that
+they have lower case names.  This ensures that they will still be able to
+be uploaded to PyPI.
+
+Resolves [#23](https://github.com/Python-SIP/sip/issues/23)
+
+### Update the minimum version of `setuptools`
+
+The minimum version of `setuptools` used by SIP and by the generated `sip`
+module sdists has been set to v69.5.  This is the oldest version that
+supports PEP 625.
+
+Resolves [#55](https://github.com/Python-SIP/sip/issues/55)
+
+### `sip` module sdist `Requires-Python` is incorrect
+
+The minimum Python version in the generated `sip` module metadata is now
+set to v3.9.
+
+Resolves [#56](https://github.com/Python-SIP/sip/issues/56)
+
+
 ## v6.9.0
 
 ### Removal of support for Python v3.8
