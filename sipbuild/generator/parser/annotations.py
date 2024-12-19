@@ -136,11 +136,43 @@ def validate_string(pm, p, symbol, name, value, optional):
         raise InvalidAnnotation(name, "must be a quoted string", use='')
 
     # Handle any embedded selectors.
-    for part in value.split(';'):
-        if ':' not in part:
-            return part.strip()
+    fields = []
 
-        selector, subvalue = part.split(':', maxsplit=1)
+    # Break into a list of ';' separated fields allowing for escaped ';'s.
+    field = ''
+    needs_appending = True
+    for ch in value:
+        if ch == ';':
+            if field and field[-1] == '\\':
+                # Remove the escape.
+                field = field[:-1]
+            else:
+                fields.append(field.strip())
+                field = ''
+                needs_appending = False
+                continue
+
+        field += ch
+        needs_appending = True
+
+    if needs_appending:
+        fields.append(field.strip())
+
+    # Go through each field looking for ':' separated selector/value pairs.
+    for fields in fields:
+        # A missing selector is treated as 'true'.
+        parts = field.split(':', maxsplit=1)
+        if len(parts) != 2:
+            return field
+
+        selector, field_value = parts
+
+        # An escaped ':' means the selector is missing.
+        if selector and selector[-1] == '\\':
+            # Remove the escape.
+            return field.replace('\\', '', 1)
+
+        # See if the selector is inverted.
         if selector.startswith('!'):
             selector = selector[1:]
             inverted = True
@@ -148,7 +180,7 @@ def validate_string(pm, p, symbol, name, value, optional):
             inverted = False
 
         if pm.evaluate_feature_or_platform(p, symbol, selector, inverted):
-            return subvalue.strip()
+            return field_value.strip()
 
     # No value was selected so ignore the annotation completely.
     return None
