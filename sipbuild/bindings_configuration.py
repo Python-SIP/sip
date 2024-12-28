@@ -33,7 +33,7 @@ def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
     except Exception as e:
         raise UserParseException(toml_file, detail=str(e))
 
-    # Check the ABI version is compatible.
+    # Check the major ABI versions are the same.
     cfg_abi_version = cfg.get('sip-abi-version')
     if cfg_abi_version is None or not isinstance(cfg_abi_version, str):
         raise UserFileException(toml_file,

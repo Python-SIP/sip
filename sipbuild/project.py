@@ -685,9 +685,8 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Get the supported ABI version.  (The actual version may have a later
-        # minor version.)
-        self.abi_version = resolve_abi_version(self.abi_version, module=False)
+        # Get the ABI version to use.
+        self.abi_version = resolve_abi_version(self.abi_version)
 
         # These ABI versions are deprecated because we have deprecated any
         # arguments to 'throw()' which these versions rely on.

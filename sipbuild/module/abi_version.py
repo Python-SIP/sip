@@ -52,46 +52,44 @@ def get_sip_module_version(abi_major_version):
     return f'{abi_major_version}.{abi_minor_version}.{patch_version}'
 
 
-def resolve_abi_version(abi_version, module=True):
-    """ Return a valid ABI version or the latest if none was given. """
+def resolve_abi_version(abi_version):
+    """ Return a valid ABI version defaulting to the latest. """
 
-    # Get the major and minimum minor version of what we need.
+    # Assume we are using the default minor version.
+    minor_version = -1
+
+    # Make sure we have a valid major version.
     if abi_version:
         parts = abi_version.split('.')
-        abi_major_version = parts[0]
+        major_version = parts[0]
 
-        if not os.path.isdir(get_module_source_dir(abi_major_version)):
+        if not os.path.isdir(get_module_source_dir(major_version)):
             raise UserException(
                     f"'{abi_version}' is not a supported ABI version")
 
-        if len(parts) == 1:
-            minimum_minor_version = 0
-        else:
+        if len(parts) != 1:
             try:
-                minimum_minor_version = int(parts[1])
+                minor_version = int(parts[1])
             except ValueError:
-                minimum_minor_version = None
+                pass
 
-            if len(parts) > 2 or minimum_minor_version is None:
+            if len(parts) > 2 or minor_version < 0:
                 raise UserException(
                         f"'{abi_version}' is not a valid ABI version")
     else:
-        abi_major_version = sorted(os.listdir(_module_source_dir), key=int)[-1]
-        # v13.0 is deprecated so explicitly exclude it to avoid a later
-        # deprecation warning.
-        minimum_minor_version = 1 if abi_major_version == '13' else 0
+        # Default to the latest major version.
+        major_version = sorted(os.listdir(_module_source_dir), key=int)[-1]
 
-    # Get the minor version of what we actually have.
-    module_version = get_sip_module_version(abi_major_version)
-    _, abi_minor_version, _ = module_version.split('.')
+    # Get the latest minor version of the major version.
+    latest_version = get_sip_module_version(major_version)
+    _, latest_minor_version, _ = latest_version.split('.')
+    latest_minor_version = int(latest_minor_version)
 
-    # Check we meet the minimum requirement.
-    if int(abi_minor_version) < minimum_minor_version:
+    # Get or validate the minor version to use.
+    if minor_version < 0:
+        minor_version = latest_minor_version
+    elif minor_version > latest_minor_version:
         raise UserException(f"'{abi_version}' is not a supported ABI version")
 
-    if module:
-        # Return the module's version.
-        return f'{abi_major_version}.{abi_minor_version}'
-
-    # Return the required version.
-    return f'{abi_major_version}.{minimum_minor_version}'
+    # Return the version.
+    return f'{major_version}.{minor_version}'
