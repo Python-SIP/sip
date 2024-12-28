@@ -49,6 +49,13 @@ The full set of command line options is:
 
     Verbose progress messages are enabled.
 
+.. option:: --abi-version M[.N]
+
+    The version number of the ABI of the :mod:`sip` module to generate code for
+    is ``M.N``.  By default the latest major version is used.  If the minor
+    version is not specified then the latest minor version of the major version
+    is used.
+
 .. option:: --api-dir DIR
 
     A QScintilla :file:`.api` file is created in ``DIR``.
@@ -257,6 +264,13 @@ The full set of command line options is:
 .. option:: --verbose
 
     Verbose progress messages are enabled.
+
+.. option:: --abi-version M[.N]
+
+    The version number of the ABI of the :mod:`sip` module to generate code for
+    is ``M.N``.  By default the latest major version is used.  If the minor
+    version is not specified then the latest minor version of the major version
+    is used.
 
 .. option:: --api-dir DIR
 
@@ -496,6 +510,13 @@ The full set of command line options is:
 .. option:: --verbose
 
     Verbose progress messages are enabled.
+
+.. option:: --abi-version M[.N]
+
+    The version number of the ABI of the :mod:`sip` module to generate code for
+    is ``M.N``.  By default the latest major version is used.  If the minor
+    version is not specified then the latest minor version of the major version
+    is used.
 
 .. option:: --api-dir DIR
 

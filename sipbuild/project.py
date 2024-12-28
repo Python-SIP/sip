@@ -35,9 +35,6 @@ class Project(AbstractProject, Configurable):
 
     # The configurable options.
     _options = (
-        # The minimum required ABI version of the sip module.
-        Option('abi_version'),
-
         # The callable that will return an Bindings instance.  This is used for
         # bindings implicitly defined in the .toml file.
         Option('bindings_factory'),
@@ -106,6 +103,8 @@ class Project(AbstractProject, Configurable):
                 help="enable verbose progress messages"),
         Option('name', help="the name used in sdist and wheel file names",
                 metavar="NAME", tools=['sdist', 'wheel']),
+        Option('abi_version', help="The ABI to generate code for",
+                metavar="M[.N]"),
         Option('build_dir', help="the build directory", metavar="DIR"),
         Option('build_tag', help="the build tag to be used in the wheel name",
                 metavar="TAG", tools=['wheel']),
