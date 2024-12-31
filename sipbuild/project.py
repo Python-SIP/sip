@@ -19,7 +19,7 @@ from .bindings import Bindings
 from .buildable import BuildableFromSources
 from .configurable import Configurable, Option
 from .exceptions import deprecated, UserException
-from .module import resolve_abi_version
+from .module import get_source_version_range, parse_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
 
@@ -156,6 +156,13 @@ class Project(AbstractProject, Configurable):
         self.builder = None
         self.buildables = []
         self.installables = []
+
+        # The target ABI is that specified by abi-version in pyproject.toml (or
+        # on the command line).  However, for historical reasons, we may not
+        # have the source of the older minor versions so we build against the
+        # oldest we do have.  Hence these can be different.
+        self.target_abi = None
+        self.build_abi = None
 
         self._metadata_overrides = None
         self._temp_build_dir = None
@@ -399,9 +406,10 @@ class Project(AbstractProject, Configurable):
             if rd.split()[0] == sip_project_name:
                 return []
 
-        next_abi_major = int(self.abi_version.split('.')[0]) + 1
+        abi_major, abi_minor = self.target_abi
+        next_abi_major = abi_major + 1
 
-        return [f'{sip_project_name} (>={self.abi_version}, <{next_abi_major})']
+        return [f'{sip_project_name} (>={abi_major}.{abi_minor}, <{next_abi_major})']
 
     def get_sip_distinfo_command_line(self, sip_distinfo, inventory,
             generator=None, wheel_tag=None, generator_version=None):
@@ -684,17 +692,24 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Get the ABI version to use.
-        self.abi_version = resolve_abi_version(self.abi_version)
+        # Get the ABI version to target.
+        # Note that this needs to be delayed until after the parse once the
+        # %MinimumABIVersion directive has been added.
+        major_version, minor_version = parse_abi_version(self.abi_version)
+        oldest_source, latest_source = get_source_version_range(major_version)
+
+        if minor_version is None:
+            minor_version = latest_source
+
+        self.target_abi = (major_version, minor_version)
+        self.build_abi = (major_version, max(minor_version, oldest_source))
 
         # These ABI versions are deprecated because we have deprecated any
         # arguments to 'throw()' which these versions rely on.
-        abi_version = tuple([int(v) for v in self.abi_version.split('.')])
-
-        if abi_version < (12, 9):
+        if self.target_abi < (12, 9):
             self._deprecated_abi_version('12.9')
 
-        if abi_version == (13, 0):
+        if self.target_abi < (13, 1):
             self._deprecated_abi_version('13.1')
 
         # Checks for standalone projects.

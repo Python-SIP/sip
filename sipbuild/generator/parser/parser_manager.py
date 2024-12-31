@@ -57,9 +57,7 @@ class ParserManager:
         # Public state.
         self.tags = tags
 
-        self.spec = Specification(
-                tuple([int(v) for v in abi_version.split('.')]), is_strict,
-                sip_module)
+        self.spec = Specification(abi_version, is_strict, sip_module)
 
         # The module is initially unnamed.
         self.modules = [self.spec.module]

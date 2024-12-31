@@ -8,25 +8,35 @@ import shutil
 import subprocess
 import sys
 
+from ..exceptions import UserException
 from ..py_versions import MINIMUM_SETUPTOOLS, OLDEST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
-from .abi_version import (get_module_source_dir, get_sip_module_version,
-        resolve_abi_version)
+from .abi_version import (get_module_source_dir, get_source_version_range,
+        parse_abi_version)
 
 
 def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
         target_dir):
     """ Create the various elements of a sip module. """
 
-    # Provide some defaults.
-    abi_major_version = resolve_abi_version(abi_version).split('.')[0]
+    # Check we have the required source.
+    major_version, minor_version = parse_abi_version(abi_version)
+    oldest_source, latest_source = get_source_version_range(major_version)
+
+    if minor_version is None:
+        minor_version = latest_source
+    elif minor_version < oldest_source:
+        raise UserException(
+                f"ABI v{major_version}.{oldest_source} is the oldest available")
+
+    module_source_dir = get_module_source_dir((major_version, minor_version))
 
     if project is None:
         project = sip_module.replace('.', '_')
 
     # Create the patches.
-    patches = _create_patches(sip_module, abi_major_version, project)
+    patches = _create_patches(sip_module, module_source_dir, project)
 
     # The names of generated files.
     sdist_dir = project + '-' + patches['@SIP_MODULE_VERSION@']
@@ -40,42 +50,41 @@ def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
 
     # Generate the required files.
     if sdist:
-        _create_sdist(sdist_dir, abi_major_version, patches, setup_cfg)
+        _create_sdist(sdist_dir, module_source_dir, patches, setup_cfg)
 
     if sip_h:
-        _create_sip_file(sip_h_fn, abi_major_version, patches)
+        _create_sip_file(sip_h_fn, module_source_dir, patches)
 
     if sip_rst:
-        _create_sip_file(sip_rst_fn, abi_major_version, patches)
+        _create_sip_file(sip_rst_fn, module_source_dir, patches)
 
 
-def copy_sip_h(abi_major_version, target_dir, sip_module='',
-        version_info=True):
+def copy_sip_h(abi_version, target_dir, sip_module='', version_info=True):
     """ Copy the sip.h file. """
 
-    patches = _create_patches(sip_module, abi_major_version,
+    module_source_dir = get_module_source_dir(abi_version)
+    patches = _create_patches(sip_module, module_source_dir,
             version_info=version_info)
-    _install_source_file('sip.h', get_module_source_dir(abi_major_version),
-            target_dir, patches)
+    _install_source_file('sip.h', module_source_dir, target_dir, patches)
 
 
-def copy_sip_pyi(abi_major_version, target_dir):
+def copy_sip_pyi(abi_version, target_dir):
     """ Copy the sip.pyi file. """
 
-    shutil.copy(
-            os.path.join(get_module_source_dir(abi_major_version), 'sip.pyi'),
-            target_dir)
+    module_source_dir = get_module_source_dir(abi_version)
+    shutil.copy(os.path.join(module_source_dir, 'sip.pyi'), target_dir)
 
 
-def copy_nonshared_sources(abi_major_version, target_dir):
+def copy_nonshared_sources(abi_version, target_dir):
     """ Copy the module sources as a non-shared module. """
 
     # Copy the patched sip.h.
-    copy_sip_h(abi_major_version, target_dir)
+    copy_sip_h(abi_version, target_dir)
 
     # Copy the remaining source code.
-    module_source_dir = get_module_source_dir(abi_major_version)
     sources = []
+
+    module_source_dir = get_module_source_dir(abi_version)
 
     for fn in os.listdir(module_source_dir):
         if fn.endswith('.c') or fn.endswith('.cpp') or fn.endswith('.h'):
@@ -89,7 +98,7 @@ def copy_nonshared_sources(abi_major_version, target_dir):
     return sources
 
 
-def _create_patches(sip_module, abi_major_version, project='',
+def _create_patches(sip_module, module_source_dir, project='',
         version_info=True):
     """ Return a dict of the patches. """
 
@@ -108,14 +117,32 @@ def _create_patches(sip_module, abi_major_version, project='',
         sip_version = 0
         sip_version_str = ''
 
+    # Get the full version number of the sip module.
+    abi_major = abi_minor = abi_patch = '???'
+
+    with open(os.path.join(module_source_dir, 'sip.h.in')) as vf:
+        for line in vf:
+            parts = line.strip().split()
+            if len(parts) == 3 and parts[0] == '#define':
+                name = parts[1]
+                value = parts[2]
+
+                if name == 'SIP_ABI_MAJOR_VERSION':
+                    abi_major = value
+                elif name == 'SIP_ABI_MINOR_VERSION':
+                    abi_minor = value
+                elif name == 'SIP_MODULE_PATCH_VERSION':
+                    abi_patch = value
+
+    sip_module_version = f'{abi_major}.{abi_minor}.{abi_patch}'
+
     return {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
         '@SIP_MODULE_FQ_NAME@':                 sip_module,
         '@SIP_MODULE_PROJECT_NAME@':            project,
         '@SIP_MODULE_PACKAGE_NAME@':            sip_module_package_name,
-        '@SIP_MODULE_VERSION@':                 get_sip_module_version(
-                                                        abi_major_version),
+        '@SIP_MODULE_VERSION@':                 sip_module_version,
 
         # These are internal.
         '@_SIP_MINIMUM_SETUPTOOLS@':            MINIMUM_SETUPTOOLS,
@@ -132,7 +159,7 @@ def _create_patches(sip_module, abi_major_version, project='',
     }
 
 
-def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
+def _create_sdist(sdist_dir, module_source_dir, patches, setup_cfg):
     """ Create the sdist. """
 
     # Remove any existing source directory.
@@ -141,8 +168,6 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
     os.mkdir(sdist_dir)
 
     # The source directory doesn't have sub-directories.
-    module_source_dir = get_module_source_dir(abi_version)
-
     for name in os.listdir(module_source_dir):
         if name in ('setup.cfg.in', 'sip.pyi', 'sip.rst.in'):
             continue
@@ -179,13 +204,11 @@ def _create_sdist(sdist_dir, abi_version, patches, setup_cfg):
     shutil.rmtree(sdist_dir)
 
 
-def _create_sip_file(sip_file_fn, abi_version, patches):
+def _create_sip_file(sip_file_fn, module_source_dir, patches):
     """ Create a patched file from the module source directory. """
 
     dname, fname = os.path.split(os.path.abspath(sip_file_fn))
-
-    _install_source_file(fname, get_module_source_dir(abi_version), dname,
-            patches)
+    _install_source_file(fname, module_source_dir, dname, patches)
 
 
 def _install_source_file(name, module_source_dir, target_dir, patches):

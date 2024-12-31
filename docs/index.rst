@@ -17,4 +17,6 @@ SIP Documentation
     abi_12
     pyproject_toml
     sipbuild_api
+    module_v13_releases
+    module_v12_releases
     releases

@@ -6,7 +6,6 @@
 import os
 
 from .exceptions import UserFileException, UserParseException
-from .module import resolve_abi_version
 from .toml import toml_load
 
 
@@ -39,7 +38,7 @@ def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
         raise UserFileException(toml_file,
                 "'sip-abi-version' must be specified as a string")
 
-    cfg_abi_major = int(resolve_abi_version(cfg_abi_version).split('.')[0])
+    cfg_abi_major = int(cfg_abi_version.split('.')[0])
 
     if cfg_abi_major != abi_major:
         raise UserFileException(toml_file,

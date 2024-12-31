@@ -146,7 +146,7 @@ class Bindings(Configurable):
 
         # Parse the input file.
         spec, modules, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
-                project.abi_version, self.tags, self.disabled_features,
+                project.target_abi, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs,
                 project.sip_module)
 
@@ -232,7 +232,7 @@ class Bindings(Configurable):
                 buildable.installables.append(installable)
         else:
             buildable.sources.extend(
-                    copy_nonshared_sources(project.abi_version.split('.')[0],
+                    copy_nonshared_sources(project.build_abi,
                             buildable.build_dir))
 
         buildable.include_dirs.extend(self.include_dirs)

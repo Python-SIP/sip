@@ -4,5 +4,6 @@
 
 
 # Publish the API.  This is private to the rest of sip.
-from .abi_version import resolve_abi_version
-from .module import copy_nonshared_sources, copy_sip_h, copy_sip_pyi, module
+from .abi_version import parse_abi_version
+from .module import (copy_nonshared_sources, copy_sip_h, copy_sip_pyi,
+        get_source_version_range, module)
