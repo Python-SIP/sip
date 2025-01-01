@@ -1,6 +1,11 @@
 # `sip` Module v13 History
 
 
+## v13.10
+
+- Added the `SIP_ABI_VERSION` module attribute.
+
+
 ## v13.9
 
 - Added support for the `/Deprecated/` annotation accepting an optional string.
