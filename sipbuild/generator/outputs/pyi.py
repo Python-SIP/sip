@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...version import SIP_VERSION_STR
@@ -52,7 +52,7 @@ def _module(pf, spec):
     # standard SIP ones.
     stdlib_imports = ['collections', 're', 'typing']
 
-    if spec.abi_version >= (13, 0):
+    if spec.target_abi >= (13, 0):
         for enum in spec.enums:
             if enum.module is spec.module:
                 stdlib_imports.append('enum')
@@ -189,7 +189,7 @@ def _class(pf, spec, klass, defined, indent=0):
         elif klass.supertype is not None:
             # In ABI v12 the default supertype does not contain the fully
             # qualified name of the sip module so we fix it here.
-            if spec.abi_version[0] == 12 and spec.sip_module and klass.supertype.name.startswith('sip.'):
+            if spec.target_abi[0] == 12 and spec.sip_module and klass.supertype.name.startswith('sip.'):
                 s += spec.sip_module + klass.supertype.name[4:]
             else:
                 s += klass.supertype.name
@@ -371,7 +371,7 @@ def _enums(pf, spec, defined=None, scope=None, indent=0):
 
             superclass = 'int'
 
-            if spec.abi_version >= (13, 0):
+            if spec.target_abi >= (13, 0):
                 if enum.base_type is EnumBaseType.ENUM:
                     superclass = 'enum.Enum'
                 elif enum.base_type is EnumBaseType.FLAG:

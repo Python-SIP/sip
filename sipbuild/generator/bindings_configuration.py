@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
 
-from .exceptions import UserFileException, UserParseException
-from .toml import toml_load
+from ..exceptions import UserFileException, UserParseException
+from ..toml import toml_load
 
 
-def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
+def get_bindings_configuration(spec, sip_file, sip_include_dirs):
     """ Get the configuration of a set of bindings. """
 
     # We make no assumption about the name of the .sip file but we assume that
@@ -40,11 +40,15 @@ def get_bindings_configuration(abi_major, sip_file, sip_include_dirs):
 
     cfg_abi_major = int(cfg_abi_version.split('.')[0])
 
-    if cfg_abi_major != abi_major:
-        raise UserFileException(toml_file,
-                "'{0}' was built against ABI v{1} but this module is being "
-                        "built against ABI v{2}".format(bindings_name,
-                                cfg_abi_major, abi_major))
+    if spec.target_abi is None:
+        # Infer the target ABI major version if we don't yet know it.
+        spec.target_abi = (cfg_abi_major, None)
+    else:
+        major_version = spec.target_abi[0]
+        if cfg_abi_major != major_version:
+            raise UserFileException(toml_file,
+                f"'{bindings_name}' was built against ABI v{cfg_abi_major} "
+                 "but this module is being built against ABI v{major_version}")
 
     # Return the tags and disabled features.
     return (_get_string_list(toml_file, cfg, 'module-tags'),

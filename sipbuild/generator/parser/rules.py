@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
+
+from ...exceptions import UserException
+from ...module import parse_abi_version
 
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
@@ -72,6 +75,7 @@ def p_statement(p):
         | license
         | mapped_type
         | mapped_type_template
+        | minimum_abi_version
         | module
         | module_code
         | module_header_code
@@ -989,6 +993,41 @@ def p_mapped_type_function(p):
     overload.is_static = True
 
     pm.validate_function(p, 1, overload)
+
+
+# %MinimumABIVersion ##########################################################
+
+def p_minimum_abi_version(p):
+    """minimum_abi_version : MinimumABIVersion STRING
+        | MinimumABIVersion begin_args '(' version '=' STRING end_args ')'"""
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    symbol = 2 if len(p) == 3 else 6
+
+    try:
+        min_major_version, min_minor_version = parse_abi_version(p[symbol])
+    except UserException as e:
+        pm.parser_error(p, symbol, e.text)
+        return
+
+    if pm.spec.target_abi is None:
+        pm.spec.target_abi = (min_major_version, min_minor_version)
+    else:
+        major_version, minor_version = pm.spec.target_abi
+
+        if major_version != min_major_version:
+            pm.parser_error(p, symbol,
+                    f"v{min_major_version} is specified but v{major_version} is being targeted")
+        elif min_minor_version is not None:
+            if minor_version is None:
+                pm.spec.target_abi = (min_major_version, min_minor_version)
+            elif min_minor_version is not None and minor_version < min_minor_version:
+                pm.parser_error(p, symbol,
+                        f"v{min_major_version}.{min_minor_version} is the minimum ABI version but v{major_version}.{minor_version} is being targeted")
 
 
 # %ModuleHeaderCode ###########################################################

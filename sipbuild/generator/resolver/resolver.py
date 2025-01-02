@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 
@@ -151,7 +151,7 @@ def resolve(spec, modules):
 
         # Include the %TypeHeaderCode for exceptions defined in the main
         # module.
-        if spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)):
+        if spec.target_abi >= (13, 1) or (spec.target_abi >= (12, 9) and spec.target_abi < (13, 0)):
             if exception_mod is spec.module:
                 append_iface_file(spec.module.used, exception.iface_file)
 
@@ -546,7 +546,7 @@ def _move_global_slot(spec, global_slot, error_log):
             # correctly (ie. 'E.M == E.M' works as expected).  However if there
             # is another equality operator defined then it will fail so we have
             # to explicitly inject the comparison.
-            if spec.abi_version < (13, 0) and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
+            if spec.target_abi < (13, 0) and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
                 inject_equality_slot = True
 
         # Move the overload to the end of the destination list.
@@ -1249,7 +1249,7 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
 
     # These slots must return Py_ssize_t.
     if is_ssize_return_slot(overload.common.py_slot):
-        if spec.abi_version >= (13, 0):
+        if spec.target_abi >= (13, 0):
             required_types = (ArgumentType.SSIZE, )
         else:
             required_types = (ArgumentType.SSIZE, ArgumentType.INT)
@@ -1272,7 +1272,7 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
 
     # These slots must return Py_hash_t.
     if is_hash_return_slot(overload.common.py_slot):
-        if spec.abi_version >= (13, 0):
+        if spec.target_abi >= (13, 0):
             required_type = ArgumentType.HASH
             required_type_name = 'Py_hash_t'
         else:
@@ -2036,7 +2036,7 @@ def _iface_files_are_used_by_overload(spec, used, overload, need_types=False):
                 need_types=need_types)
 
     # Don't bother with %TypeHeaderCode from %Exception for later ABI versions.
-    if spec.abi_version >= (13, 1) or (spec.abi_version >= (12, 9) and spec.abi_version < (13, 0)):
+    if spec.target_abi >= (13, 1) or (spec.target_abi >= (12, 9) and spec.target_abi < (13, 0)):
         return
 
     throw_args = overload.throw_args

@@ -1240,7 +1240,7 @@ class Specification:
     """ Encapsulate a parsed .sip file. """
 
     # The version of the ABI being targeted.
-    abi_version: tuple
+    target_abi: Optional[tuple]
 
     # Set if the specification is strict.
     is_strict: bool

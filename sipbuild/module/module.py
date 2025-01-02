@@ -12,8 +12,8 @@ from ..exceptions import UserException
 from ..py_versions import MINIMUM_SETUPTOOLS, OLDEST_SUPPORTED_MINOR
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
-from .abi_version import (get_module_source_dir, get_source_version_range,
-        parse_abi_version)
+from .abi_version import (get_latest_version, get_module_source_dir,
+        get_source_version_range, parse_abi_version)
 
 
 def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
@@ -21,7 +21,12 @@ def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
     """ Create the various elements of a sip module. """
 
     # Check we have the required source.
-    major_version, minor_version = parse_abi_version(abi_version)
+    if abi_version:
+        major_version, minor_version = parse_abi_version(abi_version)
+    else:
+        major_version = get_latest_version()
+        minor_version = None
+
     oldest_source, latest_source = get_source_version_range(major_version)
 
     if minor_version is None:

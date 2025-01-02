@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -149,6 +149,10 @@ class Bindings(Configurable):
                 project.target_abi, self.tags, self.disabled_features,
                 self.protected_is_public, self._sip_include_dirs,
                 project.sip_module)
+
+        # Update the target ABI for the project.
+        if project.target_abi is None or project.target_abi < spec.target_abi:
+            project.target_abi = spec.target_abi
 
         # Resolve the types.
         resolve(spec, modules)

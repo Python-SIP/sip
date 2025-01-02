@@ -51,8 +51,8 @@ The full set of command line options is:
 
 .. option:: --abi-version M[.N]
 
-    The version number of the ABI of the :mod:`sip` module to generate code for
-    is ``M.N``.  By default the latest major version is used.  If the minor
+    The version number of the ABI of the :mod:`sip` module to target is
+    ``M.N``.  By default the latest major version is used.  If the minor
     version is not specified then the latest minor version of the major version
     is used.
 
@@ -267,8 +267,8 @@ The full set of command line options is:
 
 .. option:: --abi-version M[.N]
 
-    The version number of the ABI of the :mod:`sip` module to generate code for
-    is ``M.N``.  By default the latest major version is used.  If the minor
+    The version number of the ABI of the :mod:`sip` module to target is
+    ``M.N``.  By default the latest major version is used.  If the minor
     version is not specified then the latest minor version of the major version
     is used.
 
@@ -513,8 +513,8 @@ The full set of command line options is:
 
 .. option:: --abi-version M[.N]
 
-    The version number of the ABI of the :mod:`sip` module to generate code for
-    is ``M.N``.  By default the latest major version is used.  If the minor
+    The version number of the ABI of the :mod:`sip` module to target is
+    ``M.N``.  By default the latest major version is used.  If the minor
     version is not specified then the latest minor version of the major version
     is used.
 

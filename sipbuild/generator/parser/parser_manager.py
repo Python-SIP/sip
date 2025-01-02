@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from functools import partial
 import os
 
-from ...bindings_configuration import get_bindings_configuration
 from ...exceptions import deprecated, UserException
+from ...module import get_latest_version
 
+from ..bindings_configuration import get_bindings_configuration
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_class
 from ..python_slots import invalid_global_slot, slot_name_detail_map
@@ -21,8 +22,8 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
         WrappedException, WrappedEnum, WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
-from ..utils import (abi_has_deprecated_message, argument_as_str, cached_name,
-        find_iface_file, normalised_scoped_name, same_base_type)
+from ..utils import (argument_as_str, cached_name, find_iface_file,
+        normalised_scoped_name, same_base_type)
 
 from . import rules
 from . import tokens
@@ -34,7 +35,7 @@ class ParserManager:
     with state and utility functions.
     """
 
-    def __init__(self, hex_version, encoding, abi_version, tags,
+    def __init__(self, hex_version, encoding, target_abi, tags,
             disabled_features, protected_is_public, include_dirs, sip_module,
             is_strict):
         """ Initialise the manager. """
@@ -57,7 +58,7 @@ class ParserManager:
         # Public state.
         self.tags = tags
 
-        self.spec = Specification(abi_version, is_strict, sip_module)
+        self.spec = Specification(target_abi, is_strict, sip_module)
 
         # The module is initially unnamed.
         self.modules = [self.spec.module]
@@ -179,7 +180,7 @@ class ParserManager:
                 else:
                     klass.default_ctor = last_resort
 
-            klass.deprecated = self.get_deprecated(p, symbol, annotations)
+            klass.deprecated = annotations.get('Deprecated')
 
             if klass.convert_to_type_code is not None and annotations.get('AllowNone', False):
                 klass.handles_none = True
@@ -487,7 +488,7 @@ class ParserManager:
 
         ctor.docstring = docstring
         ctor.gil_action = self._get_gil_action(p, symbol, annotations)
-        ctor.deprecated = self.get_deprecated(p, symbol, annotations)
+        ctor.deprecated = annotations.get('Deprecated')
 
         if access_specifier is not AccessSpecifier.PRIVATE:
             ctor.kw_args = self._get_kw_args(p, symbol, annotations,
@@ -578,7 +579,7 @@ class ParserManager:
         base_type = EnumBaseType.ENUM
 
         if base_type_s is not None:
-            if self.spec.abi_version < (13, 0):
+            if self.spec.target_abi is not None and self.spec.target_abi < (13, 0):
                 self.parser_error(p, symbol,
                         "/BaseType/ is only supported for ABI v13.0 and later")
 
@@ -726,7 +727,7 @@ class ParserManager:
 
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
         overload.factory = annotations.get('Factory', False)
-        overload.deprecated = self.get_deprecated(p, symbol, annotations)
+        overload.deprecated = annotations.get('Deprecated')
         overload.new_thread = annotations.get('NewThread', False)
         overload.transfer = self.get_transfer(p, symbol, annotations)
 
@@ -1522,6 +1523,9 @@ class ParserManager:
         for klass in self._template_arg_classes:
             self.spec.classes.remove(klass)
 
+        # Finalise the target ABI version.
+        self._finalise_target_abi()
+
         return self.spec, self.modules, self._sip_files
 
     def parser_error(self, p, symbol, text):
@@ -1529,19 +1533,6 @@ class ParserManager:
 
         self._error_log.log(text, self.get_source_location(p, symbol))
 
-    def get_deprecated(self, p, symbol, annotations):
-        """ Return deprecated annotation and raise an error if its format is not compatible
-        with abi version
-        """
-
-        deprecated = annotations.get('Deprecated')
-        if not abi_has_deprecated_message(self.spec) and deprecated:
-            self.parser_error(p, symbol,
-                              "/Deprecated/ supports message argument only for ABI v13.9 and later, or v12.16 or later")
-
-        return deprecated
-            
-        
     def pop_file(self):
         """ Restore the current .sip file from the stack and make it current.
         An IndexError is raised if the stack is empty.
@@ -1783,7 +1774,7 @@ class ParserManager:
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
 
-        if self.spec.abi_version >= (13, 0):
+        if self.spec.target_abi is None or self.spec.target_abi >= (13, 0):
             convert_to_us = mapped_type.convert_to_type_code is not None and 'sipUserState' in mapped_type.convert_to_type_code.text
 
             release_us = mapped_type.release_code is not None and 'sipUserState' in mapped_type.release_code.text
@@ -1887,6 +1878,37 @@ class ParserManager:
         return find_iface_file(self.spec, self.module_state.module,
                 fq_cpp_name, iface_file_type, error_logger, cpp_type=cpp_type,
                 scope=self.scope)
+
+    def _finalise_target_abi(self):
+        """ Finalise the target ABI. """
+
+        target_abi = self.spec.target_abi
+
+        if target_abi is None:
+            major_version = get_latest_version()
+            minor_version = None
+        else:
+            major_version, minor_version = target_abi
+
+        if minor_version is None:
+            minor_version = get_latest_version(major_version)
+
+        # These ABI versions are deprecated because we have deprecated any
+        # arguments to 'throw()' which these versions rely on.
+        if major_version == 12 and minor_version < 9:
+            self._deprecated_target_abi(major_version, minor_version, '12.9')
+
+        if major_version == 13 and minor_version < 1:
+            self._deprecated_target_abi(major_version, minor_version, '13.1')
+
+        self.spec.target_abi = (major_version, minor_version)
+
+    @staticmethod
+    def _deprecated_target_abi(major_version, minor_version, instead):
+        """ Issue a deprecation warning about an old ABI version. """
+
+        deprecated(f"ABI v{major_version}.{minor_version}",
+                instead=f"v{instead} or later")
 
     def _find_member(self, p, symbol, py_name, args, annotations, method_code):
         """ Return (creating if necessary) the member for a Python name. """
@@ -2098,8 +2120,8 @@ class ParserManager:
         self.module_state = ModuleState(module, sip_file)
 
         # Get the configuration of the new module.
-        mod_tags, mod_disabled = get_bindings_configuration(
-                self.spec.abi_version[0], sip_file, self._include_dirs)
+        mod_tags, mod_disabled = get_bindings_configuration(self.spec,
+                sip_file, self._include_dirs)
 
         for tag in mod_tags:
             if tag not in self.tags:

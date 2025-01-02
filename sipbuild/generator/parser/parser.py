@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from .parser_manager import ParserManager
 
 
-def parse(sip_file, hex_version, encoding, abi_version, tags,
+def parse(sip_file, hex_version, encoding, target_abi, tags,
         disabled_features, protected_is_public, include_dirs, sip_module,
         is_strict=True):
     """ Parse a .sip file and return a 3-tuple of a Specification object, a
@@ -15,6 +15,6 @@ def parse(sip_file, hex_version, encoding, abi_version, tags,
     """
 
     return ParserManager(
-            hex_version, encoding, abi_version, tags, disabled_features,
+            hex_version, encoding, target_abi, tags, disabled_features,
             protected_is_public, include_dirs, sip_module, is_strict).parse(
                     sip_file)

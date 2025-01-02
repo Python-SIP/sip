@@ -39,6 +39,7 @@ file.
             :directive:`%InitialisationCode` |
             :directive:`%License` |
             :directive:`%MappedType` |
+            :directive:`%MinimumABIVersion` |
             :directive:`%Module` |
             :directive:`%ModuleCode` |
             :directive:`%ModuleHeaderCode` |

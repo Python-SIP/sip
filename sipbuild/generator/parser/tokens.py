@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ..specification import CodeBlock
@@ -26,8 +26,8 @@ directives = {
     'AutoPyName', 'CompositeModule', 'DefaultDocstringFormat',
     'DefaultDocstringSignature', 'DefaultEncoding', 'DefaultMetatype',
     'DefaultSupertype', 'End', 'Exception', 'Feature', 'HideNamespace', 'If',
-    'Import', 'Include', 'License', 'MappedType', 'Module', 'Platforms',
-    'Property', 'Timeline',
+    'Import', 'Include', 'License', 'MappedType', 'MinimumABIVersion',
+    'Module', 'Platforms', 'Property', 'Timeline',
 
     # Remove in SIP v7.
     'Plugin',
@@ -73,9 +73,9 @@ keywords = {
 directive_keywords = {
     'all_raise_py_exception', 'call_super_init', 'default_VirtualErrorHandler',
     'False', 'format', 'get', 'id', 'keyword_arguments', 'language',
-    'licensee', 'name', 'optional', 'order', 'remove_leading', 'set',
-    'signature', 'timestamp', 'True', 'type', 'py_ssize_t_clean',
-    'use_argument_names', 'use_limited_api',
+    'licensee', 'name', 'optional', 'order', 'py_ssize_t_clean',
+    'remove_leading', 'set', 'signature', 'timestamp', 'True', 'type',
+    'version', 'use_argument_names', 'use_limited_api',
 }
 
 

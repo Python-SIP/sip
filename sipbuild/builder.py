@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from abc import abstractmethod
@@ -227,10 +227,6 @@ class Builder(AbstractBuilder):
                     os.path.join(project.target_dir,
                             project.get_bindings_dir()))
 
-            # Generate the sip.h file for the shared sip module.
-            copy_sip_h(project.build_abi, project.build_dir,
-                    project.sip_module, version_info=project.version_info)
-
         # Generate the code for each set of bindings.
         api_files = []
 
@@ -255,6 +251,12 @@ class Builder(AbstractBuilder):
                     buildable.write_configuration(local_bindings_dir)
 
             project.buildables.append(buildable)
+
+        if project.sip_module:
+            # Generate the sip.h file for the shared sip module now that we
+            # know the target ABI..
+            copy_sip_h(project.build_abi, project.build_dir,
+                    project.sip_module, version_info=project.version_info)
 
         # Create __init__.py if required.
         if project.dunder_init:

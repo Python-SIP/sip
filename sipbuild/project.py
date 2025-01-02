@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import collections
@@ -18,7 +18,7 @@ from .abstract_project import AbstractProject
 from .bindings import Bindings
 from .buildable import BuildableFromSources
 from .configurable import Configurable, Option
-from .exceptions import deprecated, UserException
+from .exceptions import UserException
 from .module import get_source_version_range, parse_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
@@ -157,12 +157,12 @@ class Project(AbstractProject, Configurable):
         self.buildables = []
         self.installables = []
 
-        # The target ABI is that specified by abi-version in pyproject.toml (or
-        # on the command line).  However, for historical reasons, we may not
-        # have the source of the older minor versions so we build against the
-        # oldest we do have.  Hence these can be different.
+        # The provisional target ABI is that specified by abi-version in
+        # pyproject.toml (or on the command line).  Note that, for historical
+        # reasons, we may not have the source of the older minor versions in
+        # which case we will build against the oldest we do have.
         self.target_abi = None
-        self.build_abi = None
+        self._build_abi = None
 
         self._metadata_overrides = None
         self._temp_build_dir = None
@@ -269,6 +269,20 @@ class Project(AbstractProject, Configurable):
         self._remove_build_dir()
 
         return wheel_file
+
+    @property
+    def build_abi(self):
+        """ The ABI version to use to build against.  This may be later than
+        the target version if we don't have the source of the target version.
+        It must not be called before the target ABI has been finalised.
+        """
+
+        if self._build_abi is None:
+            major_version, minor_version = self.target_abi
+            oldest_source, _ = get_source_version_range(major_version)
+            self._build_abi = (major_version, max(minor_version, oldest_source))
+
+        return self._build_abi
 
     def get_bindings_dir(self):
         """ Return the name of the 'bindings' directory relative to the
@@ -692,25 +706,9 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Get the ABI version to target.
-        # Note that this needs to be delayed until after the parse once the
-        # %MinimumABIVersion directive has been added.
-        major_version, minor_version = parse_abi_version(self.abi_version)
-        oldest_source, latest_source = get_source_version_range(major_version)
-
-        if minor_version is None:
-            minor_version = latest_source
-
-        self.target_abi = (major_version, minor_version)
-        self.build_abi = (major_version, max(minor_version, oldest_source))
-
-        # These ABI versions are deprecated because we have deprecated any
-        # arguments to 'throw()' which these versions rely on.
-        if self.target_abi < (12, 9):
-            self._deprecated_abi_version('12.9')
-
-        if self.target_abi < (13, 1):
-            self._deprecated_abi_version('13.1')
+        # Get the provisional ABI version to target.
+        if self.abi_version:
+            self.target_abi = parse_abi_version(self.abi_version)
 
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:
@@ -803,11 +801,6 @@ class Project(AbstractProject, Configurable):
             raise ValueError()
 
         return int(parts[0]), int(parts[1])
-
-    def _deprecated_abi_version(self, instead):
-        """ Issue a deprecation warning about an old ABI version. """
-
-        deprecated(f"ABI v{self.abi_version}", instead=f"v{instead} or later")
 
     def _enable_disable_bindings(self):
         """ Check the enabled bindings are valid and remove any disabled ones.

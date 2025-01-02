@@ -414,6 +414,11 @@ Class Annotations
     of annotating all the class's constructors, function and methods as being
     deprecated.
 
+    .. versionchanged:: 6.10
+
+        If the target ABI does not support the optional string value then the
+        value is ignored.  In earlier versions an error was raised.
+
 
 .. class-annotation:: FileExtension
 
@@ -726,6 +731,11 @@ Function Annotations
     This optional string annotation is used to specify that the constructor or
     function is deprecated.  Any string is appended to the deprecation warning
     and is usually used to suggest an appropriate alternative.
+
+    .. versionchanged:: 6.10
+
+        If the target ABI does not support the optional string value then the
+        value is ignored.  In earlier versions an error was raised.
 
 
 .. function-annotation:: DisallowNone

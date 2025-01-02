@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -10,6 +10,16 @@ from ..exceptions import UserException
 
 # The directory containing the different module implementations.
 _module_source_dir = os.path.join(os.path.dirname(__file__), 'source')
+
+
+def get_latest_version(abi_major_version=None):
+    """ Return the latest minor version for a major version (if given)
+    otherwise return the latest major version.
+    """
+
+    _, latest = get_source_version_range(abi_major_version)
+
+    return latest
 
 
 def get_module_source_dir(abi_version):
@@ -39,50 +49,17 @@ def get_source_version_range(abi_major_version):
 
 
 def parse_abi_version(abi_version):
-    """ Return a 2-tuple of the valid major ABI version (defaulting to the
-    latest) and the valid minor ABI version (or None if it was omitted).  Both
-    values are integers.
+    """ Return a 2-tuple of the valid major ABI version and the valid minor ABI
+    version (or None if it was omitted).  Both values are integers.
     """
 
-    if abi_version:
-        # Extract the major and optional minor versions.
-        try:
-            parts = [int(p) for p in abi_version.split('.')]
-            nr_parts = len(parts)
+    try:
+        parts = [int(p) for p in abi_version.split('.')]
+        nr_parts = len(parts)
 
-            if nr_parts > 2:
-                raise ValueError
+        if nr_parts > 2:
+            raise ValueError()
+    except ValueError:
+        raise UserException(f"'{abi_version}' is not a valid ABI version")
 
-            major_version = parts[0]
-            minor_version = parts[1] if nr_parts == 2 else None
-
-        except ValueError:
-            raise UserException(f"'{abi_version}' is not a valid ABI version")
-
-        try:
-            # This will raise an exception if the major version is unsupported.
-            latest_minor_version = _latest_version(major_version)
-
-            if minor_version is None:
-                minor_version = latest_minor_version
-            elif minor_version > latest_minor_version:
-                raise Exception()
-        except:
-            raise UserException(
-                    f"'{abi_version}' is not a supported ABI version")
-    else:
-        # The defaults.
-        major_version = _latest_version()
-        minor_version = None
-
-    return major_version, minor_version
-
-
-def _latest_version(abi_major_version=None):
-    """ Return the latest minor version for a major version (if given)
-    otherwise return the latest major version.
-    """
-
-    _, latest = get_source_version_range(abi_major_version)
-
-    return latest
+    return parts[0], parts[1] if nr_parts == 2 else None

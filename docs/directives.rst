@@ -1714,6 +1714,27 @@ then the pattern should instead be::
        Python.
 
 
+.. directive:: %MinimumABIVersion
+
+:directive:`%MinimumABIVersion`
+-------------------------------
+
+.. parsed-literal::
+    %MinimumABIVersion(version = "major[.minor]")
+
+.. versionadded:: 6.10
+
+This directive is used to specify the minimum version of the ABI required to
+build the project.  It normally reflects the calls made to the public API from
+handwritten code, ie. if the code make a call to a function that was added to a
+particular ABI version then that version should be specified as the minimum
+required.
+
+For example::
+
+    %MinimumABIVersion "13.5"
+
+
 .. directive:: %Module
 
 :directive:`%Module`
