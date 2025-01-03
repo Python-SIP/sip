@@ -1769,7 +1769,7 @@ def _py_objects(sf, spec):
             no_intro = False
 
         py_name = _cached_name_ref(variable.py_name)
-        cpp_name = variable.fq_cpp_name.as_cpp
+        cpp_name = _scoped_variable_name(spec, variable)
 
         sf.write(f'    PyDict_SetItemString(sipModuleDict, {py_name}, {cpp_name});\n')
 
@@ -1812,13 +1812,12 @@ def _types_inline(sf, spec):
             dict_name = f'(PyObject *)sipTypeAsPyTypeObject({_gto_name(variable.scope)})'
 
         py_name = _cached_name_ref(variable.py_name)
+        ptr = '&' + _scoped_variable_name(spec, variable)
 
         if variable.type.is_const:
             type_name = fmt_argument_as_cpp_type(spec, variable.type,
                     plain=True, no_derefs=True)
-            ptr = f'const_cast<{type_name} *>(&{variable.fq_cpp_name.as_cpp})'
-        else:
-            ptr = '&' + variable.fq_cpp_name.as_cpp
+            ptr = f'const_cast<{type_name} *>({ptr})'
 
         sf.write(f'    sipAddTypeInstance({dict_name}, {py_name}, {ptr}, {_gto_name(variable.type.definition)});\n')
 
@@ -1843,7 +1842,7 @@ def _class_instances(sf, spec, scope=None):
             continue
 
         ti_name = _cached_name_ref(variable.py_name)
-        ti_ptr = '&' + variable.fq_cpp_name.as_cpp
+        ti_ptr = '&' + _scoped_variable_name(spec, variable)
         ti_type = '&' + _gto_name(variable.type.definition)
         ti_flags = '0'
 
@@ -2710,7 +2709,7 @@ f'''    sipPy = sipGetReference(sipPySelf, {self_key});
         if variable_type in (ArgumentType.CLASS, ArgumentType.MAPPED) and len(variable.type.derefs) == 0:
             sf.write('&')
 
-    sf.write(_variable_member(variable))
+    sf.write(_variable_member(spec, variable))
 
     if needs_new and not spec.c_bindings:
         sf.write(')')
@@ -2968,7 +2967,7 @@ f'''
 
 ''')
 
-    member = _variable_member(variable)
+    member = _variable_member(spec, variable)
 
     if variable_type in (ArgumentType.PYOBJECT, ArgumentType.PYTUPLE, ArgumentType.PYLIST, ArgumentType.PYDICT, ArgumentType.PYCALLABLE, ArgumentType.PYSLICE, ArgumentType.PYTYPE, ArgumentType.PYBUFFER, ArgumentType.PYENUM):
         sf.write(
@@ -3028,15 +3027,15 @@ f'''
 ''')
 
 
-def _variable_member(variable):
+def _variable_member(spec, variable):
     """ Return the member variable of a class. """
 
     if variable.is_static:
-        scope = variable.scope.iface_file.fq_cpp_name.as_cpp + '::'
+        scope = _scoped_variable_name(spec, variable)
     else:
-        scope = 'sipCpp->'
+        scope = 'sipCpp->' + variable.fq_cpp_name.base_name
 
-    return scope + variable.fq_cpp_name.base_name
+    return scope
 
 
 def _variable_to_cpp(spec, variable, has_state):
@@ -3284,18 +3283,19 @@ f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_c
 ''')
 
         if not is_number_slot(member.py_slot):
-            as_cpp = fq_cpp_name.as_cpp
             gto_name = _gto_name(scope)
 
             if isinstance(scope, WrappedClass):
+                cpp_name = _scoped_class_name(spec, scope)
                 sf.write(
-f'''    {as_cpp} *sipCpp = reinterpret_cast<{as_cpp} *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, {gto_name}));
+f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr((sipSimpleWrapper *)sipSelf, {gto_name}));
 
     if (!sipCpp)
 ''')
             else:
+                cpp_name = fq_cpp_name.as_cpp
                 sf.write(
-f'''    {as_cpp} sipCpp = static_cast<{as_cpp}>(sipConvertToEnum(sipSelf, {gto_name}));
+f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {gto_name}));
 
     if (PyErr_Occurred())
 ''')
@@ -7535,7 +7535,8 @@ def _get_binary_slot_call(spec, scope, overload, operator, dereferenced):
         if overload.is_abstract:
             slot_call += f'sipCpp{dereference}operator{operator}('
         else:
-            slot_call += f'sipCpp{dereference}{scope.iface_file.fq_cpp_name.as_cpp}::operator{operator}('
+            cpp_name = _scoped_class_name(spec, scope)
+            slot_call += f'sipCpp{dereference}{cpp_name}::operator{operator}('
 
     slot_call += _get_slot_arg(spec, overload, 0)
     slot_call += ')'
@@ -8081,6 +8082,21 @@ def _get_normalised_cached_name(cached_name):
 
     # Handle C++ and Python scopes.
     return cached_name.name.replace(':', '_').replace('.', '_')
+
+
+def _scoped_variable_name(spec, variable):
+    """ Return a scoped variable name as a string.  This should be used
+    whenever the scope may be the instantiation of a template which specified
+    /NoTypeName/.
+    """
+
+    scope = variable.scope
+    fq_cpp_name = variable.fq_cpp_name
+
+    if scope is None:
+        return fq_cpp_name.as_cpp
+
+    return _scoped_class_name(spec, scope) + '::' + fq_cpp_name.base_name
 
 
 def _scoped_class_name(spec, klass):
@@ -8680,10 +8696,8 @@ def _enum_class_scope(spec, enum):
 
     if enum.is_protected:
         scope_s = 'sip' + enum.scope.iface_file.fq_cpp_name.as_word
-    elif enum.scope.is_protected:
-        scope_s = _scoped_class_name(spec, enum.scope)
     else:
-        scope_s = enum.scope.iface_file.fq_cpp_name.as_cpp
+        scope_s = _scoped_class_name(spec, enum.scope)
 
     return scope_s
 

@@ -38,7 +38,6 @@ file.
             :directive:`%Include` |
             :directive:`%InitialisationCode` |
             :directive:`%License` |
-            :directive:`%MappedType` |
             :directive:`%MinimumABIVersion` |
             :directive:`%Module` |
             :directive:`%ModuleCode` |
@@ -51,6 +50,7 @@ file.
             :directive:`%UnitCode` |
             :directive:`%UnitPostIncludeCode` |
             :directive:`%VirtualErrorHandler` |
+            *mapped-type* |
             *mapped-type-template*]
 
     *statement* :: [*class-statement* | *function* | *variable*]
@@ -78,6 +78,7 @@ file.
             *class-statement* |
             :directive:`%BIGetBufferCode` |
             :directive:`%BIReleaseBufferCode` |
+            :directive:`%ConvertFromTypeCode` |
             :directive:`%ConvertToSubClassCode` |
             :directive:`%ConvertToTypeCode` |
             :directive:`%Docstring` |
@@ -184,8 +185,23 @@ file.
 
     *class-template* :: = **template** **<** *type-list* **>** *class*
 
+    *mapped-type* :: = :directive:`%MappedType` *base-type*
+            [*mapped-type-annotations*]
+            **{** {*mapped-type-line*} **};**
+
+    *mapped-type-line* ::= [
+            :directive:`%If` |
+            :directive:`%ConvertFromTypeCode` |
+            :directive:`%ConvertToTypeCode` |
+            :directive:`%ReleaseCode` |
+            :directive:`%TypeCode` |
+            :directive:`%TypeHeaderCode` |
+            *enum* |
+            *function* |
+            *variable*]
+
     *mapped-type-template* :: = **template** **<** *type-list* **>**
-            :directive:`%MappedType`
+            *mapped-type*
 
     *enum* ::= **enum** [*enum-key*] [*name*] [*enum-annotations*] **{** {*enum-line*} **};**
 
@@ -193,7 +209,7 @@ file.
 
     *enum-line* ::= [:directive:`%If` | *name* [*enum-annotations*] **,**
 
-    *function* ::= *type* *name* **(** [*argument-list*] **)** [**noexcept**]
+    *function* ::= *typed-name* **(** [*argument-list*] **)** [**noexcept**]
             [*function-annotations*] **;** [:directive:`%Docstring`]
             [:directive:`%MethodCode`]
 
@@ -297,6 +313,8 @@ file.
     *enum-annotations* ::= see :ref:`ref-enum-annos`
 
     *function-annotations* ::= see :ref:`ref-function-annos`
+
+    *mapped-type-annotations* ::= see :ref:`ref-mapped-type-annos`
 
     *typedef-annotations* ::= see :ref:`ref-typedef-annos`
 
