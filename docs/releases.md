@@ -1,6 +1,74 @@
 # Release Notes
 
 
+## v6.10.0
+
+### Introspection of the `sip` module ABI version
+
+`SIP_ABI_VERSION` has been added as a module attribute of the `sip` module.
+This is an integer that represents the ABI version that the module implements
+as a 3 part hexadecimal number.
+
+This has been implemented in ABIs v12.17 and v13.10.
+
+Resolves [#62](https://github.com/Python-SIP/sip/issues/62)
+
+### `sip-module` support for older ABI versions
+
+The ability of `sip-module` to generate sdists for older ABI versions has been
+restored.  The oldest that can be generated are v12.9 and v13.1 which are the
+oldest non-deprecated versions.
+
+The documentation now contains brief histories of these versions.
+
+Resolves [#61](https://github.com/Python-SIP/sip/issues/61)
+
+### Default ABI version
+
+The default minor ABI version to use is now the latest minor version for a
+particular major version (rather than `0` as it was previously).
+
+Resolves [#63](https://github.com/Python-SIP/sip/issues/63)
+
+### Specify the ABI version on the command line
+
+The `--abi-version` command line option has been added to `sip-build`,
+`sip-install` and `sip-wheel` to specify the ABI version of the `sip` module to
+generate code for.
+
+Resolves [#64](https://github.com/Python-SIP/sip/issues/64)
+
+### Added the `%MinimumABIVersion` directive
+
+The `%MinimumABIVersion` directive is used to specify the minimum `sip` module
+ABI to target in order to ensure that all calls to the public API from
+handwritten code are available.
+
+A consequence of this change is that passing string values to the
+`/Deprecated/` annotation no longer requires an ABI version that supports them
+to be targeted.  If the targeted ABI version does not support them they are
+simply ignored.
+
+Resolves [#65](https://github.com/Python-SIP/sip/issues/65)
+
+### Escaping special characters in string annotations
+
+The value of a string annotation uses the `;` and `:` characters to allow
+platform- and feature-specific values to be defined.  These special characters
+can now be escaped using a leading `\\`.  This capability has now been
+documented.
+
+Resolves [#59](https://github.com/Python-SIP/sip/issues/59)
+
+### Bug fixes
+
+- The license designator in `setup.py` for the latest versions of the `sip`
+  module are now correctly specified as `BSD-2-Clause`.
+- The code generation has been fixed for classes created by instantiating
+  mapped type templates using a `typedef` with the `/NoTypeName/` annotation.
+  Resolves [#66](https://github.com/Python-SIP/sip/issues/66)
+
+
 ## v6.9.1
 
 ### `sip-sdist` creates PEP 625 compatible file names
