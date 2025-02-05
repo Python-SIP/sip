@@ -6677,19 +6677,21 @@ int sip_api_deprecated(const char *classname, const char *method)
 int sip_api_deprecated_13_9(const char *classname, const char *method,
         const char *message)
 {
-    char buf[100];
+    const unsigned int bufsize = 100 + ( message ? strlen(message) : 0 );
+    char *buf = (char*)malloc(bufsize * sizeof(char));
+    unsigned int written = 0;
 
     if (classname == NULL)
-        PyOS_snprintf(buf, sizeof (buf), "%s() is deprecated", method);
+        written = PyOS_snprintf(buf, bufsize, "%s() is deprecated", method);
     else if (method == NULL)
-        PyOS_snprintf(buf, sizeof (buf), "%s constructor is deprecated",
-                classname);
+        written = PyOS_snprintf(buf, bufsize, "%s constructor is deprecated",
+				classname);
     else
-        PyOS_snprintf(buf, sizeof (buf), "%s.%s() is deprecated", classname,
-                method );
+        written = PyOS_snprintf(buf, bufsize, "%s.%s() is deprecated", classname,
+				method );
 
     if (message != NULL)
-        PyOS_snprintf(&buf[strlen(buf)], sizeof (buf), ": %s", message);
+        PyOS_snprintf(buf+written, bufsize-written, ": %s", message);
 
     return PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
 }
