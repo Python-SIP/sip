@@ -7801,10 +7801,7 @@ int sip_api_deprecated_12_16(const char *classname, const char *method,
         const char *message)
 {
     const unsigned int bufsize = 100 + ( message ? strlen(message) : 0 );
-    char *buf = (char*)calloc(bufsize, sizeof(char));
-    if (!buf)
-      return 0;
-    
+    char *buf = (char*)sip_api_malloc(bufsize * sizeof(char));
     unsigned int written = 0;
 
     if (classname == NULL)
@@ -7820,7 +7817,7 @@ int sip_api_deprecated_12_16(const char *classname, const char *method,
         PyOS_snprintf(buf+written, bufsize-written, ": %s", message);
 
     const int res = PyErr_WarnEx(PyExc_DeprecationWarning, buf, 1);
-    free(buf); 
+    sip_api_free(buf); 
     return res;
 }
 
