@@ -295,9 +295,7 @@ class Project(AbstractProject, Configurable):
         """ Return the name of the .dist-info directory for a target directory.
         """
 
-        return os.path.join(target_dir,
-                '{}-{}.dist-info'.format(self.name.replace('-', '_'),
-                self.version_str))
+        return os.path.join(target_dir, self.normalized_name + '.dist-info')
 
     def get_dunder_init(self):
         """ Return the contents of the __init__.py to install. """
@@ -540,6 +538,12 @@ class Project(AbstractProject, Configurable):
                         section_name='tool.sip.project')
 
         self._minimum_macos_version = value
+
+    @property
+    def normalized_name(self):
+        """ The normalized project name including the version number. """
+
+        return self.name.replace('-', '_').lower() + '-' + self.version_str
 
     @staticmethod
     def open_for_writing(fname):

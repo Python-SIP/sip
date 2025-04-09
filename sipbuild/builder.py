@@ -48,8 +48,7 @@ class Builder(AbstractBuilder):
         project = self.project
 
         # The sdist name.
-        sdist_name = '{}-{}'.format(project.name.replace('-', '_').lower(),
-                project.version_str)
+        sdist_name = project.normalized_name
 
         # Create the sdist root directory.
         sdist_root = os.path.join(project.build_dir, sdist_name)
@@ -164,14 +163,14 @@ class Builder(AbstractBuilder):
         # Copy the wheel contents.
         self.install_project(wheel_build_dir, wheel_tag=wheel_tag)
 
-        wheel_file = '{}-{}'.format(project.name.replace('-', '_'),
-                project.version_str)
+        wheel_file = [project.normalized_name]
 
         if project.build_tag:
-            wheel_file += '-{}'.format(project.build_tag)
+            wheel_file.append(project.build_tag)
 
-        wheel_file += '-{}.whl'.format(wheel_tag)
-        wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
+        wheel_file.append(wheel_tag)
+        wheel_path = os.path.abspath(
+                os.path.join(wheel_directory, '-'.join(wheel_file) + '.whl'))
 
         # Create the .whl file.
         saved_cwd = os.getcwd()
