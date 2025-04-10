@@ -3,6 +3,9 @@
 # Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from packaging.licenses import (canonicalize_license_expression,
+        InvalidLicenseExpression)
+
 from .exceptions import deprecated, UserFileException
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .toml import toml_loads
@@ -99,7 +102,7 @@ class PyProject:
         else:
             # The main validation we do is to check that the keys are defined
             # by PEP 621.
-            core_metadata = {'metadata-version': '2.1'}
+            core_metadata = {'metadata-version': '2.4'}
 
             for md_name, md_value in metadata.items():
                 md_name = md_name.lower()
@@ -109,6 +112,8 @@ class PyProject:
                     self._handle_readme(md_value, core_metadata)
                 elif md_name == 'license':
                     self._handle_license(md_value, core_metadata)
+                elif md_name == 'license-files':
+                    self._handle_license_files(md_value, core_metadata)
                 elif md_name == 'authors':
                     self._handle_people(md_value, 'author', core_metadata)
                 elif md_name == 'maintainers':
@@ -133,6 +138,21 @@ class PyProject:
                                 section_name='project')
 
                     core_metadata[core_name] = md_value
+
+            # Check the legacy (ie. pre PEP 639) use of 'license'.
+            if 'license' in core_metadata:
+                if 'license-file' in core_metadata:
+                    raise PyProjectOptionException('license',
+                            "cannot be used in it's legacy form if 'license-files' is also specified",
+                            section_name='project')
+
+                deprecated(
+                        "the legacy use of 'license'",
+                        instead="an SPDX license expression and 'license-files'",
+                        filename='pyproject.toml',
+                        line_nr=self._get_line_nr('license ='))
+
+                core_metadata['metadata-version'] = '2.2'
 
             # Check that the name has been specified.
             if 'name' not in core_metadata:
@@ -229,8 +249,8 @@ class PyProject:
                     section_name='tool.sip')
 
         if core_metadata_version is None:
-            # Default to PEP 566.
-            core_metadata['metadata-version'] = '2.1'
+            # Default to PEP 643.
+            core_metadata['metadata-version'] = '2.2'
 
         return core_metadata
 
@@ -272,13 +292,22 @@ class PyProject:
 
         core_metadata['keywords'] = ', '.join(value)
 
-    @staticmethod
-    def _handle_license(value, core_metadata):
+    @classmethod
+    def _handle_license(cls, value, core_metadata):
         """ Handle the 'license' key. """
 
-        if not isinstance(value, dict):
-            raise PyProjectTypeOptionException('license', "a table",
-                    section_name='project')
+        if isinstance(value, dict):
+            return cls._handle_legacy_license(value, core_metadata)
+
+        try:
+            core_metadata['license-expression'] = canonicalize_license_expression(value)
+        except InvalidLicenseExpression as e:
+            raise PyProjectTypeOptionException('license',
+                    "a valid SPDX license expression", section_name='project')
+
+    @staticmethod
+    def _handle_legacy_license(value, core_metadata):
+        """ Handle the legacy 'license' key. """
 
         text = value.get('text')
         file = value.get('file')
@@ -302,6 +331,16 @@ class PyProject:
                     section_name='project')
 
         core_metadata['license'] = text
+
+    @staticmethod
+    def _handle_license_files(value, core_metadata):
+        """ Handle the 'license-files' key. """
+
+        if not isinstance(value, list):
+            raise PyProjectTypeOptionException('license-files',
+                    "an array of strings", section_name='project')
+
+        core_metadata['license-file'] = value
 
     @classmethod
     def _handle_optional_dependencies(cls, value, core_metadata):

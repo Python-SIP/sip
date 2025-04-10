@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import base64
+import glob
 import hashlib
 import os
 import shutil
@@ -88,6 +89,23 @@ def create_distinfo(distinfo_dir, wheel_tag, installed, metadata,
 
     # Reproducable builds.
     installed.sort()
+
+    # Copy any license files.
+    saved = os.getcwd()
+    os.chdir(project_root)
+
+    license_root = os.path.join(distinfo_dir, 'licenses')
+
+    for license_patt in metadata.get('license-file', []):
+        for license_file in glob.glob(license_patt):
+            license_fn = os.path.join(license_root, license_file)
+            installed.append(license_fn)
+
+            real_license_dir = prefix_dir + os.path.dirname(license_fn)
+            os.makedirs(real_license_dir, exist_ok=True)
+            shutil.copy(license_file, real_license_dir)
+
+    os.chdir(saved)
 
     if wheel_tag is None:
         # Create the INSTALLER file.
