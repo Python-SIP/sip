@@ -177,7 +177,12 @@ class Builder(AbstractBuilder):
         saved_cwd = os.getcwd()
         os.chdir(wheel_build_dir)
 
-        from zipfile import ZipFile, ZIP_DEFLATED
+        import time 
+        from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+
+        # Ensure reproducible wheel file timestamps
+        epoch = int(os.environ.get('SOURCE_DATE_EPOCH', time.time()))
+        zip_timestamp = time.gmtime(epoch)[:6]
 
         with ZipFile(wheel_path, 'w', compression=ZIP_DEFLATED) as zf:
             for dirpath, _, filenames in os.walk('.'):
@@ -185,7 +190,10 @@ class Builder(AbstractBuilder):
                     # This will result in a name with no leading '.'.
                     name = os.path.relpath(os.path.join(dirpath, filename))
 
-                    zf.write(name)
+                    zi = ZipInfo(name, zip_timestamp)
+
+                    with open(name, 'rb') as f:
+                        zf.writestr(zi, f.read())
 
         os.chdir(saved_cwd)
 
