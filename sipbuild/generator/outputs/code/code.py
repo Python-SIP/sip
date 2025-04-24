@@ -9126,7 +9126,11 @@ class SourceFile:
     def write(self, s):
         """ Write a string while tracking the current line number. """
 
-        self._f.write(s)
+        # Older C++ standards (pre-C++17) get confused with digraphs (usually
+        # when the default setuptools is being used to build C++ extensions).
+        # The easiest solution is to hack the string for the most common case
+        # and hope it doesn't have unintended consequences.
+        self._f.write(s.replace('_cast<::', '_cast< ::'))
         self._line_nr += s.count('\n')
 
     def write_code(self, code):
