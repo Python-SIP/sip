@@ -80,7 +80,7 @@ def invalid_global_slot(slot):
     level) slot.
     """
 
-    if slot in (PySlot.NEG, PySlot.POS):
+    if slot in (PySlot.INVERT, PySlot.NEG, PySlot.POS):
         return False
 
     if is_number_slot(slot):
