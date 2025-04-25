@@ -93,6 +93,7 @@ def p_statement(p):
 def p_namespace_statement(p):
     """namespace_statement : if_start
         | if_end
+        | namespace_docstring
         | class_decl
         | class_template
         | enum_decl
@@ -3013,6 +3014,20 @@ def p_opt_namespace_body(p):
 def p_namespace_body(p):
     """namespace_body : namespace_statement
         | namespace_body namespace_statement"""
+
+def p_namespace_docstring(p):
+    "namespace_docstring : docstring"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    if pm.scope.docstring is None:
+        pm.scope.docstring = p[1]
+    else:
+        pm.parser_error(p, 1,
+                "%Docstring has already been defined for this namespace")
 
 
 # C/C++ typedefs. #############################################################

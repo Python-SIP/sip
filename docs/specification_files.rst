@@ -215,7 +215,10 @@ file.
 
     *namespace* ::= **namespace** *name* [**{** {*namespace-line*} **}**] **;**
 
-    *namespace-line* ::= [:directive:`%TypeHeaderCode` | *statement*]
+    *namespace-line* ::= [
+            :directive:`%Docstring` |
+            :directive:`%TypeHeaderCode` |
+            *statement*]
 
     *opaque-class* ::= **class** *scoped-name* **;**
 

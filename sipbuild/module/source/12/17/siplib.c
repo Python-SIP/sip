@@ -9829,7 +9829,7 @@ static PyObject *sipWrapperType_alloc(PyTypeObject *self, Py_ssize_t nitems)
 
         ((sipWrapperType *)o)->wt_td = currentType;
 
-        if (sipTypeIsClass(currentType))
+        if (sipTypeIsClass(currentType) || sipTypeIsNamespace(currentType))
         {
             const sipClassTypeDef *ctd = (const sipClassTypeDef *)currentType;
             const char *docstring = ctd->ctd_docstring;

@@ -653,7 +653,7 @@ For example::
     %End
 
 This directive is used to specify explicit docstrings for modules, classes,
-functions, methods, typedefs and properties.
+namespaces, functions, methods, typedefs and properties.
 
 The docstring of a class is made up of the docstring specified for the class
 itself, with the docstrings specified for each contructor appended.
