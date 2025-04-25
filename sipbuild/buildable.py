@@ -61,8 +61,7 @@ class BuildableFromSources(Buildable):
 
         if self.uses_limited_api:
             self.define_macros.append(
-                    'Py_LIMITED_API=0x03{0:02x}0000'.format(
-                            OLDEST_SUPPORTED_MINOR))
+                    'Py_LIMITED_API=' + project.limited_abi_version_str)
 
     def make_names_relative(self):
         """ Make all file and directory names relative to the build directory.

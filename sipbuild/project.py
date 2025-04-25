@@ -848,28 +848,22 @@ class Project(AbstractProject, Configurable):
         self.metadata = pyproject.get_metadata()
         self._metadata_overrides = self.get_metadata_overrides()
         self.metadata.update(self._metadata_overrides)
+
+        # Get the version string and convert it to a number.
         self.version_str = self.metadata['version']
 
-        # Convert the version as a string to number.
-        base_version = packaging.version.parse(self.version_str).base_version
-        base_version = base_version.split('.')
+        try:
+            version = packaging.version.parse(self.version_str)
+        except:
+            raise PyProjectOptionException('version',
+                    "'{0}' is an invalid version number".format(
+                            self.version_str),
+                    section_name='tool.sip.metadata')
 
-        while len(base_version) < 3:
-            base_version.append('0')
+        self.version = version.major << 16 | version.minor << 8 | version.micro
 
-        version = 0
-        for part in base_version:
-            version <<= 8
-
-            try:
-                version += int(part)
-            except ValueError:
-                raise PyProjectOptionException('version',
-                        "'{0}' is an invalid version number".format(
-                                self.version_str),
-                        section_name='tool.sip.metadata')
-
-        self.version = version
+        # Get the limited ABI version string.
+        self.limited_abi_version_str = self._get_limited_abi_version_str()
 
         # Configure the project.
         self.configure(pyproject, 'tool.sip.project', tool)
@@ -896,3 +890,28 @@ class Project(AbstractProject, Configurable):
         for bindings in self.bindings.values():
             bindings.configure(pyproject, 'tool.sip.bindings.' + bindings.name,
                     tool)
+
+    def _get_limited_abi_version_str(self):
+        """ Get the version of the limited ABI to be used. """
+
+        try:
+            # The version of the ABI to use is taken from the project metadata.
+            spec_set = packaging.specifiers.SpecifierSet(
+                    self.metadata['requires-python'])
+
+            # Find the oldest Python version that satisfies the requirement.
+            # The 100 is an arbitrary upper bound.
+            min_req_version = next(
+                    spec_set.filter((f'3.{v}' for v in range(100))))
+
+            min_req_version = packaging.version.parse(min_req_version)
+            limited_abi_version_str = '0x{0:02x}{1:02x}{2:02x}00'.format(
+                    min_req_version.major,
+                    min_req_version.minor,
+                    min_req_version.micro)
+        except Exception as e:
+            # Default to the oldest version of Python we support.
+            limited_abi_version_str = '0x03{0:02x}0000'.format(
+                    OLDEST_SUPPORTED_MINOR)
+
+        return limited_abi_version_str

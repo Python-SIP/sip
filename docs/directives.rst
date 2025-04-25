@@ -1800,7 +1800,12 @@ limited Python API defined in `PEP 384
 <https://www.python.org/dev/peps/pep-0384/>`__.  It also ensures that the C
 preprocessor symbol ``Py_LIMITED_API`` is defined before the :file:`Python.h`
 header file is included.  Python extensions built in this way are independent
-of the version of Python being used.
+of the version of Python being used.  The version of the limited API to use
+(ie. the value assigned to the ``Py_LIMITED_API`` macro) is determined by the
+minimum version of Python supported by the project, ie. the value of the
+``requires-python`` field of the metadata specified in the ``pyproject.toml``
+file.  If this isn't specified then the oldest supported version of Python is
+used.
 
 The optional :directive:`%AutoPyName` sub-directive is used to specify a rule
 for automatically providing Python names.
