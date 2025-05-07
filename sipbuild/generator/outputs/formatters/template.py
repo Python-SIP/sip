@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...scoped_name import STRIP_NONE
@@ -13,5 +13,9 @@ def fmt_template_as_cpp_type(spec, template, strip=STRIP_NONE, as_xml=False):
 
     sig_s = fmt_signature_as_cpp_declaration(spec, template.types, strip=strip,
             as_xml=as_xml)
+
+    # Handle digraphs.
+    if sig_s.startswith('::'):
+        sig_s = ' ' + sig_s
 
     return template.cpp_name.cpp_stripped(strip) + '<' + sig_s + '>'

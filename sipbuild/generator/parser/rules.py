@@ -1873,7 +1873,7 @@ def p_superclass_list(p):
 
 
 def p_superclass(p):
-    "superclass : class_access scoped_name"
+    "superclass : class_access simple_superclass"
 
     pm = p.parser.pm
 
@@ -1884,21 +1884,7 @@ def p_superclass(p):
         p[0] = None
         return
 
-    # This is a hack to allow typedef'ed classes to be used before we have
-    # resolved the typedef definitions.  Unlike elsewhere, we require that the
-    # typedef is defined before being used.
-    ad = Argument(ArgumentType.DEFINED, definition=p[2])
-
-    while ad.type is ArgumentType.DEFINED:
-        ad.type = ArgumentType.NONE
-        search_typedefs(pm.spec, ad.definition, ad)
-
-    if ad.type is not ArgumentType.NONE or len(ad.derefs) != 0 or ad.is_const or ad.is_reference:
-        pm.parser_error(p, 2, "super-class list contains an invalid type")
-
-    # Find the actual class.
-    p[0] = pm.find_class(p, 2, IfaceFileType.CLASS, ad.definition,
-            tmpl_arg=pm.parsing_template)
+    p[0] = p[2]
 
 
 def p_class_access(p):
@@ -1911,6 +1897,43 @@ def p_class_access(p):
         p[1] = 'public'
 
     p[0] = p[1]
+
+
+def p_simple_superclass(p):
+    """simple_superclass : scoped_name
+        | scoped_name '<' cpp_types '>'"""
+
+    pm = p.parser.pm
+
+    # Handle templates.
+    if len(p) == 5:
+        if pm.parsing_template:
+            # For the moment we just remember enough to identify it later when
+            # we have the values to instantiate it.
+            p[0] = Argument(ArgumentType.TEMPLATE,
+                    definition=Template(p[1], Signature(args=p[3])),
+                    source_location=pm.get_source_location(p, 1))
+        else:
+            pm.parser_error(p, 1,
+                    "super-class templates can only be used in a class template")
+
+        return
+
+    # This is a hack to allow typedef'ed classes to be used before we have
+    # resolved the typedef definitions.  Unlike elsewhere, we require that the
+    # typedef is defined before being used.
+    ad = Argument(ArgumentType.DEFINED, definition=p[1])
+
+    while ad.type is ArgumentType.DEFINED:
+        ad.type = ArgumentType.NONE
+        search_typedefs(pm.spec, ad.definition, ad)
+
+    if ad.type is not ArgumentType.NONE or len(ad.derefs) != 0 or ad.is_const or ad.is_reference:
+        pm.parser_error(p, 1, "super-class list contains an invalid type")
+
+    # Find the actual class.
+    p[0] = pm.find_class(p, 1, IfaceFileType.CLASS, ad.definition,
+            tmpl_arg=pm.parsing_template)
 
 
 def p_opt_class_definition(p):

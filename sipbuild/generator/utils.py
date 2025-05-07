@@ -44,7 +44,7 @@ def argument_as_str(arg):
 
             s += '>'
 
-        elif arg.type in (ArgumentType.STRUCT, ArgumentType.DEFINED):
+        elif arg.type in (ArgumentType.CLASS, ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.DEFINED):
             s = str(arg.definition)
 
         elif arg.type in (ArgumentType.UBYTE, ArgumentType.USTRING):

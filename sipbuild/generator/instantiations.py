@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from copy import copy
 
 from .scoped_name import ScopedName
 from .specification import (Argument, ArgumentType, FunctionCall,
-        IfaceFileType, KwArgs, Signature, TypeHints, Value, ValueType)
+        IfaceFileType, KwArgs, Signature, Template, TypeHints, Value,
+        ValueType, WrappedClass)
 from .templates import (template_code, template_code_blocks,
         template_expansions, template_string)
 from .utils import append_iface_file, cached_name, normalised_scoped_name
@@ -15,7 +16,7 @@ from .utils import append_iface_file, cached_name, normalised_scoped_name
 
 def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
             template, py_name, no_type_name, docstring, pm):
-    """ Instantiate a class template. """
+    """ Instantiate a class template and return the instantiated class. """
 
     # Create the expansions.
     expansions = template_expansions(tmpl_names, template.types)
@@ -75,28 +76,14 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
     i_class.superclasses = []
 
     for superclass in proto_class.superclasses:
-        superclass_name = superclass.iface_file.fq_cpp_name
+        if isinstance(superclass, WrappedClass):
+            klass = _superclass_from_class(superclass, p, symbol, tmpl_names,
+                    template, pm)
+        else:
+            klass = _superclass_from_template(superclass, p, symbol,
+                    tmpl_names, template, pm)
 
-        # Don't try and expand defined or scoped classes.
-        if superclass.iface_file.module is not None or not superclass_name.is_simple:
-            i_class.superclasses.append(superclass)
-            continue
-
-        for a, arg in enumerate(tmpl_names.args):
-            if superclass_name.base_name == arg.definition.base_name:
-                tmpl_arg = template.types.args[a]
-
-                if tmpl_arg.type is ArgumentType.DEFINED:
-                    i_superclass = pm.find_class(p, symbol,
-                            IfaceFileType.CLASS, tmpl_arg.definition)
-                elif tmpl_arg.type is ArgumentType.CLASS:
-                    i_superclass = tmpl_arg.definition
-                else:
-                    pm.parser_error(p, symbol,
-                            "template argument '{0}' must expand to a class".format(superclass_name))
-                    i_superclass = superclass
-
-                i_class.superclasses.append(i_superclass)
+        i_class.superclasses.append(klass)
 
     # Handle the enums.
     _instantiate_enums(tmpl_names, proto_class, template, i_class, expansions,
@@ -152,6 +139,8 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
             proto_class.type_hint_code, expansions)
 
     pm.spec.classes.insert(0, i_class)
+
+    return i_class
 
 
 def _instantiate_argument(proto_arg, proto_class, tmpl_names, template,
@@ -460,3 +449,116 @@ def _instantiate_vars(tmpl_names, proto_class, template, i_class, expansions,
                 expansions)
 
         pm.spec.variables.append(i_var)
+
+
+def _superclass_from_class(klass, p, symbol, tmpl_names, template, pm):
+    """ Return the super-class based on a class or a template argument (that
+    resembles an undefined class.
+    """
+
+    superclass_name = klass.iface_file.fq_cpp_name
+
+    # Only deal with undefined classes with unscoped names which is how
+    # template argument names are passed.
+    if klass.iface_file.module is None and superclass_name.is_simple:
+        superclass = _find_argument_value(superclass_name, p, symbol,
+                tmpl_names, template, pm)
+
+        if superclass is None:
+            pm.parser_error(p, symbol,
+                    "template argument '{0}' must expand to a class".format(
+                            superclass_name))
+        else:
+            klass = superclass
+
+    return klass
+
+
+def _superclass_from_template(superclass, p, symbol, tmpl_names, template, pm):
+    """ Return the super-class based on a class template. """
+
+    # There are two approaches that could be taken with this.  The first is to
+    # instantiate the super-class template to create a Python class (with an
+    # automatically generated name) to use as the super-class.  The second is
+    # to add the contents of the class template to the original class being
+    # instantiated and so avoiding the creation of the 'internal' super-class
+    # class.  We choose the first approach as it is closer to the existing
+    # implementation.  The 'internal' super-class class is an undocumented (but
+    # visible) implementation detail.
+
+    # In order to instantiate the super-class template we need to create a new
+    # Template instance based on the super-class template invocation in the
+    # original class template but with the argument values replaced with those
+    # passed to the original class template.
+    proto_superclass_template = superclass.definition
+
+    superclass_template_args = []
+    superclass_name_parts = []
+
+    for proto_arg in proto_superclass_template.types.args:
+        # Assume we will use the argument as is.
+        superclass_arg = proto_arg
+
+        if proto_arg.type is ArgumentType.DEFINED and proto_arg.definition.is_simple:
+            klass = _find_argument_value(proto_arg.definition.base_name, p,
+                    symbol, tmpl_names, template, pm)
+
+            if klass is not None:
+                superclass_arg = Argument(ArgumentType.CLASS, definition=klass)
+                superclass_name_parts.append(
+                        klass.iface_file.fq_cpp_name.as_word)
+
+        superclass_template_args.append(superclass_arg)
+
+    superclass_template = Template(proto_superclass_template.cpp_name,
+            Signature(args=superclass_template_args))
+
+    # The generated C++ and Python names of the internal super-class is the
+    # name of the super-class template and the names of the values of each
+    # template argument.
+    fq_cpp_name = ScopedName(superclass_template.cpp_name)
+    fq_cpp_name[-1] = _make_generated_name(fq_cpp_name[-1],
+            superclass_name_parts)
+    py_name = _make_generated_name(superclass_template.cpp_name.as_py,
+            superclass_name_parts)
+
+    # Note that any error will have a misleading location as source_location
+    # should be used.
+    klass = pm.instantiate_class_template(p, symbol, fq_cpp_name,
+            superclass_template, py_name, no_type_name=True, docstring=None)
+
+    if klass is None:
+        pm.parser_error_at_location(superclass.source_location,
+                "unknown class template")
+
+    return klass
+
+
+def _find_argument_value(name, p, symbol, tmpl_names, template, pm):
+    """ Return the WrappedClass instance that is the value of a named argument.
+    None is returned is an appropriate value couldn't be found.
+    """
+
+    for a, arg in enumerate(tmpl_names.args):
+        if arg.definition.base_name == name:
+            tmpl_arg = template.types.args[a]
+
+            if tmpl_arg.type is ArgumentType.DEFINED:
+                return pm.find_class(p, symbol, IfaceFileType.CLASS,
+                        tmpl_arg.definition)
+
+            if tmpl_arg.type is ArgumentType.CLASS:
+                return tmpl_arg.definition
+
+    return None
+
+
+def _make_generated_name(base_name, name_parts):
+    """ Return the full generated name from a base name and parts representing
+    each template argument value.
+    """
+
+    all_parts = [base_name]
+    all_parts.extend(name_parts)
+
+    return '__'.join(all_parts)

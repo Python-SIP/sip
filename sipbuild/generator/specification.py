@@ -25,8 +25,8 @@ class AccessSpecifier(Enum):
 
 class ArgumentType(Enum):
     """ The types of either C/C++ or Python arguments.  The numerical values of
-    these can occur in generated code so so types must always be appended and
-    old (unused) types must never be removed.
+    these can occur in generated code so types must always be appended and old
+    (unused) types must never be removed.
     """
 
     # The type hasn't been specified.
@@ -1620,8 +1620,9 @@ class WrappedClass:
     # The sub-class base class. (resolver)
     subclass_base: Optional['WrappedClass'] = None
 
-    # The super-classes.
-    superclasses: list['WrappedClass'] = field(default_factory=list)
+    # The super-classes.  A super-class can only be a template argument in a
+    # class template.
+    superclasses: list[Union[Argument, 'WrappedClass']] = field(default_factory=list)
 
     # The value of /Supertype/ if specified.
     supertype: Optional[CachedName] = None
