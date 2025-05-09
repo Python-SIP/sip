@@ -151,7 +151,7 @@ class Bindings(Configurable):
                 project.sip_module)
 
         # Update the target ABI for the project.
-        if project.target_abi is None or project.target_abi < spec.target_abi:
+        if project.target_abi is None or project.target_abi[1] is None or project.target_abi < spec.target_abi:
             project.target_abi = spec.target_abi
 
         # Resolve the types.

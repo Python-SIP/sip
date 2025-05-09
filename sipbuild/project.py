@@ -332,7 +332,7 @@ class Project(AbstractProject, Configurable):
             name_parts = self.sip_module.split('.')
             del name_parts[-1]
 
-            return os.path.join(*name_parts)
+            return os.path.join(*name_parts) if name_parts else '.'
 
         return ''
 

@@ -11,10 +11,6 @@ class TemplateSuperclassesTestCase(SIPTestCase):
     class.  (See issue/12.)
     """
 
-    ###########################################################################
-    # The following test anonymous enums.
-    ###########################################################################
-
     def test_TemplateSuperclasses(self):
         """ Test the use of template arguments as super-classes. """
 

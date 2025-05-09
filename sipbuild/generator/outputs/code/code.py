@@ -1163,17 +1163,18 @@ f'''    /* Export the module and publish it's API. */
         # Import the helpers.
         sf.write(
 f'''
+
     sip_{module_name}_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol("qtcore_qt_metaobject");
     sip_{module_name}_qt_metacall = (sip_qt_metacall_func)sipImportSymbol("qtcore_qt_metacall");
     sip_{module_name}_qt_metacast = (sip_qt_metacast_func)sipImportSymbol("qtcore_qt_metacast");
 
     if (!sip_{module_name}_qt_metacast)
         Py_FatalError("Unable to import qtcore_qt_metacast");
-
 ''')
 
     sf.write(
-f'''    /* Initialise the module now all its dependencies have been set up. */
+f'''
+    /* Initialise the module now all its dependencies have been set up. */
     if (sipInitModule(&sipModuleAPI_{module_name}, sipModuleDict) < 0)
     {{
         Py_DECREF(sipModule);

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from enum import Enum, Flag, IntEnum, IntFlag
@@ -10,6 +10,9 @@ from utils import SIPTestCase
 
 class EnumsTestCase(SIPTestCase):
     """ Test the support for enums in ABI v13 and later. """
+
+    # The ABI version to use.
+    abi_version = '13'
 
     @classmethod
     def setUpClass(cls):

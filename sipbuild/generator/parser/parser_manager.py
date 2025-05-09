@@ -579,7 +579,9 @@ class ParserManager:
         base_type = EnumBaseType.ENUM
 
         if base_type_s is not None:
-            if self.spec.target_abi is not None and self.spec.target_abi < (13, 0):
+            # The minor version of the target ABI may not be known yet (and we
+            # don't need it) so just test the major version.
+            if self.spec.target_abi is not None and self.spec.target_abi[0] < 13:
                 self.parser_error(p, symbol,
                         "/BaseType/ is only supported for ABI v13.0 and later")
 
