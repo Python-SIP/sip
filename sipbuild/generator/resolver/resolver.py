@@ -1345,6 +1345,11 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
                     lambda: _check_array_support(overload, local_arg_nr, scope,
                             error_log))
 
+        # If the type of the argument is a /Movable/ mapped type then add
+        # /Transfer/.
+        if arg.type is ArgumentType.MAPPED and arg.definition.movable:
+            arg.transfer = Transfer.TRANSFER
+
         if scope is not None:
             _scope_default_value(spec, scope, arg)
 
@@ -1833,6 +1838,7 @@ def _instantiate_mapped_type_template(spec, mod, mapped_type_template, type,
     proto_mapped_type = mapped_type_template.mapped_type
 
     mapped_type.handles_none = proto_mapped_type.handles_none
+    mapped_type.movable = proto_mapped_type.movable
     mapped_type.needs_user_state = proto_mapped_type.needs_user_state
     mapped_type.no_assignment_operator = proto_mapped_type.no_assignment_operator
     mapped_type.no_copy_ctor = proto_mapped_type.no_copy_ctor

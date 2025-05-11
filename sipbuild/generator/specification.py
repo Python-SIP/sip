@@ -847,6 +847,9 @@ class MappedType:
     # The member functions.
     members: list['Member'] = field(default_factory=list)
 
+    # Set if /Movable/ was specified.
+    movable: bool = False
+
     # Set if the handwritten code requires user state information.
     needs_user_state: bool = False
 

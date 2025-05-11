@@ -5354,6 +5354,9 @@ def _call_args(sf, spec, cpp_signature, py_signature):
         indirection = ''
         nr_derefs = len(arg.derefs)
 
+        # The argument may be surrounded by something type-specific.
+        prefix = suffix = ''
+
         if arg.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING, ArgumentType.WSTRING):
             if nr_derefs > (0 if arg.is_out else 1) and not arg.is_reference:
                 indirection = '&'
@@ -5363,6 +5366,10 @@ def _call_args(sf, spec, cpp_signature, py_signature):
                 indirection = '&'
             elif nr_derefs == 0:
                 indirection = '*'
+
+                if arg.type is ArgumentType.MAPPED and arg.definition.movable:
+                    prefix = 'std::move('
+                    suffix = ')'
 
         elif arg.type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
             if nr_derefs == 2:
@@ -5395,12 +5402,12 @@ def _call_args(sf, spec, cpp_signature, py_signature):
             else:
                 sf.write(f'reinterpret_cast<{arg_cpp_type_name} *>({arg_name})')
         else:
-            sf.write(indirection)
+            sf.write(prefix + indirection)
 
             if arg.array is ArrayArgument.ARRAY_SIZE:
                 sf.write(f'({arg_cpp_type_name})')
 
-            sf.write(arg_name)
+            sf.write(arg_name + suffix)
 
 
 def _get_named_value_decl(spec, scope, type, name):

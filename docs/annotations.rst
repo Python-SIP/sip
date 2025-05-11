@@ -558,6 +558,24 @@ Mapped Type Annotations
     specifies that the handling of ``None`` will be left to the
     :directive:`%ConvertToTypeCode`.
 
+.. mapped-type-annotation:: Movable
+
+    .. versionadded:: 6.11
+
+    If a C++ instance is passed by value as an argument to a function then the
+    class's assignment operator is normally used under the covers.  If the
+    class's assignment operator has been deleted then the generated code will
+    not compile.  This annotation says that the C++ instances of this type
+    should be moved instead, ie. the argument should be wrapped in a called to
+    `std::move()`.  Because the C++ instance is unusable after being passed to
+    `std::move()`, SIP automatically transfers ownership of the instance to C++
+    so that Python doesn't try to call its destructor.
+
+    .. note::
+        SIP does not automatically generate the declaration of `std::move()`
+        so the :directive:`%TypeHeaderCode` for the mapped type should include
+        `#include <utility>`.
+
 
 .. mapped-type-annotation:: NoAssignmentOperator
 

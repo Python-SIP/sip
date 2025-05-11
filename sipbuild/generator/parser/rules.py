@@ -870,6 +870,7 @@ def p_license_arg(p):
 # The mapped type annotations.
 _MAPPED_TYPE_ANNOTATIONS = (
     'AllowNone',
+    'Movable',
     'NoAssignmentOperator',
     'NoCopyCtor',
     'NoDefaultCtor',

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 class DottedName(str):
@@ -229,6 +229,7 @@ _ANNOTATION_TYPES = {
     'KeywordArgs':              string(),
     'Metatype':                 name(allow_dots=True),
     'Mixin':                    boolean(),
+    'Movable':                  boolean(),
     'NewThread':                boolean(),
     'NoArgParser':              boolean(),
     'NoAssignmentOperator':     boolean(),

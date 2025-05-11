@@ -919,6 +919,7 @@ class ParserManager:
         """ Apply annotations to a mapped type. """
 
         mapped_type.handles_none = annotations.get('AllowNone', False)
+        mapped_type.movable = annotations.get('Movable', False)
         mapped_type.no_assignment_operator = annotations.get(
                 'NoAssignmentOperator', False)
         mapped_type.no_copy_ctor = annotations.get('NoCopyCtor', False)
