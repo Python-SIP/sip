@@ -1,7 +1,7 @@
-// The bindings for the module implementing the exception support.
+// The SIP implementation of the handler_module test module.
 
 
-%Module(name=handler)
+%Module(name=handler_module)
 
 
 %Exception std::exception(SIP_Exception) /PyName=StdException, Default/

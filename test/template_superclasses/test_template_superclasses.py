@@ -14,8 +14,8 @@ class TemplateSuperclassesTestCase(SIPTestCase):
     def test_TemplateSuperclasses(self):
         """ Test the use of template arguments as super-classes. """
 
-        from .template_superclasses import (AValue, AValueWrapper, BaseClass,
-                BValue, BValueWrapper)
+        from template_superclasses_module import (AValue, AValueWrapper,
+                BaseClass, BValue, BValueWrapper)
 
         self.assertTrue(issubclass(AValueWrapper, BaseClass))
         a = AValueWrapper()

@@ -1,4 +1,7 @@
-%Module(name=int_convertors)
+// The SIP implementation of the int_convertors_module tets module.
+
+
+%Module(name=int_convertors_module)
 
 
 %PostInitialisationCode

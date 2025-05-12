@@ -1,4 +1,4 @@
-// Define the SIP implementation of the movable_module test module.
+// The SIP implementation of the movable_module test module.
 
 
 %Module(name=movable_module)

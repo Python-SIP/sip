@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from utils import SIPTestCase
@@ -15,7 +15,7 @@ class IntConvertorsTestCase(SIPTestCase):
 
         super().setUpClass()
 
-        from .int_convertors import IntConvertors
+        from int_convertors_module import IntConvertors
 
         # Compute the various test values based on the native sizes.
         cls.CHAR_LOWER = IntConvertors.char_lower()

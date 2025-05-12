@@ -1247,7 +1247,7 @@ class ParserManager:
         if upper_name:
             upper_qual = self._find_timeline_qualifier(p, symbol_upper)
             if upper_qual is None:
-                return False
+                return True
         else:
             upper_qual = None
 
@@ -2004,7 +2004,7 @@ class ParserManager:
 
         name = p[symbol]
 
-        qual = self.find_qualifier(p, symbol, name)
+        qual = self.find_qualifier(p, symbol, name, required=False)
         if qual is None:
             return None
 

@@ -1,6 +1,7 @@
-// The bindings for testing support for enums.
+// The SIP implementation of the py_enums_module test module.
 
-%Module(name=enums)
+
+%Module(name=py_enums_module)
 
 
 %ModuleHeaderCode

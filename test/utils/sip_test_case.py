@@ -22,6 +22,9 @@ class SIPTestCase(unittest.TestCase):
     # Set if exception support should be enabled.
     exceptions = False
 
+    # The list of tags to be used to configure the test modules.
+    tags = None
+
     # Set if a separate sip module should be generated.  It will be built
     # automatically if more than one module is being built.
     use_sip_module = False
@@ -115,9 +118,15 @@ class SIPTestCase(unittest.TestCase):
             if use_sip_module:
                 f.write(_SIP_MODULE)
 
-            if cls.exceptions:
-                f.write(_BINDINGS_EXCEPTIONS.format(module_name=module_name))
+            if cls.tags is not None or cls.exceptions:
+                f.write(f'\n[tool.sip.bindings.{module_name}]\n')
 
+                if cls.tags is not None:
+                    tags_s = ', '.join([f'"{t}"' for t in cls.tags])
+                    f.write(f'tags = [{tags_s}]\n')
+
+                if cls.exceptions:
+                    f.write('exceptions = true\n')
 
         # Build and move the test module.
         cls._build_module(module_name,
@@ -235,10 +244,4 @@ abi-version = "{abi_version}"
 
 _SIP_MODULE = """
 sip-module = "sip"
-"""
-
-_BINDINGS_EXCEPTIONS = """
-
-[tool.sip.bindings.{module_name}]
-exceptions = true
 """
