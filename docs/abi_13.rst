@@ -4,18 +4,16 @@ ABI v13 for Handwritten Code
 In this section we describe the v13 of the ABI, provided by the :mod:`sip`
 module, that can be used by handwritten code in specification files.
 
-.. c:macro:: SIP_API_MAJOR_NR
+.. c:macro:: SIP_ABI_MAJOR_VERSION
 
     This is a C preprocessor symbol that defines the major number of the SIP
-    API.  Its value is a number.  There is no direct relationship between this
-    and the SIP version number.
+    ABI.
 
 
-.. c:macro:: SIP_API_MINOR_NR
+.. c:macro:: SIP_ABI_MINOR_VERSION
 
     This is a C preprocessor symbol that defines the minor number of the SIP
-    API.  Its value is a number.  There is no direct relationship between this
-    and the SIP version number.
+    ABI.
 
 
 .. c:macro:: SIP_BLOCK_THREADS
