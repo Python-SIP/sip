@@ -169,8 +169,8 @@ class Builder(AbstractBuilder):
             wheel_file.append(project.build_tag)
 
         wheel_file.append(wheel_tag)
-        wheel_path = os.path.abspath(
-                os.path.join(wheel_directory, '-'.join(wheel_file) + '.whl'))
+        wheel_file = '-'.join(wheel_file) + '.whl'
+        wheel_path = os.path.abspath(os.path.join(wheel_directory, wheel_file))
 
         # Create the .whl file.
         saved_cwd = os.getcwd()

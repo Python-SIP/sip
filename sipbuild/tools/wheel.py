@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ..abstract_project import AbstractProject
@@ -13,8 +13,8 @@ def main():
     try:
         project = AbstractProject.bootstrap('wheel',
                 "Build a wheel for the project.")
-        project.build_wheel('.')
-        project.progress("The wheel has been built.")
+        wheel_file = project.build_wheel('.')
+        project.progress(f"{wheel_file} has been built.")
     except Exception as e:
         handle_exception(e)
 
