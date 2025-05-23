@@ -1,5 +1,14 @@
 # Release Notes
 
+## v6.11.1
+
+### Bug fixes
+
+- The PEP 517 `build_wheel()` hook has been fixed after it regressed in
+  v6.11.0.  Resolves [#73](https://github.com/Python-SIP/sip/issues/73)
+- The handling of calls where `self` is passed as an argument in ABI v13 was
+  fixed.  Resolves [#74](https://github.com/Python-SIP/sip/issues/74)
+
 
 ## v6.11.0
 
