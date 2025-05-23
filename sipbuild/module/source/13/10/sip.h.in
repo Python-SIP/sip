@@ -36,7 +36,7 @@ extern "C" {
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
 #define SIP_ABI_MINOR_VERSION       10
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_MODULE_PATCH_VERSION    2
 
 
 /*

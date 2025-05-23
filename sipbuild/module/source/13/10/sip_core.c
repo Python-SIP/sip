@@ -3549,7 +3549,7 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
             td = va_arg(va, sipTypeDef *);
             va_arg(va, void **);
 
-            if (PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type))
+            if (self != NULL && PyObject_TypeCheck(self, (PyTypeObject *)&sipSimpleWrapper_Type))
             {
                 /* The call was self.method(...). */
                 *selfp = self;
