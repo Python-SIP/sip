@@ -565,7 +565,8 @@ class ParserManager:
         if self.parsing_virtual or len(scope.dealloc_code) != 0:
             scope.needs_shadow = True
 
-    def add_enum(self, p, symbol, cpp_name, is_scoped, annotations, members):
+    def add_enum(self, p, symbol, cpp_name, is_scoped, enum_base_type,
+            annotations, members):
         """ Create a new enum and add it to the current scope. """
 
         if self.scope_access_specifier is AccessSpecifier.PRIVATE:
@@ -618,7 +619,8 @@ class ParserManager:
 
         w_enum = WrappedEnum(base_type, fq_cpp_name, self.module_state.module,
                 cached_fq_cpp_name=cached_fq_cpp_name, is_scoped=is_scoped,
-                py_name=py_name, scope=self.scope)
+                enum_base_type=enum_base_type, py_name=py_name,
+                scope=self.scope)
 
         if self.scope_access_specifier is AccessSpecifier.PROTECTED:
             if not self._protected_is_public:

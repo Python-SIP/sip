@@ -196,8 +196,9 @@ def _resolve_module(spec, mod, error_log, final_checks, seen=None):
     for imported_mod in mod.imports:
         _resolve_module(spec, imported_mod, error_log, final_checks, seen=seen)
 
-    # Resolve typedefs, variables and global functions.
+    # Resolve typedefs, enums, variables and global functions.
     _resolve_typedefs(spec, mod, error_log)
+    _resolve_enums(spec, error_log)
     _resolve_variables(spec, mod, error_log)
     _resolve_scope_overloads(spec, mod.overloads, error_log, final_checks)
 
@@ -920,12 +921,50 @@ def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
                     break
 
         if isinstance(scope, WrappedClass):
-
             if scope.deprecated and not overload.deprecated :
                 overload.deprecated = scope.deprecated
 
             if overload.is_abstract:
                 scope.is_abstract = True
+
+
+# The supported enum base types.  Note that we use the STRING types and the
+# BYTE types because there is no opportunity to apply the /PyInt/ annotation
+# and there can be no confusion about context.  We still need the BYTE types
+# because /PyInt/ could have been specified in a typedef.
+_ENUM_BASE_TYPES = (
+    ArgumentType.STRING,
+    ArgumentType.SSTRING,
+    ArgumentType.USTRING,
+    ArgumentType.BYTE,
+    ArgumentType.SBYTE,
+    ArgumentType.UBYTE,
+    ArgumentType.SHORT,
+    ArgumentType.USHORT,
+    ArgumentType.INT,
+    ArgumentType.UINT,
+)
+
+def _resolve_enums(spec, error_log):
+    """ Resolve the base types for all the enums. """
+
+    for enum in spec.enums:
+        base_type = enum.enum_base_type
+
+        if base_type is None:
+            continue
+
+        _resolve_type(spec, enum.module, enum.scope, base_type, error_log)
+
+        # The current ABI implementations only support enums no larger than an
+        # int.
+        if base_type.type not in _ENUM_BASE_TYPES or len(base_type.derefs) != 0:
+            error_log.log(f"unsupported enum base type",
+                    source_location=base_type.source_location)
+
+        # The default is int.
+        if base_type.type is ArgumentType.INT:
+            enum.enum_base_type = None
 
 
 def _resolve_variables(spec, mod, error_log):

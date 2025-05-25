@@ -1,13 +1,13 @@
 Other Topics
 ============
 
-Wrapping Enums
---------------
+Wrapping Enums using ABI v12
+----------------------------
 
-SIP wraps C/C++ enums using a dedicated Python type and implements behaviour
-that mimics the C/C++ behaviour regarding the visibility of the enum's members.
-In other words, an enum's members have the same visibility as the enum itself.
-For example::
+When using ABI v12 SIP wraps C/C++ named enums using a dedicated Python type
+and implements behaviour that mimics the C/C++ behaviour regarding the
+visibility of the enum's members.  In other words, an enum's members have the
+same visibility as the enum itself.  For example::
 
     class MyClass
     {
@@ -35,8 +35,10 @@ this, SIP makes the members of traditional C/C++ enums visible from the scope
 of the enum as well.
 
 It is recommended that Python code should always specify the enum scope when
-referencing an enum member.  A future version of SIP will remove support for
-the traditional behaviour.
+referencing an enum member.
+
+When using ABI v13 SIP uses the :mod:`enum` module to wrap all C/C++ named
+enums.
 
 
 .. _ref-object-ownership:

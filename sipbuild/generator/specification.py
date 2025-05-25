@@ -1670,6 +1670,9 @@ class WrappedEnum:
     # The defining module.
     module: Module
 
+    # The C++11 enum base type.
+    enum_base_type: Optional[Argument] = None
+
     # The cached fully qualified C++ name.
     cached_fq_cpp_name: Optional[CachedName] = None
 

@@ -2211,26 +2211,50 @@ _ENUM_MEMBER_ANNOTATIONS = (
 
 
 def p_enum_decl(p):
-    "enum_decl : enum opt_enum_key opt_name opt_annos '{' opt_enum_body '}' ';'"
+    "enum_decl : enum opt_enum_key opt_name opt_enum_base opt_annos '{' opt_enum_body '}' ';'"
 
     pm = p.parser.pm
 
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 4, "enum", _ENUM_ANNOTATIONS)
+    pm.check_annotations(p, 5, "enum", _ENUM_ANNOTATIONS)
 
-    pm.add_enum(p, 1, p[3], p[2], p[4], p[6])
+    pm.add_enum(p, 1, p[3], p[2], p[4], p[5], p[7])
 
 
 def p_opt_enum_key(p):
     """opt_enum_key : class
         | struct
-        | union
         | empty"""
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    if p[1] is not None:
+        pm.cpp_only(p, 1, "enum keys")
 
     # Return True if the enum is scoped.
     p[0] = p[1] is not None
+
+
+def p_opt_enum_base(p):
+    """opt_enum_base : ':' base_type
+        | empty"""
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    if len(p) == 3:
+        pm.cpp_only(p, 1, "enum bases")
+
+        p[0] = p[2]
+    else:
+        p[0] = None
 
 
 def p_opt_enum_body(p):

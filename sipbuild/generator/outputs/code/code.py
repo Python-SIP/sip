@@ -5379,6 +5379,10 @@ def _call_args(sf, spec, cpp_signature, py_signature):
             if nr_derefs == 1:
                 indirection = '&'
 
+            if _arg_is_small_enum(arg):
+                prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
+                suffix = ')'
+
         # See if we need to cast a Python void * to the correct C/C++ pointer
         # type.  Note that we assume that the arguments correspond and are just
         # different types.
@@ -5460,6 +5464,8 @@ def _argument_variable(sf, spec, scope, arg, arg_nr):
     saved_is_reference = arg.is_reference
     saved_is_const = arg.is_const
 
+    use_typename = True
+
     if arg.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING, ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING, ArgumentType.WSTRING):
         if not arg.is_reference:
             if nr_derefs == 2:
@@ -5473,6 +5479,10 @@ def _argument_variable(sf, spec, scope, arg, arg_nr):
     else:
         arg.derefs = []
 
+        if _arg_is_small_enum(arg):
+            arg.type = ArgumentType.INT
+            use_typename = False
+
     # Array sizes are always Py_ssize_t.
     if arg.array is ArrayArgument.ARRAY_SIZE:
         arg.type = ArgumentType.SSIZE
@@ -5483,7 +5493,7 @@ def _argument_variable(sf, spec, scope, arg, arg_nr):
         arg.is_const = False
 
     modified_arg_cpp_type = fmt_argument_as_cpp_type(spec, arg,
-            scope=scope_iface_file)
+            scope=scope_iface_file, use_typename=use_typename)
 
     sf.write(f'        {modified_arg_cpp_type} {arg_name}')
 
@@ -5500,7 +5510,13 @@ def _argument_variable(sf, spec, scope, arg, arg_nr):
         if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and (nr_derefs == 0 or arg.is_reference):
             sf.write(f'&{arg_name}def')
         else:
+            if _arg_is_small_enum(arg):
+                sf.write('static_cast<int>(')
+
             sf.write(fmt_value_list_as_cpp_expression(spec, arg.default_value))
+
+            if _arg_is_small_enum(arg):
+                sf.write(')')
 
     sf.write(';\n')
 
@@ -7504,9 +7520,16 @@ def _get_slot_arg(spec, overload, arg_nr):
 
     arg = overload.py_signature.args[arg_nr]
 
-    dereference = '*' if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and len(arg.derefs) == 0 else ''
+    prefix = suffix = ''
 
-    return dereference + fmt_argument_as_name(spec, arg, arg_nr)
+    if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
+        if len(arg.derefs) == 0:
+            prefix = '*'
+    elif _arg_is_small_enum(arg):
+        prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
+        suffix = ')'
+
+    return prefix + fmt_argument_as_name(spec, arg, arg_nr) + suffix
 
 
 # A map of operators and their complements.
@@ -8999,6 +9022,12 @@ def _optional_ptr(is_ptr, name):
     """ Return an appropriate reference to an optional pointer. """
 
     return name if is_ptr else 'SIP_NULLPTR'
+
+
+def _arg_is_small_enum(arg):
+    """ Return True if an argument refers to a small C++11 enum. """
+
+    return arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
 
 
 # The map of slots to C++ names.
