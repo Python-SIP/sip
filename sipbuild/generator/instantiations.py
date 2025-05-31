@@ -461,7 +461,7 @@ def _superclass_from_class(klass, p, symbol, tmpl_names, template, pm):
     # Only deal with undefined classes with unscoped names which is how
     # template argument names are passed.
     if klass.iface_file.module is None and superclass_name.is_simple:
-        superclass = _find_argument_value(superclass_name, p, symbol,
+        superclass = _find_argument_value(superclass_name.base_name, p, symbol,
                 tmpl_names, template, pm)
 
         if superclass is None:
@@ -536,7 +536,7 @@ def _superclass_from_template(superclass, p, symbol, tmpl_names, template, pm):
 
 def _find_argument_value(name, p, symbol, tmpl_names, template, pm):
     """ Return the WrappedClass instance that is the value of a named argument.
-    None is returned is an appropriate value couldn't be found.
+    None is returned if an appropriate value couldn't be found.
     """
 
     for a, arg in enumerate(tmpl_names.args):
