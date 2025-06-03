@@ -1,5 +1,21 @@
 # Release Notes
 
+## v6.12.0
+
+### Support for C++11 enum base types
+
+Support was added for C++11 enum base types.  At the moment this is limited
+to base types no larger than `int`s.  Prior to this support, all enums were
+assumed to be `int` which breaks on big-endian systems.
+
+Resolves [#75](https://github.com/Python-SIP/sip/issues/75)
+
+### Bug fixes
+
+- Fixed a regression in v6.11.0 affecting class names as template
+  arguments.  Resolves [#77](https://github.com/Python-SIP/sip/issues/77)
+
+
 ## v6.11.1
 
 ### Bug fixes

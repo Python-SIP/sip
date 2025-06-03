@@ -13,7 +13,7 @@ project = 'sip'
 copyright = '{0} Phil Thompson <phil@riverbankcomputing.com>'.format(
         date.today().year)
 author = 'Phil Thompson'
-version = 'v6.11.1'
+version = 'v6.12.0'
 
 
 # -- General configuration ---------------------------------------------------
