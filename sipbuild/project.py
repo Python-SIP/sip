@@ -12,6 +12,7 @@ import sys
 import sysconfig
 import tempfile
 import warnings
+import locale
 
 from .abstract_builder import AbstractBuilder
 from .abstract_project import AbstractProject
@@ -594,7 +595,10 @@ class Project(AbstractProject, Configurable):
         with subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=stderr) as pipe:
             for line in pipe.stdout:
-                yield str(line, encoding=sys.stdout.encoding)
+                try:
+                    yield str(line, encoding=sys.stdout.encoding)
+                except UnicodeDecodeError:
+                    yield str(line, encoding=locale.getpreferredencoding())
 
         if pipe.returncode != 0 and fatal:
             raise UserException(
