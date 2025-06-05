@@ -1882,8 +1882,7 @@ def p_superclass(p):
         return
 
     if p[1] != 'public':
-        p[0] = None
-        return
+        pm.parser_error(p, 1, f"{p[1]} super-classes are not supported")
 
     p[0] = p[2]
 
