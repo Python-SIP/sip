@@ -4,6 +4,7 @@
 
 
 import collections
+import locale
 import os
 import packaging
 import shutil
@@ -594,7 +595,7 @@ class Project(AbstractProject, Configurable):
         with subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=stderr) as pipe:
             for line in pipe.stdout:
-                yield str(line, encoding=sys.stdout.encoding)
+                yield str(line, encoding=locale.getpreferredencoding(), errors="ignore")
 
         if pipe.returncode != 0 and fatal:
             raise UserException(
