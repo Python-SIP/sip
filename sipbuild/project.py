@@ -4,6 +4,7 @@
 
 
 import collections
+import locale
 import os
 import packaging
 import shutil
@@ -12,7 +13,6 @@ import sys
 import sysconfig
 import tempfile
 import warnings
-import locale
 
 from .abstract_builder import AbstractBuilder
 from .abstract_project import AbstractProject
