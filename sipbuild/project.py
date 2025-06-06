@@ -595,10 +595,7 @@ class Project(AbstractProject, Configurable):
         with subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=stderr) as pipe:
             for line in pipe.stdout:
-                try:
-                    yield str(line, encoding=sys.stdout.encoding)
-                except UnicodeDecodeError:
-                    yield str(line, encoding=locale.getpreferredencoding())
+                yield str(line, encoding=locale.getpreferredencoding(), errors="ignore")
 
         if pipe.returncode != 0 and fatal:
             raise UserException(
