@@ -1882,7 +1882,8 @@ def p_superclass(p):
         return
 
     if p[1] != 'public':
-        pm.parser_error(p, 1, f"{p[1]} super-classes are not supported")
+        # In SIP v7 this will be an error.
+        pm.deprecated(p, 1)
 
     p[0] = p[2]
 
