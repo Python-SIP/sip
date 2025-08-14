@@ -224,3 +224,6 @@ class ScopedName:
             index += 1
 
         return index
+
+    def __hash__(self):
+        return hash(tuple(self._name))

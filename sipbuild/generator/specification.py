@@ -3,11 +3,15 @@
 # Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import auto, Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeVar, Union
 
 from .scoped_name import ScopedName
+
+
+_T = TypeVar("_T")
 
 
 class AccessSpecifier(Enum):
@@ -1238,6 +1242,116 @@ class SourceLocation:
     line: int = 0
 
 
+class IndexedList(list[_T]):
+    def _index_add(self, item):
+        ...
+
+    def _index_remove(self, item):
+        ...
+
+    def _index_clear(self):
+        ...
+
+    def _transform_inserted(self, item):
+        return item
+
+    def __init__(self):
+        super().__init__(self)
+        self._index_clear()
+
+    def append(self, v):
+        v = self._transform_inserted(v)
+        super().append(v)
+        self._index_add(v)
+
+    def insert(self, i, v):
+        v = self._transform_inserted(v)
+        super().insert(i, v)
+        self._index_add(v)
+
+    def extend(self, vs):
+        for v in vs:
+            self.append(v)
+
+    def remove(self, v):
+        super().remove(v)
+        self._index_remove(v)
+
+    def clear(self):
+        super().clear()
+        self._index_clear()
+
+    def __setitem__(self, i, v):
+        v = self._transform_inserted(v)
+        self._index_remove(self[i])
+        super().__setitem__(i, v)
+        self._index_add(v)
+
+    def __delitem__(self, i):
+        self._index_remove(self[i])
+        super().__delitem__(i)
+
+
+class IndexedClassList(IndexedList['WrappedClass']):
+    def _index_clear(self):
+        self._by_cppname = defaultdict(list)
+        self._by_scope_pyname = defaultdict(list)
+
+    def _index_add(self, klass):
+        self._by_cppname[klass.iface_file.fq_cpp_name].append(klass)
+        self._by_scope_pyname[klass.scope, str(klass.py_name)].append(klass)
+
+    def _index_remove(self, klass):
+        self._by_cppname[klass.iface_file.fq_cpp_name].remove(klass)
+        del self._by_scope_pyname[klass.scope, str(klass.py_name)]
+
+    def by_fq_cpp_name(self, name):
+        return self._by_cppname[name]
+
+    def by_scope_and_py_name(self, scope, name):
+        return self._by_scope_pyname[scope, str(name)]
+
+
+class IndexedEnumList(IndexedList['WrappedEnum']):
+    def _index_clear(self):
+        self._by_cppname = {}
+        self._by_scope_pyname = {}
+        self._unscoped_by_scope_member = {}
+
+    def _index_add(self, enum):
+        assert enum.fq_cpp_name not in self._by_cppname
+        self._by_cppname[enum.fq_cpp_name] = enum
+        if enum.py_name:
+            assert (enum.scope, str(enum.py_name)) not in self._by_scope_pyname
+            self._by_scope_pyname[enum.scope, str(enum.py_name)] = enum
+        if not enum.is_scoped:
+            for member in enum.members:
+                assert (enum.scope, str(member.py_name)) not in self._unscoped_by_scope_member, f"Duplicate enum member: {member.py_name.name}"
+                self._unscoped_by_scope_member[enum.scope, str(member.py_name)] = enum
+
+    def _index_remove(self, enum):
+        del self._by_cppname[enum.fq_cpp_name]
+        del self._by_scope_pyname[enum.scope, enum.py_name.name]
+        if not enum.is_scoped:
+            for member in enum.members:
+                del self._unscoped_by_scope_member[(enum.scope, str(member.py_name))]
+
+    def _transform_inserted(self, enum):
+        # Make sure nobody changes the member list after it's inserted, since
+        # it wouldn't be reindexed.
+        enum.member = tuple(enum.members)
+        return enum
+
+    def by_fq_cpp_name(self, name):
+        return self._by_cppname.get(name)
+
+    def by_scope_and_py_name(self, scope, name):
+        return self._by_scope_pyname.get((scope, str(name)))
+
+    def by_scope_and_unscoped_member_py_name(self, scope, name):
+        return self._unscoped_by_scope_member.get((scope, str(name)))
+
+
 @dataclass
 class Specification:
     """ Encapsulate a parsed .sip file. """
@@ -1256,10 +1370,10 @@ class Specification:
     c_bindings: bool = False
 
     # The list of classes.
-    classes: list['WrappedClass'] = field(default_factory=list)
+    classes: IndexedClassList = field(default_factory=IndexedClassList)
 
     # The list of enums.
-    enums: list['WrappedEnum'] = field(default_factory=list)
+    enums: IndexedEnumList = field(default_factory=IndexedEnumList)
 
     # The list of exceptions.
     exceptions: list['WrappedException'] = field(default_factory=list)
@@ -1552,7 +1666,7 @@ class WrappedClass:
     # Set if the class is incomplete.
     is_incomplete: bool = False
 
-    # Set if the class is opaque.
+    # Set if the class is opaque (has no body).
     is_opaque: bool = False
 
     # Set if the class is defined in a protected section.
