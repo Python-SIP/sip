@@ -907,11 +907,10 @@ class ParserManager:
         """ Add a typedef to the current scope. """
 
         if self.spec.is_strict:
-            for td in self.spec.typedefs:
-                if td.fq_cpp_name == typedef.fq_cpp_name:
-                    self.parser_error(p, symbol,
-                            "'{0}' has already been defined".format(
-                                    typedef.fq_cpp_name))
+            if self.spec.typedefs.by_fq_cpp_name(typedef.fq_cpp_name):
+                self.parser_error(p, symbol,
+                        "'{0}' has already been defined".format(
+                                typedef.fq_cpp_name))
 
         self.module_state.module.nr_typedefs += 1
 

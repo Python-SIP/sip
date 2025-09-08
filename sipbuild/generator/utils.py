@@ -465,10 +465,8 @@ def search_typedefs(spec, cpp_name, type):
     fq_cpp_name = ScopedName(cpp_name)
     fq_cpp_name.make_absolute()
 
-    for typedef in spec.typedefs:
-        if typedef.fq_cpp_name == fq_cpp_name:
-            break
-    else:
+    typedef = spec.typedefs.by_fq_cpp_name(fq_cpp_name)
+    if not typedef:
         return
 
     # Update the type.

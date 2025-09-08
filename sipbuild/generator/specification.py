@@ -1385,6 +1385,21 @@ class IndexedMappedTypeList(IndexedList[MappedType]):
         return self._by_readable_base_name[name]
 
 
+class IndexedTypedefList(IndexedList['WrappedTypedef']):
+    def _index_clear(self):
+        self._by_fq_cpp_name = {}
+
+    def _index_add(self, typedef):
+        name = tuple(typedef.fq_cpp_name._name)
+        assert name not in self._by_fq_cpp_name
+        self._by_fq_cpp_name[name] = typedef
+
+    def _index_remove(self, typedef):
+        del self._by_fq_cpp_name[tuple(typedef.fq_cpp_name._name)]
+
+    def by_fq_cpp_name(self, name: ScopedName):
+        return self._by_fq_cpp_name.get(tuple(name._name))
+
 @dataclass
 class Specification:
     """ Encapsulate a parsed .sip file. """
@@ -1450,7 +1465,7 @@ class Specification:
     pyqt_qobject: Optional['WrappedClass'] = None
 
     # The list of typedefs.
-    typedefs: list['WrappedTypedef'] = field(default_factory=list)
+    typedefs: IndexedTypedefList = field(default_factory=IndexedTypedefList)
 
     # The list of variables.
     variables: list['WrappedVariable'] = field(default_factory=list)
