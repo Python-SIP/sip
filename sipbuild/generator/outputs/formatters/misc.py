@@ -43,12 +43,12 @@ def iface_is_defined(iface_file, scope, module, defined):
     if iface_file.module is not module:
         return True
 
-    if iface_file not in defined:
+    if not any(f is iface_file for f in defined):
         return False
 
     # Check all enclosing scopes have been defined as well.
     while scope is not None:
-        if scope.iface_file not in defined:
+        if not any(f is scope.iface_file for f in defined):
             return False
 
         scope = scope.scope
