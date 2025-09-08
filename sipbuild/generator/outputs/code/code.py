@@ -1304,6 +1304,9 @@ def _name_cache_as_list(name_cache):
     # Set the offset into the string pool for every used name.
     offset = 0
 
+    # Map of suffix to previously processed name
+    suffixes = {}
+
     for cached_name in name_cache_list:
         if not cached_name.used:
             continue
@@ -1311,23 +1314,17 @@ def _name_cache_as_list(name_cache):
         name_len = len(cached_name.name)
 
         # See if the tail of a previous used name could be used instead.
-        for prev_name in name_cache_list:
-            prev_name_len = len(prev_name.name)
-
-            if prev_name_len <= name_len:
-                break
-
-            if not prev_name.used or prev_name.is_substring:
-                continue
-
-            if prev_name.name.endswith(cached_name.name):
-                cached_name.is_substring = True
-                cached_name.offset = prev_name.offset + prev_name_len - name_len;
-                break
+        prev_name = suffixes.get(cached_name.name)
+        if prev_name:
+            cached_name.is_substring = True
+            cached_name.offset = prev_name.offset + len(prev_name.name) - name_len
 
         if not cached_name.is_substring:
             cached_name.offset = offset
             offset += name_len + 1
+
+            for i in range(len(cached_name.name)):
+                suffixes[cached_name.name[i:]] = cached_name
 
     return name_cache_list
 
