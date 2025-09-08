@@ -129,6 +129,17 @@ class ScopedName:
 
         return self._name[-1]
 
+    @property
+    def readable_base_name(self):
+        """ The base name of the scoped name, ignoring encoded template names. """
+
+        base = None
+        for part in self:
+            if part[0].isdigit():
+                break
+            base = part
+        return base
+
     def cpp_stripped(self, strip):
         """ Return the C++ representation of the name with leading scopes
         stripped.

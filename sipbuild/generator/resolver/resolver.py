@@ -1961,7 +1961,15 @@ def _search_mapped_types(spec, mod, type, scoped_name=None):
         type.definition = scoped_name
         type.type = ArgumentType.DEFINED
 
-    for mapped_type in spec.mapped_types:
+
+    if type.type is ArgumentType.TEMPLATE:
+        name = type.definition.cpp_name
+    elif type.type in (ArgumentType.DEFINED, ArgumentType.NONE):
+        name = type.definition
+    else:
+        assert False, f"_search_mapped_types got {type.type}"
+
+    for mapped_type in spec.mapped_types.by_readable_base_name(name.readable_base_name):
         if same_base_type(mapped_type.type, type):
             break
     else:

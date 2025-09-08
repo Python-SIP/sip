@@ -1367,6 +1367,24 @@ class IndexedCachedNameList(IndexedList['CachedName']):
         return self._by_name.get(name)
 
 
+class IndexedMappedTypeList(IndexedList[MappedType]):
+    def _index_clear(self):
+        self._by_readable_base_name = defaultdict(list)
+
+    def _index_add(self, mapped_type):
+        self._by_readable_base_name[
+            mapped_type.iface_file.fq_cpp_name.readable_base_name
+        ].append(mapped_type)
+
+    def _index_remove(self, mapped_type):
+        self._by_readable_base_name[
+            mapped_type.iface_file.fq_cpp_name.readable_base_name
+        ].remove(mapped_type)
+
+    def by_readable_base_name(self, name: str):
+        return self._by_readable_base_name[name]
+
+
 @dataclass
 class Specification:
     """ Encapsulate a parsed .sip file. """
@@ -1412,7 +1430,7 @@ class Specification:
     mapped_type_templates: list[MappedTypeTemplate] = field(default_factory=list)
 
     # The mapped types.
-    mapped_types: list[MappedType] = field(default_factory=list)
+    mapped_types: IndexedMappedTypeList = field(default_factory=IndexedMappedTypeList)
 
     # The module for which code is to be generated.
     module: Module = field(default_factory=Module)
