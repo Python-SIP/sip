@@ -1352,6 +1352,21 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
         return self._unscoped_by_scope_member.get((scope, str(name)))
 
 
+class IndexedCachedNameList(IndexedList['CachedName']):
+    def _index_clear(self):
+        self._by_name = {}
+
+    def _index_add(self, name):
+        assert name.name not in self._by_name
+        self._by_name[name.name] = name
+
+    def _index_remove(self, name):
+        del self._by_name[name.name]
+
+    def by_name(self, name: str):
+        return self._by_name.get(name)
+
+
 @dataclass
 class Specification:
     """ Encapsulate a parsed .sip file. """
@@ -1403,7 +1418,8 @@ class Specification:
     module: Module = field(default_factory=Module)
 
     # The cache of names that may be required as strings in the generated code.
-    name_cache: dict[int, list[CachedName]] = field(default_factory=dict)
+    # Indexed by name length.
+    name_cache: dict[int, IndexedCachedNameList] = field(default_factory=dict)
 
     # The number of virtual handlers. (resolver)
     nr_virtual_handlers: int = 0

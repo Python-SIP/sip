@@ -4,7 +4,7 @@
 
 
 from .scoped_name import ScopedName
-from .specification import ArgumentType, CachedName, IfaceFile, IfaceFileType
+from .specification import ArgumentType, CachedName, IfaceFile, IfaceFileType, IndexedCachedNameList
 
 
 def append_iface_file(iface_file_list, iface_file):
@@ -130,12 +130,11 @@ def cached_name(spec, name):
 
     # Get the line of the cache for the length of this name creating it if
     # necessary.
-    line = spec.name_cache.setdefault(len(name), [])
+    line = spec.name_cache.setdefault(len(name), IndexedCachedNameList())
 
     # See if the name has already been cached.
-    for nd in line:
-        if nd.name == name:
-            return nd
+    if nd := line.by_name(name):
+        return nd
 
     # Create a new entry.
     nd = CachedName(name)
