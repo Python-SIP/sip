@@ -15,7 +15,7 @@ def append_iface_file(iface_file_list, iface_file):
         return
 
     # Don't bother if it is already there.
-    if iface_file in iface_file_list:
+    if any(f is iface_file for f in iface_file_list):
         return
 
     iface_file_list.append(iface_file)
