@@ -1319,8 +1319,9 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
         self._unscoped_by_scope_member = {}
 
     def _index_add(self, enum):
-        assert enum.fq_cpp_name not in self._by_cppname
-        self._by_cppname[enum.fq_cpp_name] = enum
+        if enum.fq_cpp_name:
+            assert enum.fq_cpp_name not in self._by_cppname, f"Duplicate enum: {enum.fq_cpp_name}"
+            self._by_cppname[enum.fq_cpp_name] = enum
         if enum.py_name:
             assert (enum.scope, str(enum.py_name)) not in self._by_scope_pyname
             self._by_scope_pyname[enum.scope, str(enum.py_name)] = enum
@@ -1330,8 +1331,10 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
                 self._unscoped_by_scope_member[enum.scope, str(member.py_name)] = enum
 
     def _index_remove(self, enum):
-        del self._by_cppname[enum.fq_cpp_name]
-        del self._by_scope_pyname[enum.scope, enum.py_name.name]
+        if enum.fq_cpp_name:
+            del self._by_cppname[enum.fq_cpp_name]
+        if enum.py_name:
+            del self._by_scope_pyname[enum.scope, enum.py_name.name]
         if not enum.is_scoped:
             for member in enum.members:
                 del self._unscoped_by_scope_member[(enum.scope, str(member.py_name))]
