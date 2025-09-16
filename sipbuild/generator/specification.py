@@ -3,15 +3,18 @@
 # Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import auto, Enum
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, Union
 
 from .scoped_name import ScopedName
-
-
-_T = TypeVar("_T")
+from .indexed_lists import (
+    IndexedClassList,
+    IndexedEnumList,
+    IndexedCachedNameList,
+    IndexedMappedTypeList,
+    IndexedTypedefList,
+)
 
 
 class AccessSpecifier(Enum):
@@ -1241,167 +1244,6 @@ class SourceLocation:
     # The line number.
     line: int = 0
 
-
-class IndexedList(list[_T]):
-    def _index_add(self, item):
-        ...
-
-    def _index_remove(self, item):
-        ...
-
-    def _index_clear(self):
-        ...
-
-    def _transform_inserted(self, item):
-        return item
-
-    def __init__(self):
-        super().__init__(self)
-        self._index_clear()
-
-    def append(self, v):
-        v = self._transform_inserted(v)
-        super().append(v)
-        self._index_add(v)
-
-    def insert(self, i, v):
-        v = self._transform_inserted(v)
-        super().insert(i, v)
-        self._index_add(v)
-
-    def extend(self, vs):
-        for v in vs:
-            self.append(v)
-
-    def remove(self, v):
-        super().remove(v)
-        self._index_remove(v)
-
-    def clear(self):
-        super().clear()
-        self._index_clear()
-
-    def __setitem__(self, i, v):
-        v = self._transform_inserted(v)
-        self._index_remove(self[i])
-        super().__setitem__(i, v)
-        self._index_add(v)
-
-    def __delitem__(self, i):
-        self._index_remove(self[i])
-        super().__delitem__(i)
-
-
-class IndexedClassList(IndexedList['WrappedClass']):
-    def _index_clear(self):
-        self._by_cppname = defaultdict(list)
-        self._by_scope_pyname = defaultdict(list)
-
-    def _index_add(self, klass):
-        self._by_cppname[klass.iface_file.fq_cpp_name].append(klass)
-        self._by_scope_pyname[klass.scope, str(klass.py_name)].append(klass)
-
-    def _index_remove(self, klass):
-        self._by_cppname[klass.iface_file.fq_cpp_name].remove(klass)
-        del self._by_scope_pyname[klass.scope, str(klass.py_name)]
-
-    def by_fq_cpp_name(self, name):
-        return self._by_cppname[name]
-
-    def by_scope_and_py_name(self, scope, name):
-        return self._by_scope_pyname[scope, str(name)]
-
-
-class IndexedEnumList(IndexedList['WrappedEnum']):
-    def _index_clear(self):
-        self._by_cppname = {}
-        self._by_scope_pyname = {}
-        self._unscoped_by_scope_member = {}
-
-    def _index_add(self, enum):
-        if enum.fq_cpp_name:
-            assert enum.fq_cpp_name not in self._by_cppname, f"Duplicate enum: {enum.fq_cpp_name}"
-            self._by_cppname[enum.fq_cpp_name] = enum
-        if enum.py_name:
-            assert (enum.scope, str(enum.py_name)) not in self._by_scope_pyname
-            self._by_scope_pyname[enum.scope, str(enum.py_name)] = enum
-        if not enum.is_scoped:
-            for member in enum.members:
-                assert (enum.scope, str(member.py_name)) not in self._unscoped_by_scope_member, f"Duplicate enum member: {member.py_name.name}"
-                self._unscoped_by_scope_member[enum.scope, str(member.py_name)] = enum
-
-    def _index_remove(self, enum):
-        if enum.fq_cpp_name:
-            del self._by_cppname[enum.fq_cpp_name]
-        if enum.py_name:
-            del self._by_scope_pyname[enum.scope, enum.py_name.name]
-        if not enum.is_scoped:
-            for member in enum.members:
-                del self._unscoped_by_scope_member[(enum.scope, str(member.py_name))]
-
-    def _transform_inserted(self, enum):
-        # Make sure nobody changes the member list after it's inserted, since
-        # it wouldn't be reindexed.
-        enum.member = tuple(enum.members)
-        return enum
-
-    def by_fq_cpp_name(self, name):
-        return self._by_cppname.get(name)
-
-    def by_scope_and_py_name(self, scope, name):
-        return self._by_scope_pyname.get((scope, str(name)))
-
-    def by_scope_and_unscoped_member_py_name(self, scope, name):
-        return self._unscoped_by_scope_member.get((scope, str(name)))
-
-
-class IndexedCachedNameList(IndexedList['CachedName']):
-    def _index_clear(self):
-        self._by_name = {}
-
-    def _index_add(self, name):
-        assert name.name not in self._by_name
-        self._by_name[name.name] = name
-
-    def _index_remove(self, name):
-        del self._by_name[name.name]
-
-    def by_name(self, name: str):
-        return self._by_name.get(name)
-
-
-class IndexedMappedTypeList(IndexedList[MappedType]):
-    def _index_clear(self):
-        self._by_readable_base_name = defaultdict(list)
-
-    def _index_add(self, mapped_type):
-        self._by_readable_base_name[
-            mapped_type.iface_file.fq_cpp_name.readable_base_name
-        ].append(mapped_type)
-
-    def _index_remove(self, mapped_type):
-        self._by_readable_base_name[
-            mapped_type.iface_file.fq_cpp_name.readable_base_name
-        ].remove(mapped_type)
-
-    def by_readable_base_name(self, name: str):
-        return self._by_readable_base_name[name]
-
-
-class IndexedTypedefList(IndexedList['WrappedTypedef']):
-    def _index_clear(self):
-        self._by_fq_cpp_name = {}
-
-    def _index_add(self, typedef):
-        name = tuple(typedef.fq_cpp_name._name)
-        assert name not in self._by_fq_cpp_name
-        self._by_fq_cpp_name[name] = typedef
-
-    def _index_remove(self, typedef):
-        del self._by_fq_cpp_name[tuple(typedef.fq_cpp_name._name)]
-
-    def by_fq_cpp_name(self, name: ScopedName):
-        return self._by_fq_cpp_name.get(tuple(name._name))
 
 @dataclass
 class Specification:
