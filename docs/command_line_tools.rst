@@ -473,6 +473,13 @@ The full set of command line options is:
 
     Display the SIP version number.
 
+.. option:: --abi-version M[.N]
+
+    The version number of the ABI of the :mod:`sip` module to target is
+    ``M.N``.  By default the latest major version is used.  If the minor
+    version is not specified then the latest minor version of the major version
+    is used.
+
 .. option:: --deprecations-are-errors
 
     The use of any deprecated feature is handled as an error rather than a

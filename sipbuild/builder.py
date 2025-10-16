@@ -14,7 +14,7 @@ from .abstract_builder import AbstractBuilder
 from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
-from .module import copy_sip_h, copy_sip_pyi
+from .module import copy_sip_h, copy_sip_pyi, get_latest_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 
 
@@ -82,6 +82,13 @@ class Builder(AbstractBuilder):
                 os.makedirs(os.path.dirname(d_fn_path), exist_ok=True)
 
                 shutil.copy2(s_fn_path, d_fn_path)
+
+        # If we don't know the target ABI at this point then default to the
+        # latest version.
+        if project.target_abi is None:
+            major_version = get_latest_version()
+            minor_version = get_latest_version(major_version)
+            project.target_abi = (major_version, minor_version)
 
         # Create the PKG-INFO file.  This is assumed to be identical to the
         # .dist-info/METADATA file.

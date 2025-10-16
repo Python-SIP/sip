@@ -183,14 +183,15 @@ class BuildableBindings(BuildableModule):
 
         with open(config_path, 'w') as cf:
             sip_version_str = SIP_VERSION_STR if self.project.version_info else ''
+            abi_major, abi_minor = self.project.target_abi
             tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
             disabled = ', '.join(
                     ['"{}"'.format(f) for f in bindings.disabled_features])
 
-            cf.write("# Automatically generated configuration for {0}.\n".format(self.fq_name))
-            cf.write('''
-sip-version = "{}"
-sip-abi-version = "{}"
-module-tags = [{}]
-module-disabled-features = [{}]
-'''.format(sip_version_str, self.project.abi_version, tags, disabled))
+            cf.write(f"# Automatically generated configuration for {self.fq_name}.\n")
+            cf.write(f'''
+sip-version = "{sip_version_str}"
+sip-abi-version = "{abi_major}.{abi_minor}"
+module-tags = [{tags}]
+module-disabled-features = [{disabled}]
+''')
