@@ -38,6 +38,10 @@ def resolve(spec, modules):
         # Set the base name of the module.  This is done for efficiency.
         mod.py_name = mod.fq_py_name.name.split('.')[-1]
 
+    # There is nothing else that needs doing for composite modules.
+    if spec.is_composite:
+        return
+
     # Set the default meta-type for the main module if it doesn't have one
     # explicitly set.
     if spec.module.default_metatype is None:
