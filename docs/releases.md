@@ -1,5 +1,19 @@
 # Release Notes
 
+## v6.14.0
+
+### Specification of target ABI version
+
+`sip-sdist` now has a `--abi-version` command line option to be used if a value
+is not specified in `pyproject.toml`.
+
+### Bug fixes
+
+- Bugs in the handling of the default target ABI have been fixed.
+- Fixed a regression in v6.13.1 in the handling of composite modules.  Resolves
+  [#95](https://github.com/Python-SIP/sip/issues/95)
+
+
 ## v6.13.1
 
 ### Bug fixes
