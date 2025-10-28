@@ -1324,7 +1324,7 @@ def _name_cache_as_list(name_cache):
             offset += name_len + 1
 
             for i in range(len(cached_name.name)):
-                suffixes[cached_name.name[i:]] = cached_name
+                suffixes.setdefault(cached_name.name[i:], cached_name)
 
     return name_cache_list
 
