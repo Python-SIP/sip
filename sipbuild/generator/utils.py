@@ -7,6 +7,14 @@ from .scoped_name import ScopedName
 from .specification import ArgumentType, CachedName, IfaceFile, IfaceFileType, IndexedCachedNameList
 
 
+def fast_contains(container, element):
+    """
+    Check whether container contains element by identity (using operator "is"
+    instead of "==").
+    """
+    return any(x is element for x in container)
+
+
 def append_iface_file(iface_file_list, iface_file):
     """ Append an IfaceFile object to a list of them. """
 
@@ -15,7 +23,7 @@ def append_iface_file(iface_file_list, iface_file):
         return
 
     # Don't bother if it is already there.
-    if any(f is iface_file for f in iface_file_list):
+    if fast_contains(iface_file_list, iface_file):
         return
 
     iface_file_list.append(iface_file)

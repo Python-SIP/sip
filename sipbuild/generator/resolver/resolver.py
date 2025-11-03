@@ -19,8 +19,8 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
-        find_iface_file, find_method, same_argument_type, same_base_type,
-        same_signature, search_typedefs)
+        fast_contains, find_iface_file, find_method, same_argument_type,
+        same_base_type, same_signature, search_typedefs)
 
 
 def resolve(spec, modules):
@@ -639,9 +639,8 @@ def _set_mro(spec, klass, error_log, seen=None):
     """
 
     # See if it has already been done.
-    # Check using identity instead of equality for performance.
-    if any(k is klass for k
-           in spec.classes.by_fq_cpp_name(klass.iface_file.fq_cpp_name)):
+    if fast_contains(spec.classes.by_fq_cpp_name(klass.iface_file.fq_cpp_name),
+                     klass):
         return
 
     # Initialise the detection of recursive hierarchies.
@@ -666,7 +665,7 @@ def _set_mro(spec, klass, error_log, seen=None):
         seen.append(klass)
 
         for superklass in klass.superclasses:
-            if any(superklass is k for k in seen):
+            if fast_contains(seen, superklass):
                 error_log.log(
                         "recursive class hierarchy detected: '{0}' and '{1}'".format(
                                 klass.iface_file.fq_cpp_name,
