@@ -237,4 +237,5 @@ class ScopedName:
         return index
 
     def __hash__(self):
+        """ Hash by taking the name list. """
         return hash(tuple(self._name))
