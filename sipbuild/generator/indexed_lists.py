@@ -10,10 +10,10 @@ from .scoped_name import ScopedName
 
 if TYPE_CHECKING:
     from .specification import (
-        WrappedClass,
-        WrappedEnum,
         CachedName,
         MappedType,
+        WrappedClass,
+        WrappedEnum,
         WrappedTypedef,
     )
 

@@ -7,14 +7,14 @@ from dataclasses import dataclass, field
 from enum import auto, Enum
 from typing import Any, Optional, Union
 
-from .scoped_name import ScopedName
 from .indexed_lists import (
+    IndexedCachedNameList,
     IndexedClassList,
     IndexedEnumList,
-    IndexedCachedNameList,
     IndexedMappedTypeList,
     IndexedTypedefList,
 )
+from .scoped_name import ScopedName
 
 
 class AccessSpecifier(Enum):
