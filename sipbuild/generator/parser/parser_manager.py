@@ -909,11 +909,10 @@ class ParserManager:
         """ Add a typedef to the current scope. """
 
         if self.spec.is_strict:
-            for td in self.spec.typedefs:
-                if td.fq_cpp_name == typedef.fq_cpp_name:
-                    self.parser_error(p, symbol,
-                            "'{0}' has already been defined".format(
-                                    typedef.fq_cpp_name))
+            if self.spec.typedefs.by_fq_cpp_name(typedef.fq_cpp_name):
+                self.parser_error(p, symbol,
+                        "'{0}' has already been defined".format(
+                                typedef.fq_cpp_name))
 
         self.module_state.module.nr_typedefs += 1
 
@@ -1020,20 +1019,11 @@ class ParserManager:
                             py_name))
 
         # Check the enums.
-        for ed in self.spec.enums:
-            if ed.py_name is None:
-                continue
+        if self.spec.enums.by_scope_and_py_name(self.scope, py_name):
+            clash("an enum")
 
-            if ed.scope is not self.scope:
-                continue
-
-            if ed.py_name.name == py_name:
-                clash("an enum")
-
-            if not ed.is_scoped:
-                for emd in ed.members:
-                    if emd.py_name.name == py_name:
-                        clash("an enum member")
+        if self.spec.enums.by_scope_and_unscoped_member_py_name(self.scope, py_name):
+            clash("an enum member")
 
         # Only check the members if this attribute isn't a member because we
         # can handle members with the same name in the same scope.
@@ -1064,10 +1054,7 @@ class ParserManager:
                 break
 
         # Check the classes.
-        for cd in self.spec.classes:
-            if cd.scope is not self.scope:
-                continue
-
+        for cd in self.spec.classes.by_scope_and_py_name(self.scope, py_name):
             # A class will have already been added to the scope and this will
             # tell us to ignore it.
             if cd is ignore:
@@ -1076,8 +1063,7 @@ class ParserManager:
             if cd.external:
                 continue
 
-            if cd.py_name.name == py_name:
-                clash("a class or namespace")
+            clash("a class or namespace")
 
         if self.scope is None:
             # Check the exceptions.
@@ -1628,8 +1614,6 @@ class ParserManager:
         # Check we aren't reading the file recursively.
         for detail in self._file_stack:
             if detail[0] == sip_file:
-                self.parser_error(p, symbol,
-                        "'{0}' is being read recursively".format(sip_file))
                 return
 
         # Ignore the file if we have already read it.

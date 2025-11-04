@@ -7,6 +7,13 @@ from dataclasses import dataclass, field
 from enum import auto, Enum
 from typing import Any, Optional, Union
 
+from .indexed_lists import (
+    IndexedCachedNameList,
+    IndexedClassList,
+    IndexedEnumList,
+    IndexedMappedTypeList,
+    IndexedTypedefList,
+)
 from .scoped_name import ScopedName
 
 
@@ -1256,10 +1263,10 @@ class Specification:
     c_bindings: bool = False
 
     # The list of classes.
-    classes: list['WrappedClass'] = field(default_factory=list)
+    classes: IndexedClassList = field(default_factory=IndexedClassList)
 
     # The list of enums.
-    enums: list['WrappedEnum'] = field(default_factory=list)
+    enums: IndexedEnumList = field(default_factory=IndexedEnumList)
 
     # The list of exceptions.
     exceptions: list['WrappedException'] = field(default_factory=list)
@@ -1283,13 +1290,14 @@ class Specification:
     mapped_type_templates: list[MappedTypeTemplate] = field(default_factory=list)
 
     # The mapped types.
-    mapped_types: list[MappedType] = field(default_factory=list)
+    mapped_types: IndexedMappedTypeList = field(default_factory=IndexedMappedTypeList)
 
     # The module for which code is to be generated.
     module: Module = field(default_factory=Module)
 
     # The cache of names that may be required as strings in the generated code.
-    name_cache: dict[int, list[CachedName]] = field(default_factory=dict)
+    # Indexed by name length.
+    name_cache: dict[int, IndexedCachedNameList] = field(default_factory=dict)
 
     # The number of virtual handlers. (resolver)
     nr_virtual_handlers: int = 0
@@ -1302,7 +1310,7 @@ class Specification:
     pyqt_qobject: Optional['WrappedClass'] = None
 
     # The list of typedefs.
-    typedefs: list['WrappedTypedef'] = field(default_factory=list)
+    typedefs: IndexedTypedefList = field(default_factory=IndexedTypedefList)
 
     # The list of variables.
     variables: list['WrappedVariable'] = field(default_factory=list)
@@ -1555,7 +1563,7 @@ class WrappedClass:
     # Set if the class is incomplete.
     is_incomplete: bool = False
 
-    # Set if the class is opaque.
+    # Set if the class is opaque (has no body).
     is_opaque: bool = False
 
     # Set if the class is defined in a protected section.

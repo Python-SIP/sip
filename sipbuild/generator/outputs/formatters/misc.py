@@ -3,6 +3,9 @@
 # Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from ...utils import fast_contains
+
+
 def fmt_copying(copying, comment):
     """ Return a formatted %Copying text. """
 
@@ -43,12 +46,12 @@ def iface_is_defined(iface_file, scope, module, defined):
     if iface_file.module is not module:
         return True
 
-    if iface_file not in defined:
+    if not fast_contains(defined, iface_file):
         return False
 
     # Check all enclosing scopes have been defined as well.
     while scope is not None:
-        if scope.iface_file not in defined:
+        if not fast_contains(defined, scope.iface_file):
             return False
 
         scope = scope.scope
