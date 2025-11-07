@@ -190,7 +190,7 @@ class Builder(AbstractBuilder):
         epoch = int(os.environ.get('SOURCE_DATE_EPOCH', time.time()))
         zip_timestamp = time.gmtime(epoch)[:6]
 
-        with ZipFile(wheel_path, 'w', compression=ZIP_DEFLATED) as zf:
+        with ZipFile(wheel_path, 'w') as zf:
             for dirpath, _, filenames in os.walk('.'):
                 for filename in filenames:
                     # This will result in a name with no leading '.'.
@@ -199,7 +199,7 @@ class Builder(AbstractBuilder):
                     zi = ZipInfo(name, zip_timestamp)
 
                     with open(name, 'rb') as f:
-                        zf.writestr(zi, f.read())
+                        zf.writestr(zi, f.read(), compress_type=ZIP_DEFLATED)
 
         os.chdir(saved_cwd)
 
