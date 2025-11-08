@@ -1965,10 +1965,9 @@ def _search_mapped_types(spec, mod, type, scoped_name=None):
         type.definition = scoped_name
         type.type = ArgumentType.DEFINED
 
-
     if type.type is ArgumentType.TEMPLATE:
         name = type.definition.cpp_name
-    elif type.type in (ArgumentType.DEFINED, ArgumentType.NONE):
+    elif type.type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.DEFINED, ArgumentType.NONE):
         name = type.definition
     else:
         assert False, f"_search_mapped_types got {type.type}"
