@@ -1,19 +1,14 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from typing import Any, Optional, Union
 
-from .indexed_lists import (
-    IndexedCachedNameList,
-    IndexedClassList,
-    IndexedEnumList,
-    IndexedMappedTypeList,
-    IndexedTypedefList,
-)
+from .indexed_lists import (IndexedCachedNameList, IndexedClassList,
+        IndexedEnumList, IndexedMappedTypeList, IndexedTypedefList)
 from .scoped_name import ScopedName
 
 
@@ -492,7 +487,7 @@ class PySlot(Enum):
     # tp_iter_next
     NEXT = auto()
 
-    # tp_setattr
+    # tp_setattro
     SETATTR = auto()
 
     # Internal to the parser (implemented as tp_setattr)
@@ -1726,7 +1721,8 @@ class WrappedEnum:
     type_nr: int = -1
 
     def __hash__(self):
-        """ Reimplemented so an Argument object can be used as a dict key. """
+        """ Reimplemented so a WrappedEnum object can be used as a dict key.
+        """
 
         return id(self)
 

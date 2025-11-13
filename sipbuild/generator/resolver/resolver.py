@@ -736,9 +736,9 @@ def _set_mro(spec, klass, error_log, seen=None):
                 klass.supertype = klass.iface_file.module.default_supertype
 
         if klass.supertype is not None:
-            # If the super-type ends with 'sip.wrapper' then assume it is the
+            # If the super-type ends with '.wrapper' then assume it is the
             # default.
-            if klass.supertype.name.endswith('sip.wrapper'):
+            if klass.supertype.name.endswith('.wrapper'):
                 klass.supertype = None
 
         if klass.supertype is not None and klass.iface_file.module is spec.module:
@@ -1445,6 +1445,10 @@ _STRING_TYPES = (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING,
 def _resolve_variable_type(spec, variable, error_log):
     """ Resolve the type of a variable. """
 
+    if variable.scope is None:
+        if variable.get_code is not None or variable.set_code is not None:
+            error_log.log("%GetCode or %SetCode cannot be specified for global variables")
+
     bad_type = True
     variable_type = variable.type
 
@@ -1481,14 +1485,11 @@ def _resolve_variable_type(spec, variable, error_log):
         else:
             set_s = " and %SetCode"
 
-        error_log.log(
-                "'{0}' has an unsupported type - provide %GetCode{1}".format(
-                    variable.fq_cpp_name, set_s))
+        error_log.log(f"'{variable.fq_cpp_name}' has an unsupported type - provide %GetCode{set_s}")
  
-    if variable_type.type is not ArgumentType.CLASS and variable.access_code is not None:
-        error_log.log(
-                "'{0}' has %AccessCode but isn't a class instance".format(
-                    variable.fq_cpp_name))
+    if variable.access_code is not None:
+        if variable_type.type is not ArgumentType.CLASS:
+            error_log.log(f"'{variable.fq_cpp_name}' has %AccessCode but isn't a class instance")
 
     if variable.scope is not None:
         _iface_file_is_used(variable.scope.iface_file.used, variable_type)
