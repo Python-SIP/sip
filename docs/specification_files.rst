@@ -340,7 +340,7 @@ file.
             **long** | **unsigned long** |
             **long long** | **unsigned long long** |
             **float** | **double** |
-            **bool** |
+            **bool** | **_Bool** |
             **void** |
             **Py_hash_t** |
             **Py_ssize_t** |

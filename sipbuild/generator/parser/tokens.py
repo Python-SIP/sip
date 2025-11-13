@@ -55,8 +55,8 @@ code_directives = {
 
 # The plain keywords.
 keywords = {
-    'bool', 'char', 'class', 'const', 'double', 'enum', 'explicit', 'false',
-    'final', 'float', 'int', 'long', 'namespace', 'noexcept', 'NULL',
+    'bool', '_Bool', 'char', 'class', 'const', 'double', 'enum', 'explicit',
+    'false', 'final', 'float', 'int', 'long', 'namespace', 'noexcept', 'NULL',
     'operator', 'private', 'protected', 'public', 'Py_hash_t', 'Py_ssize_t',
     'Q_SIGNAL', 'Q_SIGNALS', 'Q_SLOT', 'Q_SLOTS', 'short', 'signals', 'signed',
     'SIP_PYBUFFER', 'SIP_PYCALLABLE', 'SIP_PYDICT', 'SIP_PYENUM', 'SIP_PYLIST',

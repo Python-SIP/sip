@@ -1633,6 +1633,7 @@ _ONE_WORD_MAP = {
     '...':              ArgumentType.ELLIPSIS,
     'void':             ArgumentType.VOID,
     'bool':             ArgumentType.BOOL,
+    '_Bool':            ArgumentType.BOOL,
     'char':             ArgumentType.STRING,
     'double':           ArgumentType.DOUBLE,
     'float':            ArgumentType.FLOAT,
@@ -1672,6 +1673,7 @@ def p_pod_type(p):
         | float
         | double
         | bool
+        | _Bool
         | char
         | wchar_t
         | void
