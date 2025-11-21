@@ -371,6 +371,16 @@ static int sipVariableDescr_descr_set(PyObject *self, PyObject *obj,
     sipVariableDescr *vd = (sipVariableDescr *)self;
     void *addr;
 
+    /* Check that the value isn't being deleted. */
+    if (value == NULL)
+    {
+        PyErr_Format(PyExc_AttributeError,
+                "'%s' object attribute '%s' cannot be deleted",
+                sipPyNameOfContainer(vd->cod, vd->td), vd->vd->vd_name);
+
+        return -1;
+    }
+
     /* Check that the value isn't const. */
     if (vd->vd->vd_setter == NULL)
     {
