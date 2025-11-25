@@ -1769,7 +1769,9 @@ class ParserManager:
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
 
-        if self.spec.target_abi is None or self.spec.target_abi >= (13, 0):
+        # The minor version of the target ABI may not be known yet (and we
+        # don't need it) so just test the major version.
+        if self.spec.target_abi is None or self.spec.target_abi[0] >= 13:
             convert_to_us = mapped_type.convert_to_type_code is not None and 'sipUserState' in mapped_type.convert_to_type_code.text
 
             release_us = mapped_type.release_code is not None and 'sipUserState' in mapped_type.release_code.text
