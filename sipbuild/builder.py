@@ -269,8 +269,8 @@ class Builder(AbstractBuilder):
         if project.sip_module:
             # Generate the sip.h file for the shared sip module now that we
             # know the target ABI..
-            copy_sip_h(project.build_abi, project.build_dir,
-                    project.sip_module, version_info=project.version_info)
+            copy_sip_h(project.build_abi, project.sip_module,
+                    project.build_dir, version_info=project.version_info)
 
         # Create __init__.py if required.
         if project.dunder_init:
