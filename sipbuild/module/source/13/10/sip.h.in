@@ -19,6 +19,9 @@
 #endif
 
 
+#include <stdbool.h>
+
+
 #ifdef __cplusplus
 #include <exception>
 

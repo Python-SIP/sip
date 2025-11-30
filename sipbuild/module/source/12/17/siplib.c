@@ -8217,43 +8217,51 @@ static int addStringInstances(PyObject *dict, sipStringInstanceDef *si)
     {
         PyObject *w;
 
-        switch (si->si_encoding)
+        if (si->si_val == NULL)
         {
-        case 'A':
-            w = PyUnicode_DecodeASCII(si->si_val, strlen(si->si_val), NULL);
-            break;
+            w = Py_None;
+            Py_INCREF(w);
+        }
+        else
+        {
+            switch (si->si_encoding)
+            {
+            case 'A':
+                w = PyUnicode_DecodeASCII(si->si_val, strlen(si->si_val), NULL);
+                break;
 
-        case 'L':
-            w = PyUnicode_DecodeLatin1(si->si_val, strlen(si->si_val), NULL);
-            break;
+            case 'L':
+                w = PyUnicode_DecodeLatin1(si->si_val, strlen(si->si_val), NULL);
+                break;
 
-        case '8':
-            w = PyUnicode_FromString(si->si_val);
-            break;
+            case '8':
+                w = PyUnicode_FromString(si->si_val);
+                break;
 
-        case 'w':
-            /* The hack for wchar_t. */
+            case 'w':
+                /* The hack for wchar_t. */
 #if defined(HAVE_WCHAR_H)
-            w = PyUnicode_FromWideChar((const wchar_t *)si->si_val, 1);
-            break;
+                w = PyUnicode_FromWideChar((const wchar_t *)si->si_val, 1);
+                break;
 #else
-            raiseNoWChar();
-            return -1;
+                raiseNoWChar();
+                return -1;
 #endif
 
-        case 'W':
-            /* The hack for wchar_t*. */
+            case 'W':
+                /* The hack for wchar_t*. */
 #if defined(HAVE_WCHAR_H)
-            w = PyUnicode_FromWideChar((const wchar_t *)si->si_val,
-                    wcslen((const wchar_t *)si->si_val));
-            break;
+                w = PyUnicode_FromWideChar((const wchar_t *)si->si_val,
+                        wcslen((const wchar_t *)si->si_val));
+                break;
 #else
-            raiseNoWChar();
-            return -1;
+                raiseNoWChar();
+                return -1;
 #endif
 
-        default:
-            w = PyBytes_FromString(si->si_val);
+            default:
+                w = PyBytes_FromString(si->si_val);
+            }
         }
 
         if (dict_set_and_discard(dict, si->si_name, w) < 0)
