@@ -1,7 +1,7 @@
 // The SIP implementation of the handler_module test module.
 
 
-%Module(name=handler_module)
+%Module(name=pkg.handler_module)
 
 
 %Exception std::exception(SIP_Exception) /PyName=StdException, Default/

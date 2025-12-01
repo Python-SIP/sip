@@ -3,49 +3,50 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from utils import SIPTestCase
+from sys import getrefcount
+
+import pytest
 
 
-class MovableTestCase(SIPTestCase):
+# TODO
+cfg_disabled_for = [14]
+
+
+def test_movable(module):
     """ Test the support for the /Movable/ mapped type annotation.  (See
-    issue/60.)
+    issue/60.)  It also verifies the test implementation of the
+    std::unique_ptr mapped type.
     """
 
-    def test_Movable(self):
-        """ Test the support for /Movable/.  It also verifies the test
-        implementation of the std::unique_ptr mapped type.
-        """
+    ao = module.AnObject(3)
+    ow = module.ObjectWrapper()
 
-        from sys import getrefcount
-        from movable_module import AnObject, ObjectWrapper
+    # As of Python v3.14 we can't make assumptions about initial reference
+    # counts so we test for increases and decreases rather than absolute
+    # values.
+    ao_base_refcount = getrefcount(ao)
 
-        ao = AnObject(3)
-        ow = ObjectWrapper()
+    # Test the value of the object.
+    assert ao.getValue() == 3
+    assert getrefcount(ao) == ao_base_refcount
 
-        # As of Python v3.14 we can't make assumptions about initial
-        # reference counts so we test for increases and decreases rather than
-        # absolute values.
-        ao_base_refcount = getrefcount(ao)
+    # Test an empty wrapper.
+    assert ow.getObjectValue() == -1000
 
-        # Test the value of the object.
-        self.assertEqual(ao.getValue(), 3)
-        self.assertEqual(getrefcount(ao), ao_base_refcount)
+    # Test an non-empty wrapper.
+    ow.setObject(ao)
+    assert getrefcount(ao) == ao_base_refcount + 1
+    assert ow.getObjectValue() == 4
 
-        # Test an empty wrapper.
-        self.assertEqual(ow.getObjectValue(), -1000)
+    # Unwrap the object and test the wrapper.
+    ao2 = ow.takeObject()
+    assert ow.getObjectValue() == -1000
 
-        # Test an non-empty wrapper.
-        ow.setObject(ao)
-        self.assertEqual(getrefcount(ao), ao_base_refcount + 1)
-        self.assertEqual(ow.getObjectValue(), 4)
+    # Re-test the value of the object.
+    assert ao2.getValue() == 4
 
-        # Unwrap the object and test the wrapper.
-        ao2 = ow.takeObject()
-        self.assertEqual(ow.getObjectValue(), -1000)
+    # Check that the original Python object no longer wraps the C++ object.
+    assert getrefcount(ao) == ao_base_refcount
 
-        # Re-test the value of the object.
-        self.assertEqual(ao2.getValue(), 4)
-
-        # Check that the original Python object no longer wraps the C++ object.
-        self.assertEqual(getrefcount(ao), ao_base_refcount)
-        self.assertRaises(RuntimeError, ao.getValue)
+    with pytest.raises(RuntimeError):
+        ao.getValue()

@@ -1,4 +1,4 @@
-// The SIP implementation of the typedefs_module test module.
+// The SIP implementation of the template_typedef_module test module.
 
 
 %Module(name=template_typedef_module)

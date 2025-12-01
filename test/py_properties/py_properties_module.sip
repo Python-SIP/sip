@@ -8,7 +8,7 @@
 class AnObject
 {
 public:
-    AnObject(int int_val) : _int_val(int_val) {}
+    AnObject() : _int_val(-1) {}
 
     int get_int_val() const
     {
@@ -29,7 +29,7 @@ private:
 class AnObject
 {
 public:
-    AnObject(int int_val);
+    AnObject();
 
     int get_int_val() const;
     void set_int_val(int int_val);

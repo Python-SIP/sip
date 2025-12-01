@@ -3,1207 +3,897 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from utils import SIPTestCase
+import pytest
 
 
-class IntConvertorsTestCase(SIPTestCase):
-    """ Test the integer convertors. """
+# TODO Needs support for virtuals.
+cfg_disabled_for = [14]
 
-    @classmethod
-    def setUpClass(cls):
-        """ Set up the test case. """
 
-        super().setUpClass()
+@pytest.fixture(scope='module')
+def bool_value(module):
+    """ A fixture for creating a test sub-class of IntConvertors that
+    reimplements bool_virt().
+    """
 
-        from int_convertors_module import IntConvertors
+    class BoolValue(module.IntConvertors):
+        def __init__(self, value):
+            super().__init__()
+            self._value = value
 
-        # Compute the various test values based on the native sizes.
-        cls.CHAR_LOWER = IntConvertors.char_lower()
-        cls.CHAR_UPPER = IntConvertors.char_upper()
-        cls.SIGNED_CHAR_LOWER, cls.SIGNED_CHAR_UPPER = cls._signed_bounds(
-                IntConvertors.signed_char_sizeof())
-        cls.SHORT_LOWER, cls.SHORT_UPPER = cls._signed_bounds(
-                IntConvertors.short_sizeof())
-        cls.INT_LOWER, cls.INT_UPPER = cls._signed_bounds(
-                IntConvertors.int_sizeof())
-        cls.LONG_LOWER, cls.LONG_UPPER = cls._signed_bounds(
-                IntConvertors.long_sizeof())
-        cls.LONG_LONG_LOWER, cls.LONG_LONG_UPPER = cls._signed_bounds(
-                IntConvertors.long_long_sizeof())
-        cls.UNSIGNED_CHAR_UPPER = cls._unsigned_upper_bound(
-                IntConvertors.unsigned_char_sizeof())
-        cls.UNSIGNED_SHORT_UPPER = cls._unsigned_upper_bound(
-                IntConvertors.unsigned_short_sizeof())
-        cls.UNSIGNED_INT_UPPER = cls._unsigned_upper_bound(
-                IntConvertors.unsigned_int_sizeof())
-        cls.UNSIGNED_LONG_UPPER = cls._unsigned_upper_bound(
-                IntConvertors.unsigned_long_sizeof())
-        cls.UNSIGNED_LONG_LONG_UPPER = cls._unsigned_upper_bound(
-                IntConvertors.unsigned_long_long_sizeof())
+        def bool_virt(self):
+            return self._value
 
-        class LimitsFixture(IntConvertors):
-            """ The base test fixture for those implementing a range of values.
-            """
+    return BoolValue
 
-            def __init__(self, limits):
-                """ Initialise the object. """
 
-                super().__init__()
+@pytest.fixture(scope='module')
+def bool_true_value(bool_value):
+    """ A fixture for testing True. """
 
-                self.limits = limits
+    return bool_value(True)
 
-        class ValidLowerFixture(LimitsFixture):
-            """ A fixture for testing the lower bound of non-overflowing signed
-            values.
-            """
 
-            def char_virt(self):
-                return self.limits.CHAR_LOWER
+@pytest.fixture(scope='module')
+def bool_false_value(bool_value):
+    """ A fixture for testing False. """
 
-            def signed_char_virt(self):
-                return self.limits.SIGNED_CHAR_LOWER
+    return bool_value(False)
 
-            def short_virt(self):
-                return self.limits.SHORT_LOWER
 
-            def int_virt(self):
-                return self.limits.INT_LOWER
+@pytest.fixture(scope='module')
+def bool_nonzero_value(bool_value):
+    """ A fixture for testing a non-zero value as a bool. """
 
-            def long_virt(self):
-                return self.limits.LONG_LOWER
+    return bool_value(-1)
 
-            def long_long_virt(self):
-                return self.limits.LONG_LONG_LOWER
 
-        cls.valid_lower_fixture = ValidLowerFixture(cls)
+@pytest.fixture(scope='module')
+def bool_zero_value(bool_value):
+    """ A fixture for testing a zero value as a bool. """
 
-        class ValidUpperFixture(LimitsFixture):
-            """ A fixture for testing the upper bound of non-overflowing
-            values.
-            """
+    return bool_value(0)
 
-            def char_virt(self):
-                return self.limits.CHAR_UPPER
 
-            def signed_char_virt(self):
-                return self.limits.SIGNED_CHAR_UPPER
+@pytest.fixture(scope='module')
+def invalid_values(module):
+    """ A fixture for testing invalid values. """
 
-            def short_virt(self):
-                return self.limits.SHORT_UPPER
+    class InvalidValues(module.IntConvertors):
+        def bool_virt(self):
+            return '0'
 
-            def int_virt(self):
-                return self.limits.INT_UPPER
+        def char_virt(self):
+            return '0'
 
-            def long_virt(self):
-                return self.limits.LONG_UPPER
+        def signed_char_virt(self):
+            return '0'
 
-            def long_long_virt(self):
-                return self.limits.LONG_LONG_UPPER
+        def short_virt(self):
+            return '0'
 
-            def unsigned_char_virt(self):
-                return self.limits.UNSIGNED_CHAR_UPPER
+        def int_virt(self):
+            return '0'
 
-            def unsigned_short_virt(self):
-                return self.limits.UNSIGNED_SHORT_UPPER
+        def long_virt(self):
+            return '0'
 
-            def unsigned_int_virt(self):
-                return self.limits.UNSIGNED_INT_UPPER
+        def long_long_virt(self):
+            return '0'
 
-            def unsigned_long_virt(self):
-                return self.limits.UNSIGNED_LONG_UPPER
+        def unsigned_char_virt(self):
+            return '0'
 
-            def unsigned_long_long_virt(self):
-                return self.limits.UNSIGNED_LONG_LONG_UPPER
+        def unsigned_short_virt(self):
+            return '0'
 
-        cls.valid_upper_fixture = ValidUpperFixture(cls)
+        def unsigned_int_virt(self):
+            return '0'
 
-        class InvalidFixture(IntConvertors):
-            """ A fixture for testing invalid values. """
+        def unsigned_long_virt(self):
+            return '0'
 
-            def bool_virt(self):
-                return '0'
+        def unsigned_long_long_virt(self):
+            return '0'
 
-            def char_virt(self):
-                return '0'
+    return InvalidValues()
 
-            def signed_char_virt(self):
-                return '0'
 
-            def short_virt(self):
-                return '0'
+@pytest.fixture(scope='module')
+def limits(module):
+    """ A fixture defining upper and lower limits on the values of various
+    integer types.
+    """
 
-            def int_virt(self):
-                return '0'
+    class Limits: pass
 
-            def long_virt(self):
-                return '0'
+    l = Limits()
 
-            def long_long_virt(self):
-                return '0'
+    # Compute the various values based on the native sizes.
+    l.CHAR_LOWER = module.IntConvertors.char_lower()
+    l.CHAR_UPPER = module.IntConvertors.char_upper()
+    l.SIGNED_CHAR_LOWER, l.SIGNED_CHAR_UPPER = _signed_bounds(
+            module.IntConvertors.signed_char_sizeof())
+    l.SHORT_LOWER, l.SHORT_UPPER = _signed_bounds(
+            module.IntConvertors.short_sizeof())
+    l.INT_LOWER, l.INT_UPPER = _signed_bounds(
+            module.IntConvertors.int_sizeof())
+    l.LONG_LOWER, l.LONG_UPPER = _signed_bounds(
+            module.IntConvertors.long_sizeof())
+    l.LONG_LONG_LOWER, l.LONG_LONG_UPPER = _signed_bounds(
+            module.IntConvertors.long_long_sizeof())
+    l.UNSIGNED_CHAR_UPPER = _unsigned_upper_bound(
+            module.IntConvertors.unsigned_char_sizeof())
+    l.UNSIGNED_SHORT_UPPER = _unsigned_upper_bound(
+            module.IntConvertors.unsigned_short_sizeof())
+    l.UNSIGNED_INT_UPPER = _unsigned_upper_bound(
+            module.IntConvertors.unsigned_int_sizeof())
+    l.UNSIGNED_LONG_UPPER = _unsigned_upper_bound(
+            module.IntConvertors.unsigned_long_sizeof())
+    l.UNSIGNED_LONG_LONG_UPPER = _unsigned_upper_bound(
+            module.IntConvertors.unsigned_long_long_sizeof())
 
-            def unsigned_char_virt(self):
-                return '0'
+    return l
 
-            def unsigned_short_virt(self):
-                return '0'
 
-            def unsigned_int_virt(self):
-                return '0'
+@pytest.fixture(scope='module')
+def overflow_lower_bounds(module, limits):
+    """ A fixture for testing the lower bound of overflowing signed values. """
 
-            def unsigned_long_virt(self):
-                return '0'
+    class OverflowLowerBounds(module.IntConvertors):
+        def char_virt(self):
+            return limits.CHAR_LOWER - 1
 
-            def unsigned_long_long_virt(self):
-                return '0'
+        def signed_char_virt(self):
+            return limits.SIGNED_CHAR_LOWER - 1
 
-        cls.invalid_fixture = InvalidFixture()
+        def short_virt(self):
+            return limits.SHORT_LOWER - 1
 
-        class OverflowLowerFixture(LimitsFixture):
-            """ A fixture for testing the lower bound of overflowing signed
-            values.
-            """
+        def int_virt(self):
+            return limits.INT_LOWER - 1
 
-            def char_virt(self):
-                return self.limits.CHAR_LOWER - 1
+        def long_virt(self):
+            return limits.LONG_LOWER - 1
 
-            def signed_char_virt(self):
-                return self.limits.SIGNED_CHAR_LOWER - 1
+        def long_long_virt(self):
+            return limits.LONG_LONG_LOWER - 1
 
-            def short_virt(self):
-                return self.limits.SHORT_LOWER - 1
+    return OverflowLowerBounds()
 
-            def int_virt(self):
-                return self.limits.INT_LOWER - 1
 
-            def long_virt(self):
-                return self.limits.LONG_LOWER - 1
+@pytest.fixture(scope='module')
+def overflow_upper_bounds(module, limits):
+    """ A fixture for testing the upper bound of overflowing signed values. """
 
-            def long_long_virt(self):
-                return self.limits.LONG_LONG_LOWER - 1
+    class OverflowUpperBounds(module.IntConvertors):
+        def char_virt(self):
+            return limits.CHAR_UPPER + 1
 
-        cls.overflow_lower_fixture = OverflowLowerFixture(cls)
+        def signed_char_virt(self):
+            return limits.SIGNED_CHAR_UPPER + 1
 
-        class OverflowUpperFixture(LimitsFixture):
-            """ A fixture for testing the upper bound of overflowing values. """
+        def short_virt(self):
+            return limits.SHORT_UPPER + 1
 
-            def char_virt(self):
-                return self.limits.CHAR_UPPER + 1
+        def int_virt(self):
+            return limits.INT_UPPER + 1
 
-            def signed_char_virt(self):
-                return self.limits.SIGNED_CHAR_UPPER + 1
+        def long_virt(self):
+            return limits.LONG_UPPER + 1
 
-            def short_virt(self):
-                return self.limits.SHORT_UPPER + 1
+        def long_long_virt(self):
+            return limits.LONG_LONG_UPPER + 1
 
-            def int_virt(self):
-                return self.limits.INT_UPPER + 1
+        def unsigned_char_virt(self):
+            return limits.UNSIGNED_CHAR_UPPER + 1
 
-            def long_virt(self):
-                return self.limits.LONG_UPPER + 1
+        def unsigned_short_virt(self):
+            return limits.UNSIGNED_SHORT_UPPER + 1
 
-            def long_long_virt(self):
-                return self.limits.LONG_LONG_UPPER + 1
+        def unsigned_int_virt(self):
+            return limits.UNSIGNED_INT_UPPER + 1
 
-            def unsigned_char_virt(self):
-                return self.limits.UNSIGNED_CHAR_UPPER + 1
+        def unsigned_long_virt(self):
+            return limits.UNSIGNED_LONG_UPPER + 1
 
-            def unsigned_short_virt(self):
-                return self.limits.UNSIGNED_SHORT_UPPER + 1
+        def unsigned_long_long_virt(self):
+            return limits.UNSIGNED_LONG_LONG_UPPER + 1
 
-            def unsigned_int_virt(self):
-                return self.limits.UNSIGNED_INT_UPPER + 1
+    return OverflowUpperBounds()
 
-            def unsigned_long_virt(self):
-                return self.limits.UNSIGNED_LONG_UPPER + 1
 
-            def unsigned_long_long_virt(self):
-                return self.limits.UNSIGNED_LONG_LONG_UPPER + 1
+@pytest.fixture(scope='module')
+def valid_lower_bounds(module, limits):
+    """ A fixture for testing the lower bound of non-overflowing signed values.
+    """
 
-        cls.overflow_upper_fixture = OverflowUpperFixture(cls)
+    class ValidLowerBounds(module.IntConvertors):
+        def char_virt(self):
+            return limits.CHAR_LOWER
 
-        class BoolFixture(IntConvertors):
-            """ A fixture for testing valid boolean values. """
+        def signed_char_virt(self):
+            return limits.SIGNED_CHAR_LOWER
 
-            def __init__(self, value):
-                """ Initialise the object. """
+        def short_virt(self):
+            return limits.SHORT_LOWER
 
-                super().__init__()
+        def int_virt(self):
+            return limits.INT_LOWER
 
-                self._value = value
+        def long_virt(self):
+            return limits.LONG_LOWER
 
-            def bool_virt(self):
-                return self._value
+        def long_long_virt(self):
+            return limits.LONG_LONG_LOWER
 
-        cls.true_fixture = BoolFixture(True)
-        cls.false_fixture = BoolFixture(False)
-        cls.nonzero_fixture = BoolFixture(-1)
-        cls.zero_fixture = BoolFixture(0)
+    return ValidLowerBounds()
 
-    @staticmethod
-    def _signed_bounds(nrbytes):
-        """ Return the range of values for a number of bytes representing a
-        signed value.
-        """
 
-        v = 1 << ((nrbytes * 8) - 1)
+@pytest.fixture(scope='module')
+def valid_upper_bounds(module, limits):
+    """ A fixture for testing the upper bound of non-overflowing signed values.
+    """
 
-        return -v, v - 1
+    class ValidUpperBounds(module.IntConvertors):
+        def char_virt(self):
+            return limits.CHAR_UPPER
 
-    @staticmethod
-    def _unsigned_upper_bound(nrbytes):
-        """ Return the upper bound for a number of bytes representing an
-        unsigned value.
-        """
+        def signed_char_virt(self):
+            return limits.SIGNED_CHAR_UPPER
 
-        return (1 << (nrbytes * 8)) - 1
+        def short_virt(self):
+            return limits.SHORT_UPPER
 
-    @classmethod
-    def tearDownClass(cls):
-        """ Tear down the test case. """
+        def int_virt(self):
+            return limits.INT_UPPER
 
-        # Remove all references to the extension module so that the superclass
-        # can unload it.
-        del cls.valid_lower_fixture
-        del cls.valid_upper_fixture
+        def long_virt(self):
+            return limits.LONG_UPPER
 
-        del cls.invalid_fixture
+        def long_long_virt(self):
+            return limits.LONG_LONG_UPPER
 
-        del cls.overflow_lower_fixture
-        del cls.overflow_upper_fixture
+        def unsigned_char_virt(self):
+            return limits.UNSIGNED_CHAR_UPPER
 
-        del cls.true_fixture
-        del cls.false_fixture
-        del cls.nonzero_fixture
-        del cls.zero_fixture
+        def unsigned_short_virt(self):
+            return limits.UNSIGNED_SHORT_UPPER
 
-        super().tearDownClass()
+        def unsigned_int_virt(self):
+            return limits.UNSIGNED_INT_UPPER
 
-    ###########################################################################
-    # The following test for valid values.
-    ###########################################################################
+        def unsigned_long_virt(self):
+            return limits.UNSIGNED_LONG_UPPER
 
-    def test_char_get_lower_valid(self):
-        """ char virtual result lower bound. """
+        def unsigned_long_long_virt(self):
+            return limits.UNSIGNED_LONG_LONG_UPPER
 
-        self.assertEqual(self.valid_lower_fixture.char_get(), self.CHAR_LOWER)
+    return ValidUpperBounds()
 
-    def test_char_get_upper_valid(self):
-        """ char virtual result upper bound. """
 
-        self.assertEqual(self.valid_upper_fixture.char_get(), self.CHAR_UPPER)
+# The following test for valid values.
 
-    def test_char_set_lower_valid(self):
-        """ char function argument lower bound. """
+def test_char_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.char_get() == limits.CHAR_LOWER
 
-        self.valid_lower_fixture.char_set(self.CHAR_LOWER)
+def test_char_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.char_get() == limits.CHAR_UPPER
 
-    def test_char_set_upper_valid(self):
-        """ char function argument upper bound. """
+def test_char_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.char_set(limits.CHAR_LOWER)
 
-        self.valid_upper_fixture.char_set(self.CHAR_UPPER)
+def test_char_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.char_set(limits.CHAR_UPPER)
 
-    def test_char_var_lower_valid(self):
-        """ char instance variable lower bound. """
+def test_char_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.char_var = limits.CHAR_LOWER
 
-        self.valid_lower_fixture.char_var = self.CHAR_LOWER
+def test_char_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.char_var = limits.CHAR_UPPER
 
-    def test_char_var_upper_valid(self):
-        """ char instance variable upper bound. """
+def test_signed_char_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.signed_char_get() == limits.SIGNED_CHAR_LOWER
 
-        self.valid_upper_fixture.char_var = self.CHAR_UPPER
+def test_signed_char_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.signed_char_get() == limits.SIGNED_CHAR_UPPER
 
-    def test_signed_char_get_lower_valid(self):
-        """ signed char virtual result lower bound. """
+def test_signed_char_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.signed_char_set(limits.SIGNED_CHAR_LOWER)
 
-        self.assertEqual(self.valid_lower_fixture.signed_char_get(),
-                self.SIGNED_CHAR_LOWER)
+def test_signed_char_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.signed_char_set(limits.SIGNED_CHAR_UPPER)
 
-    def test_signed_char_get_upper_valid(self):
-        """ signed char virtual result upper bound. """
+def test_signed_char_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.signed_char_var = limits.SIGNED_CHAR_LOWER
 
-        self.assertEqual(self.valid_upper_fixture.signed_char_get(),
-                self.SIGNED_CHAR_UPPER)
+def test_signed_char_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.signed_char_var = limits.SIGNED_CHAR_UPPER
 
-    def test_signed_char_set_lower_valid(self):
-        """ signed char function argument lower bound. """
+def test_short_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.short_get() == limits.SHORT_LOWER
 
-        self.valid_lower_fixture.signed_char_set(self.SIGNED_CHAR_LOWER)
+def test_short_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.short_get() == limits.SHORT_UPPER
 
-    def test_signed_char_set_upper_valid(self):
-        """ signed char function argument upper bound. """
+def test_short_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.short_set(limits.SHORT_LOWER)
 
-        self.valid_upper_fixture.signed_char_set(self.SIGNED_CHAR_UPPER)
+def test_short_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.short_set(limits.SHORT_UPPER)
 
-    def test_signed_char_var_lower_valid(self):
-        """ signed char instance variable lower bound. """
+def test_short_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.short_var = limits.SHORT_LOWER
 
-        self.valid_lower_fixture.signed_char_var = self.SIGNED_CHAR_LOWER
+def test_short_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.short_var = limits.SHORT_UPPER
 
-    def test_signed_char_var_upper_valid(self):
-        """ signed char instance variable upper bound. """
+def test_int_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.int_get() == limits.INT_LOWER
 
-        self.valid_upper_fixture.signed_char_var = self.SIGNED_CHAR_UPPER
+def test_int_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.int_get() == limits.INT_UPPER
 
-    def test_short_get_lower_valid(self):
-        """ short virtual result lower bound. """
+def test_int_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.int_set(limits.INT_LOWER)
 
-        self.assertEqual(self.valid_lower_fixture.short_get(),
-                self.SHORT_LOWER)
+def test_int_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.int_set(limits.INT_UPPER)
 
-    def test_short_get_upper_valid(self):
-        """ short virtual result upper bound. """
+def test_int_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.int_var = limits.INT_LOWER
 
-        self.assertEqual(self.valid_upper_fixture.short_get(),
-                self.SHORT_UPPER)
+def test_int_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.int_var = limits.INT_UPPER
 
-    def test_short_set_lower_valid(self):
-        """ short function argument lower bound. """
+def test_long_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.long_get() == limits.LONG_LOWER
 
-        self.valid_lower_fixture.short_set(self.SHORT_LOWER)
+def test_long_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.long_get() == limits.LONG_UPPER
 
-    def test_short_set_upper_valid(self):
-        """ short function argument upper bound. """
+def test_long_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.long_set(limits.LONG_LOWER)
 
-        self.valid_upper_fixture.short_set(self.SHORT_UPPER)
+def test_long_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.long_set(limits.LONG_UPPER)
 
-    def test_short_var_lower_valid(self):
-        """ short instance variable lower bound. """
+def test_long_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.long_var = limits.LONG_LOWER
 
-        self.valid_lower_fixture.short_var = self.SHORT_LOWER
+def test_long_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.long_var = limits.LONG_UPPER
 
-    def test_short_var_upper_valid(self):
-        """ short instance variable upper bound. """
+def test_long_long_get_lower_valid(valid_lower_bounds, limits):
+    assert valid_lower_bounds.long_long_get() == limits.LONG_LONG_LOWER
 
-        self.valid_upper_fixture.short_var = self.SHORT_UPPER
+def test_long_long_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.long_long_get() == limits.LONG_LONG_UPPER
 
-    def test_int_get_lower_valid(self):
-        """ int virtual result lower bound. """
+def test_long_long_set_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.long_long_set(limits.LONG_LONG_LOWER)
 
-        self.assertEqual(self.valid_lower_fixture.int_get(), self.INT_LOWER)
+def test_long_long_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.long_long_set(limits.LONG_LONG_UPPER)
 
-    def test_int_get_upper_valid(self):
-        """ int virtual result upper bound. """
+def test_long_long_var_lower_valid(valid_lower_bounds, limits):
+    valid_lower_bounds.long_long_var = limits.LONG_LONG_LOWER
 
-        self.assertEqual(self.valid_upper_fixture.int_get(), self.INT_UPPER)
+def test_long_long_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.long_long_var = limits.LONG_LONG_UPPER
 
-    def test_int_set_lower_valid(self):
-        """ int function argument lower bound. """
+def test_unsigned_char_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.unsigned_char_get() == limits.UNSIGNED_CHAR_UPPER
 
-        self.valid_lower_fixture.int_set(self.INT_LOWER)
+def test_unsigned_char_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_char_set(limits.UNSIGNED_CHAR_UPPER)
 
-    def test_int_set_upper_valid(self):
-        """ int function argument upper bound. """
+def test_unsigned_char_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_char_var = limits.UNSIGNED_CHAR_UPPER
 
-        self.valid_upper_fixture.int_set(self.INT_UPPER)
+def test_unsigned_short_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.unsigned_short_get() == limits.UNSIGNED_SHORT_UPPER
 
-    def test_int_var_lower_valid(self):
-        """ int instance variable lower bound. """
+def test_unsigned_short_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_short_set(limits.UNSIGNED_SHORT_UPPER)
 
-        self.valid_lower_fixture.int_var = self.INT_LOWER
+def test_unsigned_short_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_short_var = limits.UNSIGNED_SHORT_UPPER
 
-    def test_int_var_upper_valid(self):
-        """ int instance variable upper bound. """
+def test_unsigned_int_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.unsigned_int_get() == limits.UNSIGNED_INT_UPPER
 
-        self.valid_upper_fixture.int_var = self.INT_UPPER
+def test_unsigned_int_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_int_set(limits.UNSIGNED_INT_UPPER)
 
-    def test_long_get_lower_valid(self):
-        """ long virtual result lower bound. """
+def test_unsigned_int_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_int_var = limits.UNSIGNED_INT_UPPER
 
-        self.assertEqual(self.valid_lower_fixture.long_get(), self.LONG_LOWER)
+def test_unsigned_long_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.unsigned_long_get() == limits.UNSIGNED_LONG_UPPER
 
-    def test_long_get_upper_valid(self):
-        """ long virtual result upper bound. """
+def test_unsigned_long_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_long_set(limits.UNSIGNED_LONG_UPPER)
 
-        self.assertEqual(self.valid_upper_fixture.long_get(), self.LONG_UPPER)
+def test_unsigned_long_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_long_var = limits.UNSIGNED_LONG_UPPER
 
-    def test_long_set_lower_valid(self):
-        """ long function argument lower bound. """
+def test_unsigned_long_long_get_upper_valid(valid_upper_bounds, limits):
+    assert valid_upper_bounds.unsigned_long_long_get() == limits.UNSIGNED_LONG_LONG_UPPER
 
-        self.valid_lower_fixture.long_set(self.LONG_LOWER)
+def test_unsigned_long_long_set_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_long_long_set(limits.UNSIGNED_LONG_LONG_UPPER)
 
-    def test_long_set_upper_valid(self):
-        """ long function argument upper bound. """
+def test_unsigned_long_long_var_upper_valid(valid_upper_bounds, limits):
+    valid_upper_bounds.unsigned_long_long_var = limits.UNSIGNED_LONG_LONG_UPPER
 
-        self.valid_upper_fixture.long_set(self.LONG_UPPER)
 
-    def test_long_var_lower_valid(self):
-        """ long instance variable lower bound. """
+# The following test for invalid values.
 
-        self.valid_lower_fixture.long_var = self.LONG_LOWER
+def test_bool_get_invalid(invalid_values, virtual_hook):
+    invalid_values.bool_get()
 
-    def test_long_var_upper_valid(self):
-        """ long instance variable upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.long_var = self.LONG_UPPER
+def test_bool_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.bool_set('0')
 
-    def test_long_long_get_lower_valid(self):
-        """ long long virtual result lower bound. """
+def test_bool_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.bool_var = '0'
 
-        self.assertEqual(self.valid_lower_fixture.long_long_get(),
-                self.LONG_LONG_LOWER)
+def test_char_get_invalid(invalid_values, virtual_hook):
+    invalid_values.char_get()
 
-    def test_long_long_get_upper_valid(self):
-        """ long long virtual result upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.assertEqual(self.valid_upper_fixture.long_long_get(),
-                self.LONG_LONG_UPPER)
+def test_char_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.char_set('0')
 
-    def test_long_long_set_lower_valid(self):
-        """ long long function argument lower bound. """
+def test_char_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.char_var = '0'
 
-        self.valid_lower_fixture.long_long_set(self.LONG_LONG_LOWER)
+def test_signed_char_get_invalid(invalid_values, virtual_hook):
+    invalid_values.signed_char_get()
 
-    def test_long_long_set_upper_valid(self):
-        """ long long function argument upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.long_long_set(self.LONG_LONG_UPPER)
+def test_signed_char_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.signed_char_set('0')
 
-    def test_long_long_var_lower_valid(self):
-        """ long long instance variable lower bound. """
+def test_signed_char_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.signed_char_var = '0'
 
-        self.valid_lower_fixture.long_long_var = self.LONG_LONG_LOWER
+def test_short_get_invalid(invalid_values, virtual_hook):
+    invalid_values.short_get()
 
-    def test_long_long_var_upper_valid(self):
-        """ long long instance variable upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.long_long_var = self.LONG_LONG_UPPER
+def test_short_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.short_set('0')
 
-    def test_unsigned_char_get_upper_valid(self):
-        """ unsigned char virtual result upper bound. """
+def test_short_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.short_var = '0'
 
-        self.assertEqual(self.valid_upper_fixture.unsigned_char_get(),
-                self.UNSIGNED_CHAR_UPPER)
+def test_int_get_invalid(invalid_values, virtual_hook):
+    invalid_values.int_get()
 
-    def test_unsigned_char_set_upper_valid(self):
-        """ unsigned char function argument upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.unsigned_char_set(self.UNSIGNED_CHAR_UPPER)
+def test_int_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.int_set('0')
 
-    def test_unsigned_char_var_upper_valid(self):
-        """ unsigned char instance variable upper bound. """
+def test_int_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.int_var = '0'
 
-        self.valid_upper_fixture.unsigned_char_var = self.UNSIGNED_CHAR_UPPER
+def test_long_get_invalid(invalid_values, virtual_hook):
+    invalid_values.long_get()
 
-    def test_unsigned_short_get_upper_valid(self):
-        """ unsigned short virtual result upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.assertEqual(self.valid_upper_fixture.unsigned_short_get(),
-                self.UNSIGNED_SHORT_UPPER)
+def test_long_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.long_set('0')
 
-    def test_unsigned_short_set_upper_valid(self):
-        """ unsigned short function argument upper bound. """
+def test_long_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.long_var = '0'
 
-        self.valid_upper_fixture.unsigned_short_set(self.UNSIGNED_SHORT_UPPER)
+def test_long_long_get_invalid(invalid_values, virtual_hook):
+    invalid_values.long_long_get()
 
-    def test_unsigned_short_var_upper_valid(self):
-        """ unsigned short instance variable upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.unsigned_short_var = self.UNSIGNED_SHORT_UPPER
+def test_long_long_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.long_long_set('0')
 
-    def test_unsigned_int_get_upper_valid(self):
-        """ unsigned int virtual result upper bound. """
+def test_long_long_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.long_long_var = '0'
 
-        self.assertEqual(self.valid_upper_fixture.unsigned_int_get(),
-                self.UNSIGNED_INT_UPPER)
+def test_unsigned_char_get_invalid(invalid_values, virtual_hook):
+    invalid_values.unsigned_char_get()
 
-    def test_unsigned_int_set_upper_valid(self):
-        """ unsigned int function argument upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.unsigned_int_set(self.UNSIGNED_INT_UPPER)
+def test_unsigned_char_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_char_set('0')
 
-    def test_unsigned_int_var_upper_valid(self):
-        """ unsigned int instance variable upper bound. """
+def test_unsigned_char_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_char_var = '0'
 
-        self.valid_upper_fixture.unsigned_int_var = self.UNSIGNED_INT_UPPER
+def test_unsigned_short_get_invalid(invalid_values, virtual_hook):
+    invalid_values.unsigned_short_get()
 
-    def test_unsigned_long_get_upper_valid(self):
-        """ unsigned long virtual result upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.assertEqual(self.valid_upper_fixture.unsigned_long_get(),
-                self.UNSIGNED_LONG_UPPER)
+def test_unsigned_short_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_short_set('0')
 
-    def test_unsigned_long_set_upper_valid(self):
-        """ unsigned long function argument upper bound. """
+def test_unsigned_short_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_short_var = '0'
 
-        self.valid_upper_fixture.unsigned_long_set(self.UNSIGNED_LONG_UPPER)
+def test_unsigned_int_get_invalid(invalid_values, virtual_hook):
+    invalid_values.unsigned_int_get()
 
-    def test_unsigned_long_var_upper_valid(self):
-        """ unsigned long instance variable upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.unsigned_long_var = self.UNSIGNED_LONG_UPPER
+def test_unsigned_int_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_int_set('0')
 
-    def test_unsigned_long_long_get_upper_valid(self):
-        """ unsigned long long virtual result upper bound. """
+def test_unsigned_int_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_int_var = '0'
 
-        self.assertEqual(self.valid_upper_fixture.unsigned_long_long_get(),
-                self.UNSIGNED_LONG_LONG_UPPER)
+def test_unsigned_long_get_invalid(invalid_values, virtual_hook):
+    invalid_values.unsigned_long_get()
 
-    def test_unsigned_long_long_set_upper_valid(self):
-        """ unsigned long long function argument upper bound. """
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-        self.valid_upper_fixture.unsigned_long_long_set(
-                self.UNSIGNED_LONG_LONG_UPPER)
+def test_unsigned_long_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_long_set('0')
 
-    def test_unsigned_long_long_var_upper_valid(self):
-        """ unsigned long long instance variable upper bound. """
+def test_unsigned_long_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_long_var = '0'
 
-        self.valid_upper_fixture.unsigned_long_long_var = self.UNSIGNED_LONG_LONG_UPPER
+def test_unsigned_long_long_get_invalid(invalid_values, virtual_hook):
+    invalid_values.unsigned_long_long_get()
 
-    ###########################################################################
-    # The following test for invalid values.
-    ###########################################################################
+    with pytest.raises(TypeError):
+        virtual_hook.reraise()
 
-    def test_bool_get_invalid(self):
-        """ bool virtual result. """
+def test_unsigned_long_long_set_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_long_long_set('0')
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.bool_get()
-            self.uninstall_hook()
+def test_unsigned_long_long_var_invalid(invalid_values):
+    with pytest.raises(TypeError):
+        invalid_values.unsigned_long_long_var = '0'
 
-    def test_bool_set_invalid(self):
-        """ bool function argument. """
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.bool_set('0')
+# The following test for under/overlowing values.
 
-    def test_bool_var_invalid(self):
-        """ bool instance variable. """
+def test_char_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.char_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.bool_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_char_get_invalid(self):
-        """ char virtual result. """
+def test_char_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.char_get()
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.char_get()
-            self.uninstall_hook()
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_char_set_invalid(self):
-        """ char function argument. """
+def test_char_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.char_set(limits.CHAR_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.char_set('0')
+def test_char_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.char_set(limits.CHAR_UPPER + 1)
 
-    def test_char_var_invalid(self):
-        """ char instance variable. """
+def test_char_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.char_var = limits.CHAR_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.char_var = '0'
+def test_char_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.char_var = limits.CHAR_UPPER + 1
 
-    def test_signed_char_get_invalid(self):
-        """ signed char virtual result. """
+def test_signed_char_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.signed_char_get()
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.signed_char_get()
-            self.uninstall_hook()
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_signed_char_set_invalid(self):
-        """ signed char function argument. """
+def test_signed_char_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.signed_char_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.signed_char_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_signed_char_var_invalid(self):
-        """ signed char instance variable. """
+def test_signed_char_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.signed_char_set(limits.SIGNED_CHAR_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.signed_char_var = '0'
+def test_signed_char_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.signed_char_set(limits.SIGNED_CHAR_UPPER + 1)
 
-    def test_short_get_invalid(self):
-        """ short virtual result. """
+def test_signed_char_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.signed_char_var = limits.SIGNED_CHAR_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.short_get()
-            self.uninstall_hook()
+def test_signed_char_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.signed_char_var = limits.SIGNED_CHAR_UPPER + 1
 
-    def test_short_set_invalid(self):
-        """ short function argument. """
+def test_short_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.short_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.short_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_short_var_invalid(self):
-        """ short instance variable. """
+def test_short_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.short_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.short_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_int_get_invalid(self):
-        """ int virtual result. """
+def test_short_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.short_set(limits.SHORT_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.int_get()
-            self.uninstall_hook()
+def test_short_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.short_set(limits.SHORT_UPPER + 1)
 
-    def test_int_set_invalid(self):
-        """ int function argument. """
+def test_short_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.short_var = limits.SHORT_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.int_set('0')
+def test_short_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.short_var = limits.SHORT_UPPER + 1
 
-    def test_int_var_invalid(self):
-        """ int instance variable. """
+def test_int_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.int_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.int_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_long_get_invalid(self):
-        """ long virtual result. """
+def test_int_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.int_get()
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.long_get()
-            self.uninstall_hook()
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_long_set_invalid(self):
-        """ long function argument. """
+def test_int_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.int_set(limits.INT_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.long_set('0')
+def test_int_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.int_set(limits.INT_UPPER + 1)
 
-    def test_long_var_invalid(self):
-        """ long instance variable. """
+def test_int_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.int_var = limits.INT_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.long_var = '0'
+def test_int_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.int_var = limits.INT_UPPER + 1
 
-    def test_long_long_get_invalid(self):
-        """ long long virtual result. """
+def test_long_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.long_get()
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.long_long_get()
-            self.uninstall_hook()
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_long_long_set_invalid(self):
-        """ long long function argument. """
+def test_long_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.long_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.long_long_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_long_long_var_invalid(self):
-        """ long long instance variable. """
+def test_long_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.long_set(limits.LONG_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.long_long_var = '0'
+def test_long_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.long_set(limits.LONG_UPPER + 1)
 
-    def test_unsigned_char_get_invalid(self):
-        """ unsigned char virtual result. """
+def test_long_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.long_var = limits.LONG_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.unsigned_char_get()
-            self.uninstall_hook()
+def test_long_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.long_var = limits.LONG_UPPER + 1
 
-    def test_unsigned_char_set_invalid(self):
-        """ unsigned char function argument. """
+def test_long_long_get_lower_overflow(overflow_lower_bounds, virtual_hook):
+    overflow_lower_bounds.long_long_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_char_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_char_var_invalid(self):
-        """ unsigned char instance variable. """
+def test_long_long_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.long_long_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_char_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_short_get_invalid(self):
-        """ unsigned short virtual result. """
+def test_long_long_set_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.long_long_set(limits.LONG_LONG_LOWER - 1)
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.unsigned_short_get()
-            self.uninstall_hook()
+def test_long_long_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.long_long_set(limits.LONG_LONG_UPPER + 1)
 
-    def test_unsigned_short_set_invalid(self):
-        """ unsigned short function argument. """
+def test_long_long_var_lower_overflow(overflow_lower_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_lower_bounds.long_long_var = limits.LONG_LONG_LOWER - 1
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_short_set('0')
+def test_long_long_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.long_long_var = limits.LONG_LONG_UPPER + 1
 
-    def test_unsigned_short_var_invalid(self):
-        """ unsigned short instance variable. """
+def test_unsigned_char_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.unsigned_char_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_short_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_int_get_invalid(self):
-        """ unsigned int virtual result. """
+def test_unsigned_char_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_char_set(limits.UNSIGNED_CHAR_UPPER + 1)
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.unsigned_int_get()
-            self.uninstall_hook()
+def test_unsigned_char_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_char_var = limits.UNSIGNED_CHAR_UPPER + 1
 
-    def test_unsigned_int_set_invalid(self):
-        """ unsigned int function argument. """
+def test_unsigned_short_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.unsigned_short_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_int_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_int_var_invalid(self):
-        """ unsigned int instance variable. """
+def test_unsigned_short_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_short_set(
+                limits.UNSIGNED_SHORT_UPPER + 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_int_var = '0'
+def test_unsigned_short_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_short_var = limits.UNSIGNED_SHORT_UPPER + 1
 
-    def test_unsigned_long_get_invalid(self):
-        """ unsigned long virtual result. """
+def test_unsigned_int_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.unsigned_int_get()
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.unsigned_long_get()
-            self.uninstall_hook()
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_long_set_invalid(self):
-        """ unsigned long function argument. """
+def test_unsigned_int_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_int_set(limits.UNSIGNED_INT_UPPER + 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_long_set('0')
+def test_unsigned_int_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_int_var = limits.UNSIGNED_INT_UPPER + 1
 
-    def test_unsigned_long_var_invalid(self):
-        """ unsigned long instance variable. """
+def test_unsigned_long_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.unsigned_long_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_long_var = '0'
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_long_long_get_invalid(self):
-        """ unsigned long long virtual result. """
+def test_unsigned_long_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_long_set(limits.UNSIGNED_LONG_UPPER + 1)
 
-        with self.assertRaises(TypeError):
-            self.install_hook()
-            self.invalid_fixture.unsigned_long_long_get()
-            self.uninstall_hook()
+def test_unsigned_long_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_long_var = limits.UNSIGNED_LONG_UPPER + 1
 
-    def test_unsigned_long_long_set_invalid(self):
-        """ unsigned long long function argument. """
+def test_unsigned_long_long_get_upper_overflow(overflow_upper_bounds, virtual_hook):
+    overflow_upper_bounds.unsigned_long_long_get()
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_long_long_set('0')
+    with pytest.raises(OverflowError):
+        virtual_hook.reraise()
 
-    def test_unsigned_long_long_var_invalid(self):
-        """ unsigned long long instance variable. """
+def test_unsigned_long_long_set_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_long_long_set(
+                limits.UNSIGNED_LONG_LONG_UPPER + 1)
 
-        with self.assertRaises(TypeError):
-            self.invalid_fixture.unsigned_long_long_var = '0'
+def test_unsigned_long_long_var_upper_overflow(overflow_upper_bounds, limits):
+    with pytest.raises(OverflowError):
+        overflow_upper_bounds.unsigned_long_long_var = limits.UNSIGNED_LONG_LONG_UPPER + 1
 
-    ###########################################################################
-    # The following test for under/overlowing values.
-    ###########################################################################
 
-    def test_char_get_lower_overflow(self):
-        """ char virtual result lower bound. """
+# The following test bool convertors for valid values.
 
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.char_get()
-            self.uninstall_hook()
+def test_bool_get_true(bool_true_value):
+    assert bool_true_value.bool_get() is True
 
-    def test_char_get_upper_overflow(self):
-        """ char virtual result upper bound. """
+def test_bool_set_true(bool_true_value):
+    bool_true_value.bool_set(True)
 
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.char_get()
-            self.uninstall_hook()
+def test_bool_var_true(bool_true_value):
+    bool_true_value.bool_var = True
 
-    def test_char_set_lower_overflow(self):
-        """ char function argument lower bound. """
+def test_bool_get_false(bool_false_value):
+    assert bool_false_value.bool_get() is False
 
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.char_set(self.CHAR_LOWER - 1)
+def test_bool_set_false(bool_false_value):
+    bool_false_value.bool_set(False)
 
-    def test_char_set_upper_overflow(self):
-        """ char function argument upper bound. """
+def test_bool_var_false(bool_false_value):
+    bool_false_value.bool_var = False
 
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.char_set(self.CHAR_UPPER + 1)
+def test_bool_get_nonzero(bool_nonzero_value):
+    assert bool_nonzero_value.bool_get() is True
 
-    def test_char_var_lower_overflow(self):
-        """ char instance variable lower bound. """
+def test_bool_set_nonzero(bool_nonzero_value):
+    bool_nonzero_value.bool_set(-1)
 
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.char_var = self.CHAR_LOWER - 1
+def test_bool_var_nonzero(bool_nonzero_value):
+    bool_nonzero_value.bool_var = -1
 
-    def test_char_var_upper_overflow(self):
-        """ char instance variable upper bound. """
+def test_bool_get_zero(bool_zero_value):
+    assert bool_zero_value.bool_get() is False
 
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.char_var = self.CHAR_UPPER + 1
+def test_bool_set_zero(bool_zero_value):
+    bool_zero_value.bool_set(0)
 
-    def test_signed_char_get_lower_overflow(self):
-        """ signed char virtual result lower bound. """
+def test_bool_var_zero(bool_zero_value):
+    bool_zero_value.bool_var = 0
 
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.signed_char_get()
-            self.uninstall_hook()
 
-    def test_signed_char_get_upper_overflow(self):
-        """ signed char virtual result upper bound. """
+def _signed_bounds(nrbytes):
+    """ Return the range of values for a number of bytes representing a signed
+    value.
+    """
 
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.signed_char_get()
-            self.uninstall_hook()
+    v = 1 << ((nrbytes * 8) - 1)
 
-    def test_signed_char_set_lower_overflow(self):
-        """ signed char function argument lower bound. """
+    return -v, v - 1
 
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.signed_char_set(
-                    self.SIGNED_CHAR_LOWER - 1)
 
-    def test_signed_char_set_upper_overflow(self):
-        """ signed char function argument upper bound. """
+def _unsigned_upper_bound(nrbytes):
+    """ Return the upper bound for a number of bytes representing an unsigned
+    value.
+    """
 
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.signed_char_set(
-                    self.SIGNED_CHAR_UPPER + 1)
-
-    def test_signed_char_var_lower_overflow(self):
-        """ signed char instance variable lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.signed_char_var = self.SIGNED_CHAR_LOWER - 1
-
-    def test_signed_char_var_upper_overflow(self):
-        """ signed char instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.signed_char_var = self.SIGNED_CHAR_UPPER + 1
-
-    def test_short_get_lower_overflow(self):
-        """ short virtual result lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.short_get()
-            self.uninstall_hook()
-
-    def test_short_get_upper_overflow(self):
-        """ short virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.short_get()
-            self.uninstall_hook()
-
-    def test_short_set_lower_overflow(self):
-        """ short function argument lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.short_set(self.SHORT_LOWER - 1)
-
-    def test_short_set_upper_overflow(self):
-        """ short function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.short_set(self.SHORT_UPPER + 1)
-
-    def test_short_var_lower_overflow(self):
-        """ short instance variable lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.short_var = self.SHORT_LOWER - 1
-
-    def test_short_var_upper_overflow(self):
-        """ short instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.short_var = self.SHORT_UPPER + 1
-
-    def test_int_get_lower_overflow(self):
-        """ int virtual result lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.int_get()
-            self.uninstall_hook()
-
-    def test_int_get_upper_overflow(self):
-        """ int virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.int_get()
-            self.uninstall_hook()
-
-    def test_int_set_lower_overflow(self):
-        """ int function argument lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.int_set(self.INT_LOWER - 1)
-
-    def test_int_set_upper_overflow(self):
-        """ int function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.int_set(self.INT_UPPER + 1)
-
-    def test_int_var_lower_overflow(self):
-        """ int instance variable lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.int_var = self.INT_LOWER - 1
-
-    def test_int_var_upper_overflow(self):
-        """ int instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.int_var = self.INT_UPPER + 1
-
-    def test_long_get_lower_overflow(self):
-        """ long virtual result lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.long_get()
-            self.uninstall_hook()
-
-    def test_long_get_upper_overflow(self):
-        """ long virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.long_get()
-            self.uninstall_hook()
-
-    def test_long_set_lower_overflow(self):
-        """ long function argument lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.long_set(self.LONG_LOWER - 1)
-
-    def test_long_set_upper_overflow(self):
-        """ long function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.long_set(self.LONG_UPPER + 1)
-
-    def test_long_var_lower_overflow(self):
-        """ long instance variable lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.long_var = self.LONG_LOWER - 1
-
-    def test_long_var_upper_overflow(self):
-        """ long instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.long_var = self.LONG_UPPER + 1
-
-    def test_long_long_get_lower_overflow(self):
-        """ long long virtual result lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_lower_fixture.long_long_get()
-            self.uninstall_hook()
-
-    def test_long_long_get_upper_overflow(self):
-        """ long long virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.long_long_get()
-            self.uninstall_hook()
-
-    def test_long_long_set_lower_overflow(self):
-        """ long long function argument lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.long_long_set(self.LONG_LONG_LOWER - 1)
-
-    def test_long_long_set_upper_overflow(self):
-        """ long long function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.long_long_set(self.LONG_LONG_UPPER + 1)
-
-    def test_long_long_var_lower_overflow(self):
-        """ long long instance variable lower bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_lower_fixture.long_long_var = self.LONG_LONG_LOWER - 1
-
-    def test_long_long_var_upper_overflow(self):
-        """ long long instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.long_long_var = self.LONG_LONG_UPPER + 1
-
-    def test_unsigned_char_get_upper_overflow(self):
-        """ unsigned char virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.unsigned_char_get()
-            self.uninstall_hook()
-
-    def test_unsigned_char_set_upper_overflow(self):
-        """ unsigned char function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_char_set(
-                    self.UNSIGNED_CHAR_UPPER + 1)
-
-    def test_unsigned_char_var_upper_overflow(self):
-        """ unsigned char instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_char_var = self.UNSIGNED_CHAR_UPPER + 1
-
-    def test_unsigned_short_get_upper_overflow(self):
-        """ unsigned short virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.unsigned_short_get()
-            self.uninstall_hook()
-
-    def test_unsigned_short_set_upper_overflow(self):
-        """ unsigned short function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_short_set(
-                    self.UNSIGNED_SHORT_UPPER + 1)
-
-    def test_unsigned_short_var_upper_overflow(self):
-        """ unsigned short instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_short_var = self.UNSIGNED_SHORT_UPPER + 1
-
-    def test_unsigned_int_get_upper_overflow(self):
-        """ unsigned int virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.unsigned_int_get()
-            self.uninstall_hook()
-
-    def test_unsigned_int_set_upper_overflow(self):
-        """ unsigned int function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_int_set(
-                    self.UNSIGNED_INT_UPPER + 1)
-
-    def test_unsigned_int_var_upper_overflow(self):
-        """ unsigned int instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_int_var = self.UNSIGNED_INT_UPPER + 1
-
-    def test_unsigned_long_get_upper_overflow(self):
-        """ unsigned long virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.unsigned_long_get()
-            self.uninstall_hook()
-
-    def test_unsigned_long_set_upper_overflow(self):
-        """ unsigned long function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_long_set(
-                    self.UNSIGNED_LONG_UPPER + 1)
-
-    def test_unsigned_long_var_upper_overflow(self):
-        """ unsigned long instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_long_var = self.UNSIGNED_LONG_UPPER + 1
-
-    def test_unsigned_long_long_get_upper_overflow(self):
-        """ unsigned long long virtual result upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.install_hook()
-            self.overflow_upper_fixture.unsigned_long_long_get()
-            self.uninstall_hook()
-
-    def test_unsigned_long_long_set_upper_overflow(self):
-        """ unsigned long long function argument upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_long_long_set(
-                    self.UNSIGNED_LONG_LONG_UPPER + 1)
-
-    def test_unsigned_long_long_var_upper_overflow(self):
-        """ unsigned long long instance variable upper bound. """
-
-        with self.assertRaises(OverflowError):
-            self.overflow_upper_fixture.unsigned_long_long_var = self.UNSIGNED_LONG_LONG_UPPER + 1
-
-    ###########################################################################
-    # The following test bool convertors for valid values.
-    ###########################################################################
-
-    def test_bool_get_true(self):
-        """ bool virtual result with a True value. """
-
-        self.assertIs(self.true_fixture.bool_get(), True)
-
-    def test_bool_set_true(self):
-        """ bool function argument with a True value. """
-
-        self.true_fixture.bool_set(True)
-
-    def test_bool_var_true(self):
-        """ bool instance variable with a True value. """
-
-        self.true_fixture.bool_var = True
-
-    def test_bool_get_false(self):
-        """ bool virtual result with a True value. """
-
-        self.assertIs(self.false_fixture.bool_get(), False)
-
-    def test_bool_set_false(self):
-        """ bool function argument with a False value. """
-
-        self.false_fixture.bool_set(False)
-
-    def test_bool_var_false(self):
-        """ bool instance variable with a False value. """
-
-        self.false_fixture.bool_var = False
-
-    def test_bool_get_nonzero(self):
-        """ bool virtual result with a non-zero value. """
-
-        self.assertIs(self.nonzero_fixture.bool_get(), True)
-
-    def test_bool_set_nonzero(self):
-        """ bool function argument with a non-zero value. """
-
-        self.nonzero_fixture.bool_set(-1)
-
-    def test_bool_var_nonzero(self):
-        """ bool instance variable with a non-zero value. """
-
-        self.nonzero_fixture.bool_var = -1
-
-    def test_bool_get_zero(self):
-        """ bool virtual result with a zero value. """
-
-        self.assertIs(self.zero_fixture.bool_get(), False)
-
-    def test_bool_set_zero(self):
-        """ bool function argument with a zero value. """
-
-        self.zero_fixture.bool_set(0)
-
-    def test_bool_var_zero(self):
-        """ bool instance variable with a zero value. """
-
-        self.zero_fixture.bool_var = 0
+    return (1 << (nrbytes * 8)) - 1

@@ -3,20 +3,15 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from utils import SIPTestCase
+# TODO
+cfg_disabled_for = [14]
 
 
-class PyPropertiesTestCase(SIPTestCase):
-    """ Test the support for the %Property directive.  (See issue/74.)
-    """
+def test_property_getter(module):
+    ao = module.AnObject()
+    assert ao.int_val == -1
 
-    def test_PyProperties(self):
-        """ Test the support for %Property. """
-
-        from py_properties_module import AnObject
-
-        ao = AnObject(3)
-        self.assertEqual(ao.int_val, 3)
-
-        ao.int_val = 100
-        self.assertEqual(ao.int_val, 100)
+def test_property_setter(module):
+    ao = module.AnObject()
+    ao.int_val = 100
+    assert ao.int_val == 100

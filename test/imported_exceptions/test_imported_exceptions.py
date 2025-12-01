@@ -3,19 +3,16 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from utils import SIPTestCase
+import pytest
 
 
-class ImportedExceptionsTestCase(SIPTestCase):
-    """ Test the support for imported exceptions. """
+# TODO
+cfg_disabled_for = [14]
 
-    # Enable exception support.
-    exceptions = True
+cfg_exceptions = True
+cfg_package = 'pkg'
 
-    def test_Exceptions(self):
-        """ Test the throwing of an imported exception. """
 
-        from handler_module import StdException
-        from thrower_module import throwException
-
-        self.assertRaises(StdException, throwException)
+def test_imported_exceptions(package):
+    with pytest.raises(package.handler_module.StdException):
+        package.thrower_module.throwException()
