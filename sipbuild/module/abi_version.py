@@ -12,10 +12,8 @@ from ..exceptions import UserException
 _module_source_dir = os.path.join(os.path.dirname(__file__), 'source')
 
 
-def get_latest_version(abi_major_version=None):
-    """ Return the latest minor version for a major version (if given)
-    otherwise return the latest major version.
-    """
+def get_latest_version(abi_major_version):
+    """ Return the latest minor version for a major version. """
 
     _, latest = get_source_version_range(abi_major_version)
 
@@ -38,10 +36,7 @@ def get_source_version_range(abi_major_version):
     particular major version, for which source code is available.
     """
 
-    source_dir = _module_source_dir
-
-    if abi_major_version is not None:
-        source_dir = os.path.join(source_dir, str(abi_major_version))
+    source_dir = os.path.join(_module_source_dir, str(abi_major_version))
 
     subdirs = sorted(os.listdir(source_dir), key=int)
 

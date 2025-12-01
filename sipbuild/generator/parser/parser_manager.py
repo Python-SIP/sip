@@ -8,6 +8,7 @@ import os
 
 from ...exceptions import deprecated, UserException
 from ...module import get_latest_version
+from ...py_versions import DEFAULT_ABI_MAJOR
 
 from ..bindings_configuration import get_bindings_configuration
 from ..error_log import ErrorLog
@@ -29,6 +30,7 @@ from . import rules
 from . import tokens
 from .annotations import InvalidAnnotation, validate_annotation_value
 from .ply import lex, yacc
+
 
 class ParserManager:
     """ This object manages the actual lexer and parser objects providing them
@@ -1876,7 +1878,7 @@ class ParserManager:
         target_abi = self.spec.target_abi
 
         if target_abi is None:
-            major_version = get_latest_version()
+            major_version = DEFAULT_ABI_MAJOR
             minor_version = None
         else:
             major_version, minor_version = target_abi

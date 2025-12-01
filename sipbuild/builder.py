@@ -15,7 +15,7 @@ from .distinfo import write_metadata
 from .exceptions import UserException
 from .installable import Installable
 from .module import copy_sip_h, copy_sip_pyi, get_latest_version
-from .py_versions import OLDEST_SUPPORTED_MINOR
+from .py_versions import DEFAULT_ABI_MAJOR, OLDEST_SUPPORTED_MINOR
 
 
 class Builder(AbstractBuilder):
@@ -86,7 +86,7 @@ class Builder(AbstractBuilder):
         # If we don't know the target ABI at this point then default to the
         # latest version.
         if project.target_abi is None:
-            major_version = get_latest_version()
+            major_version = DEFAULT_ABI_MAJOR
             minor_version = get_latest_version(major_version)
             project.target_abi = (major_version, minor_version)
 
@@ -268,7 +268,7 @@ class Builder(AbstractBuilder):
 
         if project.sip_module:
             # Generate the sip.h file for the shared sip module now that we
-            # know the target ABI..
+            # know the target ABI.
             copy_sip_h(project.build_abi, project.sip_module,
                     project.build_dir, version_info=project.version_info)
 

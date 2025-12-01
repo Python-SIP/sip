@@ -48,7 +48,7 @@ def get_bindings_configuration(spec, sip_file, sip_include_dirs):
         if cfg_abi_major != major_version:
             raise UserFileException(toml_file,
                 f"'{bindings_name}' was built against ABI v{cfg_abi_major} "
-                 "but this module is being built against ABI v{major_version}")
+                f"but this module is being built against ABI v{major_version}")
 
     # Return the tags and disabled features.
     return (_get_string_list(toml_file, cfg, 'module-tags'),

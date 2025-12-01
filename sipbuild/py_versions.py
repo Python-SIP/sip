@@ -3,6 +3,10 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
+# The major number of the default target ABI.  Remember to update the
+# documentation.
+DEFAULT_ABI_MAJOR = 13
+
 # The minimum required version of setuptools.  This is the earliest version
 # that generates correct wheel names for PyPI.  Remember to update
 # pyproject.toml in the root directory.

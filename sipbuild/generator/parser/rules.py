@@ -1221,7 +1221,7 @@ def p_pickle_code(p):
 # %Platforms ##################################################################
 
 def p_platforms(p):
-    "platforms : Platforms '{' qualifier_list '}'"
+    "platforms : Platforms '{' name_list '}'"
 
     pm = p.parser.pm
 
@@ -1387,7 +1387,7 @@ def p_release_code(p):
 # %Timeline ###################################################################
 
 def p_timeline(p):
-    "timeline : Timeline '{' qualifier_list '}'"
+    "timeline : Timeline '{' name_list '}'"
 
     pm = p.parser.pm
 
@@ -3493,9 +3493,9 @@ def p_ored_qualifiers(p):
         p[0] = p[1] or pm.evaluate_feature_or_platform(p, 4, inverted=True)
 
 
-def p_qualifier_list(p):
-    """qualifier_list : NAME
-        | qualifier_list NAME"""
+def p_name_list(p):
+    """name_list : NAME
+        | name_list NAME"""
 
     if len(p) == 2:
         value = [p[1]]
