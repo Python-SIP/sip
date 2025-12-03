@@ -45,7 +45,7 @@ def fmt_enum_as_rest_ref(enum):
     return f':sip:ref:`~{module_name}.{enum_name}`'
 
 
-def fmt_enum_as_type_hint(spec, enum, defined):
+def fmt_enum_as_type_hint(spec, enum, defined, is_optional=False):
     """ Return the type hint. """
 
     module = spec.module
@@ -61,9 +61,10 @@ def fmt_enum_as_type_hint(spec, enum, defined):
                 defined)
 
     quote = '' if is_defined else "'"
+    optional = '|None' if is_optional else ''
 
     # Include the module name if it is not the current one.
     module_name = enum.module.py_name + '.' if enum.module is not module and defined is not None else ''
     py_name = fmt_scoped_py_name(enum.scope, enum.py_name.name)
 
-    return f'{quote}{module_name}{py_name}{quote}'
+    return f'{quote}{module_name}{py_name}{optional}{quote}'

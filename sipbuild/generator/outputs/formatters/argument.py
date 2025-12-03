@@ -310,12 +310,9 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
     allow_none = arg.allow_none or (arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and arg.definition.handles_none)
 
     if hint is None and allow_none:
-        use_optional = True
+        is_optional = True
     else:
-        use_optional = (not arg.disallow_none and len(arg.derefs) != 0)
-
-    if use_optional:
-        s += 'typing.Optional[' if pep484 else 'Optional['
+        is_optional = (not arg.disallow_none and len(arg.derefs) != 0)
 
     if arg.array is ArrayArgument.ARRAY:
         s += _sip_module_name(spec) + 'array['
@@ -324,13 +321,14 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
         if arg.type is ArgumentType.CLASS:
             from .klass import fmt_class_as_type_hint
 
-            type_name = fmt_class_as_type_hint(spec, arg.definition, defined)
+            type_name = fmt_class_as_type_hint(spec, arg.definition, defined,
+                    is_optional)
         elif arg.type is ArgumentType.ENUM:
             if arg.definition.py_name is not None:
                 from .enum import fmt_enum_as_type_hint
 
                 type_name = fmt_enum_as_type_hint(spec, arg.definition,
-                        defined)
+                        defined, is_optional)
             else:
                 type_name = 'int'
         elif arg.type is ArgumentType.MAPPED:
@@ -352,9 +350,6 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
     s += type_name
 
     if arg.array is ArrayArgument.ARRAY:
-        s += ']'
-
-    if use_optional:
         s += ']'
 
     # See if the argument is optional.
@@ -477,7 +472,7 @@ def _py_arg(spec, arg, pep484, as_xml):
             name = sip_module_name + 'Buffer'
         else:
             # This replicates sip.pyi.
-            name = f'Union[bytes, bytearray, memoryview, {sip_module_name}array, {sip_module_name}voidptr]'
+            name = f'bytes|bytearray|memoryview|{sip_module_name}array|{sip_module_name}voidptr'
 
     elif type is ArgumentType.PYENUM:
         name = 'enum.Enum'

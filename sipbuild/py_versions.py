@@ -14,4 +14,4 @@ MINIMUM_SETUPTOOLS = '75.8.1'
 
 # The oldest supported minor version of Python v3.  Remember to update
 # pyproject.toml in the root directory.
-OLDEST_SUPPORTED_MINOR = 9
+OLDEST_SUPPORTED_MINOR = 10

@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from dataclasses import dataclass, field
 from enum import auto, Enum
-from typing import Optional, Union
 from weakref import WeakKeyDictionary
 
 from ...exceptions import UserException
@@ -81,16 +80,16 @@ class ManagedTypeHint:
     type_hint: str
 
     # The rendered docstring.
-    as_docstring: Optional[str] = None
+    as_docstring: str|None = None
 
     # The rendered reST reference.
-    as_rest_ref: Optional[str] = None
+    as_rest_ref: str|None = None
 
     # The parse state.
     parse_state: ParseState = ParseState.REQUIRED
 
     # The root node.
-    root: Optional['TypeHintNode'] = None
+    root: 'TypeHintNode|None' = None
 
 
 @dataclass
@@ -101,13 +100,13 @@ class TypeHintNode:
     type: NodeType
 
     # The list of child nodes.
-    children: Optional[list['TypeHintNode']] = None
+    children: list['TypeHintNode']|None = None
 
     # The type-dependent definition.
-    definition: Optional[Union[str, MappedType, WrappedClass, WrappedEnum]] = None
+    definition: str|MappedType|WrappedClass|WrappedEnum|None = None
 
     # The PEP 484 definition if it is a TYPING node.
-    pep484_definition: Optional[str] = None
+    pep484_definition: str|None = None
 
 
 class TypeHintManager:
@@ -190,7 +189,10 @@ class TypeHintManager:
             managed_type_hint.parse_state = ParseState.PARSED
 
     def _parse_node(self, out, text, start=0, end=None):
-        """ Return a single node of a parsed type hint. """
+        """ Return a single node of a parsed type hint.  Note that PEP 604
+        use of '|' rather than 'Union' is handled by taking it literally
+        without any interpretation.
+        """
 
         if end is None:
             end = len(text)
@@ -255,6 +257,22 @@ class TypeHintManager:
 
             # See if it is a standard type.
             try:
+                # Map 'Optional' to a 'Union' with None but ignore it if there
+                # is anything other than a single child.
+                if name == 'Optional' and len(children) == 1:
+                    name = 'Union'
+
+                    # If the child seems to be a forward reference then include
+                    # None, otherwise append a new node.
+                    child = children[0]
+
+                    if child.type is NodeType.OTHER and child.definition.startswith("'"):
+                        child.definition = child.definition[:-1] + "|None'"
+                    else:
+                        children.append(
+                                TypeHintNode(NodeType.OTHER,
+                                        definition='None'))
+
                 type_module = _STANDARD_TYPES[name]
 
                 if name == 'Union':
@@ -324,7 +342,7 @@ class TypeHintManager:
         """ Render a single node. """
 
         if node.type is NodeType.TYPING:
-            if node.definition is None:
+            if node.definition is None or node.definition == 'Union':
                 s = ''
             elif pep484:
                 s = node.pep484_definition
@@ -427,6 +445,9 @@ class TypeHintManager:
             children.append(
                     self._render_node(child, fixed_out, pep484, rest_ref,
                             defined, as_xml, context_stack))
+
+        if node.definition == 'Union':
+            return '|'.join(children)
 
         return '[' + ', '.join(children) + ']'
 

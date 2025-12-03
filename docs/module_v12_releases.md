@@ -1,6 +1,12 @@
 # `sip` Module v12 History
 
 
+## v12.18
+
+- Added support for Python v3.14.
+- Removed support for Python v3.9.
+
+
 ## v12.17
 
 - Added the `SIP_ABI_VERSION` module attribute.
