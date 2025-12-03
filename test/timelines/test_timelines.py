@@ -24,3 +24,6 @@ def test_after_unknown(module):
 
 def test_between_unknowns(module):
     assert 'between_unknown1_and_unknown2_disabled' not in module.__dict__
+
+def test_abi_timeline(module, abi_version):
+    assert module.abi_version() == abi_version

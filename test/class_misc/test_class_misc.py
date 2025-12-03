@@ -28,3 +28,15 @@ def test_py_subclass(module):
         pass
 
     assert isinstance(SubK(), module.Klass)
+
+def test_simple_plain_class_mro(module):
+    assert len(module.SimpleKlass.__mro__) == 3
+
+def test_simple_plain_class_isinstance(module):
+    assert isinstance(module.SimpleKlass(), module.SimpleKlass)
+
+def test_simple_py_subclass(module):
+    class SimpleSubK(module.SimpleKlass):
+        pass
+
+    assert isinstance(SimpleSubK(), module.SimpleKlass)

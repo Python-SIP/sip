@@ -2172,9 +2172,13 @@ then the latest version will be enabled automatically.
 The :directive:`%Timeline` directive can be used any number of times in a
 module to allow multiple libraries to be wrapped in the same module.
 
-SIP automatically defines a timeline containing all versions of SIP.  The name
-of the version is ``SIP_`` followed by the individual parts of the version
-number separated by an underscore.  SIP v5.0.1 is therefore ``SIP_5_0_1``.
+SIP automatically defines pseudo-timelines.  The ``SIP`` pseudo-timeline
+containing all versions of SIP.  The name of a version is ``SIP_`` followed by
+the individual parts of the version number separated by an underscore.  SIP
+v6.10.1 is therefore ``SIP_6_10_1``.
+
+The ``SIP_ABI`` pseudo-timeline containing all major versions of the SIP ABI.
+The name of a version is ``SIP_ABI_`` followed by the ABI major version number.
 
 If a particular version is enabled then SIP will automatically generate a
 corresponding C preprocessor symbol for use by handwritten code.  The symbol is
@@ -2192,7 +2196,11 @@ For example::
     void foo(int = 0);
     %End
 
-    %If (- SIP_4_13)
+    %If (- SIP_6_10)
+    void bar();
+    %End
+
+    %If (SIP_ABI_13 -)
     void bar();
     %End
 

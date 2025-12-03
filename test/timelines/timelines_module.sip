@@ -48,3 +48,27 @@ void unknown_and_after_disabled();
 %If (unknown1 - unknown2)
 void between_unknown1_and_unknown2_disabled();
 %End
+
+
+%If (- SIP_ABI_13)
+int abi_version();
+%MethodCode
+    sipRes = 12;
+%End
+%End
+
+
+%If (SIP_ABI_13 - SIP_ABI_14)
+int abi_version();
+%MethodCode
+    sipRes = 13;
+%End
+%End
+
+
+%If (SIP_ABI_14 -)
+int abi_version();
+%MethodCode
+    sipRes = 14;
+%End
+%End

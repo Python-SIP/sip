@@ -12,6 +12,10 @@ public:
     {
     };
 };
+
+class SimpleKlass
+{
+};
 %End
 
 
@@ -22,3 +26,18 @@ public:
     {
     };
 };
+
+%If (SIP_ABI_13 -)
+class SimpleKlass /Supertype=class_misc_module.simplewrapper/
+{
+};
+%End
+
+// ABI v12 hard codes the fully qualified name of the types as 'sip.wrapper'
+// etc.  This is a bug but one we choose not to fix in order to maintain
+// backwards compatibility.
+%If (- SIP_ABI_13)
+class SimpleKlass /Supertype=sip.simplewrapper/
+{
+};
+%End

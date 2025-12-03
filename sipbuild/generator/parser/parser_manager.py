@@ -885,7 +885,7 @@ class ParserManager:
         module = self.module_state.module
 
         # See if it already exists.
-        qualifier = self.find_qualifier(p, symbol, name, required=False)
+        qualifier = self._find_qualifier(p, symbol, name, required=False)
 
         if qualifier is not None:
             # We allow versions to be defined more than once so long as they
@@ -1201,7 +1201,7 @@ class ParserManager:
         if name is None:
             name = p[symbol]
 
-        qual = self.find_qualifier(p, symbol, name)
+        qual = self._find_qualifier(p, symbol, name)
         if qual is None:
             return False
 
@@ -1272,8 +1272,22 @@ class ParserManager:
             module = upper_qual.module
             timeline = upper_qual.timeline
 
-        # Handle the SIP version number pseudo-timeline.
-        if timeline < 0:
+        # Handle the pseudo-timelines.
+        if timeline == self._SIP_ABI_TIMELINE:
+            if self.spec.target_abi is None:
+                return False
+
+            abi_major = self.spec.target_abi[0]
+
+            if lower_qual is not None and abi_major < lower_qual.order:
+                return False
+
+            if upper_qual is not None and abi_major >= upper_qual.order:
+                return False
+
+            return True
+
+        if timeline == self._SIP_TIMELINE:
             if lower_qual is not None and self._hex_version < lower_qual.order:
                 return False
 
@@ -1295,46 +1309,14 @@ class ParserManager:
 
         return upper_qual is None
 
-    def find_qualifier(self, p, symbol, name, required=True):
-        """ Return a Qualifier or None if one doesn't exist. """
-
-        for module in self.modules:
-            for qual in module.qualifiers:
-                if qual.name == name:
-                    return qual
-
-        # Qualifiers corresponding to the SIP version are created on the fly.
-        if name.startswith('SIP_'):
-            parts = name.split('_')[1:]
-            if len(parts) > 3:
-                order = -1
-            else:
-                while len(parts) < 3:
-                    parts.append('0')
-
-                order = 0
-
-                for part in parts:
-                    try:
-                        order = (order << 8) + int(part)
-                    except ValueError:
-                        order = -1
-                        break
-
-            if order >= 0:
-                module = self.module_state.module
-
-                qualifier = Qualifier(module, name, QualifierType.TIME,
-                        order=order)
-                module.qualifiers.append(qualifier)
-
-                return qualifier
-
-        if required:
-            self.parser_error(p, symbol,
-                    "'{0}' is not a known qualifier".format(name))
-
-        return None
+    # The Python keywords.
+    _PYTHON_KEYWORDS = (
+        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
+        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+        'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+        'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try',
+        'while', 'with', 'yield',
+    )
 
     def get_py_name(self, cpp_name, annotations):
         """ Return a valid Python name given a C/C++ name. """
@@ -1872,6 +1854,63 @@ class ParserManager:
                 fq_cpp_name, iface_file_type, error_logger, cpp_type=cpp_type,
                 scope=self.scope)
 
+    # Define the pseudo-timelines.
+    _SIP_TIMELINE = -1
+    _SIP_ABI_TIMELINE = -2
+
+    def _find_qualifier(self, p, symbol, name, required=True):
+        """ Return a Qualifier or None if one doesn't exist. """
+
+        for module in self.modules:
+            for qual in module.qualifiers:
+                if qual.name == name:
+                    return qual
+
+        # Some qualifiers are created on the fly.
+        order = -1
+
+        if name.startswith('SIP_ABI_'):
+            # The ABI version number.
+            timeline = self._SIP_ABI_TIMELINE
+
+            try:
+                order = int(name.split('_')[-1])
+            except ValueError:
+                pass
+
+        elif name.startswith('SIP_'):
+            # The SIP version number.
+            timeline = self._SIP_TIMELINE
+
+            parts = name.split('_')[1:]
+            if len(parts) <= 3:
+                while len(parts) < 3:
+                    parts.append('0')
+
+                order = 0
+
+                for part in parts:
+                    try:
+                        order = (order << 8) + int(part)
+                    except ValueError:
+                        order = -1
+                        break
+
+        if order >= 0:
+            module = self.module_state.module
+
+            qualifier = Qualifier(module, name, QualifierType.TIME,
+                    order=order, timeline=timeline)
+            module.qualifiers.append(qualifier)
+
+            return qualifier
+
+        if required:
+            self.parser_error(p, symbol,
+                    "'{0}' is not a known qualifier".format(name))
+
+        return None
+
     def _finalise_target_abi(self):
         """ Finalise the target ABI. """
 
@@ -1991,7 +2030,7 @@ class ParserManager:
 
         name = p[symbol]
 
-        qual = self.find_qualifier(p, symbol, name, required=False)
+        qual = self._find_qualifier(p, symbol, name, required=False)
         if qual is None:
             return None
 
@@ -2028,15 +2067,6 @@ class ParserManager:
             return GILAction.RELEASE
 
         return GILAction.DEFAULT
-
-    # The Python keywords.
-    _PYTHON_KEYWORDS = (
-        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
-        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
-        'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
-        'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try',
-        'while', 'with', 'yield',
-    )
 
     def _get_kw_args(self, p, symbol, annotations, signature, need_name=False):
         """ Return the keyword argument support. """

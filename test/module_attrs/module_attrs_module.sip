@@ -49,15 +49,26 @@ const char buf_const[] = "bytes const";
 const void *voidptr_const_attr = buf_const;
 PyObject *pyobject_attr = NULL;
 
-// Read only attributes.
-const int int_attr_const = 10;
-int int_attr_no_setter = 10;
-
 // /PyName/ annotation.
 int int_attr_py_name = 10;
 
 // Utility to confirm an attribute has changed.
 int get_int_attr() {return int_attr;}
+
+// The following are specific to ABI v14.
+
+// Read only attributes.
+const int int_attr_const = 10;
+int int_attr_no_setter = 10;
+
+// %GetCode.
+int int_attr_getter = 10;
+
+// %SetCode.
+int int_attr_setter = 10;
+
+// %SetCode that raises an exception.
+int int_attr_bad_setter = 10;
 %End
 
 
@@ -103,12 +114,36 @@ void *voidptr_attr;
 const void *voidptr_const_attr;
 PyObject *pyobject_attr;
 
-// Read only attributes.
-const int int_attr_const;
-int int_attr_no_setter /NoSetter/;
-
 // /PyName/ annotation.
 int int_attr_py_name /PyName=py_int_attr/;
 
 // Utility to confirm an attribute has changed.
 int get_int_attr();
+
+%If (SIP_ABI_14 -)
+// Read only attributes.
+const int int_attr_const;
+int int_attr_no_setter /NoSetter/;
+
+// %GetCode.
+int int_attr_getter {
+%GetCode
+    sipPy = PyLong_FromLong(2 * int_attr_getter);
+%End
+};
+
+// %SetCode.
+int int_attr_setter {
+%SetCode
+    int_attr_setter = 2 * (int)PyLong_AsLong(sipPy);
+%End
+};
+
+// %SetCode that raises an exception.
+int int_attr_bad_setter {
+%SetCode
+    PyErr_SetNone(PyExc_NameError);
+    sipErr = 1;
+%End
+};
+%End

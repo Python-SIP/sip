@@ -336,10 +336,10 @@ def test_nonwrapped_attrs(module):
         module.foo
 
 def test_const_types(module, abi_version):
-    assert module.int_attr_const == 10
-
     # For ABI v14 check a wrapped const module attribute cannot be modified.
     if abi_version >= 14:
+        assert module.int_attr_const == 10
+
         with pytest.raises(ValueError):
             module.int_attr_const = 0
 
@@ -349,3 +349,17 @@ def test_nonwrapped_attrs(module):
 
 def test_py_name_annotation_attrs(module):
     assert module.py_int_attr == 10
+
+def test_getters_and_setters(module, abi_version):
+    if abi_version >= 14:
+        assert module.int_attr_getter == 20
+
+        module.int_attr_setter = 20
+        assert module.int_attr_setter == 40
+
+        with pytest.raises(NameError):
+            module.int_attr_bad_setter = 0
+
+        assert module.int_attr_no_setter == 10
+        with pytest.raises(ValueError):
+            module.int_attr_no_setter = 0

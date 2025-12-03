@@ -1211,7 +1211,7 @@ class Qualifier:
     order: int = 0
 
     # The timeline number within the defining module if it is a TIME qualifier.
-    # A negative value implies the SIP timeline.
+    # A negative value implies a pseudo-timeline.
     timeline: int = -1
 
 
