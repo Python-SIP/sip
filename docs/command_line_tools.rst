@@ -398,6 +398,13 @@ The full set of command line options is:
     as a minimum minor version rather than the exact minor version to be used.
     By default the very latest version is used.
 
+.. option:: --option NAME
+
+    The :mod:`sip` module will be built using the ``NAME`` configuration
+    option.  See the :directive:`%SipModuleConfiguration` directive for a list
+    of possible options and their meanings.  This option may be specified
+    multiple times.
+
 .. option:: --project NAME
 
     The name of the project as it would appear on PyPI is ``NAME``.  By default

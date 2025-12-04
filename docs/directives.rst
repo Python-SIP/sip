@@ -2165,6 +2165,40 @@ PyObject \*sipPyType
 .. seealso:: :directive:`%AccessCode`, :directive:`%GetCode`
 
 
+.. directive:: %SipModuleConfiguration
+
+:directive:`%SipModuleConfiguration`
+------------------------------------
+
+.. parsed-literal::
+    %SipModuleConfiguration {*option* *option* ...}
+
+This directive is used (by ABI v14 and later) to specify how the :mod:`sip`
+module should be configured.  The possible options are as follows:
+
+BrokenTypeNames
+    The module part of the fully qualified name of :mod:`sip` module types
+    (e.g. :class:`sip.simplewrapper`) is always just ``sip`` even if the module
+    is part of a package.
+
+CustomEnums
+    Traditional enums (i.e. non-scoped enums) are implemented as a custom
+    Python type.
+
+PyEnums
+    All enums (i.e. including scoped enums) are implemented using the standard
+    ``Enum`` and related Python types.
+
+For example::
+
+    // Configure ABI v14 to behave like v12.
+    %SipModuleConfiguration {BrokenTypeNames CustomEnums}
+
+    // Configure ABI v14 to behave like v13.  This is also the default
+    // configuration.
+    %SipModuleConfiguration {PyEnums}
+
+
 .. directive:: %Timeline
 
 :directive:`%Timeline`

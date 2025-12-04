@@ -27,7 +27,7 @@ directives = {
     'DefaultDocstringSignature', 'DefaultEncoding', 'DefaultMetatype',
     'DefaultSupertype', 'End', 'Exception', 'Feature', 'HideNamespace', 'If',
     'Import', 'Include', 'License', 'MappedType', 'MinimumABIVersion',
-    'Module', 'Platforms', 'Property', 'Timeline',
+    'Module', 'Platforms', 'Property', 'SipModuleConfiguration', 'Timeline',
 
     # Remove in SIP v7.
     'Plugin',

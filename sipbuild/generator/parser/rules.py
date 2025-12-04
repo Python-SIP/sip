@@ -5,6 +5,7 @@
 
 from ...exceptions import UserException
 from ...module import parse_abi_version
+from ...sip_module_configuration import apply_module_option
 
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
@@ -84,6 +85,7 @@ def p_statement(p):
         | plugin
         | preinit_code
         | postinit_code
+        | sip_module_configuration
         | timeline
         | type_hint_code
         | unit_code
@@ -1421,6 +1423,26 @@ def p_release_code(p):
         pm.parser_error(p, 1, "%ReleaseCode can only be specified once")
 
     pm.scope.release_code = p[2]
+
+
+# %SipModuleConfiguration #####################################################
+
+def p_sip_module_configuration (p):
+    "sip_module_configuration : SipModuleConfiguration '{' name_list '}'"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    spec = pm.spec
+
+    for opt in p[3]:
+        try:
+            spec.sip_module_configuration = apply_module_option(
+                    spec.sip_module_configuration, opt)
+        except UserException as e:
+            pm.parser_error(p, 1, e.text)
 
 
 # %Timeline ###################################################################

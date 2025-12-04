@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ..argument_parser import ArgumentParser
 from ..exceptions import handle_exception
 from ..module import module
+from ..sip_module_configuration import (apply_module_defaults,
+        apply_module_option, SipModuleConfiguration)
 
 
 def main():
@@ -16,6 +18,10 @@ def main():
 
     parser.add_argument('--abi-version', help="the ABI version",
             metavar="MAJOR[.MINOR]")
+
+    parser.add_argument('--option', action='append',
+            choices=sorted(SipModuleConfiguration.__members__.keys()),
+            help="configure the sip module")
 
     parser.add_argument('--project', help="the PyPI project name",
             metavar="NAME")
@@ -42,9 +48,18 @@ def main():
     args = parser.parse_args()
 
     try:
+        # Complete the parse of the configuration options.
+        module_config = SipModuleConfiguration(0)
+
+        if args.option is not None:
+            for opt in args.option:
+                module_config = apply_module_option(module_config, opt)
+
+        module_config = apply_module_defaults(module_config)
+
         module(sip_module=args.sip_modules[0], abi_version=args.abi_version,
-                project=args.project, sdist=args.sdist,
-                setup_cfg=args.setup_cfg, sip_h=args.sip_h,
+                sip_module_configuration=module_config, project=args.project,
+                sdist=args.sdist, setup_cfg=args.setup_cfg, sip_h=args.sip_h,
                 sip_rst=args.sip_rst, target_dir=args.target_dir)
     except Exception as e:
         handle_exception(e)

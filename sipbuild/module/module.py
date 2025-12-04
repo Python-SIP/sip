@@ -17,8 +17,8 @@ from .abi_version import (get_module_source_dir, get_source_version_range,
         parse_abi_version)
 
 
-def module(sip_module, abi_version, project, sdist, setup_cfg, sip_h, sip_rst,
-        target_dir):
+def module(sip_module, abi_version, sip_module_configuration, project, sdist,
+        setup_cfg, sip_h, sip_rst, target_dir):
     """ Create the various elements of a sip module. """
 
     # Check we have the required source.
