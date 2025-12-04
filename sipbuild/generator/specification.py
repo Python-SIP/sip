@@ -1662,7 +1662,7 @@ class WrappedClass:
 
     # The super-classes.  A super-class can only be a template argument in a
     # class template.
-    superclasses: list[Argument|'WrappedClass'] = field(default_factory=list)
+    superclasses: list['Argument|WrappedClass'] = field(default_factory=list)
 
     # The value of /Supertype/ if specified.
     supertype: CachedName|None = None
