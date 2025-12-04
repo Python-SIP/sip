@@ -1096,8 +1096,7 @@ def p_module(p):
     if 'gil_use' in args:
         module.gil_use = args['gil_use']
 
-    if 'keyword_arguments' in args:
-        module_state.kwargs = args['keyword_arguments']
+    module_state.kw_args = args.get('keyword_arguments', KwArgs.NONE)
 
     c_bindings = args.get('language')
     if c_bindings is not None:
