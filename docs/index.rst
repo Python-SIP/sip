@@ -6,6 +6,7 @@ SIP Documentation
     :caption: Contents
 
     introduction
+    abi_versions
     examples
     command_line_tools
     specification_files

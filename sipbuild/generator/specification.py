@@ -291,6 +291,16 @@ class GILAction(Enum):
     RELEASE = auto()
 
 
+class GILUse(Enum):
+    """ A module's use of the GIL. """
+
+    # The module depends on the presence of the GIL.
+    USED = auto()
+
+    # The module is safe to run without an active GIL.
+    NOT_USED = auto()
+
+
 class IfaceFileType(Enum):
     """ The type of an interface file. """
 
@@ -319,6 +329,21 @@ class KwArgs(Enum):
     # All named optional arguments (ie. those with a default value) can be
     # passed as keyword arguments.
     OPTIONAL = auto()
+
+
+class MultiInterpreterSupport(Enum):
+    """ A module's support for multiple interpreters. """
+
+    # The module does not support being imported by subinterpreters.
+    NOT_SUPPORTED = auto()
+
+    # The module supports being imported in subinterpreters, even when they
+    # have their own GIL.
+    PER_INTERPRETER_GIL_SUPPORTED = auto()
+
+    # The module supports being imported in subinterpreters, but only when they
+    # share the main interpreter’s GIL.
+    SUPPORTED = auto()
 
 
 class PyQtMethodSpecifier(Enum):
@@ -974,6 +999,9 @@ class Module:
     # specified.
     fq_py_name: CachedName|None = None
 
+    # The module's use of the GIL.
+    gil_use: GILUse = GILUse.USED
+
     # The global functions.
     global_functions: list[Member] = field(default_factory=list)
 
@@ -994,6 +1022,9 @@ class Module:
 
     # The %ModuleHeaderCode.
     module_header_code: list[CodeBlock] = field(default_factory=list)
+
+    # The module's support for multiple interpreters.
+    multi_interpreter_support: MultiInterpreterSupport = MultiInterpreterSupport.NOT_SUPPORTED
 
     # The next key to auto-allocate.
     next_key: int = -1

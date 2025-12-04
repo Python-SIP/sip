@@ -72,10 +72,10 @@ keywords = {
 # The directive keywords.
 directive_keywords = {
     'all_raise_py_exception', 'call_super_init', 'default_VirtualErrorHandler',
-    'False', 'format', 'get', 'id', 'keyword_arguments', 'language',
-    'licensee', 'name', 'optional', 'order', 'py_ssize_t_clean',
-    'remove_leading', 'set', 'signature', 'timestamp', 'True', 'type',
-    'version', 'use_argument_names', 'use_limited_api',
+    'False', 'format', 'get', 'gil_use', 'id', 'keyword_arguments', 'language',
+    'licensee', 'multi_interpreter_support', 'name', 'optional', 'order',
+    'py_ssize_t_clean', 'remove_leading', 'set', 'signature', 'timestamp',
+    'True', 'type', 'version', 'use_argument_names', 'use_limited_api',
 }
 
 

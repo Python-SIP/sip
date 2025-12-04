@@ -9,10 +9,11 @@ from ...module import parse_abi_version
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
-        FunctionCall, IfaceFile, IfaceFileType, KwArgs, License, MappedType,
-        MappedTypeTemplate, Overload, Property, PyQtMethodSpecifier,
-        QualifierType, Signature, Template, ThrowArguments, Value, ValueType,
-        VirtualErrorHandler, WrappedTypedef, WrappedVariable)
+        FunctionCall, GILUse, IfaceFile, IfaceFileType, KwArgs, License,
+        MappedType, MappedTypeTemplate, MultiInterpreterSupport, Overload,
+        Property, PyQtMethodSpecifier, QualifierType, Signature, Template,
+        ThrowArguments, Value, ValueType, VirtualErrorHandler, WrappedTypedef,
+        WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import cached_name, normalised_scoped_name, search_typedefs
 
@@ -1091,7 +1092,12 @@ def p_module(p):
     module.default_virtual_error_handler = args.get(
             'default_VirtualErrorHandler')
     module_state.call_super_init = args.get('call_super_init')
-    module_state.kw_args = args.get('keyword_arguments', KwArgs.NONE)
+
+    if 'gil_use' in args:
+        module.gil_use = args['gil_use']
+
+    if 'keyword_arguments' in args:
+        module_state.kwargs = args['keyword_arguments']
 
     c_bindings = args.get('language')
     if c_bindings is not None:
@@ -1099,6 +1105,9 @@ def p_module(p):
             pm.c_bindings = c_bindings
         elif pm.c_bindings != c_bindings:
             pm.parser_error(p, 1, "cannot mix 'C' and 'C++' modules")
+
+    if 'multi_interpreter_support' in args:
+        module.multi_interpreter_support = args['multi_interpreter_support']
 
     # Deprecate and remove when Python v3.12 is no longer supported.
     if 'py_ssize_t_clean' in args:
@@ -1131,8 +1140,10 @@ def p_module_arg(p):
     """module_arg : all_raise_py_exception '=' bool_value
         | call_super_init '=' bool_value
         | default_VirtualErrorHandler '=' NAME
+        | gil_use '=' STRING
         | keyword_arguments '=' STRING
         | language '=' STRING
+        | multi_interpreter_support '=' STRING
         | name '=' dotted_name
         | py_ssize_t_clean '=' bool_value
         | use_argument_names '=' bool_value
@@ -1140,8 +1151,21 @@ def p_module_arg(p):
 
     pm = p.parser.pm
 
-    if p[1] == 'keyword_arguments':
+    if p[1] == 'gil_use':
+        if p[3] == 'Used':
+            value = GILUse.USED
+        elif p[3] == 'NotUsed':
+            value = GILUse.NOT_USED
+        else:
+            pm.parser_error(p, 3,
+                    "'{0}' is not a valid value for 'gil_use'".format(p[3]))
+
+            # Use any value of the right type.
+            value = GILUse.USED
+
+    elif p[1] == 'keyword_arguments':
         value = pm.convert_kw_args(p, 3)
+
     elif p[1] == 'language':
         if p[3] == 'C':
             value = True
@@ -1150,6 +1174,22 @@ def p_module_arg(p):
         else:
             pm.parser_error(p, 3, "unsupported language '{0}'".format(p[3]))
             value = None
+
+    elif p[1] == 'multi_interpreter_support':
+        if p[3] == 'NotSupported':
+            value = MultiInterpreterSupport.NOT_SUPPORTED
+        elif p[3] == 'PerInterpreterGILSupported':
+            value = MultiInterpreterSupport.PER_INTERPRETER_GIL_SUPPORTED
+        elif p[3] == 'Supported':
+            value = MultiInterpreterSupport.SUPPORTED
+        else:
+            pm.parser_error(p, 3,
+                    "'{0}' is not a valid value for 'multi_interpreter_support'".format(
+                            p[3]))
+
+            # Use any value of the right type.
+            value = MultiInterpreterSupport.NOT_SUPPORTED
+
     else:
         value = p[3]
 

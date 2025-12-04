@@ -1745,8 +1745,10 @@ For example::
             [, all_raise_py_exception = [True | False]]
             [, call_super_init = [True | False]]
             [, default_VirtualErrorHandler = *name*]
+            [, gil_use = ["Used" | "NotUsed"]]
             [, keyword_arguments = ["None" | "All" | "Optional"]]
             [, language = *string*]
+            [, multi_interpreter_support = ["NotSupported" | "Supported" | "PerInterpreterGILSupported"]]
             [, py_ssize_t_clean = [True | False]]
             [, use_argument_names = [True | False]]
             [, use_limited_api = [True | False]])
@@ -1777,12 +1779,24 @@ re-implementation of any virtual C++ function raises a Python exception.  If no
 handler is specified for a virtual C++ function then ``PyErr_Print()`` is
 called.
 
+``gil_use`` specifies whether or not the module uses the GIL.  It is ignored
+unless the ABI used is v14 or later.  The default value is ``"Used"``.
+
 ``keyword_arguments`` specifies the default level of support for Python keyword
 arguments.  See the :fanno:`KeywordArgs` annotation for an explaination of the
 possible values and their effect.
 
 ``language`` specifies the implementation language of the library being
 wrapped.  Its value is either ``"C++"`` (the default) or ``"C"``.
+
+``multi_interpreter_support`` specifies the module's support for multiple
+interpreters.  ``"NotSupported"`` means that the module does not support being
+imported by subinterpreters. ``"Supported"`` means that the module supports
+being imported by subinterpreters but only when each subinterpreter shares the
+main interpreter's GIL.  ``"PerInterpreterGILSupported"`` means that the module
+supports being imported by subinterpreters, even when each subinterpreter has
+its own GIL.  It is ignored unless the ABI used is v14 or later.  The default
+value is ``"NotSupported"``.
 
 ``py_ssize_t_clean`` specifies that the generated code should include ``#define
 PY_SSIZE_T_CLEAN`` before any ``#include <Python.h>``.
