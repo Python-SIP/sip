@@ -1,5 +1,77 @@
 # Release Notes
 
+## v6.15.0
+
+### Removal of support for Python v3.9
+
+Python v3.9 is no longer supported.  As a consequence PEP 604 is now supported
+and type hints no longer use `Optional` and `Union`.
+
+The current ABI versions are now v12.18.0 and v13.11.0.
+
+Resolves [#93](https://github.com/Python-SIP/sip/issues/93)
+
+### Optimisations to improve the speed of code generation
+
+A number of optimisations have been made to significantly reduce the time taken
+to generate the bindings code. For example the generation of the QGIS Python
+bindings (excluding the compilation of the generated code) is around 5x faster.
+
+### Test framework
+
+The test framework has been rewritten to use `pytest` instead of `unittest`.
+Many tests have been added and the test suite can be run for each supported ABI
+version.  See the `README.md` file in the `test` subdirectory for more details.
+
+### `SIP_ABI` pseudo-timeline
+
+The `SIP_ABI` pseudo-timeline was added to allow the ABI version to be tested
+in `%If` directives.
+
+### Support for `_Bool`
+
+`_Bool` can now be used as a synonym for `bool`.
+
+### `sip` Module Configuration
+
+The `%SipModuleConfiguration` directive is used by ABI v14 to specify how the
+`sip` module is expected to behave.  For example it can be configured to behave
+like v12 or v13.
+
+The `--option` option has been added to the `sip-module` command line tool
+in order to configure a generated sdist to behave accordingly.
+
+### Support for Multiple Interpreters and Free Threading
+
+In anticipation of the support for multiple interpreters and free threading (to
+be implemented in ABI v14), and `multi_interpreter_support` and `gil_use` have
+been added as arguments to the `%Module` directive.
+
+### Documentation
+
+The documentation for `SIP_PYOBJECT` and similar types has been clarified to
+state that callables returning objects of those types **must** return a **new**
+reference.
+
+Resolves [#96](https://github.com/Python-SIP/sip/issues/96)
+
+### Bug fixes
+
+- Global or static string pointers (of any encoding) and Python objects with
+  `NULL` values are now interpreted as `None` rather than causing a crash.
+- Global or static `void *` variables caused invalid code to be generated.
+- Global or static explicitly signed or unsigned string pointers caused invalid
+  code to be generated.
+- Global or static `Py_hash_t` and `Py_ssize_t` variables were being completely
+  ignored.
+- The fully qualified names of `simplewrapper`, `wrapper` and `wrappertype` in
+  an embedded `sip` module are now correct.
+- Attempting to delete a wrapped class instance attribute will now raise an
+  exception rather than crash.
+- A regression that meant that generated wheels were not compressed has been
+  fixed.
+
+
 ## v6.14.0
 
 ### Specification of target ABI version
