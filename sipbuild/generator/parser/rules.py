@@ -1986,6 +1986,9 @@ def p_simple_superclass(p):
 
     pm = p.parser.pm
 
+    if pm.skipping:
+        return
+
     # Handle templates.
     if len(p) == 5:
         if pm.parsing_template:
