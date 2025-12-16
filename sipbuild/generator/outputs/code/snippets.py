@@ -2677,12 +2677,13 @@ def _static_function(backend, sf, bindings, member, scope=None):
 
     if scope is None:
         overloads = spec.module.overloads
+        scope_py = None
     else:
         overloads = scope.overloads
-        scope = py_scope(scope)
+        scope_py = py_scope(scope)
 
-        if scope is not None:
-            member_name = scope.iface_file.fq_cpp_name.as_word + '_' + member_name
+        if scope_py is not None:
+            member_name = scope_py.iface_file.fq_cpp_name.as_word + '_' + member_name
 
     sf.write('\n\n')
 
@@ -2701,7 +2702,7 @@ def _static_function(backend, sf, bindings, member, scope=None):
     else:
         kw_fw_decl = kw_decl = ''
 
-    if scope is None:
+    if scope_py is None:
         if not spec.c_bindings:
             sf.write(f'extern "C" {{static PyObject *func_{member_name}({backend.get_py_method_args(is_impl=False, is_module_fn=True)}{kw_fw_decl});}}\n')
 
