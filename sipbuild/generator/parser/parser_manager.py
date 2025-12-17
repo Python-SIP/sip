@@ -1065,7 +1065,8 @@ class ParserManager:
             if cd.external:
                 continue
 
-            clash("a class or namespace")
+            if cd.py_name.name == py_name:
+                clash("a class or namespace")
 
         if self.scope is None:
             # Check the exceptions.
