@@ -108,30 +108,27 @@ class IndexedClassList(IndexedList['WrappedClass']):
     """
     A list of WrappedClasss keeping the following indices:
     - classes by fq_cpp_name
-    - classes by scope and py_name
     """
+
     def _index_clear(self):
         """Set up indices. See IndexedList._index_clear()."""
+
         self._by_cppname = defaultdict(list)
-        self._by_scope_pyname = defaultdict(list)
 
     def _index_add(self, klass):
         """Add element to indices. See IndexedList._index_add()."""
+
         self._by_cppname[klass.iface_file.fq_cpp_name].append(klass)
-        self._by_scope_pyname[klass.scope, str(klass.py_name)].append(klass)
 
     def _index_remove(self, klass):
         """Remove element from indices. See IndexedList._index_add()."""
+
         self._by_cppname[klass.iface_file.fq_cpp_name].remove(klass)
-        del self._by_scope_pyname[klass.scope, str(klass.py_name)]
 
     def by_fq_cpp_name(self, name):
         """Find WrappedClasses by their .iface_file.fq_cpp_name."""
-        return self._by_cppname[name]
 
-    def by_scope_and_py_name(self, scope, name):
-        """Find WrappedClasses by their .scope and .py_name."""
-        return self._by_scope_pyname[scope, str(name)]
+        return self._by_cppname[name]
 
 
 class IndexedEnumList(IndexedList['WrappedEnum']):
@@ -153,9 +150,11 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
         if enum.fq_cpp_name:
             assert enum.fq_cpp_name not in self._by_cppname, f"Duplicate enum: {enum.fq_cpp_name}"
             self._by_cppname[enum.fq_cpp_name] = enum
+
         if enum.py_name:
             assert (enum.scope, str(enum.py_name)) not in self._by_scope_pyname
             self._by_scope_pyname[enum.scope, str(enum.py_name)] = enum
+
         if not enum.is_scoped:
             for member in enum.members:
                 assert (enum.scope, str(member.py_name)) not in self._unscoped_by_scope_member, f"Duplicate enum member: {member.py_name.name}"
@@ -165,8 +164,10 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
         """Remove WrappedEnum from indices. See IndexedList._index_add()."""
         if enum.fq_cpp_name:
             del self._by_cppname[enum.fq_cpp_name]
+
         if enum.py_name:
             del self._by_scope_pyname[enum.scope, enum.py_name.name]
+
         if not enum.is_scoped:
             for member in enum.members:
                 del self._unscoped_by_scope_member[(enum.scope, str(member.py_name))]
