@@ -143,6 +143,7 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
                     abi_patch = value
 
     sip_module_version = f'{abi_major}.{abi_minor}.{abi_patch}'
+    sip_module_entry_prefix = 'PyModExport_' if abi_major >= 14 else 'PyInit_'
 
     return {
         # The public patches are those that might be needed in setup.cfg or any
@@ -157,8 +158,13 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
         '@_SIP_MODULE_FQ_NAME@':                sip_module,
         '@_SIP_MODULE_NAME@':                   sip_module_name,
         '@_SIP_MODULE_SHARED@':                 '1' if sip_module_shared else '0',
+<<<<<<< Updated upstream
         '@_SIP_MODULE_ENTRY@':                  'PyInit_' + sip_module_name,
         '@_SIP_MODULE_LEGACY@':                 "1" if legacy else "0",
+=======
+        '@_SIP_MODULE_SLOTS@':                  'sipWrappedModuleSlots_' + sip_module_name,
+        '@_SIP_MODULE_ENTRY@':                  sip_module_entry_prefix + sip_module_name,
+>>>>>>> Stashed changes
         '@_SIP_OLDEST_SUPPORTED_MINOR@':        str(OLDEST_SUPPORTED_MINOR),
         '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR,
                                                         '02x'),
