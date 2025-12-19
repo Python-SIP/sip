@@ -875,10 +875,11 @@ static sipPySlotDef slots_{klass_name}[] = {{
                             (spec.c_bindings or klass.needs_array_helper),
                             'array_delete', klass_name))
 
-        if klass.can_create:
-            class_fields.append(f'sizeof ({scoped_class_name(spec, klass)})')
-        else:
-            class_fields.append('0')
+            if klass.can_create:
+                class_fields.append(
+                        f'sizeof ({scoped_class_name(spec, klass)})')
+            else:
+                class_fields.append('0')
 
         base_fields = ',\n        '.join(base_fields)
         container_fields = ',\n        '.join(container_fields)
