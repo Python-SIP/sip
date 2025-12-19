@@ -12,8 +12,7 @@ from ...formatters import fmt_argument_as_cpp_type
 
 from ..snippets import (g_class_docstring, g_class_method_table,
         g_enum_member_table, g_module_docstring, g_type_init_body,
-        g_module_init_start, g_pyqt_class_plugin, g_pyqt_helper_defns,
-        g_pyqt_helper_init)
+        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init)
 from ..utils import (get_class_flags, get_const_cast, get_docstring_text,
         get_encoded_type, get_enum_member, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_use_in_code,
@@ -159,7 +158,7 @@ const sipAPIDef *sipAPI_{module_name};
 ''')
 
         g_pyqt_helper_defns(sf, spec)
-        g_module_init_start(sf, spec)
+        self.g_module_init_start(sf)
         has_module_functions = self.g_module_functions_table(sf, bindings,
                 module)
         self.g_module_definition(sf, has_module_functions=has_module_functions)
@@ -273,6 +272,33 @@ f'''    static PyModuleDef sip_module_def = {{
 ''')
 
         return True
+
+    def g_module_init_start(self, sf):
+        """ Generate the start of the Python module initialisation function.
+        """
+
+        spec = self.spec
+
+        if spec.is_composite or spec.c_bindings:
+            extern_c = ''
+            arg_type = 'void'
+        else:
+            extern_c = 'extern "C" '
+            arg_type = ''
+
+        module_name = spec.module.py_name
+
+        sf.write(
+f'''
+
+/* The Python module initialisation function. */
+#if defined(SIP_STATIC_MODULE)
+{extern_c}PyObject *PyInit_{module_name}({arg_type})
+#else
+PyMODINIT_FUNC PyInit_{module_name}({arg_type})
+#endif
+{{
+''')
 
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and

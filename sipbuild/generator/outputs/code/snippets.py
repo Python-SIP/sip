@@ -96,7 +96,7 @@ static void sip_import_component_module(PyObject *d, const char *name)
 ''')
 
     g_module_docstring(sf, module)
-    g_module_init_start(sf, spec)
+    backend.g_module_init_start(sf)
     backend.g_module_definition(sf)
 
     sf.write(
@@ -928,31 +928,6 @@ def g_type_init_body(backend, sf, bindings, klass):
     sf.write(
 '''
     return SIP_NULLPTR;
-''')
-
-
-def g_module_init_start(sf, spec):
-    """ Generate the start of the Python module initialisation function. """
-
-    if spec.is_composite or spec.c_bindings:
-        extern_c = ''
-        arg_type = 'void'
-    else:
-        extern_c = 'extern "C" '
-        arg_type = ''
-
-    module_name = spec.module.py_name
-
-    sf.write(
-f'''
-
-/* The Python module initialisation function. */
-#if defined(SIP_STATIC_MODULE)
-{extern_c}PyObject *PyInit_{module_name}({arg_type})
-#else
-PyMODINIT_FUNC PyInit_{module_name}({arg_type})
-#endif
-{{
 ''')
 
 

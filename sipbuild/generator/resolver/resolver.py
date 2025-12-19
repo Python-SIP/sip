@@ -2162,8 +2162,13 @@ def _create_sorted_numbered_types(spec, mod, error_log):
 
         if mod is spec.module or klass.iface_file.needed:
             if not klass.is_hidden_namespace:
+                # For ABI v14 and later the sip module searches this table
+                # using the Python name (as part of attribute lookup).  For
+                # earlier versions it uses the C/C++ name (for sipFindType()).
+                key_name = klass.py_name if spec.target_abi >= (14, 0) else klass.iface_file.cpp_name
+
                 mod.needed_types.append(Argument(ArgumentType.CLASS,
-                        definition=klass, name=klass.iface_file.cpp_name))
+                        definition=klass, name=key_name))
 
     for mapped_type in spec.mapped_types:
         if mapped_type.iface_file.module is not mod:
