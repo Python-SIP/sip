@@ -1,5 +1,19 @@
 # Release Notes
 
+## v6.15.1
+
+### Bug fixes
+
+- A super-class of a disabled class was not ignored if it was disabled itself.
+- Fixed a regression in the generation of class definitions when using old ABI
+  versions that don't support arrays.
+- Fixed a regression in the checking if a name clashed with the name of a class
+  in the same scope.  Resolves
+  [#99](https://github.com/Python-SIP/sip/issues/99)
+- Fixed a regression in the code generated for static functions defined in
+  hidden namespaces.
+
+
 ## v6.15.0
 
 ### Removal of support for Python v3.9
