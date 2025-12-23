@@ -143,6 +143,9 @@ def _module_code(backend, bindings, project, py_debug, buildable):
                 g_iface_file_code(backend, iface_sf, bindings, project,
                         buildable, py_debug, iface_file, need_postinc)
 
+                if use_sf is None:
+                    iface_sf.close()
+
     sf.close()
 
     header_name = os.path.join(buildable.build_dir, f'sipAPI{module_name}.h')
