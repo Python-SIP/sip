@@ -6,6 +6,9 @@
 import pytest
 
 
+# TODO Expand the tests to include attribrutes that are instances of Python
+# sub-classes of wrapped types.  Specifically that the objects don't get
+# garbage collected prematurely.
 @pytest.fixture
 def klass(module):
     """ This is a fixture that returns an instance of Klass. """

@@ -459,7 +459,8 @@ module, that can be used by handwritten code in specification files.
 .. c:function:: PyObject *sipConvertFromNewType(void *cpp, const sipTypeDef *td, PyObject *transferObj)
 
     This converts a new C structure or a C++ class instance to an instance of
-    the corresponding generated Python type.
+    the corresponding generated Python type.  Note that care should be taken to
+    ensure that the instance really is new.
 
     :param cpp:
         the C/C++ instance.
