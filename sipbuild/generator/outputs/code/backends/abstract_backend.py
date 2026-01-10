@@ -47,12 +47,6 @@ class AbstractBackend(ABC):
 
         ...
 
-    def g_function_support_vars(self, sf):
-        """ Generate the variables needed by a function. """
-
-        # This default implementation does nothing.
-        pass
-
     @abstractmethod
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation
@@ -191,6 +185,31 @@ class AbstractBackend(ABC):
     @abstractmethod
     def get_slot_ref(slot_type):
         """ Return a reference to a slot. """
+
+        ...
+
+    @abstractmethod
+    def get_spec_for_class(self, klass):
+        """ Return the name of the data structure specifying a class. """
+
+        ...
+
+    @abstractmethod
+    def get_spec_for_mapped_type(self, mapped_type):
+        """ Return the name of the data structure specifying a mapped type. """
+
+        ...
+
+    @abstractmethod
+    def get_spec_for_enum(self, enum_nr):
+        """ Return the name of the data structure specifying an enum. """
+
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_spec_suffix():
+        """ Return the suffix used for immutable specifications. """
 
         ...
 

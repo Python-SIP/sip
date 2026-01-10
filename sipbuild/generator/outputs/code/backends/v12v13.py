@@ -1007,6 +1007,27 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return slot_type.name.lower() + '_slot'
 
+    def get_spec_for_class(self, klass):
+        """ Return the name of the data structure specifying a class. """
+
+        return f'sipTypeDef_{self.spec.module.py_name}_{klass.iface_file.fq_cpp_name.as_word}.ctd_base'
+
+    def get_spec_for_mapped_type(self, mapped_type):
+        """ Return the name of the data structure specifying a mapped type. """
+
+        return f'sipTypeDef_{self.spec.module.py_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base'
+
+    def get_spec_for_enum(self, enum_nr):
+        """ Return the name of the data structure specifying an enum. """
+
+        return f'enumTypes[{enum_nr}].etd_base'
+
+    @staticmethod
+    def get_spec_suffix():
+        """ Return the suffix used for immutable specifications. """
+
+        return 'Def'
+
     @staticmethod
     def get_type_ref(wrapped_object):
         """ Return the reference to the type of a wrapped object. """
