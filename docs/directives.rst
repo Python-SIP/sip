@@ -1730,6 +1730,10 @@ handwritten code, ie. if the code make a call to a function that was added to a
 particular ABI version then that version should be specified as the minimum
 required.
 
+If the minor version is omitted then the latest minor version of the major
+version will be used.  However this isn't particularly useful and it is
+recommended that a minor number is always specified, even if it is ``0``.
+
 For example::
 
     %MinimumABIVersion "13.5"

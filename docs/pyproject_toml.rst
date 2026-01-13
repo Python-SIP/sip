@@ -97,9 +97,14 @@ list options may contain environment markers as defined in `PEP 508
 
 **abi-version**
     The version number of the ABI of the :mod:`sip` module to generate code
-    for.  By default the latest major version is used.  If the minor version is
+    for.  If it is not specified then the version defined by any
+    :directive:`%MinimumABIVerson` directive is used.  If that is also not
+    specified then the latest major version is used.  If the minor version is
     not specified then the latest minor version of the major version is used.
-    There is also a corresponding command line option.
+    There is also a corresponding command line option.  It is recommended that
+    the :directive:`%MinimumABIVerson` directive is used in preference to
+    using this key/value and the corresponding command line option used to
+    temporarily override the directive if required.
 
 **api-dir**
     The value is the name of a the directory in which a QScintilla :file:`.api`
