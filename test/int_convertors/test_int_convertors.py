@@ -6,10 +6,6 @@
 import pytest
 
 
-# TODO Needs support for virtuals.
-cfg_disabled_for = [14]
-
-
 @pytest.fixture(scope='module')
 def bool_value(module):
     """ A fixture for creating a test sub-class of IntConvertors that

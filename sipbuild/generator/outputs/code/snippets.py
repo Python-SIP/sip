@@ -267,6 +267,8 @@ def g_module_code(backend, sf, bindings, project, py_debug, buildable):
         _virtual_handler(backend, sf, handler)
 
     # Generate any virtual error handlers.
+    wrapper_type = backend.get_wrapper_type()
+
     for virtual_error_handler in spec.virtual_error_handlers:
         if virtual_error_handler.module is module:
             self_name = get_use_in_code(virtual_error_handler.code,
@@ -277,7 +279,7 @@ def g_module_code(backend, sf, bindings, project, py_debug, buildable):
             sf.write(
 f'''
 
-void sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t {state_name})
+void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}, sip_gilstate_t {state_name})
 {{
 ''')
 
@@ -868,15 +870,17 @@ extern sipExportedModuleDef sipModuleAPI_{module_name};
             sf.write(f'extern sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[];\n')
 
     if pyqt5_supported(spec) or pyqt6_supported(spec):
+        wrapper_type = backend.get_wrapper_type()
+
         sf.write(
 f'''
-typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, sipTypeDef *);
+typedef const QMetaObject *(*sip_qt_metaobject_func)({wrapper_type}, sipTypeDef *);
 extern sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
 
-typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, sipTypeDef *, QMetaObject::Call, int, void **);
+typedef int (*sip_qt_metacall_func)({wrapper_type}, sipTypeDef *, QMetaObject::Call, int, void **);
 extern sip_qt_metacall_func sip_{module_name}_qt_metacall;
 
-typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);
+typedef bool (*sip_qt_metacast_func)({wrapper_type}, const sipTypeDef *, const char *, void **);
 extern sip_qt_metacast_func sip_{module_name}_qt_metacast;
 ''')
 
@@ -3191,7 +3195,7 @@ f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_c
                 sip_module = 'sipModule, ' if spec.target_abi >= (14, 0) else ''
 
                 sf.write(
-f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_module}(sipSimpleWrapper *)sipSelf, {type_ref}));
+f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_module}{backend.get_wrapper_type_cast()}sipSelf, {type_ref}));
 
     if (!sipCpp)
 ''')
@@ -3807,12 +3811,12 @@ f'''    return new {scope_s}(reinterpret_cast<const {scope_s} *>(sipSrc)[sipSrcI
     if need_dealloc(spec, bindings, klass):
         sf.write('\n\n')
 
-        wrapped_type_type = backend.get_wrapped_type_type()
+        wrapper_type = backend.get_wrapper_type()
 
         if not spec.c_bindings:
-            sf.write(f'extern "C" {{static void dealloc_{as_word}({wrapped_type_type});}}\n')
+            sf.write(f'extern "C" {{static void dealloc_{as_word}({wrapper_type});}}\n')
 
-        sf.write(f'static void dealloc_{as_word}({wrapped_type_type}sipSelf)\n{{\n')
+        sf.write(f'static void dealloc_{as_word}({wrapper_type}sipSelf)\n{{\n')
 
         if bindings.tracing:
             sf.write(f'    sipTrace(SIP_TRACE_DEALLOCS, "dealloc_{as_word}()\\n");\n\n')
@@ -3889,7 +3893,9 @@ def _shadow_code(backend, sf, bindings, klass):
         if klass.dtor_virtual_catcher_code is not None:
             sf.write_code(klass.dtor_virtual_catcher_code)
 
-        sf.write('    sipInstanceDestroyedEx(&sipPySelf);\n}\n')
+        backend.g_cpp_dtor(sf)
+
+        sf.write('}\n')
 
     # The meta methods if required.
     if (pyqt5_supported(spec) or pyqt6_supported(spec)) and klass.is_qobject:
@@ -4006,32 +4012,15 @@ def _virtual_catcher(backend, sf, bindings, klass, virtual_overload, virt_nr):
 
     _restore_protections(protection_state)
 
+    if result is not None and result.type is ArgumentType.VOID and len(result.derefs) == 0:
+        result = None
+
     sf.write(
 '''    sip_gilstate_t sipGILState;
     PyObject *sipMeth;
-
 ''')
 
-    if overload.is_const:
-        const_cast_char = 'const_cast<char *>('
-        const_cast_sw = 'const_cast<sipSimpleWrapper **>('
-        const_cast_tail = ')'
-    else:
-        const_cast_char = ''
-        const_cast_sw = ''
-        const_cast_tail = ''
-
-    abi_12_8_arg = f'{const_cast_sw}&sipPySelf{const_cast_tail}, ' if spec.target_abi >= (12, 8) else ''
-
-    klass_py_name_ref = backend.cached_name_ref(klass.py_name) if overload.is_abstract else 'SIP_NULLPTR'
-    member_py_name_ref = backend.cached_name_ref(overload.common.py_name)
-
-    sf.write(f'    sipMeth = sipIsPyMethod(&sipGILState, {const_cast_char}&sipPyMethods[{virt_nr}]{const_cast_tail}, {abi_12_8_arg}{klass_py_name_ref}, {member_py_name_ref});\n')
-
-    # The rest of the common code.
-
-    if result is not None and result.type is ArgumentType.VOID and len(result.derefs) == 0:
-        result = None
+    backend.g_get_py_reimpl(sf, klass, overload, virt_nr)
 
     sf.write('\n    if (!sipMeth)\n')
 
@@ -4100,7 +4089,7 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
     result_type = fmt_argument_as_cpp_type(spec, overload.cpp_signature.result,
             scope=klass.iface_file)
 
-    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}(sip_gilstate_t, sipVirtErrorHandlerFunc, sipSimpleWrapper *, PyObject *')
+    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, sipVirtErrorHandlerFunc, {backend.get_wrapper_type()}, PyObject *')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_declaration(spec,
@@ -4157,7 +4146,7 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
         # the handler.
         error_handler_ref = f'sipImportedVirtErrorHandlers_{module_name}_{error_handler.module.py_name}[{error_handler.handler_nr}].iveh_handler'
 
-    sf.write(f'sipVH_{module_name}_{handler.handler_nr}(sipGILState, {error_handler_ref}, sipPySelf, sipMeth')
+    sf.write(f'sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context()}sipGILState, {error_handler_ref}, sipPySelf, sipMeth')
 
     for arg_nr, arg in enumerate(overload.cpp_signature.args):
         prefix = ''
@@ -4516,7 +4505,7 @@ def _virtual_handler(backend, sf, handler):
 
     sf.write(
 f'''
-{result_decl} sipVH_{module.py_name}_{handler.handler_nr}(sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod''')
+{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, {backend.get_wrapper_type()}sipPySelf, PyObject *sipMethod''')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_definition(spec,
@@ -4655,12 +4644,14 @@ f'''
             nr_values += 1
 
     # Call the method.
+    context = backend.get_module_context()
+
     if nr_values == 0:
         sf.write(
-'    sipCallProcedureMethod(sipGILState, sipErrorHandler, sipPySelf, sipMethod, ')
+f'    sipCallProcedureMethod({context}sipGILState, sipErrorHandler, sipPySelf, sipMethod, ')
     else:
         sf.write(
-'    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ')
+f'    PyObject *sipResObj = sipCallMethod({context}SIP_NULLPTR, sipMethod, ')
 
     sf.write(_tuple_builder(backend, handler.py_signature))
 
@@ -4720,7 +4711,7 @@ f'''
 
     sf.write(f''');
 
-    {return_code}sipParseResultEx({params});
+    {return_code}{backend.get_result_parser()}({backend.get_module_context()}{params});
 ''')
 
     if result_is_returned:
@@ -5147,9 +5138,11 @@ extern PyObject *sipExportedExceptions_{module_name}[];
 
     backend.g_enum_macros(sf)
 
+    wrapper_type = backend.get_wrapper_type()
+
     for virtual_error_handler in spec.virtual_error_handlers:
         if virtual_error_handler.module is module:
-            sf.write(f'\nvoid sipVEH_{module_name}_{virtual_error_handler.name}(sipSimpleWrapper *, sip_gilstate_t);\n')
+            sf.write(f'\nvoid sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}, sip_gilstate_t);\n')
 
 
 def _imported_module_api(backend, sf, imported_module):
@@ -5286,9 +5279,9 @@ protected:
         sf.write(';\n')
 
     sf.write(
-'''
+f'''
 public:
-    sipSimpleWrapper *sipPySelf;
+    {backend.get_wrapper_type()}sipPySelf;
 ''')
 
     # The private declarations.
@@ -5471,12 +5464,7 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             #
             # Note that we would like to rename 'sipSelfWasArg' to
             # 'sipExplicitScope' but it is part of the public API.
-            if spec.target_abi >= (13, 0):
-                sipself_test = f'!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject({backend.get_type_ref(klass)}))'
-            else:
-                sipself_test = '!sipSelf'
-
-            sf.write(f'    bool sipSelfWasArg = ({sipself_test} || sipIsDerivedClass((sipSimpleWrapper *)sipSelf));\n')
+            sf.write(f'    bool sipSelfWasArg = {backend.get_sipself_test(klass)};\n')
 
         if need_orig_self:
             # This is similar to the above but for abstract methods.  We allow
@@ -5635,9 +5623,10 @@ f'''            Py_INCREF(Py_None);
             need_xfer = overload.transfer is Transfer.TRANSFER and overload.is_static
 
             this_action = 'PyObject *sipResObj =' if nr_return_values > 1 or need_xfer else action
+            context = backend.get_module_context()
             owner = 'SIP_NULLPTR' if need_xfer else result_owner
 
-            sf.write(f'            {this_action} sipConvertFromType({sip_res}, {result_type_ref}, {owner});\n')
+            sf.write(f'            {this_action} sipConvertFromType({context}{sip_res}, {result_type_ref}, {owner});\n')
 
             # Transferring the result of a static overload needs an explicit
             # call to sipTransferTo().
@@ -5714,10 +5703,11 @@ f'''            Py_INCREF(Py_None);
         need_new_instance = _need_new_instance(value)
 
         convertor = 'sipConvertFromNewType' if need_new_instance else 'sipConvertFromType'
+        context = backend.get_module_context()
         value_name = get_const_cast(spec, value, value_name)
         transfer = 'Py_None' if not need_new_instance and value.transfer is Transfer.TRANSFER_BACK else 'SIP_NULLPTR'
 
-        sf.write(f'            {action} {convertor}({value_name}, {backend.get_type_ref(value.definition)}, {transfer});\n')
+        sf.write(f'            {action} {convertor}({context}{value_name}, {backend.get_type_ref(value.definition)}, {transfer});\n')
 
     elif value.type is ArgumentType.ENUM:
         if value.definition.fq_cpp_name is not None:

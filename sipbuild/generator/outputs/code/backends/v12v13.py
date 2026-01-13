@@ -27,6 +27,11 @@ from .abstract_backend import AbstractBackend
 class v12v13Backend(AbstractBackend):
     """ The backend code generator for v12 and v13 of the ABI. """
 
+    def g_cpp_dtor(self, sf):
+        """ Generate the body of the dtor of a generated shadow class. """
+
+        sf.write('    sipInstanceDestroyedEx(&sipPySelf);\n')
+
     def g_create_wrapped_module(self, sf, bindings,
         # TODO These will probably be generated here at some point.
         has_sip_strings,
@@ -190,6 +195,27 @@ const sipAPIDef *sipAPI_{module_name};
 
             if value is not None:
                 sf.write(f'\n#define {self.get_type_ref(enum)} {value}\n')
+
+    def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
+        """ Generate the code to get the Python reimplementation of a C++
+        virtual.
+        """
+
+        if overload.is_const:
+            const_cast_char = 'const_cast<char *>('
+            const_cast_sw = 'const_cast<sipSimpleWrapper **>('
+            const_cast_tail = ')'
+        else:
+            const_cast_char = ''
+            const_cast_sw = ''
+            const_cast_tail = ''
+
+        abi_12_8_arg = f'{const_cast_sw}&sipPySelf{const_cast_tail}, ' if self.spec.target_abi >= (12, 8) else ''
+
+        klass_py_name_ref = self.cached_name_ref(klass.py_name) if overload.is_abstract else 'SIP_NULLPTR'
+        member_py_name_ref = self.cached_name_ref(overload.common.py_name)
+
+        sf.write(f'\n    sipMeth = sipIsPyMethod(&sipGILState, {const_cast_char}&sipPyMethods[{virt_nr}]{const_cast_tail}, {abi_12_8_arg}{klass_py_name_ref}, {member_py_name_ref});\n')
 
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation
@@ -1002,6 +1028,24 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         return f'PyObject *{self_name}, PyObject *{args_name}'
 
     @staticmethod
+    def get_result_parser():
+        """ Return the name of the Python reimplementation result parser. """
+
+        return 'sipParseResultEx'
+
+    def get_sipself_test(self, klass):
+        """ Return the code that checks if 'sipSelf' was bound or passed as an
+        argument.
+        """
+
+        if self.spec.target_abi >= (13, 0):
+            sipself_test = f'!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject({self.get_type_ref(klass)}))'
+        else:
+            sipself_test = '!sipSelf'
+
+        return f'({sipself_test} || sipIsDerivedClass((sipSimpleWrapper *)sipSelf))'
+
+    @staticmethod
     def get_slot_ref(slot_type):
         """ Return a reference to a slot. """
 
@@ -1043,10 +1087,18 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         return 'sipTypeDef *sipExportedTypes'
 
     @staticmethod
-    def get_wrapped_type_type():
+    def get_wrapper_type():
         """ Return the type of the C representation of a wrapped object. """
 
         return 'sipSimpleWrapper *'
+
+    @staticmethod
+    def get_wrapper_type_cast():
+        """ Return the cast from a PyObject* of the C representation of a
+        wrapped object.
+        """
+
+        return '(sipSimpleWrapper *)'
 
     def legacy_qt_support(self):
         """ Return True if the module implements legacy Qt support. """

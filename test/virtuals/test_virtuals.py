@@ -3,6 +3,17 @@
 # Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
 
 
+def test_base_implementation_int(module):
+    class Derived(module.Base):
+        def default_value_int(self):
+            return 2 * super().default_value_int()
+
+    klass = Derived()
+    value = module.Base.default_value_int(klass)
+
+    assert value == 10
+
+
 def test_py_reimplementation_class(module):
     class Derived(module.Base):
         def default_value_class(self):

@@ -26,6 +26,12 @@ class AbstractBackend(ABC):
         return backend(spec)
 
     @abstractmethod
+    def g_cpp_dtor(self, sf):
+        """ Generate the body of the dtor of a generated shadow class. """
+
+        ...
+
+    @abstractmethod
     def g_create_wrapped_module(self, sf, bindings,
         # TODO These will probably be generated here at some point.
         has_sip_strings,
@@ -44,6 +50,14 @@ class AbstractBackend(ABC):
     @abstractmethod
     def g_enum_macros(self, sf, scope=None, imported_module=None):
         """ Generate the type macros for enums. """
+
+        ...
+
+    @abstractmethod
+    def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
+        """ Generate the code to get the Python reimplementation of a C++
+        virtual.
+        """
 
         ...
 
@@ -172,11 +186,44 @@ class AbstractBackend(ABC):
 
         ...
 
+    @staticmethod
+    def get_module_context():
+        """ Return the value of a module context passed as the first argument
+        to many ABI calls.
+        """
+
+        # This default implementation returns nothing.
+        return ''
+
+    @staticmethod
+    def get_module_context_decl():
+        """ Return the declaration of the value of a module context passed as
+        the first argument to many ABI calls.
+        """
+
+        # This default implementation returns nothing.
+        return ''
+
     @abstractmethod
     def get_py_method_args(self, *, is_impl, self_is_type, need_self=False,
             need_args=True):
         """ Return the part of a Python method signature that are ABI
         dependent.
+        """
+
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_result_parser():
+        """ Return the name of the Python reimplementation result parser. """
+
+        ...
+
+    @abstractmethod
+    def get_sipself_test(self, klass):
+        """ Return the code that checks if 'sipSelf' was bound or passed as an
+        argument.
         """
 
         ...
@@ -229,8 +276,17 @@ class AbstractBackend(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_wrapped_type_type():
+    def get_wrapper_type():
         """ Return the type of the C representation of a wrapped object. """
+
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_wrapper_type_cast():
+        """ Return the cast from a PyObject* of the C representation of a
+        wrapped object.
+        """
 
         ...
 
