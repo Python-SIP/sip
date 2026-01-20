@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from dataclasses import dataclass, field
@@ -1024,6 +1024,9 @@ class Module:
 
     # The %ModuleHeaderCode.
     module_header_code: list[CodeBlock] = field(default_factory=list)
+
+    # The number of the module. (resolver)
+    module_nr: int = -1
 
     # The module's support for multiple interpreters.
     multi_interpreter_support: MultiInterpreterSupport = MultiInterpreterSupport.NOT_SUPPORTED

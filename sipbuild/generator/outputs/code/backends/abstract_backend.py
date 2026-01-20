@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from abc import ABC, abstractmethod
@@ -34,22 +34,27 @@ class AbstractBackend(ABC):
     @abstractmethod
     def g_create_wrapped_module(self, sf, bindings,
         # TODO These will probably be generated here at some point.
-        has_sip_strings,
+        name_cache_closure,
         has_external,
-        nr_enum_members,
+        enums_closure,
         has_virtual_error_handlers,
         nr_subclass_convertors,
         inst_state,
         slot_extenders,
         init_extenders
     ):
-        """ Generate the code to create a wrapped module. """
+        """ Generate the code to create a wrapped module and return an
+        ABI-specific object that will be passed back to the backend at some
+        point. """
 
         ...
 
     @abstractmethod
-    def g_enum_macros(self, sf, scope=None, imported_module=None):
-        """ Generate the type macros for enums. """
+    def g_enums_specifications(self, sf, scope=None):
+        """ Generate the specifications for the wrapped enums in a scope and
+        return an ABI-specific object which will be passed back to the backend
+        at some point.
+        """
 
         ...
 
@@ -103,6 +108,14 @@ class AbstractBackend(ABC):
 
         ...
 
+    def g_name_cache(self, sf):
+        """ Generate the name cache definition and return an ABI-specific
+        object which will be passed back to the backend at some point.
+        """
+
+        # This default implementation returns None.
+        return None
+
     @abstractmethod
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and
@@ -112,7 +125,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_sip_api(self, sf, module_name):
+    def g_sip_api(self, sf, module_name, module_closure):
         """ Generate the SIP API as seen by generated code. """
 
         ...
@@ -186,6 +199,12 @@ class AbstractBackend(ABC):
 
         ...
 
+    @abstractmethod
+    def get_enum_ref_value(self, enum):
+        """ Return the value of an enum's reference. """
+
+        ...
+
     @staticmethod
     def get_module_context():
         """ Return the value of a module context passed as the first argument
@@ -248,7 +267,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_spec_for_enum(self, enum_nr):
+    def get_spec_for_enum(self, enum, enums_closure):
         """ Return the name of the data structure specifying an enum. """
 
         ...
@@ -269,8 +288,8 @@ class AbstractBackend(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_types_table_prefix():
-        """ Return the prefix in the name of the wrapped types table. """
+    def get_types_table_decl(module):
+        """ Return the declaration of a module's wrapped types table. """
 
         ...
 

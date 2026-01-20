@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ....scoped_name import STRIP_GLOBAL
@@ -11,8 +11,8 @@ from ....utils import find_method
 from ...formatters import fmt_argument_as_cpp_type
 
 from ..snippets import (g_class_docstring, g_class_method_table,
-        g_enum_member_table, g_module_docstring, g_type_init_body,
-        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init)
+        g_module_docstring, g_type_init_body, g_pyqt_class_plugin,
+        g_pyqt_helper_defns, g_pyqt_helper_init)
 from ..utils import (get_class_flags, get_const_cast, get_docstring_text,
         get_encoded_type, get_enum_member, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_use_in_code,
@@ -34,16 +34,18 @@ class v12v13Backend(AbstractBackend):
 
     def g_create_wrapped_module(self, sf, bindings,
         # TODO These will probably be generated here at some point.
-        has_sip_strings,
+        name_cache_state,
         has_external,
-        nr_enum_members,
+        enums_state,
         has_virtual_error_handlers,
         nr_subclass_convertors,
         inst_state,
         slot_extenders,
         init_extenders
     ):
-        """ Generate the code to create a wrapped module. """
+        """ Generate the code to create a wrapped module and return the name
+        cache state.
+        """
 
         spec = self.spec
         target_abi = spec.target_abi
@@ -81,6 +83,7 @@ f'''    {len(module.needed_types)},
 ''')
 
         if self.custom_enums_supported():
+            nr_enum_members, _ = enums_state
             enum_members = get_optional_ptr(nr_enum_members > 0,
                     'enummembers')
             sf.write(
@@ -169,32 +172,73 @@ const sipAPIDef *sipAPI_{module_name};
         self.g_module_definition(sf, has_module_functions=has_module_functions)
         self._g_module_init_body(sf)
 
-    def g_enum_macros(self, sf, scope=None, imported_module=None):
-        """ Generate the type macros for enums. """
+        return name_cache_state
+
+    def g_enums_specifications(self, sf, scope=None):
+        """ Generate the specifications for the wrapped enums in a scope and
+        return the total number of enum members.
+        """
+
+        needed_enums = []
+
+        # We generate the enum definitions for all scopes in the same place.
+        if scope is None:
+            self._g_enums_defs(sf, needed_enums)
+
+        if not self.custom_enums_supported():
+            return -1, needed_enums
 
         spec = self.spec
+        enum_members = []
 
         for enum in spec.enums:
-            if enum.fq_cpp_name is None:
+            if enum.module is not spec.module:
                 continue
 
-            # Continue unless the scopes match.
-            if scope is not None:
-                if enum.scope is not scope:
+            enum_py_scope = py_scope(enum.scope)
+
+            if isinstance(scope, WrappedClass):
+                # The scope is a class.
+                if enum_py_scope is not scope or (enum.is_protected and not scope.has_shadow):
                     continue
-            elif enum.scope is not None:
+
+            elif scope is not None:
+                # The scope is a mapped type.
+                if enum.scope != scope:
+                    continue
+
+            elif enum_py_scope is not None or isinstance(enum.scope, MappedType) or enum.fq_cpp_name is None:
                 continue
 
-            value = None
+            enum_members.extend(enum.members)
 
-            if imported_module is None:
-                if enum.module is spec.module:
-                    value = f'sipExportedTypes_{spec.module.py_name}[{enum.type_nr}]'
-            elif enum.module is imported_module and enum.needed:
-                value = f'sipImportedTypes_{spec.module.py_name}_{enum.module.py_name}[{enum.type_nr}].it_td'
+        nr_members = len(enum_members)
+        if nr_members == 0:
+            return 0, needed_enums
 
-            if value is not None:
-                sf.write(f'\n#define {self.get_type_ref(enum)} {value}\n')
+        enum_members.sort(key=lambda v: v.scope.type_nr)
+        enum_members.sort(key=lambda v: v.py_name.name)
+
+        if py_scope(scope) is None:
+            sf.write(
+'''
+/* These are the enum members of all global enums. */
+static sipEnumMemberDef enummembers[] = {
+''')
+        else:
+            sf.write(
+f'''
+static sipEnumMemberDef enummembers_{scope.iface_file.fq_cpp_name.as_word}[] = {{
+''')
+
+        for enum_member in enum_members:
+            sf.write(f'    {{{self.cached_name_ref(enum_member.py_name)}, ')
+            sf.write(get_enum_member(spec, enum_member))
+            sf.write(f', {enum_member.scope.type_nr}}},\n')
+
+        sf.write('};\n')
+
+        return nr_enum_members, needed_enums
 
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
@@ -242,8 +286,6 @@ f'''
 
 extern sipMappedTypeDef sipTypeDef_{module_name}_{mapped_type_name};
 ''')
-
-        self.g_enum_macros(sf, scope=mapped_type)
 
     def g_mapped_type_int_instances(self, sf, mapped_type):
         """ Generate the code to add a set of ints to a mapped type.  Return
@@ -326,6 +368,48 @@ PyMODINIT_FUNC PyInit_{module_name}({arg_type})
 {{
 ''')
 
+    def g_name_cache(self, sf):
+        """ Generate the name cache definition and return the transformed name
+        cache.
+        """
+
+        spec = self.spec
+        module = spec.module
+
+        # Make sure the module name is cached.
+        module.fq_py_name.used = True
+
+        # Transform the name cache.
+        name_cache_list = _name_cache_as_list(spec.name_cache)
+
+        # Generate the names.
+        has_sip_strings = False
+
+        for name in name_cache_list:
+            if not name.used or name.is_substring:
+                continue
+
+            if not has_sip_strings:
+                has_sip_strings = True
+
+                sf.write(
+f'''
+/* Define the strings used by this module. */
+const char sipStrings_{module.py_name}[] = {{
+''')
+
+            sf.write('    ')
+
+            for ch in name.name:
+                sf.write(f"'{ch}', ")
+
+            sf.write('0,\n')
+
+        if has_sip_strings:
+            sf.write('};\n')
+
+        return name_cache_list
+
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and
         return the number of entries.
@@ -373,10 +457,26 @@ static PyMethodDef methods_{scope_name}[] = {{
 
         return len(members)
 
-    def g_sip_api(self, sf, module_name):
+    def g_sip_api(self, sf, module_name, module_state):
         """ Generate the SIP API as seen by generated code. """
 
         spec = self.spec
+
+        # Generate the references to (potentially) shared strings.
+        sf.write(
+'''
+/*
+ * Convenient names to refer to various strings defined in this module.
+ * Only the class names are part of the public API.
+ */
+''')
+
+        for cached_name in module_state:
+            if cached_name.used:
+                sf.write(
+f'''#define {self.cached_name_ref(cached_name, as_nr=True)} {cached_name.offset}
+#define {self.cached_name_ref(cached_name)} &sipStrings_{module_name}[{cached_name.offset}]
+''')
 
         sf.write(
 f'''
@@ -594,6 +694,13 @@ f'''#define sipIsPyMethod               sipAPI_{module_name}->api_is_py_method_1
 f'''#define sipIsPyMethod               sipAPI_{module_name}->api_is_py_method
 ''')
 
+        # Generate the name strings.
+        sf.write(
+f'''
+/* The strings used by this module. */
+extern const char sipStrings_{module_name}[];
+''')
+
     def g_static_variables_table(self, sf, scope=None):
         """ Generate the tables of static variables for a scope and return a
         set of strings corresponding to the tables actually generated.
@@ -687,11 +794,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
 
         # The attributes tables.
         nr_methods = g_class_method_table(self, sf, bindings, klass)
-
-        if self.custom_enums_supported():
-            nr_enum_members = g_enum_member_table(self, sf, scope=klass)
-        else:
-            nr_enum_members = -1
+        nr_enum_members, _ = self.g_enums_specifications(sf, scope=klass)
 
         # The property and variable handlers.
         nr_variables = 0
@@ -1016,6 +1119,16 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return f'sipExportedTypes_{module_name}[{iface_file.type_nr}]'
 
+    def get_enum_ref_value(self, enum):
+        """ Return the value of an enum's reference. """
+
+        spec = self.spec
+
+        if enum.module is spec.module:
+            return f'sipExportedTypes_{spec.module.py_name}[{enum.type_nr}]'
+
+        return f'sipImportedTypes_{spec.module.py_name}_{enum.module.py_name}[{enum.type_nr}].it_td'
+
     def get_py_method_args(self, *, is_impl, is_module_fn, need_self=False,
             need_args=True):
         """ Return the part of a Python method signature that are ABI
@@ -1061,8 +1174,11 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return f'sipTypeDef_{self.spec.module.py_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base'
 
-    def get_spec_for_enum(self, enum_nr):
+    def get_spec_for_enum(self, enum, enums_state):
         """ Return the name of the data structure specifying an enum. """
+
+        _, needed_enums = enums_state
+        enum_nr = needed_enums.index(enum)
 
         return f'enumTypes[{enum_nr}].etd_base'
 
@@ -1081,10 +1197,10 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         return 'sipType_' + fq_cpp_name.as_word
 
     @staticmethod
-    def get_types_table_prefix():
-        """ Return the prefix in the name of the wrapped types table. """
+    def get_types_table_decl(module):
+        """ Return the declaration of a module's wrapped types table. """
 
-        return 'sipTypeDef *sipExportedTypes'
+        return f'sipTypeDef *sipExportedTypes_{module.py_name}'
 
     @staticmethod
     def get_wrapper_type():
@@ -1127,6 +1243,54 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         target_abi = self.spec.target_abi
 
         return target_abi >= min_13 or (min_12 <= target_abi < (13, 0))
+
+    def _g_enums_defs(self, sf, needed_enums):
+        """ Generate the definitions for all wrapped enums. """
+
+        spec = self.spec
+        module = spec.module
+
+        # Note that we go through the sorted table of needed types rather than
+        # the unsorted list of all enums.
+        for needed_type in module.needed_types:
+            if needed_type.type is not ArgumentType.ENUM:
+                continue
+
+            enum = needed_type.definition
+
+            scope_type_nr = -1 if enum.scope is None else enum.scope.iface_file.type_nr
+
+            if len(needed_enums) == 0:
+                sf.write('static sipEnumTypeDef enumTypes[] = {\n')
+
+            cpp_name = get_normalised_cached_name(enum.cached_fq_cpp_name)
+            py_name = get_normalised_cached_name(enum.py_name)
+
+            if self.py_enums_supported():
+                base_type = 'SIP_ENUM_' + enum.base_type.name
+                nr_members = len(enum.members)
+
+                sf.write(
+f'    {{{{SIP_NULLPTR, SIP_TYPE_ENUM, sipNameNr_{cpp_name}, SIP_NULLPTR, 0}}, {base_type}, sipNameNr_{py_name}, {scope_type_nr}, {nr_members}')
+            else:
+                sip_type = 'SIP_TYPE_SCOPED_ENUM' if enum.is_scoped else 'SIP_TYPE_ENUM'
+
+                v12_fields = '-1, SIP_NULLPTR, ' if spec.target_abi < (13, 0)  else ''
+
+                sf.write(
+f'    {{{{{v12_fields}SIP_NULLPTR, {sip_type}, sipNameNr_{cpp_name}, SIP_NULLPTR, 0}}, sipNameNr_{py_name}, {scope_type_nr}')
+
+            if len(enum.slots) == 0:
+                sf.write(', SIP_NULLPTR')
+            else:
+                sf.write(', slots_' + enum.fq_cpp_name.as_word)
+
+            sf.write('},\n')
+
+            needed_enums.append(enum)
+
+        if len(needed_enums) != 0:
+            sf.write('};\n')
 
     def _g_instances_char(self, sf, scope):
         """ Generate the code to add a set of characters to a dictionary.
@@ -2295,6 +2459,45 @@ def _get_encoding(type):
         encoding = "'N'"
 
     return encoding
+
+
+def _name_cache_as_list(name_cache):
+    """ Return a name cache as a correctly ordered list of CachedName objects.
+    """
+
+    name_cache_list = []
+
+    # Create the list sorted first by descending name length and then
+    # alphabetical order.
+    for k in sorted(name_cache.keys(), reverse=True):
+        name_cache_list.extend(sorted(name_cache[k], key=lambda k: k.name))
+
+    # Set the offset into the string pool for every used name.
+    offset = 0
+
+    # Map of suffix to previously processed name
+    suffixes = {}
+
+    for cached_name in name_cache_list:
+        if not cached_name.used:
+            continue
+
+        name_len = len(cached_name.name)
+
+        # See if the tail of a previous used name could be used instead.
+        prev_name = suffixes.get(cached_name.name)
+        if prev_name:
+            cached_name.is_substring = True
+            cached_name.offset = prev_name.offset + len(prev_name.name) - name_len
+
+        if not cached_name.is_substring:
+            cached_name.offset = offset
+            offset += name_len + 1
+
+            for i in range(len(cached_name.name)):
+                suffixes.setdefault(cached_name.name[i:], cached_name)
+
+    return name_cache_list
 
 
 def _write_instances_table(sf, scope, instances, declaration_template):

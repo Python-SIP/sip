@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 
@@ -364,6 +364,10 @@ def _set_all_imports(mod, error_log, seen=None):
         _append_unique_import(direct_import)
 
     seen.remove(mod)
+
+    # Set the module's number, ie. it's index in the all_imports list.
+    for nr, imported_mod in enumerate(mod.all_imports):
+        imported_mod.module_nr = nr
 
 
 def _move_main_module_casts_slots(spec, error_log):
@@ -2162,13 +2166,8 @@ def _create_sorted_numbered_types(spec, mod, error_log):
 
         if mod is spec.module or klass.iface_file.needed:
             if not klass.is_hidden_namespace:
-                # For ABI v14 and later the sip module searches this table
-                # using the Python name (as part of attribute lookup).  For
-                # earlier versions it uses the C/C++ name (for sipFindType()).
-                key_name = klass.py_name if spec.target_abi >= (14, 0) else klass.iface_file.cpp_name
-
                 mod.needed_types.append(Argument(ArgumentType.CLASS,
-                        definition=klass, name=key_name))
+                        definition=klass, name=klass.iface_file.cpp_name))
 
     for mapped_type in spec.mapped_types:
         if mapped_type.iface_file.module is not mod:
@@ -2192,11 +2191,9 @@ def _create_sorted_numbered_types(spec, mod, error_log):
     # Sort the list and assign type numbers.
     mod.needed_types.sort(key=lambda t: t.name.name)
 
-    needed_type_nr = 0
-
-    for needed_type in mod.needed_types:
+    for type_nr, needed_type in enumerate(mod.needed_types):
         if needed_type.type is ArgumentType.CLASS:
-            needed_type.definition.iface_file.type_nr = needed_type_nr
+            needed_type.definition.iface_file.type_nr = type_nr
 
             # If we find a class called QObject, assume it's Qt.
             if needed_type.name.name == 'QObject':
@@ -2207,12 +2204,10 @@ def _create_sorted_numbered_types(spec, mod, error_log):
                 spec.pyqt_qobject = needed_type.definition
 
         elif needed_type.type is ArgumentType.MAPPED:
-            needed_type.definition.iface_file.type_nr = needed_type_nr
+            needed_type.definition.iface_file.type_nr = type_nr
 
         elif needed_type.type is ArgumentType.ENUM:
-            needed_type.definition.type_nr = needed_type_nr
-
-        needed_type_nr += 1
+            needed_type.definition.type_nr = type_nr
 
 
 def _check_properties(klass, error_log):
