@@ -200,6 +200,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def get_enum_to_py_conversion(self, enum, value_name):
+        """ Return the code to convert a C/C++ enum to a Python object. """
+
+        ...
+
+    @abstractmethod
     def get_enum_ref_value(self, enum):
         """ Return the value of an enum's reference. """
 

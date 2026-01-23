@@ -154,7 +154,7 @@ def get_enum_member(spec, enum_member):
 
         scope_s += '::'
 
-    return f'static_cast<int>({scope_s}{enum_member.cpp_name})'
+    return scope_s + enum_member.cpp_name
 
 
 def get_named_value_decl(spec, scope, type, name):

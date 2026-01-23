@@ -9,6 +9,7 @@ import pytest
 
 
 cfg_enabled_for = [13, 14]
+cfg_sip_module_configuration = ["PyEnums"]
 
 
 @pytest.fixture(scope='module')

@@ -23,12 +23,12 @@ from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
 
 from .utils import (arg_is_small_enum, callable_overloads, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
-        get_enum_class_scope, get_enum_member, get_named_value_decl,
-        get_normalised_cached_name, get_optional_ptr, get_type_from_void,
-        get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
-        has_method_docstring, is_used_in_code, keep_py_reference, need_dealloc,
-        need_error_flag, py_scope, pyqt5_supported, pyqt6_supported,
-        release_gil, scoped_class_name, skip_overload, type_needs_user_state,
+        get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
+        get_optional_ptr, get_type_from_void, get_use_in_code,
+        get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
+        is_used_in_code, keep_py_reference, need_dealloc, need_error_flag,
+        py_scope, pyqt5_supported, pyqt6_supported, release_gil,
+        scoped_class_name, skip_overload, type_needs_user_state,
         variables_in_scope)
 
 
@@ -1384,6 +1384,7 @@ def _argument_variable(backend, sf, scope, arg, arg_nr):
             sf.write(f'&{arg_name}def')
         else:
             if arg_is_small_enum(arg):
+                # TODO Fix for v14.
                 sf.write('static_cast<int>(')
 
             sf.write(fmt_value_list_as_cpp_expression(spec, arg.default_value))
@@ -1460,6 +1461,7 @@ def _call_args(sf, spec, cpp_signature, py_signature):
                 indirection = '&'
 
             if arg_is_small_enum(arg):
+                # TODO Fix for v14.
                 prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
                 suffix = ')'
 
@@ -3014,6 +3016,7 @@ f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_mo
 ''')
             else:
                 cpp_name = fq_cpp_name.as_cpp
+                # TODO Fix for v14.
                 sf.write(
 f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {type_ref}));
 
@@ -5523,13 +5526,7 @@ f'''            Py_INCREF(Py_None);
         sf.write(f'            {action} {convertor}({context}{value_name}, {backend.get_type_ref(value.definition)}, {transfer});\n')
 
     elif value.type is ArgumentType.ENUM:
-        if value.definition.fq_cpp_name is not None:
-            if not spec.c_bindings:
-                value_name = f'static_cast<int>({value_name})'
-
-            sf.write(f'            {action} sipConvertFromEnum({backend.get_module_context()}{value_name}, {backend.get_type_ref(value.definition)});\n')
-        else:
-            sf.write(f'            {action} PyLong_FromLong({value_name});\n')
+        sf.write(f'            {action} {backend.get_enum_to_py_conversion(value.definition, value_name)};\n')
 
     elif value.type is ArgumentType.ASCII_STRING:
         if len(value.derefs) == 0:
@@ -6298,6 +6295,7 @@ def _get_slot_arg(spec, overload, arg_nr):
         if len(arg.derefs) == 0:
             prefix = '*'
     elif arg_is_small_enum(arg):
+        # TODO Fix for v14.
         prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
         suffix = ')'
 

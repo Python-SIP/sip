@@ -233,7 +233,7 @@ static sipEnumMemberDef enummembers_{scope.iface_file.fq_cpp_name.as_word}[] = {
 
         for enum_member in enum_members:
             sf.write(f'    {{{self.cached_name_ref(enum_member.py_name)}, ')
-            sf.write(get_enum_member(spec, enum_member))
+            sf.write(self._get_cast_enum_member(enum_member))
             sf.write(f', {enum_member.scope.type_nr}}},\n')
 
         sf.write('};\n')
@@ -1119,6 +1119,17 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return f'sipExportedTypes_{module_name}[{iface_file.type_nr}]'
 
+    def get_enum_to_py_conversion(self, enum, value_name):
+        """ Return the code to convert a C/C++ enum to a Python object. """
+
+        if enum.fq_cpp_name is None:
+            return  f'PyLong_FromLong({value_name})'
+
+        if not self.spec.c_bindings:
+            value_name = f'static_cast<int>({value_name})'
+
+        return f'sipConvertFromEnum({value_name}, {self.get_type_ref(enum)})'
+
     def get_enum_ref_value(self, enum):
         """ Return the value of an enum's reference. """
 
@@ -1399,7 +1410,7 @@ static sipDoubleInstanceDef doubleInstances{suffix}[]''')
 
                 for enum_member in enum.members:
                     ii_name = self.cached_name_ref(enum_member.py_name)
-                    ii_val = get_enum_member(spec, enum_member)
+                    ii_val = self._get_cast_enum_member(enum_member)
                     instances.append((ii_name, ii_val))
 
         # Handle int variables.
@@ -1426,7 +1437,7 @@ static sipDoubleInstanceDef doubleInstances{suffix}[]''')
 
                 for enum_member in enum.members:
                     ii_name = self.cached_name_ref(enum_member.py_name)
-                    ii_val = get_enum_member(spec, enum_member)
+                    ii_val = self._get_cast_enum_member(enum_member)
                     instances.append((ii_name, ii_val))
 
         return _write_instances_table(sf, scope, instances,
@@ -2229,6 +2240,11 @@ f'''
     return 0;
 }
 ''')
+
+    def _get_cast_enum_member(self, enum_member):
+        """ Return the appropriately cast enum member. """
+
+        return f'static_cast<int>({get_enum_member(self.spec, enum_member)})'
 
     def _get_variable_member(self, variable):
         """ Return the member variable of a class. """

@@ -968,6 +968,11 @@ def _resolve_enums(spec, error_log):
 
         # The current ABI implementations only support enums no larger than an
         # int.
+        # TODO ABI v14 supports all integer types.
+        # TODO Ensure that the signs of the C++ and Python base types are
+        # compatible.  If the C++ base type is omitted then it should default
+        # to int or unsigned depending on the Python base type.  The v14
+        # implementation assumes this.
         if base_type.type not in _ENUM_BASE_TYPES or len(base_type.derefs) != 0:
             error_log.log(f"unsupported enum base type",
                     source_location=base_type.source_location)
