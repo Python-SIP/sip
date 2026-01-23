@@ -91,6 +91,24 @@ class ParserManager:
         self._sip_file = None
         self._sip_files = []
 
+    @property
+    def attributes(self):
+        """ The dict of attribute types, keyed by attribute name, defined in
+        the current scope/module.
+        """
+
+        try:
+            scope_state = self._scope_stack[-1]
+        except IndexError:
+            scope_state = None
+
+        # Return the module attributes if there is no current scope or the
+        # current scope is a hidden namespace.
+        if scope_state is None or (isinstance(scope_state.scope, WrappedClass) and scope_state.scope.is_hidden_namespace):
+            return self.module_state.attributes
+
+        return scope_state.attributes
+
     def complete_class(self, p, symbol, annotations, has_body):
         """ Complete the definition of the class that is the current scope, pop
         it and return it.
@@ -240,7 +258,8 @@ class ParserManager:
         self.pop_scope()
 
         # Check the name in the current scope (ie. the class's parent scope).
-        self.check_attributes(p, symbol, py_name, ignore=klass)
+        self.check_attributes(p, symbol, py_name, "a class or namespace",
+                ignore=klass)
 
         # Check that external classes have only been declared at the global
         # scope.
@@ -615,7 +634,7 @@ class ParserManager:
             py_name = cached_name(self.spec,
                     self.get_py_name(cpp_name, annotations))
 
-            self.check_attributes(p, symbol, py_name)
+            self.check_attributes(p, symbol, py_name, "an enum")
 
             if self.in_main_module:
                 cached_fq_cpp_name.used = True
@@ -636,8 +655,12 @@ class ParserManager:
 
         # Create the members.
         for m_cpp_name, m_py_name, m_no_type_hint in members:
-            if not is_scoped:
-                self.check_attributes(p, symbol, m_py_name.name)
+            # Check the member name if it is going to be visible in the current
+            # scope.
+            # TODO Also check for ABI v14 and custom enums.
+            if cpp_name is None or (self.spec.target_abi[0] == 12 and not is_scoped):
+                self.check_attributes(p, symbol, m_py_name.name,
+                        "an enum member")
 
             w_enum.members.append(
                     WrappedEnumMember(m_cpp_name, m_py_name, w_enum,
@@ -1004,8 +1027,8 @@ class ParserManager:
                         "{0} is not a valid {1} annotation".format(name,
                                 context))
 
-    def check_attributes(self, p, symbol, py_name, is_function=False,
-            ignore=None):
+    def check_attributes(self, p, symbol, py_name, description,
+            is_function=False, ignore=None):
         """ Check that a Python name will not clash with another object in the
         same Python scope.
         """
@@ -1014,75 +1037,31 @@ class ParserManager:
         if not self.spec.is_strict:
             return
 
-        # Report a name clash with something.
-        def clash(thing):
-            self.parser_error(p, symbol,
-                    "there is already {0} in scope called '{1}'".format(thing,
-                            py_name))
+        # See if there is already an attribute with the same name.
+        attributes = self.attributes
+        detail = attributes.get(str(py_name))
 
-        # Check the enums.
-        if self.spec.enums.by_scope_and_py_name(self.scope, py_name):
-            clash("an enum")
-
-        if self.spec.enums.by_scope_and_unscoped_member_py_name(self.scope, py_name):
-            clash("an enum member")
-
-        # Only check the members if this attribute isn't a member because we
-        # can handle members with the same name in the same scope.
-        if not is_function:
-            if self.scope is None:
-                members = self.module_state.module.global_functions
-                thing = "a function"
-            else:
-                members = self.scope.members
-                thing = "a method"
-
-            for md in members:
-                if md.py_name.name == py_name:
-                    clash(thing)
-                    break
-
-        # There is nothing more to check in mapped types.
-        if isinstance(self.scope, MappedType):
+        if detail is None:
+            # Remember the attribute.
+            attributes[str(py_name)] = (description, ignore)
             return
 
-        # Check the variables.
-        for vd in self.spec.variables:
-            if vd.scope is not self.scope:
-                continue
+        thing, ignored = detail
 
-            if vd.py_name.name == py_name:
-                clash("a variable")
-                break
-
-        # Check the classes.
-        for cd in self.spec.classes:
-            if cd.scope is not self.scope:
-                continue
+        # Some attributes of the same type need extra handling.
+        if thing == description:
+            # Callables don't clash with other callables.
+            if is_function:
+                return
 
             # A class will have already been added to the scope and this will
             # tell us to ignore it.
-            if cd is ignore:
-                continue
+            if ignored is ignore:
+                return
 
-            if cd.external:
-                continue
-
-            if cd.py_name.name == py_name:
-                clash("a class or namespace")
-
-        if self.scope is None:
-            # Check the exceptions.
-            for xd in self.spec.exceptions:
-                if xd.py_name is not None and xd.py_name == py_name:
-                    clash("an exception")
-                    break
-        else:
-            # Check the properties.
-            for pd in self.scope.properties:
-                if pd.name.name == py_name:
-                    clash("a property")
-                    break
+        # Report the name clash.
+        self.parser_error(p, symbol,
+                f"there is already {thing} in scope called '{py_name}'")
 
     def cpp_only(self, p, symbol, feature):
         """ Check that a C++ feature isn't being used in a C module. """
@@ -1805,7 +1784,7 @@ class ParserManager:
         if self.scope is not None and self.scope.iface_file.type is IfaceFileType.NAMESPACE:
             variable.is_static = True
 
-        self.check_attributes(p, symbol, variable.py_name)
+        self.check_attributes(p, symbol, variable.py_name, "a variable")
 
     def _add_auto_slot(self, p, symbol, annotations, py_name, py_signature,
             cpp_signature, method_code):
@@ -1989,7 +1968,8 @@ class ParserManager:
                 py_name = '__setattr__'
 
         # Check for name clashes.
-        self.check_attributes(p, symbol, py_name, is_function=True)
+        self.check_attributes(p, symbol, py_name, "a callable",
+                is_function=True)
 
         # Create a new member if necessary.
         no_arg_parser = annotations.get('NoArgParser', False)
@@ -2201,6 +2181,7 @@ class ModuleState:
         self.module = module
         self.sip_file = sip_file
 
+        self.attributes = {}
         self.all_raise_py_exception = False
         self.auto_py_name_rules = []
         self.call_super_init = None
@@ -2217,6 +2198,8 @@ class ScopeState:
 
         self.scope = scope
         self.access_specifier = access_specifier
+
+        self.attributes = {}
         self.pyqt_method_specifier = None
 
 

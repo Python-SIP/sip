@@ -42,13 +42,6 @@ class IndexedList(list[_T]):
         """Called at initialisation and then whenever the list is cleared."""
         ...
 
-    def _transform_inserted(self, item):
-        """
-        Called on each item to be inserted; this function's return value is
-        then inserted instead of that item.
-        """
-        return item
-
     # Redefinitions of list methods to keep index up-to-date
 
     def __init__(self):
@@ -58,13 +51,11 @@ class IndexedList(list[_T]):
 
     def append(self, v):
         """Add v to the end of list, updating indices in the process."""
-        v = self._transform_inserted(v)
         super().append(v)
         self._index_add(v)
 
     def insert(self, i, v):
         """Add v to the list at index i, updating indices in the process."""
-        v = self._transform_inserted(v)
         super().insert(i, v)
         self._index_add(v)
 
@@ -93,7 +84,6 @@ class IndexedList(list[_T]):
 
     def __setitem__(self, i, v):
         """Set element at index i to v, updating indices in the process."""
-        v = self._transform_inserted(v)
         self._index_remove(self[i])
         super().__setitem__(i, v)
         self._index_add(v)
@@ -135,67 +125,29 @@ class IndexedEnumList(IndexedList['WrappedEnum']):
     """
     A list of WrappedEnums keeping the following indices:
     - enums by fq_cpp_name
-    - enums by scope and py_name
-    - unscoped enums' members by outer scope and py_name
     """
 
     def _index_clear(self):
-        """Set up indices. See IndexedList._index_clear()."""
+        """ Initialise the indices. """
+
         self._by_cppname = {}
-        self._by_scope_pyname = {}
-        self._unscoped_by_scope_member = {}
 
     def _index_add(self, enum):
-        """Add WrappedEnum to indices. See IndexedList._index_add()."""
+        """ Add a WrappedEnum to the indices. """
+
         if enum.fq_cpp_name:
-            assert enum.fq_cpp_name not in self._by_cppname, f"Duplicate enum: {enum.fq_cpp_name}"
             self._by_cppname[enum.fq_cpp_name] = enum
 
-        if enum.py_name:
-            assert (enum.scope, str(enum.py_name)) not in self._by_scope_pyname
-            self._by_scope_pyname[enum.scope, str(enum.py_name)] = enum
-
-        if not enum.is_scoped:
-            for member in enum.members:
-                assert (enum.scope, str(member.py_name)) not in self._unscoped_by_scope_member, f"Duplicate enum member: {member.py_name.name}"
-                self._unscoped_by_scope_member[enum.scope, str(member.py_name)] = enum
-
     def _index_remove(self, enum):
-        """Remove WrappedEnum from indices. See IndexedList._index_add()."""
+        """ Remove a WrappedEnum from the indices. """
+
         if enum.fq_cpp_name:
             del self._by_cppname[enum.fq_cpp_name]
 
-        if enum.py_name:
-            del self._by_scope_pyname[enum.scope, enum.py_name.name]
-
-        if not enum.is_scoped:
-            for member in enum.members:
-                del self._unscoped_by_scope_member[(enum.scope, str(member.py_name))]
-
-    def _transform_inserted(self, enum):
-        """
-        Transform element before it is inserted.
-        See IndexedList._transform_inserted().
-        """
-        # Make sure nobody changes the member list after it's inserted, since
-        # it wouldn't be reindexed.
-        enum.member = tuple(enum.members)
-        return enum
-
     def by_fq_cpp_name(self, name):
-        """Find WrappedEnum by its .fq_cpp_name."""
+        """ Find a WrappedEnum by its .fq_cpp_name. """
+
         return self._by_cppname.get(name)
-
-    def by_scope_and_py_name(self, scope, name):
-        """Find WrappedEnum by its .scope and .py_name."""
-        return self._by_scope_pyname.get((scope, str(name)))
-
-    def by_scope_and_unscoped_member_py_name(self, scope, name):
-        """
-        Find member of unscoped WrappedEnum by the enum's .scope and the
-        member's .py_name.
-        """
-        return self._unscoped_by_scope_member.get((scope, str(name)))
 
 
 class IndexedCachedNameList(IndexedList['CachedName']):

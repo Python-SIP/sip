@@ -1338,7 +1338,7 @@ def p_property(p):
                 "a name must be specified for %Property")
         return
 
-    pm.check_attributes(p, 4, name)
+    pm.check_attributes(p, 4, name, "a property")
 
     name = cached_name(pm.spec, name)
     if pm.in_main_module:
@@ -2415,7 +2415,7 @@ def p_exception(p):
 
     cpp_name = p[2]
     py_name = pm.get_py_name(cpp_name.base_name, p[4])
-    pm.check_attributes(p, 2, py_name)
+    pm.check_attributes(p, 2, py_name, "an exception")
 
     builtin_base, defined_base = p[3]
     raise_code = p[6].get('%RaiseCode')
