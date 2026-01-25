@@ -1318,6 +1318,9 @@ f'    {{{{{v12_fields}SIP_NULLPTR, {sip_type}, sipNameNr_{cpp_name}, SIP_NULLPTR
             ci_val = variable.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
             ci_encoding = _get_encoding(variable.type)
 
+            if variable.type.type is ArgumentType.USTRING:
+                ci_val = '(char)' + ci_val;
+
             instances.append((ci_name, ci_val, ci_encoding))
 
         return _write_instances_table(sf, scope, instances,

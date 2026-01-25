@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...specification import (AccessSpecifier, ArgumentType, CodeBlock,
@@ -8,12 +8,6 @@ from ...specification import (AccessSpecifier, ArgumentType, CodeBlock,
         WrappedClass)
 
 from ..formatters import fmt_argument_as_cpp_type, fmt_class_as_scoped_name
-
-
-def arg_is_small_enum(arg):
-    """ Return True if an argument refers to a small C++11 enum. """
-
-    return arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
 
 
 def callable_overloads(member, overloads):

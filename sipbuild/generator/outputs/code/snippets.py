@@ -21,7 +21,7 @@ from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_signature_as_cpp_declaration, fmt_signature_as_cpp_definition,
         fmt_signature_as_type_hint, fmt_value_list_as_cpp_expression)
 
-from .utils import (arg_is_small_enum, callable_overloads, get_const_cast,
+from .utils import (callable_overloads, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
         get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
         get_optional_ptr, get_type_from_void, get_use_in_code,
@@ -868,11 +868,23 @@ f'''
 ''')
 
 
+def _arg_is_v13_typed_enum(spec, arg):
+    """ Return True if an argument refers to an ABI v13 typed C++11 enum. """
+
+    # Support for small (ie. smaller than an int) typed enums was added to ABI
+    # v13 by adding appropriate casting to an int whenever an enum value is
+    # passed to or from the ABI.  The returned value is used to determine if
+    # the casting is necessary.  ABI v14 instead passes a pointer to the enum
+    # value (rather than the value itself) which means that it can support enum
+    # types larger than an int and doesn't need any casting.  ABU v12 does not
+    # support typed enums.
+
+    return spec.target_abi[0] == 13 and arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
+
+
 def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
         overload=None):
-    """ Generate the argument variables for a member
-    function/constructor/operator.
-    """
+    """ Generate the argument variables for a callable. """
 
     spec = backend.spec
 
@@ -1352,7 +1364,7 @@ def _argument_variable(backend, sf, scope, arg, arg_nr):
     else:
         arg.derefs = []
 
-        if arg_is_small_enum(arg):
+        if _arg_is_v13_typed_enum(spec, arg):
             arg.type = ArgumentType.INT
             use_typename = False
 
@@ -1383,13 +1395,12 @@ def _argument_variable(backend, sf, scope, arg, arg_nr):
         if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and (nr_derefs == 0 or arg.is_reference):
             sf.write(f'&{arg_name}def')
         else:
-            if arg_is_small_enum(arg):
-                # TODO Fix for v14.
+            if _arg_is_v13_typed_enum(spec, arg):
                 sf.write('static_cast<int>(')
 
             sf.write(fmt_value_list_as_cpp_expression(spec, arg.default_value))
 
-            if arg_is_small_enum(arg):
+            if _arg_is_v13_typed_enum(spec, arg):
                 sf.write(')')
 
     sf.write(';\n')
@@ -1460,8 +1471,7 @@ def _call_args(sf, spec, cpp_signature, py_signature):
             if nr_derefs == 1:
                 indirection = '&'
 
-            if arg_is_small_enum(arg):
-                # TODO Fix for v14.
+            if _arg_is_v13_typed_enum(spec, arg):
                 prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
                 suffix = ')'
 
@@ -6294,8 +6304,7 @@ def _get_slot_arg(spec, overload, arg_nr):
     if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
         if len(arg.derefs) == 0:
             prefix = '*'
-    elif arg_is_small_enum(arg):
-        # TODO Fix for v14.
+    elif _arg_is_v13_typed_enum(spec, arg):
         prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
         suffix = ')'
 

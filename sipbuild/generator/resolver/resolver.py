@@ -13,9 +13,10 @@ from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_void_return_slot, is_zero_arg_slot)
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, ClassKey, Constructor, IfaceFileType, IndexedClassList, MappedType,
-        Member, PyQtMethodSpecifier, PySlot, Signature, Transfer, ValueType,
-        VirtualHandler, VirtualOverload, VisibleMember, WrappedClass)
+        ArrayArgument, ClassKey, Constructor, EnumBaseType, IfaceFileType,
+        IndexedClassList, MappedType, Member, PyQtMethodSpecifier, PySlot,
+        Signature, Transfer, ValueType, VirtualHandler, VirtualOverload,
+        VisibleMember, WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
@@ -955,6 +956,14 @@ _ENUM_BASE_TYPES = (
     ArgumentType.BOOL,
 )
 
+# ABI v14 also supports integer base types larger than int.
+_ENUM_BASE_TYPES_V14 = (
+    ArgumentType.LONG,
+    ArgumentType.ULONG,
+    ArgumentType.LONGLONG,
+    ArgumentType.ULONGLONG,
+)
+
 def _resolve_enums(spec, error_log):
     """ Resolve the base types for all the enums. """
 
@@ -962,18 +971,26 @@ def _resolve_enums(spec, error_log):
         base_type = enum.enum_base_type
 
         if base_type is None:
+            # There is no explicit C++ base type so if the Python base type
+            # implies it has unsigned value then default the C++ base type to
+            # unsigned.
+            if enum.base_type is EnumBaseType.UINT_ENUM:
+                enum.enum_base_type = Argument(ArgumentType.UINT)
+
             continue
 
         _resolve_type(spec, enum.module, enum.scope, base_type, error_log)
 
-        # The current ABI implementations only support enums no larger than an
-        # int.
-        # TODO ABI v14 supports all integer types.
-        # TODO Ensure that the signs of the C++ and Python base types are
-        # compatible.  If the C++ base type is omitted then it should default
-        # to int or unsigned depending on the Python base type.  The v14
-        # implementation assumes this.
-        if base_type.type not in _ENUM_BASE_TYPES or len(base_type.derefs) != 0:
+        if len(base_type.derefs) != 0:
+            bad_base_type = True
+        elif base_type.type in _ENUM_BASE_TYPES:
+            bad_base_type = False
+        elif spec.target_abi >= (14, 0) and base_type.type in _ENUM_BASE_TYPES_V14:
+            bad_base_type = False
+        else:
+            bad_base_type = True
+
+        if bad_base_type:
             error_log.log(f"unsupported enum base type",
                     source_location=base_type.source_location)
 

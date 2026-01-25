@@ -262,7 +262,7 @@ class DocstringSignature(Enum):
 
 
 class EnumBaseType(Enum):
-    """ The different base types fo an enum. """
+    """ The different base types of an enum. """
 
     # enum.Enum
     ENUM = auto()
