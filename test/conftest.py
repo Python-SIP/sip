@@ -284,6 +284,9 @@ def _build_test_module(sip_file, test_dir, abi_version, package, exceptions,
                 tags_s = ', '.join([f'"{t}"' for t in tags])
                 f.write(f'tags = [{tags_s}]\n')
 
+    # Configure the C++11 support.
+    os.environ['CXXFLAGS'] = '-std=c++11'
+
     # Build and move the test module.
     _build_module(module_name, package,
             ['-m', 'sipbuild.tools.build', '--verbose'], build_dir, test_dir,

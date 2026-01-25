@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from sys import getrefcount
@@ -27,26 +27,6 @@ def test_attrs_bool(module, abi_version):
         assert module.bool_attr
         module.bool_attr = 0
         assert not module.bool_attr
-
-def test_attrs__Bool(module, abi_version):
-    if abi_version >= 14:
-        # Values are mapped to True and False.
-        assert module._Bool_attr is True
-        module._Bool_attr = False
-        assert module._Bool_attr is False
-        module._Bool_attr = 10
-        assert module._Bool_attr is True
-        module._Bool_attr = 0
-        assert module._Bool_attr is False
-    else:
-        # Values are left as integers.
-        assert module._Bool_attr
-        module._Bool_attr = False
-        assert not module._Bool_attr
-        module._Bool_attr = 10
-        assert module._Bool_attr
-        module._Bool_attr = 0
-        assert not module._Bool_attr
 
 def test_attrs_byte(module):
     assert module.byte_attr == 10

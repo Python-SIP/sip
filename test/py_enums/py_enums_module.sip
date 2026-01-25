@@ -78,6 +78,21 @@ public:
     }
     static void scoped_set(ClassScopedEnum) {}
     ClassScopedEnum scoped_var;
+
+    enum ClassTypedEnum : unsigned char {
+        ClassTypedMember = 0xff
+    };
+
+    ClassTypedEnum typed_get() {
+        return typed_virt();
+    }
+
+    virtual ClassTypedEnum typed_virt() {
+        return ClassTypedEnum::ClassTypedMember;
+    }
+
+    static void typed_set(ClassTypedEnum) {}
+    ClassTypedEnum typed_var;
 };
 
 %End
@@ -147,4 +162,13 @@ public:
     virtual ClassScopedEnum scoped_virt();
     static void scoped_set(ClassScopedEnum);
     ClassScopedEnum scoped_var;
+
+    enum ClassTypedEnum : unsigned char {
+        ClassTypedMember
+    };
+
+    ClassTypedEnum typed_get();
+    virtual ClassTypedEnum typed_virt();
+    static void typed_set(ClassTypedEnum);
+    ClassTypedEnum typed_var;
 };
