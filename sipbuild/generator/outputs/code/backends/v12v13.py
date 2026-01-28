@@ -4,15 +4,15 @@
 
 
 from ....scoped_name import STRIP_GLOBAL
-from ....specification import (ArgumentType, IfaceFileType, WrappedClass,
-        WrappedEnum)
+from ....specification import (ArgumentType, IfaceFileType, MappedType,
+        WrappedClass, WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type
 
 from ..snippets import (g_class_docstring, g_class_method_table,
-        g_module_docstring, g_type_init_body, g_pyqt_class_plugin,
-        g_pyqt_helper_defns, g_pyqt_helper_init)
+        g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
+        g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
 from ..utils import (get_class_flags, get_const_cast, get_docstring_text,
         get_encoded_type, get_enum_member, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_use_in_code,
@@ -26,6 +26,20 @@ from .abstract_backend import AbstractBackend
 
 class v12v13Backend(AbstractBackend):
     """ The backend code generator for v12 and v13 of the ABI. """
+
+    def g_conversion_to_enum(self, sf, enum):
+        """ Generate the code to convert a Python enum (sipSelf) to a C/C++
+        enum (sipCpp).
+        """
+
+        type_ref = self.get_type_ref(enum)
+        cpp_name = enum.fq_cpp_name.as_cpp
+
+        sf.write(
+f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {type_ref}));
+
+    if (PyErr_Occurred())
+''')
 
     def g_cpp_dtor(self, sf):
         """ Generate the body of the dtor of a generated shadow class. """
@@ -174,21 +188,50 @@ const sipAPIDef *sipAPI_{module_name};
 
         return name_cache_state
 
-    def g_enums_specifications(self, sf, scope=None):
+    def g_enums_specifications(self, sf, bindings, scope=None):
         """ Generate the specifications for the wrapped enums in a scope and
         return the total number of enum members.
         """
 
+        spec = self.spec
         needed_enums = []
 
         # We generate the enum definitions for all scopes in the same place.
         if scope is None:
+            # Generate any enum slot tables.
+            for enum in spec.enums:
+                if enum.module is not spec.module or enum.fq_cpp_name is None:
+                    continue
+
+                if len(enum.slots) == 0:
+                    continue
+
+                for member in enum.slots:
+                    g_py_slot(self, sf, bindings, member, scope=enum)
+
+                enum_name = enum.fq_cpp_name.as_word
+
+                sf.write(
+f'''
+static sipPySlotDef slots_{enum_name}[] = {{
+''')
+
+                for member in enum.slots:
+                    if member.py_slot is not None:
+                        slot_ref = self.get_slot_ref(member.py_slot)
+                        sf.write(f'    {{(void *)slot_{enum_name}_{member.py_name}, {slot_ref}}},\n')
+
+                sf.write(
+'''    {SIP_NULLPTR, (sipPySlotType)0}
+};
+
+''')
+
             self._g_enums_defs(sf, needed_enums)
 
         if not self.custom_enums_supported():
             return -1, needed_enums
 
-        spec = self.spec
         enum_members = []
 
         for enum in spec.enums:
@@ -238,7 +281,7 @@ static sipEnumMemberDef enummembers_{scope.iface_file.fq_cpp_name.as_word}[] = {
 
         sf.write('};\n')
 
-        return nr_enum_members, needed_enums
+        return len(enum_members), needed_enums
 
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
@@ -409,6 +452,20 @@ const char sipStrings_{module.py_name}[] = {{
             sf.write('};\n')
 
         return name_cache_list
+
+    @staticmethod
+    def g_not_implemented(sf):
+        """ Generate the code to clear any exception and return
+        Py_NotImplemented.
+        """
+
+        sf.write(
+'''
+    PyErr_Clear();
+
+    Py_INCREF(Py_NotImplemented);
+    return Py_NotImplemented;
+''')
 
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and
@@ -701,6 +758,17 @@ f'''
 extern const char sipStrings_{module_name}[];
 ''')
 
+    def g_slot_implementations(self, sf, bindings, scope, members):
+        """ Generate the slot implementations for a scope. """
+
+        is_ns = isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE
+
+        for member in members:
+            if is_ns:
+                g_static_function(self, sf, bindings, member, scope=scope)
+            elif member.py_slot is not None:
+                g_py_slot(self, sf, bindings, member, scope=scope)
+
     def g_static_variables_table(self, sf, scope=None):
         """ Generate the tables of static variables for a scope and return a
         set of strings corresponding to the tables actually generated.
@@ -794,7 +862,8 @@ static sipPySlotDef slots_{klass_name}[] = {{
 
         # The attributes tables.
         nr_methods = g_class_method_table(self, sf, bindings, klass)
-        nr_enum_members, _ = self.g_enums_specifications(sf, scope=klass)
+        nr_enum_members, _ = self.g_enums_specifications(sf, bindings,
+                scope=klass)
 
         # The property and variable handlers.
         nr_variables = 0

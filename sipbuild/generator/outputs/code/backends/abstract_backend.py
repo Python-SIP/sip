@@ -26,6 +26,14 @@ class AbstractBackend(ABC):
         return backend(spec)
 
     @abstractmethod
+    def g_conversion_to_enum(self, sf, enum):
+        """ Generate the code to convert a Python enum (sipSelf) to a C/C++
+        enum (sipCpp).
+        """
+
+        ...
+
+    @abstractmethod
     def g_cpp_dtor(self, sf):
         """ Generate the body of the dtor of a generated shadow class. """
 
@@ -116,6 +124,15 @@ class AbstractBackend(ABC):
         # This default implementation returns None.
         return None
 
+    @staticmethod
+    @abstractmethod
+    def g_not_implemented(sf):
+        """ Generate the code to clear any exception and return
+        Py_NotImplemented.
+        """
+
+        ...
+
     @abstractmethod
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and
@@ -130,7 +147,13 @@ class AbstractBackend(ABC):
 
         ...
 
-    def g_slot_support_vars(self, sf):
+    @abstractmethod
+    def g_slot_implementations(self, sf, bindings, scope, members):
+        """ Generate the slot implementations for a scope. """
+
+        ...
+
+    def g_slot_support_vars(self, sf, scope, member):
         """ Generate the variables needed by a slot function. """
 
         # This default implementation does nothing.

@@ -224,13 +224,13 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
 
     for member in module.global_functions:
         if member.py_slot is None:
-            _static_function(backend, sf, bindings, member)
+            g_static_function(backend, sf, bindings, member)
         else:
             # Make sure that there is still an overload and we haven't moved
             # them all to classes.
             for overload in module.overloads:
                 if overload.common is member:
-                    _py_slot(backend, sf, bindings, member)
+                    g_py_slot(backend, sf, bindings, member)
                     slot_extenders = True
                     break
 
@@ -239,7 +239,7 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
         if klass.iface_file.module is module and klass.is_hidden_namespace:
             for member in klass.members:
                 if member.py_slot is None:
-                    _static_function(backend, sf, bindings, member,
+                    g_static_function(backend, sf, bindings, member,
                             scope=klass)
 
     # Generate any class specific __init__ or slot extenders.
@@ -251,7 +251,7 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
             init_extenders = True
 
         for member in klass.members:
-            _py_slot(backend, sf, bindings, member, scope=klass)
+            g_py_slot(backend, sf, bindings, member, scope=klass)
             slot_extenders = True
 
     # Generate any __init__ extender table.
@@ -344,37 +344,8 @@ static sipExternalTypeDef externalTypesTable[] = {
 };
 ''')
 
-    # Generate any enum slot tables.
-    for enum in spec.enums:
-        if enum.module is not module or enum.fq_cpp_name is None:
-            continue
-
-        if len(enum.slots) == 0:
-            continue
-
-        for member in enum.slots:
-            _py_slot(backend, sf, bindings, member, scope=enum)
-
-        enum_name = enum.fq_cpp_name.as_word
-
-        sf.write(
-f'''
-static sipPySlotDef slots_{enum_name}[] = {{
-''')
-
-        for member in enum.slots:
-            if member.py_slot is not None:
-                slot_ref = backend.get_slot_ref(member.py_slot)
-                sf.write(f'    {{(void *)slot_{enum_name}_{member.py_name}, {slot_ref}}},\n')
-
-        sf.write(
-'''    {SIP_NULLPTR, (sipPySlotType)0}
-};
-
-''')
-
     # Generate the wrapped enum specifications.
-    enums_state = backend.g_enums_specifications(sf)
+    enums_state = backend.g_enums_specifications(sf, bindings)
 
     # Generate the types table.
     if len(module.needed_types) != 0:
@@ -2471,7 +2442,7 @@ f'''
     return nr_subclass_convertors
 
 
-def _static_function(backend, sf, bindings, member, scope=None):
+def g_static_function(backend, sf, bindings, member, scope=None):
     """ Generate a static function. """
 
     spec = backend.spec
@@ -2709,7 +2680,7 @@ f'''static PyObject *convertFrom_{mapped_type_name}(void *sipCppV, PyObject *{xf
 
     # Generate the static methods.
     for member in mapped_type.members:
-        _static_function(backend, sf, bindings, member, scope=mapped_type)
+        g_static_function(backend, sf, bindings, member, scope=mapped_type)
 
     cod_nrmethods = _mapped_type_method_table(backend, sf, bindings,
             mapped_type)
@@ -2717,7 +2688,7 @@ f'''static PyObject *convertFrom_{mapped_type_name}(void *sipCppV, PyObject *{xf
     id_int = 'SIP_NULLPTR'
 
     if backend.custom_enums_supported():
-        cod_nrenummembers, _ = backend.g_enums_specifications(sf,
+        cod_nrenummembers, _ = backend.g_enums_specifications(sf, bindings,
                 scope=mapped_type)
         has_ints = False
         needs_namespace = (cod_nrenummembers > 0)
@@ -2910,7 +2881,7 @@ def _convert_to_definitions(sf, spec, scope):
     sf.write('}\n')
 
 
-def _py_slot(backend, sf, bindings, member, scope=None):
+def g_py_slot(backend, sf, bindings, member, scope=None):
     """ Generate a Python slot handler for either a class, an enum or an
     extender.
     """
@@ -2995,7 +2966,7 @@ def _py_slot(backend, sf, bindings, member, scope=None):
 
     sf.write(f'{slot_decl}{member.py_name.name}({arg_str})\n{{\n')
 
-    backend.g_slot_support_vars(sf)
+    backend.g_slot_support_vars(sf, scope, member)
 
     if member.py_slot is PySlot.CALL and member.no_arg_parser:
         for overload in overloads:
@@ -3003,6 +2974,7 @@ def _py_slot(backend, sf, bindings, member, scope=None):
                 sf.write_code(overload.method_code)
     else:
         if is_inplace_number_slot(member.py_slot):
+            # TODO Fix for v14.
             sf.write(
 f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_cpp_name.as_word})))
     {{
@@ -3013,10 +2985,9 @@ f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_c
 ''')
 
         if not is_number_slot(member.py_slot):
-            type_ref = backend.get_type_ref(scope)
-
             if isinstance(scope, WrappedClass):
                 cpp_name = scoped_class_name(spec, scope)
+                type_ref = backend.get_type_ref(scope)
                 sip_module = 'sipModule, ' if spec.target_abi >= (14, 0) else ''
 
                 sf.write(
@@ -3025,13 +2996,7 @@ f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_mo
     if (!sipCpp)
 ''')
             else:
-                cpp_name = fq_cpp_name.as_cpp
-                # TODO Fix for v14.
-                sf.write(
-f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {type_ref}));
-
-    if (PyErr_Occurred())
-''')
+                backend.g_conversion_to_enum(sf, scope)
 
             sf.write(f'        return {ret_value};\n\n')
 
@@ -3085,15 +3050,7 @@ f'''
                         extend_context = f'&sipModuleAPI_{spec.module.py_name}'
 
                     # We can only extend class slots. */
-                    if not isinstance(scope, WrappedClass):
-                        sf.write(
-'''
-    PyErr_Clear();
-
-    Py_INCREF(Py_NotImplemented);
-    return Py_NotImplemented;
-''')
-                    else:
+                    if isinstance(scope, WrappedClass):
                         slot_ref = backend.get_slot_ref(member.py_slot)
 
                         if is_number_slot(member.py_slot):
@@ -3106,14 +3063,10 @@ f'''
 f'''
     return sipPySlotExtend({extend_context}, {slot_ref}, {backend.get_type_ref(scope)}, sipSelf, sipArg);
 ''')
+                    else:
+                        backend.g_not_implemented(sf)
                 elif is_inplace_number_slot(member.py_slot):
-                    sf.write(
-'''
-    PyErr_Clear();
-
-    Py_INCREF(Py_NotImplemented);
-    return Py_NotImplemented;
-''')
+                    backend.g_not_implemented(sf)
                 else:
                     member_name = '(sipValue != SIP_NULLPTR ? sipName___setattr__ : sipName___delattr__)' if member.py_slot is PySlot.SETATTR else backend.cached_name_ref(member.py_name)
 
@@ -3153,122 +3106,7 @@ def _class_functions(backend, sf, bindings, klass, py_debug):
                     visible_member.member, visible_member.scope)
 
     # The slot functions.
-    has_getitem_slot = has_setitem_slot = has_delitem_slot = False
-    rich_comparison_members = []
-
-    for member in klass.members:
-        if klass.iface_file.type is IfaceFileType.NAMESPACE:
-            _static_function(backend, sf, bindings, member, scope=klass)
-        elif member.py_slot is not None:
-            _py_slot(backend, sf, bindings, member, scope=klass)
-
-            if member.py_slot is PySlot.GETITEM:
-                has_getitem_slot = True
-
-            if member.py_slot is PySlot.SETITEM:
-                has_setitem_slot = True
-
-            if member.py_slot is PySlot.DELITEM:
-                has_delitem_slot = True
-
-            if is_rich_compare_slot(member.py_slot):
-                rich_comparison_members.append(member)
-
-    if spec.target_abi >= (14, 0):
-        # Generate item dispatchers if required.
-        if has_getitem_slot:
-            sf.write(
-f'''
-
-extern "C" {{static PyObject *slot_{as_word}___sq_item__(PyObject *, Py_ssize_t);}}
-static PyObject *slot_{as_word}___sq_item__(PyObject *self, Py_ssize_t n)
-{{
-    PyObject *arg = PyLong_FromSsize_t(n);
-    if (arg == NULL)
-        return NULL;
-
-    PyObject *res = slot_{as_word}___getitem__(self, arg);
-    Py_DECREF(arg);
-
-    return res;
-}}
-''')
-
-        if has_setitem_slot or has_delitem_slot:
-            sf.write(
-f'''
-
-extern "C" {{static int slot_{as_word}___mp_ass_subscript__(PyObject *, PyObject *, PyObject *);}}
-static int slot_{as_word}___mp_ass_subscript__(PyObject *self, PyObject *key, PyObject *value)
-{{
-    if (value != NULL)
-''')
-
-            if has_setitem_slot:
-                sf.write(
-f'''        return slot_{as_word}___setitem__(self, key, value);
-''')
-            else:
-                sf.write(
-'''    {
-        PyErr_SetNone(PyExc_NotImplementedError);
-        return -1;
-    }
-''')
-
-            sf.write('\n');
-
-            if has_delitem_slot:
-                sf.write(
-f'''    return slot_{as_word}___delitem__(self, key);
-''')
-            else:
-                sf.write(
-'''    PyErr_SetNone(PyExc_NotImplementedError);
-    return -1;
-''')
-
-            sf.write('}\n');
-
-            sf.write(
-f'''
-
-extern "C" {{static int slot_{as_word}___sq_ass_item__(PyObject *, Py_ssize_t, PyObject *);}}
-static int slot_{as_word}___sq_ass_item__(PyObject *self, Py_ssize_t index, PyObject *value)
-{{
-    PyObject *key = PyLong_FromSsize_t(index);
-    if (key == NULL)
-        return -1;
-
-    int res = slot_{as_word}___mp_ass_subscript__(self, key, value);
-
-    Py_DECREF(key);
-
-    return res;
-}}
-''');
-
-        # Generate a rich comparision dispatcher if required.
-        if rich_comparison_members:
-            sf.write(
-f'''
-
-extern "C" {{static PyObject *slot_{as_word}___richcompare__(PyObject *, PyObject *, int);}}
-static PyObject *slot_{as_word}___richcompare__(PyObject *self, PyObject *arg, int op)
-{{
-    switch (op)
-    {{
-''')
-
-            for rc_member in rich_comparison_members:
-                sf.write(f'    case Py_{rc_member.py_slot.name}: return slot_{as_word}_{rc_member.py_name}(self, arg);\n')
-
-            sf.write(
-f'''    }}
-
-    return Py_NewRef(Py_NotImplemented);
-}}
-''')
+    backend.g_slot_implementations(sf, bindings, klass, klass.members)
 
     # The cast function.
     if len(klass.superclasses) != 0:
