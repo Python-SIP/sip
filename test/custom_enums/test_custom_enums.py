@@ -3,13 +3,13 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from enum import Enum, Flag, IntEnum, IntFlag
+from enum import Enum
 
 import pytest
 
 
-cfg_enabled_for = [13, 14]
-cfg_sip_module_configuration = ['PyEnums']
+cfg_enabled_for = [12, 14]
+cfg_sip_module_configuration = ['CustomEnums']
 
 
 @pytest.fixture(scope='module')
@@ -28,15 +28,6 @@ def named_enum_class(module):
             return self._value
 
     return NamedEnumClass
-
-
-@pytest.fixture
-def members_invalid(named_enum_class):
-    """ A fixture that creates the instance of a test class with invalid enum
-    members.
-    """
-
-    return named_enum_class(0)
 
 
 @pytest.fixture
@@ -61,19 +52,6 @@ def scoped_members(module):
     return ScopedEnumClass()
 
 
-@pytest.fixture
-def typed_members(module):
-    """ A fixture that creates the instance of a test class with valid typed
-    enum members.
-    """
-
-    class TypedEnumClass(module.EnumClass):
-        def typed_virt(self):
-            return module.EnumClass.ClassTypedEnum.ClassTypedMember
-
-    return TypedEnumClass()
-
-
 # The following test anonymous enums.
 
 def test_module_anon_type(module):
@@ -89,46 +67,23 @@ def test_class_anon_value(module):
     assert module.EnumClass.ClassAnonMember == 40
 
 
-# The following test the /BaseType/ annotation.
-
-def test_Enum_BaseType(module):
-    assert issubclass(module.EnumBase, Enum)
-    assert not issubclass(module.EnumBase, Flag)
-    assert not issubclass(module.EnumBase, IntEnum)
-    assert not issubclass(module.EnumBase, IntFlag)
-
-def test_Flag_BaseType(module):
-    assert issubclass(module.FlagBase, Flag)
-    assert not issubclass(module.FlagBase, IntEnum)
-    assert not issubclass(module.FlagBase, IntFlag)
-
-def test_IntEnum_BaseType(module):
-    assert not issubclass(module.IntEnumBase, Flag)
-    assert issubclass(module.IntEnumBase, IntEnum)
-    assert not issubclass(module.IntEnumBase, IntFlag)
-
-def test_IntFlag_BaseType(module):
-    assert not issubclass(module.IntFlagBase, IntEnum)
-    assert issubclass(module.IntFlagBase, IntFlag)
-
-
 # The following test named enums.
 
 def test_module_named_enum_attrs(module):
-    assert module.NamedEnum.__module__ == 'py_enums_module'
+    assert module.NamedEnum.__module__ == 'custom_enums_module'
     assert module.NamedEnum.__name__ == 'NamedEnum'
     assert module.NamedEnum.__qualname__ == 'NamedEnum'
 
 def test_class_named_enum_attrs(module):
-    assert module.EnumClass.ClassNamedEnum.__module__ == 'py_enums_module'
+    assert module.EnumClass.ClassNamedEnum.__module__ == 'custom_enums_module'
     assert module.EnumClass.ClassNamedEnum.__name__ == 'ClassNamedEnum'
     assert module.EnumClass.ClassNamedEnum.__qualname__ == 'EnumClass.ClassNamedEnum'
 
-def test_module_named_type(module):
-    assert issubclass(module.NamedEnum, Enum)
-
 def test_module_named_value(module):
-    assert module.NamedEnum.NamedMember.value == 20
+    assert module.NamedEnum.NamedMember == 20
+
+def test_module_named_value_legacy(module):
+    assert module.NamedMember == 20
 
 def test_enum_operator_add(module):
     assert module.NamedEnum.NamedMember + 10 == 30
@@ -136,11 +91,11 @@ def test_enum_operator_add(module):
 def test_enum_operator_eq(module):
     assert module.NamedEnum.NamedMember == 20
 
-def test_class_named_type(module):
-    assert issubclass(module.EnumClass.ClassNamedEnum, Enum)
-
 def test_class_named_value(module):
-    assert module.EnumClass.ClassNamedEnum.ClassNamedMember.value == 50
+    assert module.EnumClass.ClassNamedEnum.ClassNamedMember == 50
+
+def test_class_named_value_legacy(module):
+    assert module.EnumClass.ClassNamedMember == 50
 
 def test_named_get_member(module, members_valid, virtual_hook):
     assert members_valid.named_get() == module.EnumClass.ClassNamedEnum.ClassNamedMember
@@ -156,20 +111,6 @@ def test_named_overload_set(module, members_valid):
     members_valid.named_overload_set(
             module.EnumClass.ClassNamedEnum.ClassNamedMember)
     assert members_valid.named_overload
-
-def test_named_get_invalid(members_invalid, virtual_hook):
-    members_invalid.named_get()
-
-    with pytest.raises(TypeError):
-        virtual_hook.reraise()
-
-def test_named_set_invalid(members_invalid):
-    with pytest.raises(TypeError):
-        members_invalid.named_set(50)
-
-def test_named_var_invalid(members_invalid):
-    with pytest.raises(TypeError):
-        members_invalid.named_var = 50
 
 
 # The following test scoped enums.
@@ -196,23 +137,3 @@ def test_scoped_set_member(module, scoped_members):
 
 def test_scoped_var_member(module, scoped_members):
     scoped_members.scoped_var = module.EnumClass.ClassScopedEnum.ClassScopedMember
-
-
-# The following test typed enums.
-
-def test_class_typed_type(module):
-    assert issubclass(module.EnumClass.ClassTypedEnum, Enum)
-
-def test_class_typed_value(module):
-    assert module.EnumClass.ClassTypedEnum.ClassTypedMember.value == 0xff
-
-def test_typed_get_member(module, typed_members, virtual_hook):
-    assert typed_members.typed_get() is module.EnumClass.ClassTypedEnum.ClassTypedMember
-    virtual_hook.reraise()
-
-def test_typed_set_member(module, typed_members):
-    typed_members.typed_set(
-            module.EnumClass.ClassTypedEnum.ClassTypedMember)
-
-def test_typed_var_member(module, typed_members):
-    typed_members.typed_var = module.EnumClass.ClassTypedEnum.ClassTypedMember

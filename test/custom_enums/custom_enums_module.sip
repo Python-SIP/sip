@@ -1,7 +1,7 @@
-// The SIP implementation of the py_enums_module test module.
+// The SIP implementation of the custom_enums_module test module.
 
 
-%Module(name=py_enums_module)
+%Module(name=custom_enums_module)
 
 
 %ModuleHeaderCode
@@ -19,23 +19,6 @@ bool operator==(NamedEnum e, int v);
 
 enum class ScopedEnum {
     ScopedMember = 30
-};
-
-
-enum EnumBase {
-    EnumBaseMember = 100
-};
-
-enum FlagBase {
-    FlagBaseMember = 110
-};
-
-enum IntEnumBase {
-    IntEnumBaseMember = 120
-};
-
-enum IntFlagBase {
-    IntFlagBaseMember = 130
 };
 
 
@@ -81,21 +64,6 @@ public:
     }
     static void scoped_set(ClassScopedEnum) {}
     ClassScopedEnum scoped_var;
-
-    enum ClassTypedEnum : unsigned char {
-        ClassTypedMember = 0xff
-    };
-
-    ClassTypedEnum typed_get() {
-        return typed_virt();
-    }
-
-    virtual ClassTypedEnum typed_virt() {
-        return ClassTypedEnum::ClassTypedMember;
-    }
-
-    static void typed_set(ClassTypedEnum) {}
-    ClassTypedEnum typed_var;
 };
 
 %End
@@ -120,23 +88,6 @@ bool operator==(NamedEnum e, int v);
 
 enum class ScopedEnum {
     ScopedMember
-};
-
-
-enum EnumBase /BaseType=Enum/ {
-    EnumBaseMember
-};
-
-enum FlagBase /BaseType=Flag/ {
-    FlagBaseMember
-};
-
-enum IntEnumBase /BaseType=IntEnum/ {
-    IntEnumBaseMember
-};
-
-enum IntFlagBase /BaseType=IntFlag/ {
-    IntFlagBaseMember
 };
 
 
@@ -174,13 +125,4 @@ public:
     virtual ClassScopedEnum scoped_virt();
     static void scoped_set(ClassScopedEnum);
     ClassScopedEnum scoped_var;
-
-    enum ClassTypedEnum : unsigned char {
-        ClassTypedMember
-    };
-
-    ClassTypedEnum typed_get();
-    virtual ClassTypedEnum typed_virt();
-    static void typed_set(ClassTypedEnum);
-    ClassTypedEnum typed_var;
 };
