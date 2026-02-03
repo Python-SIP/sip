@@ -1,7 +1,9 @@
-// The SIP implementation of the py_enums_module test module.
+// The SIP implementation of the v13_enums_module test module.
 
 
-%Module(name=py_enums_module)
+%Module(name=v13_enums_module)
+
+%SipModuleConfiguration {PyEnums}
 
 
 %ModuleHeaderCode

@@ -1,7 +1,9 @@
-// The SIP implementation of the custom_enums_module test module.
+// The SIP implementation of the v12_enums_module test module.
 
 
-%Module(name=custom_enums_module)
+%Module(name=v12_enums_module)
+
+%SipModuleConfiguration {CustomEnums}
 
 
 %ModuleHeaderCode
