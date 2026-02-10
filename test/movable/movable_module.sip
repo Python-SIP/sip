@@ -13,12 +13,39 @@ template <TYPE>
 %End
 
 %ConvertFromTypeCode
+#if SIP_ABI_MAJOR_VERSION >= 14
+    sipTypeID type_id = sipFindTypeID(sipModule, "TYPE*");
+
+    return sipConvertFromType(sipModule, sipCpp->release(), type_id, Py_None);
+#else
     const sipTypeDef *td = sipFindType("TYPE*");
 
-    return sipConvertFromNewType(sipCpp->release(), td, NULL);
+    return sipConvertFromType(sipCpp->release(), td, Py_None);
+#endif
 %End
 
 %ConvertToTypeCode
+#if SIP_ABI_MAJOR_VERSION >= 14
+    sipTypeID type_id = sipFindTypeID(sipModule, "TYPE");
+
+    if (sipIsErr == NULL)
+        return sipCanConvertToType(sipModule, sipPy, type_id, 0);
+
+    if (sipPy == Py_None)
+        return 1;
+
+    int state;
+    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipModule, sipPy, type_id, sipTransferObj, 0, &state, sipIsErr));
+
+    sipReleaseType(sipModule, t, type_id, state);
+
+    if (*sipIsErr)
+        return 0;
+
+    *sipCppPtr = new std::unique_ptr<TYPE>(t);
+
+    return sipGetState(sipTransferObj);
+#else
     const sipTypeDef *td = sipFindType("TYPE");
 
     if (sipIsErr == NULL)
@@ -38,6 +65,7 @@ template <TYPE>
     *sipCppPtr = new std::unique_ptr<TYPE>(t);
 
     return sipGetState(sipTransferObj);
+#endif
 %End
 };
 

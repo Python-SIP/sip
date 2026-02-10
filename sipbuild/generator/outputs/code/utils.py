@@ -151,6 +151,28 @@ def get_enum_member(spec, enum_member):
     return scope_s + enum_member.cpp_name
 
 
+def get_function_table(members):
+    """ Return a sorted list of relevant functions for a namespace. """
+
+    return sorted(members, key=lambda m: m.py_name.name)
+
+
+def get_mapped_type_flags(mapped_type):
+    """ Return the flags for a mapped type. """
+
+    flags = []
+
+    if mapped_type.handles_none:
+        flags.append('SIP_TYPE_ALLOW_NONE')
+
+    if mapped_type.needs_user_state:
+        flags.append('SIP_TYPE_USER_STATE')
+
+    flags.append('SIP_TYPE_MAPPED')
+
+    return '|'.join(flags)
+
+
 def get_named_value_decl(spec, scope, type, name):
     """ Return the declaration of a named variable to hold a C++ value. """
 

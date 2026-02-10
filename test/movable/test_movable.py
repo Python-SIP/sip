@@ -1,15 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from sys import getrefcount
 
 import pytest
-
-
-# TODO
-cfg_disabled_for = [14]
 
 
 def test_movable(module):
@@ -33,20 +29,21 @@ def test_movable(module):
     # Test an empty wrapper.
     assert ow.getObjectValue() == -1000
 
-    # Test an non-empty wrapper.
+    # Test a non-empty wrapper.
     ow.setObject(ao)
-    assert getrefcount(ao) == ao_base_refcount + 1
     assert ow.getObjectValue() == 4
 
+    # Test the changed state of the object.
+    assert getrefcount(ao) == ao_base_refcount + 1
+    assert module.ispyowned(ao) is False
+
     # Unwrap the object and test the wrapper.
-    ao2 = ow.takeObject()
+    assert ow.takeObject() is ao
     assert ow.getObjectValue() == -1000
 
     # Re-test the value of the object.
-    assert ao2.getValue() == 4
+    assert ao.getValue() == 4
 
-    # Check that the original Python object no longer wraps the C++ object.
+    # Re-test the state of the object.
     assert getrefcount(ao) == ao_base_refcount
-
-    with pytest.raises(RuntimeError):
-        ao.getValue()
+    assert module.ispyowned(ao) is True

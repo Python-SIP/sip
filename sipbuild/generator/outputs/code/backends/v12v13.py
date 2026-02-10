@@ -14,7 +14,8 @@ from ..snippets import (g_class_docstring, g_class_method_table,
         g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
         g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
 from ..utils import (get_class_flags, get_const_cast, get_docstring_text,
-        get_encoded_type, get_enum_member, get_named_value_decl,
+        get_encoded_type, get_enum_member, get_function_table,
+        get_mapped_type_flags, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_use_in_code,
         get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
         is_used_in_code, keep_py_reference, need_dealloc, py_scope,
@@ -328,6 +329,99 @@ f'''
 #define {self.get_type_ref(mapped_type)} sipExportedTypes_{module_name}[{iface_file.type_nr}]
 
 extern sipMappedTypeDef sipTypeDef_{module_name}_{mapped_type_name};
+''')
+
+    def g_mapped_type_definition(self, sf, bindings, mapped_type):
+        """ Generate the type structure that contains all the information
+        needed by a mapped type.
+        """
+
+        spec = self.spec
+        mapped_type_name = mapped_type.iface_file.fq_cpp_name.as_word
+
+        members = get_function_table(mapped_type.members)
+        cod_nrmethods = self.g_py_method_table(sf, bindings, members,
+                mapped_type)
+
+        id_int = 'SIP_NULLPTR'
+
+        if self.custom_enums_supported():
+            cod_nrenummembers, _ = self.g_enums_specifications(sf, bindings,
+                    scope=mapped_type)
+            has_ints = False
+            needs_namespace = (cod_nrenummembers > 0)
+        else:
+            if self.g_mapped_type_int_instances(sf, mapped_type):
+                id_int = 'intInstances_' + mapped_type_name
+
+            needs_namespace = False
+
+        if cod_nrmethods > 0:
+            needs_namespace = True
+
+        if pyqt6_supported(spec) and mapped_type.pyqt_flags != 0:
+            sf.write(f'\n\nstatic pyqt6MappedTypePluginDef plugin_{mapped_type_name} = {{{mapped_type.pyqt_flags}}};\n')
+
+            td_plugin_data = '&plugin_' + mapped_type_name
+        else:
+            td_plugin_data = 'SIP_NULLPTR'
+
+        sf.write(
+f'''
+
+sipMappedTypeDef sipTypeDef_{mapped_type.iface_file.module.py_name}_{mapped_type_name} = {{
+    {{
+''')
+
+        if spec.target_abi < (13, 0):
+            sf.write(
+'''        -1,
+        SIP_NULLPTR,
+''')
+
+        td_flags = get_mapped_type_flags(mapped_type)
+        td_cname = self.cached_name_ref(mapped_type.cpp_name, as_nr=True)
+        cod_name = self.cached_name_ref(mapped_type.py_name, as_nr=True) if needs_namespace else '-1'
+        cod_methods = 'SIP_NULLPTR' if cod_nrmethods == 0 else 'methods_' + mapped_type_name
+
+        sf.write(
+f'''        SIP_NULLPTR,
+        {td_flags},
+        {td_cname},
+        SIP_NULLPTR,
+        {td_plugin_data},
+    }},
+    {{
+        {cod_name},
+        {{0, 0, 1}},
+        {cod_nrmethods}, {cod_methods},
+''')
+
+        if self.custom_enums_supported():
+            cod_enummembers = 'SIP_NULLPTR' if cod_nrenummembers == 0 else 'enummembers_' + mapped_type_name
+
+            sf.write(
+f'''        {cod_nrenummembers}, {cod_enummembers},
+''')
+
+        mtd_assign = 'SIP_NULLPTR' if mapped_type.no_assignment_operator else 'assign_' + mapped_type_name
+        mtd_array = 'SIP_NULLPTR' if mapped_type.no_default_ctor else 'array_' + mapped_type_name
+        mtd_copy = 'SIP_NULLPTR' if mapped_type.no_copy_ctor else 'copy_' + mapped_type_name
+        mtd_release = 'SIP_NULLPTR' if mapped_type.no_release else 'release_' + mapped_type_name
+        mtd_cto = 'SIP_NULLPTR' if mapped_type.convert_to_type_code is None else 'convertTo_' + mapped_type_name
+        mtd_cfrom = 'SIP_NULLPTR' if mapped_type.convert_from_type_code is None else 'convertFrom_' + mapped_type_name
+
+        sf.write(
+f'''        0, SIP_NULLPTR,
+        {{SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, {id_int}, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}}
+    }},
+    {mtd_assign},
+    {mtd_array},
+    {mtd_copy},
+    {mtd_release},
+    {mtd_cto},
+    {mtd_cfrom}
+}};
 ''')
 
     def g_mapped_type_int_instances(self, sf, mapped_type):

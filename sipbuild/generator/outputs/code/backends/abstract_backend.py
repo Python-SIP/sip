@@ -88,6 +88,14 @@ class AbstractBackend(ABC):
 
         ...
 
+    @abstractmethod
+    def g_mapped_type_definition(self, sf, bindings, mapped_type):
+        """ Generate the type structure that contains all the information
+        needed by a mapped type.
+        """
+
+        ...
+
     def g_mapped_type_int_instances(self, sf, mapped_type):
         """ Generate the code to add a set of ints to a mapped type.  Return
         True if there was at least one.
