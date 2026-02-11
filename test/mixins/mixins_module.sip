@@ -63,19 +63,18 @@ public:
         *sipUnused = dict;
     }
 
-    PyObject *value;
-    int rc = PyDict_PopString(dict, "extra_kwarg", &value);
+    PyObject *value = PyDict_GetItemString(dict, "extra_kwarg");
 
-    if (rc < 0)
-        return -1;
-
-    if (rc == 1)
+    if (value != NULL)
     {
-        rc = PyObject_SetAttrString(sipSelf, "extra_kwarg", value);
-        Py_DECREF(value);
+        if (PyObject_SetAttrString(sipSelf, "extra_kwarg", value) < 0)
+            return -1;
+
+        if (PyDict_DelItemString(dict, "extra_kwarg") < 0)
+            return -1;
     }
 
-    return rc;
+    return 0;
 %End
 
     int get_attr() const;
