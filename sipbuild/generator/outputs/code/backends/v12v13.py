@@ -353,8 +353,9 @@ extern sipMappedTypeDef sipTypeDef_{module_name}_{mapped_type_name};
         else:
             if self.g_mapped_type_int_instances(sf, mapped_type):
                 id_int = 'intInstances_' + mapped_type_name
-
-            needs_namespace = False
+                needs_namespace = True
+            else:
+                needs_namespace = False
 
         if cod_nrmethods > 0:
             needs_namespace = True

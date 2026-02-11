@@ -859,8 +859,8 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
 
     spec = backend.spec
 
-    # If the scope is just a namespace, then ignore it.
-    if isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE:
+    # If the scope is a mapped type or a namespace, then ignore it.
+    if isinstance(scope, MappedType) or (isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE):
         scope = None
 
     # For ABI v13 and later static methods use self for the type object.

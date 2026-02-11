@@ -915,6 +915,11 @@ class MappedType:
     # The type hints.
     type_hints: 'TypeHints|None' = None
 
+    def __hash__(self):
+        """ Reimplemented so a MappedType object can be used as a dict key. """
+
+        return id(self)
+
 
 @dataclass
 class MappedTypeTemplate:
@@ -1701,7 +1706,8 @@ class WrappedClass:
     visible_members: list[VisibleMember] = field(default_factory=list)
 
     def __hash__(self):
-        """ Reimplemented so an Argument object can be used as a dict key. """
+        """ Reimplemented so a WrappedClass object can be used as a dict key.
+        """
 
         return id(self)
 
