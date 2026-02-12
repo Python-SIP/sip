@@ -47,6 +47,17 @@ def get_class_flags(spec, klass, py_debug):
     return '|'.join(flags)
 
 
+def get_class_from_void(spec, klass):
+    """ Return an assignment statement from a void * variable to a class
+    instance variable.
+    """
+
+    klass_type = scoped_class_name(spec, klass)
+    cast = get_type_from_void(spec, klass_type, 'sipCppV')
+
+    return f'{klass_type} *sipCpp = {cast}'
+
+
 def get_const_cast(spec, type, value):
     """ Return a value with an appropriate const_cast to a type. """
 

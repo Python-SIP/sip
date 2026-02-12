@@ -21,7 +21,7 @@ from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_signature_as_cpp_declaration, fmt_signature_as_cpp_definition,
         fmt_signature_as_type_hint, fmt_value_list_as_cpp_expression)
 
-from .utils import (callable_overloads, get_const_cast,
+from .utils import (callable_overloads, get_class_from_void, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
         get_enum_class_scope, get_function_table, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_type_from_void,
@@ -354,12 +354,12 @@ static sipExternalTypeDef externalTypesTable[] = {
     # Generate the typedefs table.
     if module.nr_typedefs > 0:
         sf.write(
-'''
+f'''
 
 /*
  * These define each typedef in this module.
  */
-static sipTypedefDef typedefsTable[] = {
+static sipTypedef{backend.get_spec_suffix()} typedefsTable[] = {{
 ''')
 
         for typedef in spec.typedefs:
@@ -2698,7 +2698,7 @@ def _class_cpp(backend, sf, bindings, klass, py_debug):
             sf.write(
 f'''static PyObject *convertFrom_{name}({context}void *sipCppV, PyObject *{xfer})
 {{
-    {_class_from_void(spec, klass)};
+    {get_class_from_void(spec, klass)};
 
 ''')
 
@@ -3007,47 +3007,7 @@ def _class_functions(backend, sf, bindings, klass, py_debug):
 
     # The cast function.
     if len(klass.superclasses) != 0:
-        sf.write(
-f'''
-
-/* Cast a pointer to a type somewhere in its inheritance hierarchy. */
-extern "C" {{static void *cast_{as_word}(void *, const sipTypeDef *);}}
-static void *cast_{as_word}(void *sipCppV, const sipTypeDef *targetType)
-{{
-    {_class_from_void(spec, klass)};
-
-    if (targetType == {backend.get_type_ref(klass)})
-        return sipCppV;
-
-''')
-
-        for superclass in klass.superclasses:
-            sc_fq_cpp_name = superclass.iface_file.fq_cpp_name
-            sc_scope_s = scoped_class_name(spec, superclass)
-            sc_type_ref = backend.get_type_ref(superclass)
-
-            if len(superclass.superclasses) != 0:
-                # Delegate to the super-class's cast function.  This will
-                # handle virtual and non-virtual diamonds.
-                sf.write(
-f'''    sipCppV = ((const sipClassTypeDef *){sc_type_ref})->ctd_cast(static_cast<{sc_scope_s} *>(sipCpp), targetType);
-    if (sipCppV)
-        return sipCppV;
-
-''')
-            else:
-                # The super-class is a base class and so doesn't have a cast
-                # function.  It also means that a simple check will do instead.
-                sf.write(
-f'''    if (targetType == {sc_type_ref})
-        return static_cast<{sc_scope_s} *>(sipCpp);
-
-''')
-
-        sf.write(
-'''    return SIP_NULLPTR;
-}
-''')
+        backend.g_cast_function(sf, klass)
 
     if klass.iface_file.type is not IfaceFileType.NAMESPACE and not spec.c_bindings:
         # Generate the release function without compiler warnings.
@@ -3076,7 +3036,7 @@ f'''    if (targetType == {sc_type_ref})
         sf.write(f'static void release_{as_word}(void *{sip_cpp_v}, int{sip_state})\n{{\n')
 
         if need_cast_ptr:
-            sf.write(f'    {_class_from_void(spec, klass)};\n\n')
+            sf.write(f'    {get_class_from_void(spec, klass)};\n\n')
 
         if len(klass.dealloc_code) != 0:
             sf.write_code(klass.dealloc_code)
@@ -3132,7 +3092,7 @@ f'''    delete reinterpret_cast<{scoped_class_name(spec, klass)} *>(sipCppV);
         sf.write(
 f'''static int traverse_{as_word}(void *sipCppV, visitproc sipVisit, void *sipArg)
 {{
-    {_class_from_void(spec, klass)};
+    {get_class_from_void(spec, klass)};
     int sipRes;
 
 ''')
@@ -3155,7 +3115,7 @@ f'''static int traverse_{as_word}(void *sipCppV, visitproc sipVisit, void *sipAr
         sf.write(
 f'''static int clear_{as_word}(void *sipCppV)
 {{
-    {_class_from_void(spec, klass)};
+    {get_class_from_void(spec, klass)};
     int sipRes;
 
 ''')
@@ -3194,7 +3154,7 @@ f'''static int clear_{as_word}(void *sipCppV)
         sf.write('{\n')
 
         if need_cpp:
-            sf.write(f'    {_class_from_void(spec, klass)};\n')
+            sf.write(f'    {get_class_from_void(spec, klass)};\n')
 
         sf.write('    int sipRes;\n\n')
         sf.write_code(code)
@@ -3225,7 +3185,7 @@ f'''static int clear_{as_word}(void *sipCppV)
         sf.write('{\n')
 
         if need_cpp:
-            sf.write(f'    {_class_from_void(spec, klass)};\n')
+            sf.write(f'    {get_class_from_void(spec, klass)};\n')
 
         sf.write_code(code)
         sf.write('}\n')
@@ -3240,7 +3200,7 @@ f'''static int clear_{as_word}(void *sipCppV)
         sf.write(
 f'''static PyObject *pickle_{as_word}(void *sipCppV)
 {{
-    {_class_from_void(spec, klass)};
+    {get_class_from_void(spec, klass)};
     PyObject *sipRes;
 
 ''')
@@ -3270,7 +3230,7 @@ f'''static int final_{as_word}(PyObject *{sip_self}, void *{sip_cpp_v}, PyObject
 ''')
 
         if need_cpp:
-            sf.write(f'    {_class_from_void(spec, klass)};\n\n')
+            sf.write(f'    {get_class_from_void(spec, klass)};\n\n')
 
         sf.write_code(code)
 
@@ -6191,17 +6151,6 @@ def _arg_name(spec, name, code):
 
     # Don't use the name.
     return ''
-
-
-def _class_from_void(spec, klass):
-    """ Return an assignment statement from a void * variable to a class
-    instance variable.
-    """
-
-    klass_type = scoped_class_name(spec, klass)
-    cast = get_type_from_void(spec, klass_type, 'sipCppV')
-
-    return f'{klass_type} *sipCpp = {cast}'
 
 
 def _mapped_type_from_void(spec, mapped_type_type):

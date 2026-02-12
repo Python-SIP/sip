@@ -26,6 +26,13 @@ class AbstractBackend(ABC):
         return backend(spec)
 
     @abstractmethod
+    def g_cast_function(self, sf, klass):
+        """ Generate the function that casts a C++ pointer to a target type.
+        """
+
+        ...
+
+    @abstractmethod
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).

@@ -13,9 +13,9 @@ from ...formatters import fmt_argument_as_cpp_type
 from ..snippets import (g_class_docstring, g_class_method_table,
         g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
         g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
-from ..utils import (get_class_flags, get_const_cast, get_docstring_text,
-        get_encoded_type, get_enum_member, get_function_table,
-        get_mapped_type_flags, get_named_value_decl,
+from ..utils import (get_class_flags, get_class_from_void, get_const_cast,
+        get_docstring_text, get_encoded_type, get_enum_member,
+        get_function_table, get_mapped_type_flags, get_named_value_decl,
         get_normalised_cached_name, get_optional_ptr, get_use_in_code,
         get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
         is_used_in_code, keep_py_reference, need_dealloc, py_scope,
@@ -27,6 +27,55 @@ from .abstract_backend import AbstractBackend
 
 class v12v13Backend(AbstractBackend):
     """ The backend code generator for v12 and v13 of the ABI. """
+
+    def g_cast_function(self, sf, klass):
+        """ Generate the function that casts a C++ pointer to a target type.
+        """
+
+        spec = self.spec
+        as_word = klass.iface_file.fq_cpp_name.as_word
+
+        sf.write(
+f'''
+
+/* Cast a pointer to a type somewhere in its inheritance hierarchy. */
+extern "C" {{static void *cast_{as_word}(void *, const sipTypeDef *);}}
+static void *cast_{as_word}(void *sipCppV, const sipTypeDef *targetType)
+{{
+    {get_class_from_void(spec, klass)};
+
+    if (targetType == {self.get_type_ref(klass)})
+        return sipCppV;
+
+''')
+
+        for superclass in klass.superclasses:
+            sc_fq_cpp_name = superclass.iface_file.fq_cpp_name
+            sc_scope_s = scoped_class_name(spec, superclass)
+            sc_type_ref = self.get_type_ref(superclass)
+
+            if len(superclass.superclasses) != 0:
+                # Delegate to the super-class's cast function.  This will
+                # handle virtual and non-virtual diamonds.
+                sf.write(
+f'''    sipCppV = ((const sipClassTypeDef *){sc_type_ref})->ctd_cast(static_cast<{sc_scope_s} *>(sipCpp), targetType);
+    if (sipCppV)
+        return sipCppV;
+
+''')
+            else:
+                # The super-class is a base class and so doesn't have a cast
+                # function.  It also means that a simple check will do instead.
+                sf.write(
+f'''    if (targetType == {sc_type_ref})
+        return static_cast<{sc_scope_s} *>(sipCpp);
+
+''')
+
+        sf.write(
+'''    return SIP_NULLPTR;
+}
+''')
 
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
