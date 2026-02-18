@@ -244,36 +244,41 @@ file.
 
     *exception-base* ::= **(** [*exception-name* | *python-exception*] **)**
 
-    *python-exception* ::= [**SIP_ArithmeticError** | **SIP_AssertionError** |
-            **SIP_AttributeError** | **SIP_BaseException** |
-            **SIP_BlockingIOError** | **SIP_BrokenPipeError** |
-            **SIP_BufferError** | **SIP_ChildProcessError** |
-            **SIP_ConnectionAbortedError** | **SIP_ConnectionError** |
-            **SIP_ConnectionRefusedError** | **SIP_ConnectionResetError** |
-            **SIP_EnvironmentError** | **SIP_EOFError** | **SIP_Exception** |
+    *python-exception* ::= [
+            **SIP_BaseException** | **SIP_BaseExceptionGroup** |
+            **SIP_Exception** |
+            **SIP_ArithmeticError** | **SIP_AssertionError** |
+            **SIP_AttributeError** | **SIP_BlockingIOError** |
+            **SIP_BrokenPipeError** | **SIP_BufferError** |
+            **SIP_ChildProcessError** | **SIP_ConnectionAbortedError** |
+            **SIP_ConnectionError** | **SIP_ConnectionRefusedError** |
+            **SIP_ConnectionResetError** | **SIP_EOFError** |
             **SIP_FileExistsError** | **SIP_FileNotFoundError** |
             **SIP_FloatingPointError** | **SIP_GeneratorExit** |
-            **SIP_ImportError** | **SIP_IndentationError** |
-            **SIP_IndexError** | **SIP_InterruptedError** | **SIP_IOError** |
-            **SIP_IsADirectoryError** | **SIP_KeyboardInterrupt** |
-            **SIP_KeyError** | **SIP_LookupError** | **SIP_MemoryError** |
-            **SIP_NameError** | **SIP_NotADirectoryError** |
-            **SIP_NotImplementedError** | **SIP_OSError** |
-            **SIP_OverflowError** | **SIP_PermissionError** |
-            **SIP_ProcessLookupError** | **SIP_ReferenceError** |
-            **SIP_RuntimeError** | **SIP_StandardError** |
+            **SIP_ImportCycleError** | **SIP_ImportError** |
+            **SIP_IndentationError** | **SIP_IndexError** |
+            **SIP_InterruptedError** | **SIP_IsADirectoryError** |
+            **SIP_KeyError** | **SIP_KeyboardInterrupt** |
+            **SIP_LookupError** | **SIP_MemoryError** |
+            **SIP_ModuleNotFoundError** | **SIP_NameError** |
+            **SIP_NotADirectoryError** | **SIP_NotImplementedError** |
+            **SIP_OSError** | **SIP_OverflowError** | **SIP_PermissionError** |
+            **SIP_ProcessLookupError** | **SIP_PythonFinalizationError ** |
+            **SIP_RecursionError** | **SIP_ReferenceError** |
+            **SIP_RuntimeError** | **SIP_StopAsyncIteration** |
             **SIP_StopIteration** | **SIP_SyntaxError** | **SIP_SystemError** |
             **SIP_SystemExit** | **SIP_TabError** | **SIP_TimeoutError** |
             **SIP_TypeError** | **SIP_UnboundLocalError** |
             **SIP_UnicodeDecodeError** | **SIP_UnicodeEncodeError** |
             **SIP_UnicodeError** | **SIP_UnicodeTranslateError** |
-            **SIP_ValueError** | **SIP_VMSError** | **SIP_WindowsError** |
-            **SIP_ZeroDivisionError** | **SIP_Warning** |
+            **SIP_ValueError** | **SIP_ZeroDivisionError** |
+            **SIP_Warning** |
             **SIP_BytesWarning** | **SIP_DeprecationWarning** |
-            **SIP_FutureWarning** | **SIP_ImportWarning** |
-            **SIP_PendingDeprecationWarning** | **SIP_ResourceWarning** |
-            **SIP_RuntimeWarning** | **SIP_SyntaxWarning** |
-            **SIP_UnicodeWarning** | **SIP_UserWarning**]
+            **SIP_EncodingWarning** | **SIP_FutureWarning** |
+            **SIP_ImportWarning** | **SIP_PendingDeprecationWarning** |
+            **SIP_ResourceWarning** | **SIP_RuntimeWarning** |
+            **SIP_SyntaxWarning** | **SIP_UnicodeWarning** |
+            **SIP_UserWarning**]
 
     *argument-list* ::= *argument* [**,** *argument-list*] [**,** **...**]
 
