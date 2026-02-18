@@ -207,6 +207,10 @@ class ArgumentType(Enum):
     # A Py_hash_t.
     HASH = 57
 
+    # An exception.  This is only used internally (exceptions can't be passed
+    # as arguments).
+    EXCEPTION = 58
+
 
 class ArrayArgument(Enum):
     """ The array support provided by an argument. """

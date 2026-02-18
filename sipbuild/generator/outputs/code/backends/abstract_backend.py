@@ -33,6 +33,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_catch_body(self, sf):
+        """ Generate the body of a catch clause. """
+
+        ...
+
+    @abstractmethod
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -73,11 +79,35 @@ class AbstractBackend(ABC):
 
         ...
 
+    def g_exceptions_specifications(self, sf):
+        """ Generate the specifications for any exceptions. """
+
+        # This default implementation does nothing.
+        pass
+
+    @abstractmethod
+    def g_exceptions_decls(self, sf):
+        """ Generate the declarations of all exceptions. """
+
+        ...
+
+    def g_exceptions_defn(self, sf):
+        """ Generate the definition of the exceptions data structure. """
+
+        # This default implementation does nothing.
+        pass
+
     @abstractmethod
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
         virtual.
         """
+
+        ...
+
+    @abstractmethod
+    def g_import_tables(self, sf):
+        """ Generated the tables related to imported modules. """
 
         ...
 
@@ -305,14 +335,20 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_spec_for_mapped_type(self, mapped_type):
-        """ Return the name of the data structure specifying a mapped type. """
+    def get_spec_for_enum(self, enum, enums_closure):
+        """ Return the name of the data structure specifying an enum. """
 
         ...
 
+    def get_spec_for_exception(self, exception):
+        """ Return the name of the data structure specifying an exception. """
+
+        # This default implementation does nothing.
+        pass
+
     @abstractmethod
-    def get_spec_for_enum(self, enum, enums_closure):
-        """ Return the name of the data structure specifying an enum. """
+    def get_spec_for_mapped_type(self, mapped_type):
+        """ Return the name of the data structure specifying a mapped type. """
 
         ...
 

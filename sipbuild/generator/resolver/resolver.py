@@ -160,15 +160,7 @@ def resolve(spec, modules):
             if exception_mod is spec.module:
                 append_iface_file(spec.module.used, exception.iface_file)
 
-        # Skip those that don't require a Python exception object to be
-        # created.
-        if exception.iface_file.type is not IfaceFileType.EXCEPTION:
-            continue
-
-        if exception.builtin_base_exception is None and exception.defined_base_exception is None:
-            continue
-
-        if exception_mod is spec.module or exception.needed:
+        if _exception_needed(spec, exception):
             exception.exception_nr = exception_mod.nr_exceptions
             exception_mod.nr_exceptions += 1
 
@@ -2210,6 +2202,14 @@ def _create_sorted_numbered_types(spec, mod, error_log):
             mod.needed_types.append(Argument(ArgumentType.ENUM,
                     definition=enum, name=enum.cached_fq_cpp_name))
 
+    # ABI v14 includes exceptions in the list of needed types.
+    if spec.target_abi >= (14, 0):
+        for exception in spec.exceptions:
+            if _exception_needed(spec, exception):
+                mod.needed_types.append(Argument(ArgumentType.EXCEPTION,
+                        definition=exception,
+                        name=exception.iface_file.cpp_name))
+
     # Sort the list and assign type numbers.
     mod.needed_types.sort(key=lambda t: t.name.name)
 
@@ -2230,6 +2230,22 @@ def _create_sorted_numbered_types(spec, mod, error_log):
 
         elif needed_type.type is ArgumentType.ENUM:
             needed_type.definition.type_nr = type_nr
+
+        elif needed_type.type is ArgumentType.EXCEPTION:
+            needed_type.definition.iface_file.type_nr = type_nr
+
+
+def _exception_needed(spec, exception):
+    """ Return True if an exception is needed by the module. """
+
+    # Skip those that don't require a Python exception object to be created.
+    if exception.iface_file.type is not IfaceFileType.EXCEPTION:
+        return False
+
+    if exception.builtin_base_exception is None and exception.defined_base_exception is None:
+        return False
+
+    return exception.iface_file.module is spec.module or exception.needed
 
 
 def _check_properties(klass, error_log):

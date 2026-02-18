@@ -7,7 +7,7 @@
 %ExportedHeaderCode
 // The need for this, ie. to resolve the type as a typedef, is a SIP bug.
 #if SIP_ABI_MAJOR_VERSION >= 14
-#define getSipType(mod, name)   (sipResolveTypedef(mod, name) ? sipFindTypeID(mod, sipResolveTypedef(mod, name)) : sipFindTypeID(mod, name))
+#define getSipType(mod, name)   sipFindTypeID(mod, sipResolveTypedef(mod, name))
 #else
 #define getSipType(name)        (sipResolveTypedef(name) ? sipFindType(sipResolveTypedef(name)) : sipFindType(name))
 #endif

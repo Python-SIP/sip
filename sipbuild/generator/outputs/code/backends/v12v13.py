@@ -77,6 +77,20 @@ f'''    if (targetType == {sc_type_ref})
 }
 ''')
 
+    def g_catch_body(self, sf):
+        """ Generate the body of a catch clause. """
+
+        sf.write(
+'''                void *sipExcState = SIP_NULLPTR;
+                sipExceptionHandler sipExcHandler;
+                std::exception_ptr sipExcPtr = std::current_exception();
+
+                while ((sipExcHandler = sipNextExceptionHandler(&sipExcState)) != SIP_NULLPTR)
+                    if (sipExcHandler(sipExcPtr))
+                        return SIP_NULLPTR;
+
+''')
+
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -333,6 +347,39 @@ static sipEnumMemberDef enummembers_{scope.iface_file.fq_cpp_name.as_word}[] = {
 
         return len(enum_members), needed_enums
 
+    def g_exceptions_decls(self, sf):
+        """ Generate the declarations of all exceptions. """
+
+        spec = self.spec
+        module = spec.module
+        module_name = module.py_name
+        no_exceptions = True
+
+        for exception in spec.exceptions:
+            if exception.iface_file.module is module and exception.exception_nr >= 0:
+                if no_exceptions:
+                    sf.write(
+f'''
+/* The exceptions defined in this module. */
+extern PyObject *sipExportedExceptions_{module_name}[];
+
+''')
+
+                    no_exceptions = False
+
+                sf.write(f'#define sipException_{exception.iface_file.fq_cpp_name.as_word} sipExportedExceptions_{module_name}[{exception.exception_nr}]\n')
+
+    def g_exceptions_defn(self, sf):
+        """ Generate the definition of the exceptions data structure. """
+
+        module = self.spec.module
+
+        sf.write(
+f'''
+
+PyObject *sipExportedExceptions_{module.py_name}[{module.nr_exceptions + 1}];
+''')
+
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
         virtual.
@@ -353,6 +400,115 @@ static sipEnumMemberDef enummembers_{scope.iface_file.fq_cpp_name.as_word}[] = {
         member_py_name_ref = self.cached_name_ref(overload.common.py_name)
 
         sf.write(f'\n    sipMeth = sipIsPyMethod(&sipGILState, {const_cast_char}&sipPyMethods[{virt_nr}]{const_cast_tail}, {abi_12_8_arg}{klass_py_name_ref}, {member_py_name_ref});\n')
+
+    def g_import_tables(self, sf):
+        """ Generated the tables related to imported modules. """
+
+        module = self.spec.module
+        module_name = module.py_name
+
+        for imported_module in module.all_imports:
+            imported_module_name = imported_module.py_name
+
+            if len(imported_module.needed_types) != 0:
+                sf.write(
+f'''
+
+/* This defines the types that this module needs to import from {imported_module_name}. */
+sipImportedTypeDef sipImportedTypes_{module_name}_{imported_module_name}[] = {{
+''')
+
+                for needed_type in imported_module.needed_types:
+                    if needed_type.type is ArgumentType.MAPPED:
+                        type_name = needed_type.definition.cpp_name
+                    else:
+                        if needed_type.type is ArgumentType.CLASS:
+                            scoped_name = needed_type.definition.iface_file.fq_cpp_name
+                        else:
+                            scoped_name = needed_type.definition.fq_cpp_name
+
+                        type_name = scoped_name.cpp_stripped(STRIP_GLOBAL)
+
+                    sf.write(f'    {{"{type_name}"}},\n')
+
+                sf.write(
+'''    {SIP_NULLPTR}
+};
+''')
+
+            if imported_module.nr_virtual_error_handlers > 0:
+                sf.write(
+f'''
+
+/*
+ * This defines the virtual error handlers that this module needs to import
+ * from {imported_module_name}.
+ */
+sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}[] = {{
+''')
+
+                # The handlers are unordered so search for each in turn.  There
+                # will probably be only one so speed isn't an issue.
+                for i in range(imported_module.nr_virtual_error_handlers):
+                    for handler in spec.virtual_error_handlers:
+                        if handler.module is imported_module and handler.handler_nr == i:
+                            sf.write(f'    {{"{handler.name}"}},\n')
+
+                sf.write(
+'''    {SIP_NULLPTR}
+};
+''')
+
+            if imported_module.nr_exceptions > 0:
+                sf.write(
+f'''
+
+/*
+ * This defines the exception objects that this module needs to import from
+ * {imported_module_name}.
+ */
+sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[] = {{
+''')
+
+                # The exceptions are unordered so search for each in turn.
+                # There will probably be very few so speed isn't an issue.
+                for i in range(imported_module.nr_exceptions):
+                    for exception in spec.exceptions:
+                        if exception.iface_file.module is imported_module and exception.exception_nr == i:
+                            sf.write(f'    {{"{exception.py_name}"}},\n')
+
+                sf.write(
+'''    {SIP_NULLPTR}
+};
+''')
+
+        sf.write(
+'''
+
+/* This defines the modules that this module needs to import. */
+static sipImportedModuleDef importsTable[] = {
+''')
+
+        for imported_module in module.all_imports:
+            imported_module_name = imported_module.py_name
+
+            types = handlers = exceptions = 'SIP_NULLPTR'
+
+            if len(imported_module.needed_types) != 0:
+                types = f'sipImportedTypes_{module_name}_{imported_module_name}'
+
+            if imported_module.nr_virtual_error_handlers != 0:
+                handlers = f'sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}'
+
+            if imported_module.nr_exceptions != 0:
+                exceptions = f'sipImportedExceptions_{module_name}_{imported_module_name}'
+
+            sf.write(f'    {{"{imported_module.fq_py_name}", {types}, {handlers}, {exceptions}}},\n')
+
+        sf.write(
+'''    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}
+};
+''')
 
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation

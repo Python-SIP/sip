@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
-
-
-# TODO
-cfg_disabled_for = [14]
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 def test_property_getter(module):

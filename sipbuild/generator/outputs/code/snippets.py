@@ -347,6 +347,9 @@ static sipExternalTypeDef externalTypesTable[] = {
     # Generate the wrapped enum specifications.
     enums_state = backend.g_enums_specifications(sf, bindings)
 
+    # Generate the exception specifications.
+    backend.g_exceptions_specifications(sf)
+
     # Generate the types table.
     if len(module.needed_types) != 0:
         _types_table(backend, sf, module, enums_state)
@@ -414,109 +417,8 @@ static sipVirtErrorHandlerDef virtErrorHandlersTable[] = {
 ''')
 
     # Generate the tables for things we are importing.
-    for imported_module in module.all_imports:
-        imported_module_name = imported_module.py_name
-
-        if len(imported_module.needed_types) != 0:
-            sf.write(
-f'''
-
-/* This defines the types that this module needs to import from {imported_module_name}. */
-sipImportedTypeDef sipImportedTypes_{module_name}_{imported_module_name}[] = {{
-''')
-
-            for needed_type in imported_module.needed_types:
-                if needed_type.type is ArgumentType.MAPPED:
-                    type_name = needed_type.definition.cpp_name
-                else:
-                    if needed_type.type is ArgumentType.CLASS:
-                        scoped_name = needed_type.definition.iface_file.fq_cpp_name
-                    else:
-                        scoped_name = needed_type.definition.fq_cpp_name
-
-                    type_name = scoped_name.cpp_stripped(STRIP_GLOBAL)
-
-                sf.write(f'    {{"{type_name}"}},\n')
-
-            sf.write(
-'''    {SIP_NULLPTR}
-};
-''')
-
-        if imported_module.nr_virtual_error_handlers > 0:
-            sf.write(
-f'''
-
-/*
- * This defines the virtual error handlers that this module needs to import
- * from {imported_module_name}.
- */
-sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}[] = {{
-''')
-
-            # The handlers are unordered so search for each in turn.  There
-            # will probably be only one so speed isn't an issue.
-            for i in range(imported_module.nr_virtual_error_handlers):
-                for handler in spec.virtual_error_handlers:
-                    if handler.module is imported_module and handler.handler_nr == i:
-                        sf.write(f'    {{"{handler.name}"}},\n')
-
-            sf.write(
-'''    {SIP_NULLPTR}
-};
-''')
-
-        if imported_module.nr_exceptions > 0:
-            sf.write(
-f'''
-
-/*
- * This defines the exception objects that this module needs to import from
- * {imported_module_name}.
- */
-sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[] = {{
-''')
-
-            # The exceptions are unordered so search for each in turn.  There
-            # will probably be very few so speed isn't an issue.
-            for i in range(imported_module.nr_exceptions):
-                for exception in spec.exceptions:
-                    if exception.iface_file.module is imported_module and exception.exception_nr == i:
-                        sf.write(f'    {{"{exception.py_name}"}},\n')
-
-            sf.write(
-'''    {SIP_NULLPTR}
-};
-''')
-
     if len(module.all_imports) != 0:
-        sf.write(
-'''
-
-/* This defines the modules that this module needs to import. */
-static sipImportedModuleDef importsTable[] = {
-''')
-
-        for imported_module in module.all_imports:
-            imported_module_name = imported_module.py_name
-
-            types = handlers = exceptions = 'SIP_NULLPTR'
-
-            if len(imported_module.needed_types) != 0:
-                types = f'sipImportedTypes_{module_name}_{imported_module_name}'
-
-            if imported_module.nr_virtual_error_handlers != 0:
-                handlers = f'sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}'
-
-            if imported_module.nr_exceptions != 0:
-                exceptions = f'sipImportedExceptions_{module_name}_{imported_module_name}'
-
-            sf.write(f'    {{"{imported_module.fq_py_name}", {types}, {handlers}, {exceptions}}},\n')
-
-        sf.write(
-'''    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}
-};
-''')
+        backend.g_import_tables(sf)
 
     # Generate the table of sub-class convertors
     if nr_subclass_convertors > 0:
@@ -569,11 +471,7 @@ static sipLicenseDef module_license = {{
     # Generate any exceptions support.
     if bindings.exceptions:
         if module.nr_exceptions > 0:
-            sf.write(
-f'''
-
-PyObject *sipExportedExceptions_{module_name}[{module.nr_exceptions + 1}];
-''')
+            backend.g_exceptions_defn(sf)
 
         if backend.abi_has_next_exception_handler():
             _exception_handler(backend, sf)
@@ -1510,16 +1408,7 @@ def _catch(backend, sf, bindings, py_signature, throw_args, release_gil):
     _delete_temporaries(backend, sf, py_signature)
 
     if use_handler:
-        sf.write(
-'''                void *sipExcState = SIP_NULLPTR;
-                sipExceptionHandler sipExcHandler;
-                std::exception_ptr sipExcPtr = std::current_exception();
-
-                while ((sipExcHandler = sipNextExceptionHandler(&sipExcState)) != SIP_NULLPTR)
-                    if (sipExcHandler(sipExcPtr))
-                        return SIP_NULLPTR;
-
-''')
+        backend.g_catch_body(sf)
 
     sf.write(
 '''                sipRaiseUnknownException();
@@ -2366,6 +2255,11 @@ f'''
             enum = needed_type.definition
 
             sf.write(f'    &{backend.get_spec_for_enum(enum, enums_state)},\n')
+
+        elif needed_type.type is ArgumentType.EXCEPTION:
+            exception = needed_type.definition
+
+            sf.write(f'    &{backend.get_spec_for_exception(exception)},\n')
 
     sf.write('};\n')
 
@@ -4641,22 +4535,7 @@ def _module_api(backend, sf, bindings):
         if mapped_type.iface_file.module is module:
             backend.g_mapped_type_api(sf, mapped_type)
 
-    no_exceptions = True
-
-    for exception in spec.exceptions:
-        if exception.iface_file.module is module and exception.exception_nr >= 0:
-            if no_exceptions:
-                sf.write(
-f'''
-/* The exceptions defined in this module. */
-extern PyObject *sipExportedExceptions_{module_name}[];
-
-''')
-
-                no_exceptions = False
-
-            sf.write(f'#define sipException_{exception.iface_file.fq_cpp_name.as_word} sipExportedExceptions_{module_name}[{exception.exception_nr}]\n')
-
+    backend.g_exceptions_decls(sf)
     _enum_macros(backend, sf)
 
     wrapper_type = backend.get_wrapper_type()
@@ -4705,8 +4584,8 @@ def _imported_module_api(backend, sf, imported_module):
 
         if iface_file.module is imported_module and exception.exception_nr >= 0:
             # TODO ABI v14 will get the exception directly from the imported
-            # module's state (possibly via an API call) rather than taking a
-            # copy of the Python object.
+            # module's state (possibly via an API call) rather than keeping a
+            # reference to the Python object.
             sf.write(f'\n#define sipException_{iface_file.fq_cpp_name.as_word} sipImportedExceptions_{module_name}_{iface_file.module.py_name}[{exception.exception_nr}].iexc_object\n')
 
     _enum_macros(backend, sf, imported_module=imported_module)
@@ -6206,7 +6085,7 @@ def _exception_handler(backend, sf):
 f'''
 
 /* Handle the exceptions defined in this module. */
-bool sipExceptionHandler_{spec.module.py_name}(std::exception_ptr sipExcPtr)
+bool sipExceptionHandler_{spec.module.py_name}({backend.get_module_context_decl()}std::exception_ptr sipExcPtr)
 {{
     try {{
         std::rethrow_exception(sipExcPtr);

@@ -12,8 +12,15 @@
 
 %RaiseCode
     const char *detail = sipExceptionRef.what();
+
     SIP_BLOCK_THREADS
+
+#if SIP_ABI_MAJOR_VERSION >= 14
+    PyErr_SetString((PyObject *)sipGetPyType(sipModule, sipTypeID_std_exception), detail);
+#else
     PyErr_SetString(sipException_std_exception, detail);
+#endif
+
     SIP_UNBLOCK_THREADS
 %End
 };
