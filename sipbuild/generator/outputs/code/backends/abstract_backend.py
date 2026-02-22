@@ -39,6 +39,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_class_api(self, sf, klass):
+        """ Generate the API details for a class. """
+
+        ...
+
+    @abstractmethod
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -110,6 +116,12 @@ class AbstractBackend(ABC):
         """ Generated the tables related to imported modules. """
 
         ...
+
+    @abstractmethod
+    def g_imported_module_decls(self, sf, imported_module):
+        """ Generate any declarations related to an imported module. """
+
+    ...
 
     @abstractmethod
     def g_init_mixin_impl_body(self, sf, klass):
@@ -258,12 +270,6 @@ class AbstractBackend(ABC):
     @abstractmethod
     def custom_enums_supported(self):
         """ Return True if custom enums are supported. """
-
-        ...
-
-    @abstractmethod
-    def get_class_ref_value(self, klass):
-        """ Return the value of a class's reference. """
 
         ...
 

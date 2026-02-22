@@ -34,7 +34,7 @@ from .utils import (callable_overloads, get_class_from_void, get_const_cast,
 
 def g_class_docstring(sf, spec, bindings, klass):
     """ Generate any docstring for a class and return an appropriate reference
-    to it.
+    to it or None if there was no docstring.
     """
 
     if _has_class_docstring(bindings, klass):
@@ -44,7 +44,7 @@ def g_class_docstring(sf, spec, bindings, klass):
         _class_docstring(sf, spec, bindings, klass)
         sf.write('");\n')
     else:
-        docstring_ref = 'SIP_NULLPTR'
+        docstring_ref = None
 
     return docstring_ref
 
@@ -582,18 +582,7 @@ extern sipExportedModuleDef sipModuleAPI_{module_name};
             sf.write(f'extern sipTypeDef *sipExportedTypes_{module_name}[];\n')
 
     for imported_module in module.all_imports:
-        imported_module_name = imported_module.py_name
-
         _imported_module_api(backend, sf, imported_module)
-
-        if len(imported_module.needed_types) != 0:
-            sf.write(f'extern sipImportedTypeDef sipImportedTypes_{module_name}_{imported_module_name}[];\n')
-
-        if imported_module.nr_virtual_error_handlers != 0:
-            sf.write(f'extern sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}[];\n')
-
-        if imported_module.nr_exceptions != 0:
-            sf.write(f'extern sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[];\n')
 
     if pyqt5_supported(spec) or pyqt6_supported(spec):
         wrapper_type = backend.get_wrapper_type()
@@ -1478,7 +1467,7 @@ def _class_api(backend, sf, klass):
     sf.write('\n')
 
     if klass.real_class is None and not klass.is_hidden_namespace:
-        sf.write(f'#define {backend.get_type_ref(klass)} {backend.get_class_ref_value(klass)}\n')
+        backend.g_class_api(sf, klass)
 
     _enum_macros(backend, sf, scope=klass)
 
@@ -4556,15 +4545,7 @@ def _imported_module_api(backend, sf, imported_module):
 
         if iface_file.module is imported_module:
             if iface_file.needed:
-                type_ref = backend.get_type_ref(klass)
-
-                if iface_file.type is IfaceFileType.NAMESPACE:
-                    sf.write(f'\n#if !defined({type_ref})')
-
-                sf.write(f'\n#define {type_ref} sipImportedTypes_{module_name}_{iface_file.module.py_name}[{iface_file.type_nr}].it_td\n')
-
-                if iface_file.type is IfaceFileType.NAMESPACE:
-                    sf.write('#endif\n')
+                backend.g_class_api(sf, klass)
 
             _enum_macros(backend, sf, scope=klass,
                     imported_module=imported_module)
@@ -4574,7 +4555,7 @@ def _imported_module_api(backend, sf, imported_module):
 
         if iface_file.module is imported_module:
             if iface_file.needed:
-                sf.write(f'\n#define {backend.get_type_ref(mapped_type)} sipImportedTypes_{module_name}_{iface_file.module.py_name}[{iface_file.type_nr}].it_td\n')
+                backend.g_mapped_type_api(sf, mapped_type)
 
             _enum_macros(backend, sf, scope=mapped_type,
                     imported_module=imported_module)
@@ -4589,6 +4570,8 @@ def _imported_module_api(backend, sf, imported_module):
             sf.write(f'\n#define sipException_{iface_file.fq_cpp_name.as_word} sipImportedExceptions_{module_name}_{iface_file.module.py_name}[{exception.exception_nr}].iexc_object\n')
 
     _enum_macros(backend, sf, imported_module=imported_module)
+
+    backend.g_imported_module_decls(sf, imported_module)
 
 
 def _shadow_class_declaration(backend, sf, bindings, klass):

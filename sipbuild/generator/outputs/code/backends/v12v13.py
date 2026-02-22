@@ -91,6 +91,26 @@ f'''    if (targetType == {sc_type_ref})
 
 ''')
 
+    def g_class_api(self, sf, klass):
+        """ Generate the API details for a class. """
+
+        module = self.spec.module
+        module_name = module.py_name
+        iface_file = klass.iface_file
+
+        if iface_file.module is module:
+            sf.write(f'#define {self.get_type_ref(klass)} sipExportedTypes_{module_name}[{iface_file.type_nr}]\n')
+        else:
+            type_ref = self.get_type_ref(klass)
+
+            if iface_file.type is IfaceFileType.NAMESPACE:
+                sf.write(f'\n#if !defined({type_ref})')
+
+            sf.write(f'\n#define {type_ref} sipImportedTypes_{module_name}_{iface_file.module.py_name}[{iface_file.type_nr}].it_td\n')
+
+            if iface_file.type is IfaceFileType.NAMESPACE:
+                sf.write('#endif\n')
+
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -510,6 +530,21 @@ static sipImportedModuleDef importsTable[] = {
 };
 ''')
 
+    def g_imported_module_decls(self, sf, imported_module):
+        """ Generate any declarations related to an imported module. """
+
+        module_name = self.spec.module.py_name
+        imported_module_name = imported_module.py_name
+
+        if len(imported_module.needed_types) != 0:
+            sf.write(f'extern sipImportedTypeDef sipImportedTypes_{module_name}_{imported_module_name}[];\n')
+
+        if imported_module.nr_virtual_error_handlers != 0:
+            sf.write(f'extern sipImportedVirtErrorHandlerDef sipImportedVirtErrorHandlers_{module_name}_{imported_module_name}[];\n')
+
+        if imported_module.nr_exceptions != 0:
+            sf.write(f'extern sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[];\n')
+
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation
         function.
@@ -524,16 +559,23 @@ static sipImportedModuleDef importsTable[] = {
         """ Generate the API details for a mapped type. """
 
         spec = self.spec
+        module = spec.module
         iface_file = mapped_type.iface_file
 
-        module_name = spec.module.py_name
+        module_name = module.py_name
         mapped_type_name = iface_file.fq_cpp_name.as_word
 
-        sf.write(
+        if iface_file.module is spec.module:
+            sf.write(
 f'''
 #define {self.get_type_ref(mapped_type)} sipExportedTypes_{module_name}[{iface_file.type_nr}]
 
 extern sipMappedTypeDef sipTypeDef_{module_name}_{mapped_type_name};
+''')
+        else:
+            sf.write(
+f'''
+#define {self.get_type_ref(mapped_type)} sipImportedTypes_{module_name}_{iface_file.module.py_name}[{iface_file.type_nr}].it_td
 ''')
 
     def g_mapped_type_definition(self, sf, bindings, mapped_type):
@@ -1242,7 +1284,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
         sv_state = self.g_static_variables_table(sf, scope=klass)
 
         # Generate the docstring.
-        docstring_ref = g_class_docstring(sf, spec, bindings, klass)
+        docstring_ref = g_class_docstring(sf, spec, bindings, klass) or 'SIP_NULLPTR'
 
         # Generate any plugin-specific data structures.
         plugin_ref = 'SIP_NULLPTR'
@@ -1479,14 +1521,6 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         """ Return True if custom enums are supported. """
 
         return self.spec.target_abi[0] < 13
-
-    def get_class_ref_value(self, klass):
-        """ Return the value of a class's reference. """
-
-        module_name = self.spec.module.py_name
-        iface_file = klass.iface_file
-
-        return f'sipExportedTypes_{module_name}[{iface_file.type_nr}]'
 
     def get_enum_to_py_conversion(self, enum, value_name):
         """ Return the code to convert a C/C++ enum to a Python object. """
