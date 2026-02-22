@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import glob
@@ -102,6 +102,9 @@ def package(request):
 
     module_names = [package]
 
+    # Remove any previous package directory.
+    shutil.rmtree(os.path.join(test_dir, package), ignore_errors=True)
+
     # Build each module in the package.
     for sip_file in _get_sip_files(test_dir):
         module_name = _build_test_module(sip_file, test_dir, abi_version,
@@ -184,9 +187,7 @@ minimum-macos-version = "10.9"
 sip-files-dir = ".."
 """
 
-_SIP_MODULE = """
-sip-module = "{sip_module}"
-"""
+_SIP_MODULE = 'sip-module = "{sip_module}"\n'
 
 
 def _build_module(module_name, package, build_args, src_dir, test_dir,
@@ -261,6 +262,9 @@ def _build_test_module(sip_file, test_dir, abi_version, package, exceptions,
 
     os.mkdir(build_dir)
 
+    # See if there are any .h files.
+    has_h_files = (len(glob.glob(os.path.join(test_dir, '*.h'))) > 0)
+
     # Create a pyproject.toml file.
     pyproject_toml = os.path.join(build_dir, 'pyproject.toml')
 
@@ -274,11 +278,14 @@ def _build_test_module(sip_file, test_dir, abi_version, package, exceptions,
                     _SIP_MODULE.format(
                             sip_module=_get_full_module_name(package)))
 
-        if exceptions or tags is not None:
+        if exceptions or has_h_files or tags is not None:
             f.write(f'\n[tool.sip.bindings.{module_name}]\n')
 
             if exceptions:
                 f.write('exceptions = true\n')
+
+            if has_h_files:
+                f.write('include-dirs = [".."]\n')
 
             if tags is not None:
                 tags_s = ', '.join([f'"{t}"' for t in tags])

@@ -1,7 +1,7 @@
 // The SIP implementation of the thrower_module test module.
 
 
-%Module(name=pkg.thrower_module)
+%Module(name=imported_exceptions.thrower_module)
 
 %Import handler_module.sip
 

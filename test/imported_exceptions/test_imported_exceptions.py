@@ -7,7 +7,7 @@ import pytest
 
 
 cfg_exceptions = True
-cfg_package = 'pkg'
+cfg_package = 'imported_exceptions'
 
 
 def test_imported_exceptions(package):
