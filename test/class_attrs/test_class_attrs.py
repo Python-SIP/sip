@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import pytest
 
 
-# TODO Expand the tests to include attribrutes that are instances of Python
+# TODO Expand the tests to include attributes that are instances of Python
 # sub-classes of wrapped types.  Specifically that the objects don't get
 # garbage collected prematurely.
 @pytest.fixture

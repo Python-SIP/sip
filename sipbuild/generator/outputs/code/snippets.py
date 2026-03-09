@@ -32,23 +32,6 @@ from .utils import (callable_overloads, get_class_from_void, get_const_cast,
         variables_in_scope)
 
 
-def g_class_docstring(sf, spec, bindings, klass):
-    """ Generate any docstring for a class and return an appropriate reference
-    to it or None if there was no docstring.
-    """
-
-    if _has_class_docstring(bindings, klass):
-        docstring_ref = 'doc_' + klass.iface_file.fq_cpp_name.as_word
-
-        sf.write(f'\nPyDoc_STRVAR({docstring_ref}, "')
-        _class_docstring(sf, spec, bindings, klass)
-        sf.write('");\n')
-    else:
-        docstring_ref = None
-
-    return docstring_ref
-
-
 def g_class_method_table(backend, sf, bindings, klass):
     """ Generate the sorted table of methods for a class and return the number
     of entries.
@@ -625,6 +608,8 @@ def g_type_init_body(backend, sf, bindings, klass):
 
     # Generate the code that parses the Python arguments and calls the correct
     # constructor.
+    signature_nr = 0
+
     for ctor in klass.ctors:
         if ctor.access_specifier is AccessSpecifier.PRIVATE:
             continue
@@ -638,11 +623,13 @@ def g_type_init_body(backend, sf, bindings, klass):
         else:
             error_flag = old_error_flag = False
 
-        _arg_parser(backend, sf, klass, ctor.py_signature, ctor=ctor)
+        _arg_parser(backend, sf, klass, ctor.py_signature, signature_nr,
+                ctor=ctor)
         _ctor_call(backend, sf, bindings, klass, ctor, error_flag,
                 old_error_flag)
 
         sf.write('    }\n')
+        signature_nr += 1
 
     sf.write(
 '''
@@ -740,8 +727,8 @@ def _arg_is_v13_typed_enum(spec, arg):
     return spec.target_abi[0] == 13 and arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
 
 
-def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
-        overload=None):
+def _arg_parser(backend, sf, scope, py_signature, signature_nr, ctor=None,
+        is_method=False, overload=None):
     """ Generate the argument variables for a callable. """
 
     spec = backend.spec
@@ -796,9 +783,36 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
     if spec.target_abi >= (14, 0):
         args.append('sipModule')
 
+        if overload is not None:
+            member_name = overload.common.py_name.name
+
+            if scope is None:
+                callable_name = member_name
+            else:
+                if isinstance(scope, WrappedEnum):
+                    scope_name = scope.fq_cpp_name
+                else:
+                    scope_name = scope.iface_file.fq_cpp_name
+
+                callable_name = scope_name.as_word + '_' + member_name
+        else:
+            assert ctor is not None
+            callable_name = scope.iface_file.fq_cpp_name.as_word
+
+        if overload is not None and overload.common.py_slot is not None:
+            # TODO Add type hints for slots.
+            args.append('SIP_NULLPTR')
+            args.append('&sipPState')
+        else:
+            args.append(f'sipTypeHints_{callable_name}[{signature_nr}]')
+            args.append('sipPStateP')
+
     if overload is not None and is_number_slot(overload.common.py_slot):
         parser_function = 'sipParsePair'
-        args.append('&sipParseErr')
+
+        if spec.target_abi < (14, 0):
+            args.append('&sipParseErr')
+
         args.append('sipArg0')
         args.append('sipArg1')
 
@@ -814,7 +828,10 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
             sip_value = 'sipValue'
 
         parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
-        args.append('&sipParseErr')
+
+        if spec.target_abi < (14, 0):
+            args.append('&sipParseErr')
+
         args.append('sipName')
         args.append(sip_value)
 
@@ -856,7 +873,9 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
             if is_ka_list:
                 sf.write('        };\n\n')
 
-        args.append('sipParseErr' if ctor is not None else '&sipParseErr')
+        if spec.target_abi < (14, 0):
+            args.append('sipParseErr' if ctor is not None else '&sipParseErr')
+
         args.append('sipArgs')
 
         if spec.target_abi >= (14, 0):
@@ -864,19 +883,18 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
                 # The call slot has a traditional signature.
                 parser_function = 'sipParseKwdArgs'
             else:
-                parser_function = 'sipParseVectorcallKwdArgs'
+                parser_function = 'sipParseVcKwdArgs'
                 args.append('sipNrArgs')
         else:
             parser_function = 'sipParseKwdArgs'
 
-        args.append('sipKwds')
+        args.append('sipKwdNames' if spec.target_abi >= (14, 0) else 'sipKwds')
         args.append('sipKwdList' if is_ka_list else 'SIP_NULLPTR')
         args.append('sipUnused' if ctor is not None else 'SIP_NULLPTR')
 
     else:
         single_arg = not (overload is None or overload.common.py_slot is None or is_multi_arg_slot(overload.common.py_slot))
 
-        args.append('&sipParseErr')
 
         if spec.target_abi >= (14, 0):
             if overload is not None and overload.common.py_slot is PySlot.CALL:
@@ -895,12 +913,15 @@ def _arg_parser(backend, sf, scope, py_signature, ctor=None, is_method=False,
                     args.append('sipArg')
                     args.append('SIP_NULLPTR')
                 else:
-                    parser_function = 'sipParseVectorcallArgs'
+                    parser_function = 'sipParseVcKwdArgs'
                     args.append('sipArgs')
                     args.append('sipNrArgs')
-                    args.append('sipKwds' if is_method else 'SIP_NULLPTR')
+                    args.append('sipKwdNames')
+                    args.append('SIP_NULLPTR')
+                    args.append('SIP_NULLPTR')
         else:
             parser_function = 'sipParseArgs'
+            args.append('&sipParseErr')
             args.append('sipArg' + ('' if single_arg else 's'))
 
     # Generate the format string.
@@ -1400,9 +1421,9 @@ def _catch(backend, sf, bindings, py_signature, throw_args, release_gil):
         backend.g_catch_body(sf)
 
     sf.write(
-'''                sipRaiseUnknownException();
+f'''                {backend.get_raise_unknown_exception()};
                 return SIP_NULLPTR;
-            }
+            }}
 ''')
 
 
@@ -1477,7 +1498,7 @@ def _class_api(backend, sf, klass):
         sf.write(f'\nextern sipClassType{spec_suffix} sipType{spec_suffix}_{module_name}_{klass_name};\n')
 
 
-def _class_docstring(sf, spec, bindings, klass):
+def g_class_docstring(sf, spec, bindings, klass):
     """ Generate the docstring for a class. """
 
     NEWLINE = '\\n"\n"'
@@ -1515,8 +1536,8 @@ def _class_docstring(sf, spec, bindings, klass):
                 sf.write(NEWLINE)
 
                 # Insert a blank line if any explicit docstring wants to
-                    # include a signature.  This maintains compatibility with
-                    # previous versions.
+                # include a signature.  This maintains compatibility with
+                # previous versions.
                 if any_implied:
                     sf.write(NEWLINE)
 
@@ -1547,10 +1568,16 @@ def _ctor_auto_docstring(sf, spec, bindings, klass, ctor):
     """ Generate the automatic docstring for a ctor. """
 
     if bindings.docstrings:
-        py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
-        signature = fmt_signature_as_type_hint(spec, ctor.py_signature,
-                need_self=False, exclude_result=True)
-        sf.write(py_name + signature)
+        g_ctor_type_hint(sf, spec, bindings, klass, ctor)
+
+
+def g_ctor_type_hint(sf, spec, bindings, klass, ctor):
+    """ Generate the type hint for a ctor. """
+
+    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
+    signature = fmt_signature_as_type_hint(spec, ctor.py_signature,
+            need_self=False, exclude_result=True)
+    sf.write(py_name + signature)
 
 
 def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
@@ -1891,32 +1918,6 @@ def _handling_exceptions(bindings, throw_args):
     return bindings.exceptions and (throw_args is None or throw_args.arguments is not None)
 
 
-def _has_class_docstring(bindings, klass):
-    """ Return True if a class has a docstring. """
-
-    auto_docstring = False
-
-    # Check for any explicit docstrings and remember if there were any that
-    # could be automatically generated.
-    if klass.docstring is not None:
-        return True
-
-    for ctor in klass.ctors:
-        if ctor.access_specifier is AccessSpecifier.PRIVATE:
-            continue
-
-        if ctor.docstring is not None:
-            return True
-
-        if bindings.docstrings:
-            auto_docstring = True
-
-    if not klass.can_create:
-        return False
-
-    return auto_docstring
-
-
 def _has_optional_args(overload):
     """ Return True if an overload has optional arguments. """
 
@@ -1929,10 +1930,10 @@ def _method_auto_docstring(sf, spec, bindings, overload, is_method):
     """ Generate the automatic docstring for a function/method. """
 
     if bindings.docstrings:
-        _overload_auto_docstring(sf, spec, overload, is_method=is_method)
+        g_overload_type_hint(sf, spec, overload, is_method=is_method)
 
 
-def _method_docstring(sf, spec, bindings, member, overloads, is_method=False):
+def g_method_docstring(sf, spec, bindings, member, overloads, is_method=False):
     """ Generate the docstring for all overloads of a function/method.  Return
     True if the docstring was entirely automatically generated.
     """
@@ -1985,8 +1986,8 @@ def _method_docstring(sf, spec, bindings, member, overloads, is_method=False):
     return auto_docstring
 
 
-def _overload_auto_docstring(sf, spec, overload, is_method=True):
-    """ Generate the docstring for a single API overload. """
+def g_overload_type_hint(sf, spec, overload, is_method=True):
+    """ Generate the type hint for a single API overload. """
 
     need_self = is_method and not overload.is_static
     signature = fmt_signature_as_type_hint(spec, overload.py_signature,
@@ -2004,6 +2005,7 @@ def _pyqt_emitters(backend, sf, klass):
 
     for member in klass.members:
         in_emitter = False
+        signature_nr = 0
 
         for overload in klass.overloads:
             if not (overload.common is member and overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL and _has_optional_args(overload)):
@@ -2028,7 +2030,9 @@ f'''static int emit_{klass_name}_{overload.cpp_name}(void *sipCppV, PyObject *si
             # overloaded signal.
             sf.write('\n    {\n')
 
-            _arg_parser(backend, sf, klass, overload.py_signature)
+            _arg_parser(backend, sf, klass, overload.py_signature,
+                    signature_nr)
+            signature_nr += 1
 
             sf.write(
 f'''        {{
@@ -2123,17 +2127,17 @@ def _pyqt_signal_table_entry(sf, spec, bindings, klass, signal, member_nr):
 
         if signal.docstring is not None:
             if signal.docstring.signature is DocstringSignature.PREPENDED:
-                _overload_auto_docstring(sf, spec, signal)
+                g_overload_type_hint(sf, spec, signal)
                 sf.write('\\n')
 
             sf.write(get_docstring_text(signal.docstring))
 
             if signal.docstring.signature is DocstringSignature.APPENDED:
                 sf.write('\\n')
-                _overload_auto_docstring(sf, spec, signal)
+                g_overload_type_hint(sf, spec, signal)
         else:
             sf.write('\\1')
-            _overload_auto_docstring(sf, spec, signal)
+            g_overload_type_hint(sf, spec, signal)
 
         sf.write('", ')
     else:
@@ -2313,7 +2317,6 @@ def g_static_function(backend, sf, bindings, member, scope=None):
     """ Generate a static function. """
 
     spec = backend.spec
-    member_name = member.py_name.name
 
     if scope is None:
         overloads = spec.module.overloads
@@ -2322,40 +2325,12 @@ def g_static_function(backend, sf, bindings, member, scope=None):
         overloads = scope.overloads
         scope_py = py_scope(scope)
 
-        if scope_py is not None:
-            member_name = scope_py.iface_file.fq_cpp_name.as_word + '_' + member_name
-
     sf.write('\n\n')
 
-    # Generate the docstrings.
-    if has_method_docstring(bindings, member, overloads):
-        sf.write(f'PyDoc_STRVAR(doc_{member_name}, "')
-        has_auto_docstring = _method_docstring(sf, spec, bindings, member,
-                overloads)
-        sf.write('");\n\n')
-    else:
-        has_auto_docstring = False
+    state = backend.g_static_function_start(sf, bindings, scope_py, member,
+            overloads)
 
-    if member.no_arg_parser or member.allow_keyword_args:
-        kw_fw_decl = ', PyObject *'
-        kw_decl = ', PyObject *sipKwds'
-    else:
-        kw_fw_decl = kw_decl = ''
-
-    if scope_py is None:
-        if not spec.c_bindings:
-            sf.write(f'extern "C" {{static PyObject *func_{member_name}({backend.get_py_method_args(is_impl=False, is_module_fn=True)}{kw_fw_decl});}}\n')
-
-        sf.write(f'static PyObject *func_{member_name}({backend.get_py_method_args(is_impl=True, is_module_fn=True)}{kw_decl})\n')
-    else:
-        # This can only happen with C++ bindings.
-        sf.write(f'extern "C" {{static PyObject *meth_{member_name}({backend.get_py_method_args(is_impl=False, is_module_fn=False)}{kw_fw_decl});}}\n')
-
-        sf.write(f'static PyObject *meth_{member_name}({backend.get_py_method_args(is_impl=True, is_module_fn=False)}{kw_decl})\n')
-
-    sf.write('{\n')
-
-    need_intro = True
+    signature_nr = 0
 
     for overload in overloads:
         if overload.common is not member:
@@ -2365,39 +2340,13 @@ def g_static_function(backend, sf, bindings, member, scope=None):
             sf.write_code(overload.method_code)
             break
 
-        if need_intro:
-            if scope is not None:
-                backend.g_method_support_vars(sf)
+        if signature_nr == 0:
+            backend.g_static_function_support_vars(sf, scope)
 
-            sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n')
+        _function_body(backend, sf, bindings, scope, overload, signature_nr)
+        signature_nr += 1
 
-            if scope is None and spec.c_bindings:
-                sf.write(
-'''
-    (void)sipSelf;
-''')
-
-            need_intro = False
-
-        _function_body(backend, sf, bindings, scope, overload)
-
-    if not need_intro:
-        sf.write(
-f'''
-    /* Raise an exception if the arguments couldn't be parsed. */
-    sipNoFunction(sipParseErr, {backend.cached_name_ref(member.py_name)}, ''')
-
-        if has_auto_docstring:
-            sf.write(f'doc_{member_name}')
-        else:
-            sf.write('SIP_NULLPTR')
-
-        sf.write(''');
-
-    return SIP_NULLPTR;
-''')
-
-    sf.write('}\n')
+    backend.g_static_function_end(sf, state, signature_nr)
 
 
 def _access_functions(spec, sf, scope=None):
@@ -2780,8 +2729,10 @@ f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_mo
 
             sf.write(f'        return {ret_value};\n\n')
 
+        p_state = 'sipPState' if spec.target_abi >= (14, 0) else 'sipParseErr'
+
         if has_args:
-            sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n')
+            sf.write(f'    PyObject *{p_state} = SIP_NULLPTR;\n')
 
         for overload in overloads:
             if overload.common is member and overload.is_abstract:
@@ -2789,13 +2740,15 @@ f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_mo
                 break
 
         scope_not_enum = not isinstance(scope, WrappedEnum)
+        signature_nr = 0
 
         for overload in overloads:
             if overload.common is member:
                 dereferenced = scope_not_enum and not overload.dont_deref_self
 
                 _function_body(backend, sf, bindings, scope, overload,
-                        dereferenced=dereferenced)
+                        signature_nr, dereferenced=dereferenced)
+                signature_nr += 1
 
         if has_args:
             if member.py_slot in (PySlot.CONCAT, PySlot.ICONCAT, PySlot.REPEAT, PySlot.IREPEAT):
@@ -2811,15 +2764,17 @@ f'''
             else:
                 if is_rich_compare_slot(member.py_slot):
                     sf.write(
-'''
-    Py_XDECREF(sipParseErr);
+f'''
+    Py_XDECREF({p_state});
 ''')
                 elif is_number_slot(member.py_slot) or is_inplace_number_slot(member.py_slot):
+                    # TODO Fix this for v14 at least (don't test the value
+                    # after the XDECREF).
                     sf.write(
-'''
-    Py_XDECREF(sipParseErr);
+f'''
+    Py_XDECREF({p_state});
 
-    if (sipParseErr == Py_None)
+    if ({p_state} == Py_None)
         return SIP_NULLPTR;
 ''')
 
@@ -2850,7 +2805,15 @@ f'''
                 else:
                     member_name = '(sipValue != SIP_NULLPTR ? sipName___setattr__ : sipName___delattr__)' if member.py_slot is PySlot.SETATTR else backend.cached_name_ref(member.py_name)
 
-                    sf.write(
+                    if spec.target_abi >= (14, 0):
+                        sf.write(
+f'''
+    sipNoCallable(sipPState, {backend.cached_name_ref(py_name)}, {member_name});
+
+    return {ret_value};
+''')
+                    else:
+                        sf.write(
 f'''
     sipNoMethod(sipParseErr, {backend.cached_name_ref(py_name)}, {member_name}, SIP_NULLPTR);
 
@@ -4795,37 +4758,14 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
 
     sf.write('\n\n')
 
-    # Generate the docstrings.
-    if has_method_docstring(bindings, member, original_klass.overloads):
-        sf.write(f'PyDoc_STRVAR(doc_{klass_name}_{member_py_name}, "')
-
-        has_auto_docstring = _method_docstring(sf, spec, bindings, member,
-                original_klass.overloads,
-                is_method=not klass.is_hidden_namespace)
-
-        sf.write('");\n\n')
-    else:
-        has_auto_docstring = False
-
-    if spec.target_abi >= (14, 0) or member.no_arg_parser or member.allow_keyword_args:
-        kw_fw_decl = ', PyObject *'
-        kw_decl = ', PyObject *sipKwds'
-    else:
-        kw_fw_decl = kw_decl = ''
-
-    if not spec.c_bindings:
-        sf.write(f'extern "C" {{static PyObject *meth_{klass_name}_{member_py_name}({backend.get_py_method_args(is_impl=False, is_module_fn=False)}{kw_fw_decl});}}\n')
-
-    sf.write(f'static PyObject *meth_{klass_name}_{member_py_name}({backend.get_py_method_args(is_impl=True, is_module_fn=False, need_self=need_self, need_args=need_args)}{kw_decl})\n{{\n')
+    state = backend.g_py_method_start(sf, bindings, klass, member,
+            original_klass, need_args, need_self)
 
     if bindings.tracing:
         sf.write(f'    sipTrace(SIP_TRACE_METHODS, "meth_{klass_name}_{member_py_name}()\\n");\n\n')
 
     if not member.no_arg_parser:
-        backend.g_method_support_vars(sf)
-
-        if need_args:
-            sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n')
+        backend.g_py_method_support_vars(sf, need_args)
 
         if need_selfarg:
             # This determines if we call the explicitly scoped version or the
@@ -4844,9 +4784,6 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             # In addition, if the type is a derived class then we know that
             # there can't be a C++ sub-class that we don't know about so we can
             # avoid the vtable.
-            #
-            # Note that we would like to rename 'sipSelfWasArg' to
-            # 'sipExplicitScope' but it is part of the public API.
             sf.write(f'    bool sipSelfWasArg = {backend.get_sipself_test(klass)};\n')
 
         if need_orig_self:
@@ -4854,6 +4791,8 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             # the (potential) recursion because it means that the concrete
             # implementation can be put in a mixin and it will all work.
             sf.write('    PyObject *sipOrigSelf = sipSelf;\n')
+
+    signature_nr = 0
 
     for overload in original_klass.overloads:
         # If we are handling one variant then we must handle them all.
@@ -4867,27 +4806,15 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             sf.write_code(overload.method_code)
             break
 
-        _function_body(backend, sf, bindings, klass, overload, is_method=True,
-                original_klass=original_klass)
+        _function_body(backend, sf, bindings, klass, overload, signature_nr,
+                is_method=True, original_klass=original_klass)
+        signature_nr += 1
 
-    if not member.no_arg_parser:
-        sip_parse_err = 'sipParseErr' if need_args else 'SIP_NULLPTR'
-        klass_py_name_ref = backend.cached_name_ref(klass.py_name)
-        member_py_name_ref = backend.cached_name_ref(member.py_name)
-        docstring_ref = f'doc_{klass_name}_{member_py_name}' if has_auto_docstring else 'SIP_NULLPTR'
-
-        sf.write(
-f'''
-    sipNoMethod({sip_parse_err}, {klass_py_name_ref}, {member_py_name_ref}, {docstring_ref});
-
-    return SIP_NULLPTR;
-''')
-
-    sf.write('}\n')
+    backend.g_py_method_end(sf, state, signature_nr)
 
 
-def _function_body(backend, sf, bindings, scope, overload, is_method=False,
-        original_klass=None, dereferenced=True):
+def _function_body(backend, sf, bindings, scope, overload, signature_nr,
+        is_method=False, original_klass=None, dereferenced=True):
     """ Generate the function calls for a particular overload. """
 
     spec = backend.spec
@@ -4923,11 +4850,11 @@ def _function_body(backend, sf, bindings, scope, overload, is_method=False,
 
             py_signature_adjusted = True
 
-        _arg_parser(backend, sf, scope, py_signature, is_method=is_method,
-                overload=overload)
+        _arg_parser(backend, sf, scope, py_signature, signature_nr,
+                is_method=is_method, overload=overload)
     elif not is_int_arg_slot(overload.common.py_slot) and not is_zero_arg_slot(overload.common.py_slot):
-        _arg_parser(backend, sf, scope, py_signature, is_method=is_method,
-                overload=overload)
+        _arg_parser(backend, sf, scope, py_signature, signature_nr,
+                is_method=is_method, overload=overload)
 
     _function_call(backend, sf, bindings, scope, overload, dereferenced,
             original_scope)

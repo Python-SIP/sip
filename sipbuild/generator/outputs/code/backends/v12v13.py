@@ -4,15 +4,16 @@
 
 
 from ....scoped_name import STRIP_GLOBAL
-from ....specification import (ArgumentType, IfaceFileType, MappedType,
-        WrappedClass, WrappedEnum)
+from ....specification import (AccessSpecifier, ArgumentType, IfaceFileType,
+        MappedType, WrappedClass, WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type
 
 from ..snippets import (g_class_docstring, g_class_method_table,
-        g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
-        g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
+        g_method_docstring, g_module_docstring, g_type_init_body, g_py_slot,
+        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init,
+        g_static_function)
 from ..utils import (get_class_flags, get_class_from_void, get_const_cast,
         get_docstring_text, get_encoded_type, get_enum_member,
         get_function_table, get_mapped_type_flags, get_named_value_decl,
@@ -265,7 +266,7 @@ const sipAPIDef *sipAPI_{module_name};
 
         g_pyqt_helper_defns(sf, spec)
         self.g_module_init_start(sf)
-        has_module_functions = self.g_module_functions_table(sf, bindings,
+        has_module_functions = self._g_module_functions_table(sf, bindings,
                 module)
         self.g_module_definition(sf, has_module_functions=has_module_functions)
         self._g_module_init_body(sf)
@@ -424,7 +425,8 @@ PyObject *sipExportedExceptions_{module.py_name}[{module.nr_exceptions + 1}];
     def g_import_tables(self, sf):
         """ Generated the tables related to imported modules. """
 
-        module = self.spec.module
+        spec = self.spec
+        module = spec.module
         module_name = module.py_name
 
         for imported_module in module.all_imports:
@@ -702,30 +704,6 @@ f'''    static PyModuleDef sip_module_def = {{
     }};
 ''')
 
-    def g_module_functions_table(self, sf, bindings, module):
-        """ Generate the table of module functions and return True if anything
-        was actually generated.
-        """
-
-        # We always generate a table.
-        sf.write('    static PyMethodDef sip_methods[] = {\n')
-
-        self._g_module_function_table_entries(sf, bindings, module,
-                module.global_functions)
-
-        # Generate the global functions for any hidden namespaces.
-        for klass in self.spec.classes:
-            if klass.iface_file.module is module and klass.is_hidden_namespace:
-                self._g_module_function_table_entries(sf, bindings, module,
-                        klass.members)
-
-        sf.write(
-'''        {SIP_NULLPTR, SIP_NULLPTR, 0, SIP_NULLPTR}
-    };
-''')
-
-        return True
-
     def g_module_init_start(self, sf):
         """ Generate the start of the Python module initialisation function.
         """
@@ -808,6 +786,71 @@ const char sipStrings_{module.py_name}[] = {{
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
 ''')
+
+    def g_py_method_end(self, sf, state, nr_signatures):
+        """ Generate the end of a method implementation. """
+
+        klass, member, has_auto_docstring, need_args = state
+
+        if not member.no_arg_parser:
+            klass_name = klass.iface_file.fq_cpp_name.as_word
+            member_py_name = member.py_name.name
+
+            sip_parse_err = 'sipParseErr' if need_args else 'SIP_NULLPTR'
+            klass_py_name_ref = self.cached_name_ref(klass.py_name)
+            member_py_name_ref = self.cached_name_ref(member.py_name)
+            docstring_ref = f'doc_{klass_name}_{member_py_name}' if has_auto_docstring else 'SIP_NULLPTR'
+
+            sf.write(
+f'''
+    sipNoMethod({sip_parse_err}, {klass_py_name_ref}, {member_py_name_ref}, {docstring_ref});
+
+    return SIP_NULLPTR;
+''')
+
+        sf.write('}\n')
+
+    def g_py_method_start(self, sf, bindings, klass, member, original_klass,
+            need_args, need_self):
+        """ Generate the start of a method implementation and return a 4-tuple
+        the class, member, whether it has an automatically generated docstring
+        and whether an argument parser will be needed.
+        """
+
+        spec = self.spec
+        klass_name = klass.iface_file.fq_cpp_name.as_word
+        member_py_name = member.py_name.name
+
+        # Generate the docstrings.
+        if has_method_docstring(bindings, member, original_klass.overloads):
+            sf.write(f'PyDoc_STRVAR(doc_{klass_name}_{member_py_name}, "')
+
+            has_auto_docstring = g_method_docstring(sf, spec, bindings, member,
+                    original_klass.overloads,
+                    is_method=not klass.is_hidden_namespace)
+
+            sf.write('");\n\n')
+        else:
+            has_auto_docstring = False
+
+        if member.no_arg_parser or member.allow_keyword_args:
+            kw_fw_decl = ', PyObject *'
+            kw_decl = ', PyObject *sipKwds'
+        else:
+            kw_fw_decl = kw_decl = ''
+
+        if not spec.c_bindings:
+            sf.write(f'extern "C" {{static PyObject *meth_{klass_name}_{member_py_name}({self.get_py_method_args(is_impl=False)}{kw_fw_decl});}}\n')
+
+        sf.write(f'static PyObject *meth_{klass_name}_{member_py_name}({self.get_py_method_args(is_impl=True, need_self=need_self, need_args=need_args)}{kw_decl})\n{{\n')
+
+        return klass, member, has_auto_docstring, need_args
+
+    def g_py_method_support_vars(self, sf, need_args):
+        """ Generate the variables needed by a method implementation. """
+
+        if need_args:
+            sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n');
 
     def g_py_method_table(self, sf, bindings, members, scope):
         """ Generate a Python method table for a class or mapped type and
@@ -1111,6 +1154,81 @@ extern const char sipStrings_{module_name}[];
             elif member.py_slot is not None:
                 g_py_slot(self, sf, bindings, member, scope=scope)
 
+    def g_static_function_end(self, sf, state, nr_signatures):
+        """ Generate the end of a static function implementation. """
+
+        if nr_signatures != 0:
+            member, member_ref, has_auto_docstring = state
+
+            sf.write(
+f'''
+    /* Raise an exception if the arguments couldn't be parsed. */
+    sipNoFunction(sipParseErr, {self.cached_name_ref(member.py_name)}, ''')
+
+            if has_auto_docstring:
+                sf.write(f'doc_{member_ref}')
+            else:
+                sf.write('SIP_NULLPTR')
+
+            sf.write(');\n\n    return SIP_NULLPTR;\n')
+
+        sf.write('}\n')
+
+    def g_static_function_start(self, sf, bindings, scope_py, member,
+            overloads):
+        """ Generate the start of a static function implementation and return
+        a 3-tuple of the member, the member reference and whether it has an
+        automatically generated docstring.
+        """
+
+        spec = self.spec
+        member_name = member.py_name.name
+
+        if scope_py is not None:
+            member_name = scope_py.iface_file.fq_cpp_name.as_word + '_' + member_name
+
+        # Generate the docstrings.
+        if has_method_docstring(bindings, member, overloads):
+            sf.write(f'PyDoc_STRVAR(doc_{member_name}, "')
+            has_auto_docstring = g_method_docstring(sf, spec, bindings, member,
+                    overloads)
+            sf.write('");\n\n')
+        else:
+            has_auto_docstring = False
+
+        if member.no_arg_parser or member.allow_keyword_args:
+            kw_fw_decl = ', PyObject *'
+            kw_decl = ', PyObject *sipKwds'
+        else:
+            kw_fw_decl = kw_decl = ''
+
+        if scope_py is None:
+            if not spec.c_bindings:
+                sf.write(f'extern "C" {{static PyObject *func_{member_name}({self.get_py_method_args(is_impl=False)}{kw_fw_decl});}}\n')
+
+            sf.write(f'static PyObject *func_{member_name}({self.get_py_method_args(is_impl=True)}{kw_decl})\n')
+        else:
+            # This can only happen with C++ bindings.
+            sf.write(f'extern "C" {{static PyObject *meth_{member_name}({self.get_py_method_args(is_impl=False)}{kw_fw_decl});}}\n')
+
+            sf.write(f'static PyObject *meth_{member_name}({self.get_py_method_args(is_impl=True)}{kw_decl})\n')
+
+        sf.write('{\n')
+
+        return member, member_name, has_auto_docstring
+
+    def g_static_function_support_vars(self, sf, scope):
+        """ Generate the variables needed by a static function implementation.
+        """
+
+        sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n')
+
+        if scope is None and self.spec.c_bindings:
+            sf.write(
+'''
+    (void)sipSelf;
+''')
+
     def g_static_variables_table(self, sf, scope=None):
         """ Generate the tables of static variables for a scope and return a
         set of strings corresponding to the tables actually generated.
@@ -1284,7 +1402,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
         sv_state = self.g_static_variables_table(sf, scope=klass)
 
         # Generate the docstring.
-        docstring_ref = g_class_docstring(sf, spec, bindings, klass) or 'SIP_NULLPTR'
+        docstring_ref = self._g_class_docstring(sf, bindings, klass)
 
         # Generate any plugin-specific data structures.
         plugin_ref = 'SIP_NULLPTR'
@@ -1543,8 +1661,7 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return f'sipImportedTypes_{spec.module.py_name}_{enum.module.py_name}[{enum.type_nr}].it_td'
 
-    def get_py_method_args(self, *, is_impl, is_module_fn, need_self=False,
-            need_args=True):
+    def get_py_method_args(self, *, is_impl, need_self=False, need_args=True):
         """ Return the part of a Python method signature that are ABI
         dependent.
         """
@@ -1553,6 +1670,13 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         args_name = 'sipArgs' if is_impl and need_args else ''
 
         return f'PyObject *{self_name}, PyObject *{args_name}'
+
+    @staticmethod
+    def get_raise_unknown_exception():
+        """ Return the call to raise an exception about an unknown exception.
+        """
+
+        return 'sipRaiseUnknownException()'
 
     @staticmethod
     def get_result_parser():
@@ -1657,6 +1781,22 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         target_abi = self.spec.target_abi
 
         return target_abi >= min_13 or (min_12 <= target_abi < (13, 0))
+
+    def _g_class_docstring(self, sf, bindings, klass):
+        """ Generate any docstring for a class and return an appropriate
+        reference to it.
+        """
+
+        if self._has_class_docstring(bindings, klass):
+            docstring_ref = 'doc_' + klass.iface_file.fq_cpp_name.as_word
+
+            sf.write(f'\nPyDoc_STRVAR({docstring_ref}, "')
+            g_class_docstring(sf, self.spec, bindings, klass)
+            sf.write('");\n')
+        else:
+            docstring_ref = 'SIP_NULLPTR'
+
+        return docstring_ref
 
     def _g_enums_defs(self, sf, needed_enums):
         """ Generate the definitions for all wrapped enums. """
@@ -2069,6 +2209,30 @@ f'''
                                 module.overloads),
                         'doc_' + member.py_name.name)
                 sf.write(f', {docstring_ref}}},\n')
+
+    def _g_module_functions_table(self, sf, bindings, module):
+        """ Generate the table of module functions and return True if anything
+        was actually generated.
+        """
+
+        # We always generate a table.
+        sf.write('    static PyMethodDef sip_methods[] = {\n')
+
+        self._g_module_function_table_entries(sf, bindings, module,
+                module.global_functions)
+
+        # Generate the global functions for any hidden namespaces.
+        for klass in self.spec.classes:
+            if klass.iface_file.module is module and klass.is_hidden_namespace:
+                self._g_module_function_table_entries(sf, bindings, module,
+                        klass.members)
+
+        sf.write(
+'''        {SIP_NULLPTR, SIP_NULLPTR, 0, SIP_NULLPTR}
+    };
+''')
+
+        return True
 
     # The types that are implemented as PyObject*.
     _PY_OBJECT_TYPES = (ArgumentType.PYOBJECT, ArgumentType.PYTUPLE,
@@ -2811,6 +2975,32 @@ f'''
             statement = 'sipPy'
 
         return statement
+
+    @staticmethod
+    def _has_class_docstring(bindings, klass):
+        """ Return True if a class has a docstring. """
+
+        auto_docstring = False
+
+        # Check for any explicit docstrings and remember if there were any that
+        # could be automatically generated.
+        if klass.docstring is not None:
+            return True
+
+        for ctor in klass.ctors:
+            if ctor.access_specifier is AccessSpecifier.PRIVATE:
+                continue
+
+            if ctor.docstring is not None:
+                return True
+
+            if bindings.docstrings:
+                auto_docstring = True
+
+        if not klass.can_create:
+            return False
+
+        return auto_docstring
 
     def _write_int_instances(self, sf, scope, target_type, type_name):
         """ Generate the code to add a set of a particular type to a

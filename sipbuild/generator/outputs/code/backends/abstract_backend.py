@@ -153,23 +153,9 @@ class AbstractBackend(ABC):
         # This default implementation does nothing.
         return False
 
-    def g_method_support_vars(self, sf):
-        """ Generate the variables needed by a method. """
-
-        # This default implementation does nothing.
-        pass
-
     @abstractmethod
     def g_module_definition(self, sf, has_module_functions=False):
         """ Generate the module definition structure. """
-
-        ...
-
-    @abstractmethod
-    def g_module_functions_table(self, sf, bindings, module):
-        """ Generate the table of module functions and return True if anything
-        was actually generated.
-        """
 
         ...
 
@@ -189,6 +175,27 @@ class AbstractBackend(ABC):
         """
 
         ...
+
+    @abstractmethod
+    def g_py_method_end(self, sf, state, nr_signatures):
+        """ Generate the end of a method implementation. """
+
+        ...
+
+    @abstractmethod
+    def g_py_method_start(self, sf, bindings, klass, member, original_klass,
+            need_args, need_self):
+        """ Generate the start of a method implementation and return an
+        ABI-specific object which will be passed to g_py_method_end().
+        """
+
+        ...
+
+    def g_py_method_support_vars(self, sf, scope):
+        """ Generate the variables needed by a method implementation. """
+
+        # This default implementation does nothing.
+        pass
 
     @abstractmethod
     def g_py_method_table(self, sf, bindings, members, scope):
@@ -212,6 +219,28 @@ class AbstractBackend(ABC):
 
     def g_slot_support_vars(self, sf, scope, member):
         """ Generate the variables needed by a slot function. """
+
+        # This default implementation does nothing.
+        pass
+
+    @abstractmethod
+    def g_static_function_end(self, sf, state, nr_signatures):
+        """ Generate the end of a static function implementation. """
+
+        ...
+
+    @abstractmethod
+    def g_static_function_start(self, sf, bindings, scope_py, member,
+            overloads):
+        """ Generate the start of a static function implementation and return
+        an ABI-specific object which will be passed to g_static_function_end().
+        """
+
+        ...
+
+    def g_static_function_support_vars(self, sf, scope):
+        """ Generate the variables needed by a static function implementation.
+        """
 
         # This default implementation does nothing.
         pass
@@ -308,6 +337,14 @@ class AbstractBackend(ABC):
             need_args=True):
         """ Return the part of a Python method signature that are ABI
         dependent.
+        """
+
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_raise_unknown_exception():
+        """ Return the call to raise an exception about an unknown exception.
         """
 
         ...
