@@ -1,7 +1,12 @@
 # `sip` Module v13 History
 
 
-## v13.11
+## v13.11.1
+
+- Fixed a bug with operators that take an enum as their first argument.
+
+
+## v13.11.0
 
 - Added support for Python v3.14.
 - Removed support for Python v3.9.

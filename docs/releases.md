@@ -1,5 +1,36 @@
 # Release Notes
 
+## v6.15.2
+
+### Enhancements
+
+- The way in which the parser checks for duplicate attributes in a scope is now
+  quick and complete.
+
+### Bug fixes
+
+- Operators that take an enum as their first argument is now fixed in ABI v13.
+  The latest ABI v13 version is v13.11.1.
+- The handling of the wrapped instance result of a call to a method with the
+  `/Factory/` annotation has been fixed in the case where result was created by
+  a Python reimplementation of a C++ virtual.
+- Fixed a warning about an unclosed file when generating code.
+- Removed support for all remaining Python v2 exceptions.
+
+### Testing
+
+- The tests are now included in the sdist.  Resolves [#103](https://github.com/Python-SIP/sip/issues/103)
+- The mixins test was fixed so that it will run on Python v3.12 and earlier.
+  Resolves [#101](https://github.com/Python-SIP/sip/issues/101)
+- Added tests including those related to enums and importing wrapped modules.
+- Tests may now use separate `.h` files rather then code embedded in the `.sip`
+  files.
+
+### Documentation
+
+- Added recommendations regarding the ways to specify the ABI version to use.
+
+
 ## v6.15.1
 
 ### Bug fixes
@@ -407,15 +438,15 @@ Resolves [#43](https://github.com/Python-SIP/sip/issues/43)
 
 ### Bug fixes
 
-- The handling of the SIP versions timeline was fixed.  (Resolves
-  [#47](https://github.com/Python-SIP/sip/issues/47))
+- The handling of the SIP versions timeline was fixed.  Resolves
+  [#47](https://github.com/Python-SIP/sip/issues/47)
 - Annotations are now only validated if they are known to be needed.
-- The buffer protocol support for byte objects was fixed. (Resolves
-  [#36](https://github.com/Python-SIP/sip/issues/36))
+- The buffer protocol support for byte objects was fixed.  Resolves
+  [#36](https://github.com/Python-SIP/sip/issues/36)
 - All outstanding compiler warnings were eliminated when building the `sip`
-  module.  (Resolves [#32](https://github.com/Python-SIP/sip/issues/32))
-- Redundant `%` in trace output of `this` pointer in were removed.  (Pull
-  request [#33](https://github.com/Python-SIP/sip/pull/33))
+  module.  Resolves [#32](https://github.com/Python-SIP/sip/issues/32)
+- Redundant `%` in trace output of `this` pointer in were removed.  Pull
+  request [#33](https://github.com/Python-SIP/sip/pull/33)
 
 
 ## v6.8.6

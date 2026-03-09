@@ -1,7 +1,7 @@
 # `sip` Module v12 History
 
 
-## v12.18
+## v12.18.0
 
 - Added support for Python v3.14.
 - Removed support for Python v3.9.
