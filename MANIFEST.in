@@ -2,4 +2,3 @@ exclude .git*
 exclude .readthedocs.yaml
 prune docs
 prune examples
-prune test
