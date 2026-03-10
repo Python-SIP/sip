@@ -22,8 +22,8 @@ template<TYPE>
 
 %ConvertFromTypeCode
 #if SIP_ABI_MAJOR_VERSION >= 14
-    //sipTypeID kp_type_id = sipFindTypeID(sipModule, "TYPE");
-    sipTypeID kp_type_id = getSipType(sipModule, "TYPE");
+    //sipTypeID kp_type_id = sipFindTypeID(sipMS, "TYPE");
+    sipTypeID kp_type_id = getSipType(sipMS, "TYPE");
 
     if (!kp_type_id)
         return NULL;
@@ -48,7 +48,7 @@ template<TYPE>
         TYPE *cpp = new TYPE(sipCpp->at(i));
 
 #if SIP_ABI_MAJOR_VERSION >= 14
-        PyObject *pobj = sipConvertFromNewType(sipModule, cpp, kp_type_id,
+        PyObject *pobj = sipConvertFromNewType(sipMS, cpp, kp_type_id,
                 sipTransferObj);
 #else
         PyObject *pobj = sipConvertFromNewType(cpp, kpTypeDef, sipTransferObj);
@@ -70,8 +70,8 @@ template<TYPE>
 
 %ConvertToTypeCode
 #if SIP_ABI_MAJOR_VERSION >= 14
-    //sipTypeID kp_type_id = sipFindTypeID(sipModule, "TYPE");
-    sipTypeID kp_type_id = getSipType(sipModule, "TYPE");
+    //sipTypeID kp_type_id = sipFindTypeID(sipMS, "TYPE");
+    sipTypeID kp_type_id = getSipType(sipMS, "TYPE");
 
     if (!kp_type_id)
         return 0;
@@ -96,7 +96,7 @@ template<TYPE>
         int state;
 
 #if SIP_ABI_MAJOR_VERSION >= 14
-        TYPE *p = static_cast<TYPE *>(sipConvertToType(sipModule,
+        TYPE *p = static_cast<TYPE *>(sipConvertToType(sipMS,
                 PyList_GET_ITEM(sipPy, i), kp_type_id, sipTransferObj,
                 SIP_NOT_NONE, &state, sipIsErr));
 #else
@@ -107,7 +107,7 @@ template<TYPE>
 
         if (*sipIsErr) {
 #if SIP_ABI_MAJOR_VERSION >= 14
-            sipReleaseType(sipModule, p, kp_type_id, state);
+            sipReleaseType(sipMS, p, kp_type_id, state);
 #else
             sipReleaseType(p, kpTypeDef, state);
 #endif
@@ -118,7 +118,7 @@ template<TYPE>
         v->push_back(*p);
 
 #if SIP_ABI_MAJOR_VERSION >= 14
-        sipReleaseType(sipModule, p, kp_type_id, state);
+        sipReleaseType(sipMS, p, kp_type_id, state);
 #else
         sipReleaseType(p, kpTypeDef, state);
 #endif

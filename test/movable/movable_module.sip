@@ -14,9 +14,9 @@ template <TYPE>
 
 %ConvertFromTypeCode
 #if SIP_ABI_MAJOR_VERSION >= 14
-    sipTypeID type_id = sipFindTypeID(sipModule, "TYPE*");
+    sipTypeID type_id = sipFindTypeID(sipMS, "TYPE*");
 
-    return sipConvertFromType(sipModule, sipCpp->release(), type_id, Py_None);
+    return sipConvertFromType(sipMS, sipCpp->release(), type_id, Py_None);
 #else
     const sipTypeDef *td = sipFindType("TYPE*");
 
@@ -26,18 +26,18 @@ template <TYPE>
 
 %ConvertToTypeCode
 #if SIP_ABI_MAJOR_VERSION >= 14
-    sipTypeID type_id = sipFindTypeID(sipModule, "TYPE");
+    sipTypeID type_id = sipFindTypeID(sipMS, "TYPE");
 
     if (sipIsErr == NULL)
-        return sipCanConvertToType(sipModule, sipPy, type_id, 0);
+        return sipCanConvertToType(sipMS, sipPy, type_id, 0);
 
     if (sipPy == Py_None)
         return 1;
 
     int state;
-    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipModule, sipPy, type_id, sipTransferObj, 0, &state, sipIsErr));
+    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipMS, sipPy, type_id, sipTransferObj, 0, &state, sipIsErr));
 
-    sipReleaseType(sipModule, t, type_id, state);
+    sipReleaseType(sipMS, t, type_id, state);
 
     if (*sipIsErr)
         return 0;

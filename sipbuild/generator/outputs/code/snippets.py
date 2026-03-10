@@ -781,7 +781,7 @@ def _arg_parser(backend, sf, scope, py_signature, signature_nr, ctor=None,
     single_arg = False
 
     if spec.target_abi >= (14, 0):
-        args.append('sipModule')
+        args.append('sipMS')
 
         if overload is not None:
             member_name = overload.common.py_name.name
@@ -2717,7 +2717,7 @@ f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_c
             if isinstance(scope, WrappedClass):
                 cpp_name = scoped_class_name(spec, scope)
                 type_ref = backend.get_type_ref(scope)
-                sip_module = 'sipModule, ' if spec.target_abi >= (14, 0) else ''
+                sip_module = 'sipMS, ' if spec.target_abi >= (14, 0) else ''
 
                 sf.write(
 f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_module}{backend.get_wrapper_type_cast()}sipSelf, {type_ref}));
@@ -2780,7 +2780,7 @@ f'''
 
                 if is_number_slot(member.py_slot) or is_rich_compare_slot(member.py_slot):
                     if spec.target_abi >= (14, 0):
-                        extend_context = 'sipModule'
+                        extend_context = 'sipMS'
                     else:
                         extend_context = f'&sipModuleAPI_{spec.module.py_name}'
 
@@ -4955,7 +4955,7 @@ f'''            Py_INCREF(Py_None);
         build_result_args = []
 
         if spec.target_abi >= (14, 0):
-            build_result_args.append('sipModule')
+            build_result_args.append('sipMS')
 
         build_result_args.append('0')
 

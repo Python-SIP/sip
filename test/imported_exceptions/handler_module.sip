@@ -16,7 +16,7 @@
     SIP_BLOCK_THREADS
 
 #if SIP_ABI_MAJOR_VERSION >= 14
-    PyErr_SetString((PyObject *)sipGetPyType(sipModule, sipTypeID_std_exception), detail);
+    PyErr_SetString((PyObject *)sipGetPyType(sipMS, sipTypeID_std_exception), detail);
 #else
     PyErr_SetString(sipException_std_exception, detail);
 #endif
