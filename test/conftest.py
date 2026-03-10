@@ -292,7 +292,9 @@ def _build_test_module(sip_file, test_dir, abi_version, package, exceptions,
                 f.write(f'tags = [{tags_s}]\n')
 
     # Configure the C++11 support.
-    os.environ['CXXFLAGS'] = '-std=c++11'
+    cxxflags = os.environ.get('CXXFLAGS', '')
+    if '-std=c++11' not in cxxflags:
+        os.environ['CXXFLAGS'] = f'{cxxflags} -std=c++11'
 
     # Build and move the test module.
     _build_module(module_name, package,
