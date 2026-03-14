@@ -721,7 +721,7 @@ def _arg_is_v13_typed_enum(spec, arg):
     # passed to or from the ABI.  The returned value is used to determine if
     # the casting is necessary.  ABI v14 instead passes a pointer to the enum
     # value (rather than the value itself) which means that it can support enum
-    # types larger than an int and doesn't need any casting.  ABU v12 does not
+    # types larger than an int and doesn't need any casting.  ABI v12 does not
     # support typed enums.
 
     return spec.target_abi[0] == 13 and arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
@@ -3893,7 +3893,14 @@ f'''
     sf.write(')\n{\n')
 
     if result_is_returned:
-        result_plain_decl = fmt_argument_as_cpp_type(spec, result, plain=True)
+        decl = fmt_argument_as_cpp_type(spec, result, plain=True)
+
+        if _arg_is_v13_typed_enum(spec, result):
+            result_plain_decl = 'int'
+            result_cast = '(' + decl + ')'
+        else:
+            result_plain_decl = decl
+            result_cast = ''
 
         if result_instance_code is not None:
             sf.write(
@@ -3995,8 +4002,8 @@ f'''
 
         if result_is_returned:
             sf.write(
-'''
-    return sipRes;
+f'''
+    return {result_cast}sipRes;
 ''')
 
         sf.write('}\n')
@@ -4097,7 +4104,7 @@ f'    PyObject *sipResObj = sipCallMethod({context}SIP_NULLPTR, sipMethod, ')
 
         sf.write(
 f'''
-    return {result_ref}sipRes;
+    return {result_cast}{result_ref}sipRes;
 ''')
 
     sf.write('}\n')
