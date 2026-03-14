@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from functools import partial
@@ -605,7 +605,7 @@ class ParserManager:
         if base_type_s is not None:
             # The minor version of the target ABI may not be known yet (and we
             # don't need it) so just test the major version.
-            if self.spec.target_abi is not None and self.spec.target_abi[0] < 13:
+            if self.target_major_abi < 13:
                 self.parser_error(p, symbol,
                         "/BaseType/ is only supported for ABI v13.0 and later")
 
@@ -658,7 +658,7 @@ class ParserManager:
             # Check the member name if it is going to be visible in the current
             # scope.
             # TODO Also check for ABI v14 and custom enums.
-            if cpp_name is None or (self.spec.target_abi[0] == 12 and not is_scoped):
+            if cpp_name is None or (self.target_major_abi == 12 and not is_scoped):
                 self.check_attributes(p, symbol, m_py_name.name,
                         "an enum member")
 
@@ -1669,6 +1669,14 @@ class ParserManager:
 
         return value
 
+    @property
+    def target_major_abi(self):
+        """ The major version of the currently specified target ABI. """
+
+        target_abi = self.spec.target_abi
+
+        return DEFAULT_ABI_MAJOR if target_abi is None else target_abi[0]
+
     def validate_function(self, p, symbol, overload):
         """ Validate a completed function. """
 
@@ -1736,9 +1744,7 @@ class ParserManager:
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
 
-        # The minor version of the target ABI may not be known yet (and we
-        # don't need it) so just test the major version.
-        if self.spec.target_abi is None or self.spec.target_abi[0] >= 13:
+        if self.target_major_abi >= 13:
             convert_to_us = mapped_type.convert_to_type_code is not None and 'sipUserState' in mapped_type.convert_to_type_code.text
 
             release_us = mapped_type.release_code is not None and 'sipUserState' in mapped_type.release_code.text
@@ -1900,6 +1906,8 @@ class ParserManager:
         target_abi = self.spec.target_abi
 
         if target_abi is None:
+            deprecated("Not specifying %MinimumABIVersion")
+
             major_version = DEFAULT_ABI_MAJOR
             minor_version = None
         else:

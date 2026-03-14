@@ -2,6 +2,7 @@
 
 %Module(name=examples.core, use_limited_api=True)
 
+%MinimumABIVersion "13.1"
 %DefaultEncoding "ASCII"
 
 %Platforms {Linux macOS Windows}

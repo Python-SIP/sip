@@ -51,8 +51,12 @@ standalone projects this would normally be the same as the name defined in the
 :file:`pyproject.toml` file.  It also specifies that the code being wrapped is
 implemented in C (as opposed to C++).
 
-The next line of interest is the declaration of the :c:func:`fib_n` function to
-be wrapped.
+The next line of interest is the :directive:`MinimumABIVersion` directive.
+This specifies the ABI version being targeted.  This example is so simple that
+it will will work with any ABI version but it is good practice to specify a
+particular version.
+
+Next is the declaration of the :c:func:`fib_n` function to be wrapped.
 
 The remainder of the file is the :directive:`%MethodCode` directive attached to
 the function declaration.  This is used to provide the actual implementation of
@@ -304,6 +308,9 @@ The :directive:`%Module` directive, as well as specifying the full package name
 of the :mod:`~examples.core` module, specifies that the bindings will use the
 `PEP 384 <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI.
 
+The :directive:`%MinimumABIVersion` directive specifies the ABI version being
+targeted.
+
 The :directive:`%DefaultEncoding` directive specifies that any character
 conversions between C/C++ and Python ``str`` objects will default to the ASCII
 codec.
@@ -370,6 +377,8 @@ We next look at the :file:`extras.sip` file (downloadable from
 This is very similar to the :mod:`~examples.core` module in that it implements
 simple platform-specific functions.  The key thing to notice is that there is
 no need to specify the platform tag as part of the configuration as it is
-obtained automatically from the installed ``examples-core`` project.
+obtained automatically from the installed ``examples-core`` project.  Also note
+that the target ABI version has not been specified and the version will be
+taken from the ``examples-core`` project.
 
 The ``examples-extras`` project has no need for a :file:`project.py` file.

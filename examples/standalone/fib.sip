@@ -2,6 +2,8 @@
 
 %Module(name=fib, language="C")
 
+%MinimumABIVersion "13.1"
+
 int fib_n(int n);
 %MethodCode
     if (a0 <= 0)
