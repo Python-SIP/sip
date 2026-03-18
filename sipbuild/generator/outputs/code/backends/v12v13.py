@@ -112,6 +112,14 @@ f'''    if (targetType == {sc_type_ref})
             if iface_file.type is IfaceFileType.NAMESPACE:
                 sf.write('#endif\n')
 
+    def g_class_spec_extern_decl(self, sf, klass):
+        """ Generate the extern declaration of a class specification. """
+
+        module_name = self.spec.module.py_name
+        klass_name = klass.iface_file.fq_cpp_name.as_word
+
+        sf.write(f'\nextern sipClassTypeDef sipTypeDef_{module_name}_{klass_name};\n')
+
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).

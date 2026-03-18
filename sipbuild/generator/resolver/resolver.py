@@ -20,8 +20,8 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
-        fast_contains, find_iface_file, find_method, same_argument_type,
-        same_base_type, same_signature, search_typedefs)
+        fast_contains, find_iface_file, find_method, is_namespace_extender,
+        same_argument_type, same_base_type, same_signature, search_typedefs)
 
 
 def resolve(spec, modules):
@@ -2179,9 +2179,14 @@ def _create_sorted_numbered_types(spec, mod, error_log):
             continue
 
         if mod is spec.module or klass.iface_file.needed:
-            if not klass.is_hidden_namespace:
-                mod.needed_types.append(Argument(ArgumentType.CLASS,
-                        definition=klass, name=klass.iface_file.cpp_name))
+            if klass.is_hidden_namespace:
+                continue
+
+            if spec.target_abi >= (14, 0) and is_namespace_extender(klass):
+                continue
+
+            mod.needed_types.append(Argument(ArgumentType.CLASS,
+                    definition=klass, name=klass.iface_file.cpp_name))
 
     for mapped_type in spec.mapped_types:
         if mapped_type.iface_file.module is not mod:

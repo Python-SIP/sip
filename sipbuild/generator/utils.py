@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from .scoped_name import ScopedName
@@ -231,6 +231,12 @@ def find_method(klass, name):
             return member
 
     return None
+
+
+def is_namespace_extender(klass):
+    """ Return True if a class is a namespace extender. """
+
+    return klass.iface_file.type is IfaceFileType.NAMESPACE and klass.real_class is not None
 
 
 def normalised_scoped_name(scoped_name, scope):

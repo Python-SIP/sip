@@ -1493,9 +1493,7 @@ def _class_api(backend, sf, klass):
     _enum_macros(backend, sf, scope=klass)
 
     if not klass.external and not klass.is_hidden_namespace:
-        klass_name = iface_file.fq_cpp_name.as_word
-        spec_suffix = backend.get_spec_suffix()
-        sf.write(f'\nextern sipClassType{spec_suffix} sipType{spec_suffix}_{module_name}_{klass_name};\n')
+        backend.g_class_spec_extern_decl(sf, klass)
 
 
 def g_class_docstring(sf, spec, bindings, klass):

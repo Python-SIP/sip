@@ -45,6 +45,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_class_spec_extern_decl(self, sf, klass):
+        """ Generate the extern declaration of a class specification. """
+
+        ...
+
+    @abstractmethod
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).

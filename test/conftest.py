@@ -29,6 +29,15 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture
+def abi_package_version(package):
+    """ This fixture extracts the ABI version used to build a test package.
+    The value is the ABI major version.
+    """
+
+    return package.sip.SIP_ABI_VERSION >> 16
+
+
+@pytest.fixture
 def abi_version(module):
     """ This fixture extracts the ABI version used to build a test module.  The
     value is the ABI major version.
