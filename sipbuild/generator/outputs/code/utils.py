@@ -184,6 +184,40 @@ def get_mapped_type_flags(mapped_type):
     return '|'.join(flags)
 
 
+def get_method_table(klass):
+    """ Return a sorted list of relevant methods (either lazy or non-lazy) for
+    a class.
+    """
+
+    # Only provide an entry point if there is at least one overload that is
+    # defined in this class and is a non-abstract function or slot.  We allow
+    # private (even though we don't actually generate code) because we need to
+    # intercept the name before it reaches a more public version further up the
+    # class hierarchy.  We add the ctor and any variable handlers as special
+    # entries.
+
+    members = []
+
+    for visible_member in klass.visible_members:
+        if visible_member.member.py_slot is not None:
+            continue
+
+        need_member = False
+
+        for overload in visible_member.scope.overloads:
+            # Skip protected methods if we don't have the means to handle them.
+            if overload.access_specifier is AccessSpecifier.PROTECTED and not klass.has_shadow:
+                continue
+
+            if not skip_overload(overload, visible_member.member, klass, visible_member.scope):
+                need_member = True
+
+        if need_member:
+            members.append(visible_member.member)
+
+    return get_function_table(members)
+
+
 def get_named_value_decl(spec, scope, type, name):
     """ Return the declaration of a named variable to hold a C++ value. """
 

@@ -204,14 +204,6 @@ class AbstractBackend(ABC):
         pass
 
     @abstractmethod
-    def g_py_method_table(self, sf, bindings, members, scope):
-        """ Generate a Python method table for a class or mapped type and
-        return the number of entries.
-        """
-
-        ...
-
-    @abstractmethod
     def g_sip_api(self, sf, module_name, module_closure):
         """ Generate the SIP API as seen by generated code. """
 

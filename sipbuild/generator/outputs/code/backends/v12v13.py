@@ -10,17 +10,16 @@ from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type
 
-from ..snippets import (g_class_docstring, g_class_method_table,
-        g_method_docstring, g_module_docstring, g_type_init_body, g_py_slot,
-        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init,
-        g_static_function)
+from ..snippets import (g_class_docstring, g_method_docstring,
+        g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
+        g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
 from ..utils import (get_class_flags, get_class_from_void, get_const_cast,
         get_docstring_text, get_encoded_type, get_enum_member,
-        get_function_table, get_mapped_type_flags, get_named_value_decl,
-        get_normalised_cached_name, get_optional_ptr, get_use_in_code,
-        get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
-        is_used_in_code, keep_py_reference, need_dealloc, py_scope,
-        pyqt5_supported, pyqt6_supported, scoped_class_name,
+        get_function_table, get_mapped_type_flags, get_method_table,
+        get_named_value_decl, get_normalised_cached_name, get_optional_ptr,
+        get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
+        has_method_docstring, is_used_in_code, keep_py_reference, need_dealloc,
+        py_scope, pyqt5_supported, pyqt6_supported, scoped_class_name,
         scoped_variable_name, type_needs_user_state, variables_in_scope)
 
 from .abstract_backend import AbstractBackend
@@ -597,7 +596,7 @@ f'''
         mapped_type_name = mapped_type.iface_file.fq_cpp_name.as_word
 
         members = get_function_table(mapped_type.members)
-        cod_nrmethods = self.g_py_method_table(sf, bindings, members,
+        cod_nrmethods = self._g_py_method_table(sf, bindings, members,
                 mapped_type)
 
         id_int = 'SIP_NULLPTR'
@@ -859,53 +858,6 @@ f'''
 
         if need_args:
             sf.write('    PyObject *sipParseErr = SIP_NULLPTR;\n');
-
-    def g_py_method_table(self, sf, bindings, members, scope):
-        """ Generate a Python method table for a class or mapped type and
-        return the number of entries.
-        """
-
-        scope_name = scope.iface_file.fq_cpp_name.as_word
-
-        no_intro = True
-
-        for member_nr, member in enumerate(members):
-            # Save the index in the table.
-            member.member_nr = member_nr
-
-            py_name = member.py_name
-            cached_py_name = self.cached_name_ref(py_name)
-            comma = '' if member is members[-1] else ','
-
-            if member.no_arg_parser or member.allow_keyword_args:
-                cast = 'SIP_MLMETH_CAST('
-                cast_suffix = ')'
-                flags = '|METH_KEYWORDS'
-            else:
-                cast = ''
-                cast_suffix = ''
-                flags = ''
-
-            if has_method_docstring(bindings, member, scope.overloads):
-                docstring = f'doc_{scope_name}_{py_name.name}'
-            else:
-                docstring = 'SIP_NULLPTR'
-
-            if no_intro:
-                sf.write(
-f'''
-
-static PyMethodDef methods_{scope_name}[] = {{
-''')
-
-                no_intro = False
-
-            sf.write(f'    {{{cached_py_name}, {cast}meth_{scope_name}_{py_name.name}{cast_suffix}, METH_VARARGS{flags}, {docstring}}}{comma}\n')
-
-        if not no_intro:
-            sf.write('};\n')
-
-        return len(members)
 
     def g_sip_api(self, sf, module_name, module_state):
         """ Generate the SIP API as seen by generated code. """
@@ -1329,7 +1281,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
             sf.write('    {0, (sipPySlotType)0}\n};\n')
 
         # The attributes tables.
-        nr_methods = g_class_method_table(self, sf, bindings, klass)
+        nr_methods = self._g_class_method_table(sf, bindings, klass)
         nr_enum_members, _ = self.g_enums_specifications(sf, bindings,
                 scope=klass)
 
@@ -1806,6 +1758,18 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return docstring_ref
 
+    def _g_class_method_table(self, sf, bindings, klass):
+        """ Generate the sorted table of methods for a class and return the
+        number of entries.
+        """
+
+        if klass.iface_file.type is IfaceFileType.NAMESPACE:
+            members = get_function_table(klass.members)
+        else:
+            members = get_method_table(klass)
+
+        return self._g_py_method_table(sf, bindings, members, klass)
+
     def _g_enums_defs(self, sf, needed_enums):
         """ Generate the definitions for all wrapped enums. """
 
@@ -2241,6 +2205,53 @@ f'''
 ''')
 
         return True
+
+    def _g_py_method_table(self, sf, bindings, members, scope):
+        """ Generate a Python method table for a class or mapped type and
+        return the number of entries.
+        """
+
+        scope_name = scope.iface_file.fq_cpp_name.as_word
+
+        no_intro = True
+
+        for member_nr, member in enumerate(members):
+            # Save the index in the table.
+            member.member_nr = member_nr
+
+            py_name = member.py_name
+            cached_py_name = self.cached_name_ref(py_name)
+            comma = '' if member is members[-1] else ','
+
+            if member.no_arg_parser or member.allow_keyword_args:
+                cast = 'SIP_MLMETH_CAST('
+                cast_suffix = ')'
+                flags = '|METH_KEYWORDS'
+            else:
+                cast = ''
+                cast_suffix = ''
+                flags = ''
+
+            if has_method_docstring(bindings, member, scope.overloads):
+                docstring = f'doc_{scope_name}_{py_name.name}'
+            else:
+                docstring = 'SIP_NULLPTR'
+
+            if no_intro:
+                sf.write(
+f'''
+
+static PyMethodDef methods_{scope_name}[] = {{
+''')
+
+                no_intro = False
+
+            sf.write(f'    {{{cached_py_name}, {cast}meth_{scope_name}_{py_name.name}{cast_suffix}, METH_VARARGS{flags}, {docstring}}}{comma}\n')
+
+        if not no_intro:
+            sf.write('};\n')
+
+        return len(members)
 
     # The types that are implemented as PyObject*.
     _PY_OBJECT_TYPES = (ArgumentType.PYOBJECT, ArgumentType.PYTUPLE,

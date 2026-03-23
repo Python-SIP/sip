@@ -23,26 +23,13 @@ from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
 
 from .utils import (callable_overloads, get_class_from_void, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
-        get_enum_class_scope, get_function_table, get_named_value_decl,
-        get_normalised_cached_name, get_optional_ptr, get_type_from_void,
-        get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
-        has_method_docstring, is_used_in_code, keep_py_reference, need_dealloc,
-        need_error_flag, py_scope, pyqt5_supported, pyqt6_supported,
-        release_gil, scoped_class_name, skip_overload, type_needs_user_state,
+        get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
+        get_optional_ptr, get_type_from_void, get_use_in_code,
+        get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
+        is_used_in_code, keep_py_reference, need_dealloc, need_error_flag,
+        py_scope, pyqt5_supported, pyqt6_supported, release_gil,
+        scoped_class_name, skip_overload, type_needs_user_state,
         variables_in_scope)
-
-
-def g_class_method_table(backend, sf, bindings, klass):
-    """ Generate the sorted table of methods for a class and return the number
-    of entries.
-    """
-
-    if klass.iface_file.type is IfaceFileType.NAMESPACE:
-        members = get_function_table(klass.members)
-    else:
-        members = _get_method_table(klass)
-
-    return backend.g_py_method_table(sf, bindings, members, klass)
 
 
 def g_composite_module_code(backend, sf, py_debug):
@@ -1848,40 +1835,6 @@ def _gc_ellipsis(sf, signature):
 
     if last >= 0 and signature.args[last].type is ArgumentType.ELLIPSIS:
         sf.write(f'\n            Py_DECREF(a{last});\n')
-
-
-def _get_method_table(klass):
-    """ Return a sorted list of relevant methods (either lazy or non-lazy) for
-    a class.
-    """
-
-    # Only provide an entry point if there is at least one overload that is
-    # defined in this class and is a non-abstract function or slot.  We allow
-    # private (even though we don't actually generate code) because we need to
-    # intercept the name before it reaches a more public version further up the
-    # class hierarchy.  We add the ctor and any variable handlers as special
-    # entries.
-
-    members = []
-
-    for visible_member in klass.visible_members:
-        if visible_member.member.py_slot is not None:
-            continue
-
-        need_member = False
-
-        for overload in visible_member.scope.overloads:
-            # Skip protected methods if we don't have the means to handle them.
-            if overload.access_specifier is AccessSpecifier.PROTECTED and not klass.has_shadow:
-                continue
-
-            if not skip_overload(overload, visible_member.member, klass, visible_member.scope):
-                need_member = True
-
-        if need_member:
-            members.append(visible_member.member)
-
-    return get_function_table(members)
 
 
 def _get_subformat_char(arg):
