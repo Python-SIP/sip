@@ -1,5 +1,27 @@
 # Release Notes
 
+## v6.15.3
+
+### Bug fixes
+
+- Fixed the handling of virtuals that return enums with a non-`int` base type.
+  Resolves [#105](https://github.com/Python-SIP/sip/issues/105)
+- A regression in v6.15.2 that caused a crash if `MinimumABIVersion` was not
+  specified was fixed.  Resolves
+  [#106](https://github.com/Python-SIP/sip/issues/106)
+
+### Deprecations
+
+The use of the `%MinimumABIVersion` directive will be required in SIP v7.
+Failing to use it now results in a deprecation warning.
+
+### Testing
+
+- The tests now amend `CXXFLAGS` instead of overwriting them.  This fixes
+  `blhc` (build log hardening check) in Debian.  Pull request
+  [#104](https://github.com/Python-SIP/sip/pull/104).
+
+
 ## v6.15.2
 
 ### Enhancements
