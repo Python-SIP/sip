@@ -129,6 +129,50 @@ def g_iface_file_code(backend, sf, bindings, project, buildable, py_debug,
             _mapped_type_cpp(backend, sf, bindings, mapped_type)
 
 
+def g_keyword_list(backend, sf, ctor, overload, py_signature):
+    """ Generate the list of keywords for a signature.  Return an appropriate
+    reference to the list.
+    """
+
+    # We handle keywords if we might have been passed some (because one of the
+    # overloads uses them or we are a ctor).  However this particular signature
+    # might not have any.
+    if overload is not None:
+        kw_args = overload.kw_args
+    elif ctor is not None:
+        kw_args = ctor.kw_args
+    else:
+        kw_args = KwArgs.NONE
+
+    # The above test isn't good enough because when the flags were set in the
+    # parser we couldn't know for sure if an argument was an output pointer.
+    # Therefore we check here.  The drawback is that we may generate the name
+    # string for the argument but never use it, or we might have an empty
+    # keyword name array or one that contains only NULLs.
+    is_ka_list = False
+
+    if kw_args is not KwArgs.NONE:
+        for arg in py_signature.args:
+            if not arg.is_in:
+                continue
+
+            if not is_ka_list:
+                sf.write('        static const char *sipKwdList[] = {\n')
+                is_ka_list = True
+
+            if arg.name is not None and (kw_args is KwArgs.ALL or arg.default_value is not None):
+                arg_name_ref = backend.cached_name_ref(arg.name)
+            else:
+                arg_name_ref = 'SIP_NULLPTR'
+
+            sf.write(f'            {arg_name_ref},\n')
+
+        if is_ka_list:
+            sf.write('        };\n\n')
+
+    return 'sipKwdList' if is_ka_list else 'SIP_NULLPTR'
+
+
 def g_module_code(backend, sf, bindings, project, py_debug, buildable):
     """ Generate the code for a module excluding the code specific to an
     interface file.  It returns a ABI-specific state that will be passed to
@@ -196,18 +240,17 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
         if member.py_slot is None:
             g_static_function(backend, sf, bindings, member)
         else:
-            # Make sure that there is still an overload and we haven't moved
-            # them all to classes.
-            for overload in module.overloads:
-                if overload.common is member:
-                    g_py_slot(backend, sf, bindings, member)
-                    slot_extenders = True
-                    break
+            # TODO Handle slot extenders for v14.
+            g_py_slot(backend, sf, bindings, member)
+            slot_extenders = True
 
     # Generate the global functions for any hidden namespaces.
     for klass in spec.classes:
         if klass.iface_file.module is module and klass.is_hidden_namespace:
             for member in klass.members:
+                # TODO If there really can be slots here then fix for v14.
+                # TODO Maybe the legacy code doesn't support slot extenders in
+                # hidden namespaces.
                 if member.py_slot is None:
                     g_static_function(backend, sf, bindings, member,
                             scope=klass)
@@ -221,6 +264,7 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
             init_extenders = True
 
         for member in klass.members:
+            # TODO Handle slot extenders for v14.
             g_py_slot(backend, sf, bindings, member, scope=klass)
             slot_extenders = True
 
@@ -249,6 +293,7 @@ f'''    {{{first_field}SIP_NULLPTR, {{0, 0, 0}}, SIP_NULLPTR}}
     # TODO sipPySlotExtend() only seems to be called for number and richcompare
     # slots, so shouldn't slot extenders be appropriately limited - or have
     # others already been filtered out by this stage?
+    # TODO Move the the legacy backend.
     if slot_extenders:
         sf.write(
 '''
@@ -724,11 +769,11 @@ def _arg_parser(backend, sf, scope, py_signature, signature_nr, ctor=None,
     if isinstance(scope, MappedType) or (isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE):
         scope = None
 
-    # For ABI v13 and later static methods use self for the type object.
-    if spec.target_abi >= (13, 0):
-        handle_self = (scope is not None and overload is not None and overload.common.py_slot is None)
+    # See if the parser handles self.
+    if scope is None or overload is None:
+        handle_self = False
     else:
-        handle_self = (scope is not None and overload is not None and overload.common.py_slot is None and not overload.is_static)
+        handle_self = backend.arg_parser_handles_self(overload)
 
     # Generate the local variables that will hold the parsed arguments and
     # values returned via arguments.
@@ -754,168 +799,29 @@ def _arg_parser(backend, sf, scope, py_signature, signature_nr, ctor=None,
     if handle_self and not overload.is_static:
         cpp_type = 'const ' if overload.is_const else ''
 
-        if overload.access_specifier is AccessSpecifier.PROTECTED and scope.has_shadow:
-            cpp_type += 'sip' + scope.iface_file.fq_cpp_name.as_word
+        if isinstance(scope, WrappedEnum):
+            ptr = ''
+            cpp_type = fmt_enum_as_cpp_type(scope)
         else:
-            cpp_type += scoped_class_name(spec, scope)
+            ptr = '*'
+            if overload.access_specifier is AccessSpecifier.PROTECTED and scope.has_shadow:
+                cpp_type += 'sip' + scope.iface_file.fq_cpp_name.as_word
+            else:
+                cpp_type += scoped_class_name(spec, scope)
 
-        sf.write(f'        {cpp_type} *sipCpp;\n\n')
+        sf.write(f'        {cpp_type} {ptr}sipCpp;\n\n')
     elif len(py_signature.args) != 0:
         sf.write('\n')
 
     # Generate the call to the parser function.
-    args = []
-    single_arg = False
-
-    if spec.target_abi >= (14, 0):
-        args.append('sipMS')
-
-        if overload is not None:
-            member_name = overload.common.py_name.name
-
-            if scope is None:
-                callable_name = member_name
-            else:
-                if isinstance(scope, WrappedEnum):
-                    scope_name = scope.fq_cpp_name
-                else:
-                    scope_name = scope.iface_file.fq_cpp_name
-
-                callable_name = scope_name.as_word + '_' + member_name
-        else:
-            assert ctor is not None
-            callable_name = scope.iface_file.fq_cpp_name.as_word
-
-        if overload is not None and overload.common.py_slot is not None:
-            # TODO Add type hints for slots.
-            args.append('SIP_NULLPTR')
-            args.append('&sipPState')
-        else:
-            args.append(f'sipTypeHints_{callable_name}[{signature_nr}]')
-            args.append('sipPStateP')
-
-    if overload is not None and is_number_slot(overload.common.py_slot):
-        parser_function = 'sipParsePair'
-
-        if spec.target_abi < (14, 0):
-            args.append('&sipParseErr')
-
-        args.append('sipArg0')
-        args.append('sipArg1')
-
-    elif overload is not None and overload.common.py_slot is PySlot.SETATTR:
-        # We don't even try to invoke the parser if there is a value and there
-        # shouldn't be (or vice versa) so that the list of errors doesn't get
-        # polluted with signatures that can never apply.
-        if overload.is_delattr:
-            operator = '=='
-            sip_value = 'SIP_NULLPTR'
-        else:
-            operator = '!='
-            sip_value = 'sipValue'
-
-        parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
-
-        if spec.target_abi < (14, 0):
-            args.append('&sipParseErr')
-
-        args.append('sipName')
-        args.append(sip_value)
-
-    elif (overload is not None and overload.common.allow_keyword_args) or ctor is not None:
-        # We handle keywords if we might have been passed some (because one of
-        # the overloads uses them or we are a ctor).  However this particular
-        # overload might not have any.
-        if overload is not None:
-            kw_args = overload.kw_args
-        elif ctor is not None:
-            kw_args = ctor.kw_args
-        else:
-            kw_args = KwArgs.NONE
-
-        # The above test isn't good enough because when the flags were set in
-        # the parser we couldn't know for sure if an argument was an output
-        # pointer.  Therefore we check here.  The drawback is that we may
-        # generate the name string for the argument but never use it, or we
-        # might have an empty keyword name array or one that contains only
-        # NULLs.
-        is_ka_list = False
-
-        if kw_args is not KwArgs.NONE:
-            for arg in py_signature.args:
-                if not arg.is_in:
-                    continue
-
-                if not is_ka_list:
-                    sf.write('        static const char *sipKwdList[] = {\n')
-                    is_ka_list = True
-
-                if arg.name is not None and (kw_args is KwArgs.ALL or arg.default_value is not None):
-                    arg_name_ref = backend.cached_name_ref(arg.name)
-                else:
-                    arg_name_ref = 'SIP_NULLPTR'
-
-                sf.write(f'            {arg_name_ref},\n')
-
-            if is_ka_list:
-                sf.write('        };\n\n')
-
-        if spec.target_abi < (14, 0):
-            args.append('sipParseErr' if ctor is not None else '&sipParseErr')
-
-        args.append('sipArgs')
-
-        if spec.target_abi >= (14, 0):
-            if overload is not None and overload.common.py_slot is PySlot.CALL:
-                # The call slot has a traditional signature.
-                parser_function = 'sipParseKwdArgs'
-            else:
-                parser_function = 'sipParseVcKwdArgs'
-                args.append('sipNrArgs')
-        else:
-            parser_function = 'sipParseKwdArgs'
-
-        args.append('sipKwdNames' if spec.target_abi >= (14, 0) else 'sipKwds')
-        args.append('sipKwdList' if is_ka_list else 'SIP_NULLPTR')
-        args.append('sipUnused' if ctor is not None else 'SIP_NULLPTR')
-
-    else:
-        single_arg = not (overload is None or overload.common.py_slot is None or is_multi_arg_slot(overload.common.py_slot))
-
-
-        if spec.target_abi >= (14, 0):
-            if overload is not None and overload.common.py_slot is PySlot.CALL:
-                # The call slot has a traditional signature.
-                parser_function = 'sipParseArgs'
-                args.append('sipArgs')
-            elif overload is not None and overload.common.py_slot is PySlot.SETITEM:
-                # We use a non-standard API for setitem as we know we have two
-                # arguments.
-                parser_function = 'sipParsePair'
-                args.append('sipKey')
-                args.append('sipValue')
-            else:
-                if single_arg:
-                    parser_function = 'sipParsePair'
-                    args.append('sipArg')
-                    args.append('SIP_NULLPTR')
-                else:
-                    parser_function = 'sipParseVcKwdArgs'
-                    args.append('sipArgs')
-                    args.append('sipNrArgs')
-                    args.append('sipKwdNames')
-                    args.append('SIP_NULLPTR')
-                    args.append('SIP_NULLPTR')
-        else:
-            parser_function = 'sipParseArgs'
-            args.append('&sipParseErr')
-            args.append('sipArg' + ('' if single_arg else 's'))
+    parser_function, args, single_arg = backend.g_arg_parser_arguments(sf,
+            scope, ctor, overload, py_signature, signature_nr)
 
     # Generate the format string.
     format_s = '"'
     optional_args = False
 
-    if single_arg and spec.target_abi < (14, 0):
+    if single_arg:
         format_s += '1'
 
     if ctor_needs_self:
@@ -2561,6 +2467,7 @@ def _convert_to_definitions(backend, sf, scope):
     sf.write('}\n')
 
 
+# TODO Move this to the legacy backend.
 def g_py_slot(backend, sf, bindings, member, scope=None):
     """ Generate a Python slot handler for either a class, an enum or an
     extender.
@@ -2645,8 +2552,6 @@ def g_py_slot(backend, sf, bindings, member, scope=None):
         sf.write(f'extern "C" {{{slot_decl}{member.py_name.name}({decl_arg_str});}}\n')
 
     sf.write(f'{slot_decl}{member.py_name.name}({arg_str})\n{{\n')
-
-    backend.g_slot_support_vars(sf, scope, member)
 
     if member.py_slot is PySlot.CALL and member.no_arg_parser:
         for overload in overloads:
@@ -2795,12 +2700,12 @@ def _class_functions(backend, sf, bindings, klass, py_debug):
 
     # The member functions.
     for visible_member in klass.visible_members:
-        if visible_member.member.py_slot is None:
-            _member_function(backend, sf, bindings, klass,
+        if spec.target_abi >= (14, 0) or visible_member.member.py_slot is None:
+            g_member_function(backend, sf, bindings, klass,
                     visible_member.member, visible_member.scope)
 
-    # The slot functions.
-    backend.g_slot_implementations(sf, bindings, klass, klass.members)
+    # Any remaining members.
+    backend.g_other_members(sf, bindings, klass, klass.members)
 
     # The cast function.
     if len(klass.superclasses) != 0:
@@ -4677,10 +4582,16 @@ def _throw_specifier(bindings, throw_args):
     return ' noexcept' if bindings.exceptions and throw_args is not None and throw_args.arguments is None else ''
 
 
-def _member_function(backend, sf, bindings, klass, member, original_klass):
-    """ Generate a class member function. """
+def g_member_function(backend, sf, bindings, scope, member,
+        original_scope=None):
+    """ Generate a scope's member function.  A scope is either a class or an
+    enum.  The original scope is the class that the function is first defined.
+    """
 
     spec = backend.spec
+
+    if original_scope is None:
+        original_scope = scope
 
     # Check that there is at least one overload that needs to be handled.  See
     # if we can avoid naming the "self" argument (and suppress a compiler
@@ -4688,12 +4599,12 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
     # an argument.  See if we need to handle keyword arguments.
     need_method = need_self = need_args = need_selfarg = need_orig_self = False
 
-    for overload in original_klass.overloads:
+    for overload in original_scope.overloads:
         # Skip protected methods if we don't have the means to handle them.
-        if overload.access_specifier is AccessSpecifier.PROTECTED and not klass.has_shadow:
+        if overload.access_specifier is AccessSpecifier.PROTECTED and not scope.has_shadow:
             continue
 
-        if not skip_overload(overload, member, klass, original_klass):
+        if not skip_overload(overload, member, scope, original_scope):
             need_method = True
 
             if overload.access_specifier is not AccessSpecifier.PRIVATE:
@@ -4711,16 +4622,18 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
     if not need_method:
         return
 
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-    member_py_name = member.py_name.name
-
     sf.write('\n\n')
 
-    state = backend.g_py_method_start(sf, bindings, klass, member,
-            original_klass, need_args, need_self)
+    state = backend.g_py_method_start(sf, bindings, scope, member,
+            original_scope, need_args, need_self)
 
     if bindings.tracing:
-        sf.write(f'    sipTrace(SIP_TRACE_METHODS, "meth_{klass_name}_{member_py_name}()\\n");\n\n')
+        if isinstance(scope, WrappedEnum):
+            scope_name = scope.fq_cpp_name
+        else:
+            scope_name = scope.iface_file.fq_cpp_name.as_word
+
+        sf.write(f'    sipTrace(SIP_TRACE_METHODS, "meth_{scope_name}_{member.py_name.name}()\\n");\n\n')
 
     if not member.no_arg_parser:
         backend.g_py_method_support_vars(sf, need_args)
@@ -4742,7 +4655,7 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             # In addition, if the type is a derived class then we know that
             # there can't be a C++ sub-class that we don't know about so we can
             # avoid the vtable.
-            sf.write(f'    bool sipSelfWasArg = {backend.get_sipself_test(klass)};\n')
+            sf.write(f'    bool sipSelfWasArg = {backend.get_sipself_test(scope)};\n')
 
         if need_orig_self:
             # This is similar to the above but for abstract methods.  We allow
@@ -4752,9 +4665,9 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
 
     signature_nr = 0
 
-    for overload in original_klass.overloads:
+    for overload in original_scope.overloads:
         # If we are handling one variant then we must handle them all.
-        if skip_overload(overload, member, klass, original_klass, want_local=False):
+        if skip_overload(overload, member, scope, original_scope, want_local=False):
             continue
 
         if overload.access_specifier is AccessSpecifier.PRIVATE:
@@ -4764,29 +4677,20 @@ def _member_function(backend, sf, bindings, klass, member, original_klass):
             sf.write_code(overload.method_code)
             break
 
-        _function_body(backend, sf, bindings, klass, overload, signature_nr,
-                is_method=True, original_klass=original_klass)
+        _function_body(backend, sf, bindings, scope, overload, signature_nr,
+                is_method=True, original_scope=original_scope)
         signature_nr += 1
 
     backend.g_py_method_end(sf, state, signature_nr)
 
 
 def _function_body(backend, sf, bindings, scope, overload, signature_nr,
-        is_method=False, original_klass=None, dereferenced=True):
+        is_method=False, original_scope=None, dereferenced=True):
     """ Generate the function calls for a particular overload. """
 
     spec = backend.spec
 
-    if scope is None:
-        original_scope = None
-    elif isinstance(scope, WrappedClass):
-        # If there was no original class (ie. where a virtual was first
-        # defined) then use this class,
-        if original_klass is None:
-            original_klass = scope
-
-        original_scope = original_klass
-    else:
+    if original_scope is None:
         original_scope = scope
 
     py_signature = overload.py_signature
@@ -4796,7 +4700,11 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
     # In case we have to fiddle with it.
     py_signature_adjusted = False
 
-    if is_number_slot(overload.common.py_slot):
+    if spec.target_abi >= (14, 0):
+        _arg_parser(backend, sf, scope, py_signature, signature_nr,
+                is_method=is_method, overload=overload)
+
+    elif is_number_slot(overload.common.py_slot):
         # Number slots must have two arguments because we parse them slightly
         # differently.
         if len(py_signature.args) == 1:
@@ -4804,12 +4712,13 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
 
             # Insert self in the right place.
             py_signature.args[0] = Argument(ArgumentType.CLASS, is_in=True,
-                    is_reference=True, definition=original_klass)
+                    is_reference=True, definition=original_scope)
 
             py_signature_adjusted = True
 
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
+
     elif not is_int_arg_slot(overload.common.py_slot) and not is_zero_arg_slot(overload.common.py_slot):
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
@@ -5228,11 +5137,13 @@ def _function_call(backend, sf, bindings, scope, overload, dereferenced,
     """ Generate a function call. """
 
     spec = backend.spec
-    py_slot = overload.common.py_slot
     result = overload.py_signature.result
     result_cpp_type = fmt_argument_as_cpp_type(spec, result, plain=True,
             no_derefs=True)
     static_factory = (scope is None or overload.is_static) and overload.factory
+
+    # ABI v14 handles slots as normal callables.
+    py_slot = None if spec.target_abi >= (14, 0) else overload.common.py_slot
 
     sf.write('        {\n')
 
@@ -5393,9 +5304,10 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
                 if result.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and (len(result.derefs) == 0 or result.is_reference):
                     sf.write('&')
 
-        if py_slot is None:
+        # Note that we use the real slot.
+        if overload.common.py_slot is None:
             _cpp_function_call(backend, sf, scope, overload, original_scope)
-        elif py_slot is PySlot.CALL:
+        elif overload.common.py_slot is PySlot.CALL:
             sf.write('(*sipCpp)(')
             _call_args(sf, spec, overload.cpp_signature, overload.py_signature)
             sf.write(')')
@@ -5769,6 +5681,9 @@ def _get_binary_slot_call(backend, scope, overload, operator, dereferenced):
     spec = backend.spec
     slot_call = ''
 
+    if spec.target_abi >= (14, 0) and isinstance(scope, WrappedEnum):
+        dereferenced = False
+
     if overload.is_complementary:
         operator = _OPERATOR_COMPLEMENTS[operator]
         slot_call += '!'
@@ -5800,8 +5715,12 @@ def _get_binary_slot_call(backend, scope, overload, operator, dereferenced):
 def _get_number_slot_call(spec, overload, operator):
     """ Return the call to a binary number slot method. """
 
-    arg0 = _get_slot_arg(spec, overload, 0)
-    arg1 = _get_slot_arg(spec, overload, 1)
+    if spec.target_abi >= (14, 0):
+        arg0 = 'sipCpp'
+        arg1 = _get_slot_arg(spec, overload, 0)
+    else:
+        arg0 = _get_slot_arg(spec, overload, 0)
+        arg1 = _get_slot_arg(spec, overload, 1)
 
     return f'({arg0} {operator} {arg1})'
 
@@ -6032,8 +5951,14 @@ def _sequence_support(sf, spec, klass, overload):
 f'''            if ({index_arg} < 0 || {index_arg} >= sipCpp->{klass.len_cpp_name}())
             {{
                 PyErr_SetNone(PyExc_IndexError);
-                return SIP_NULLPTR;
-            }}
+''')
+
+        if spec.target_abi >= (14, 0):
+            sf.write('                sipSetParserError(sipPStateP);\n')
+
+        sf.write(
+'''                return SIP_NULLPTR;
+            }
 
 ''')
 

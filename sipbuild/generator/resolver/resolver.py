@@ -372,7 +372,7 @@ def _move_main_module_casts_slots(spec, error_log):
         if klass.iface_file.module is spec.module:
             _move_class_casts(spec, klass, error_log)
 
-    for member in spec.module.global_functions:
+    for member in tuple(spec.module.global_functions):
         if member.py_slot is not None and member.module is spec.module:
             _move_global_slot(spec, member, error_log)
 
@@ -416,7 +416,9 @@ def _move_class_casts(spec, klass, error_log):
 def _move_global_slot(spec, global_slot, error_log):
     """ If possible, move a global slot to its correct class. """
 
-    for overload in list(spec.module.overloads):
+    remove_member = True
+
+    for overload in tuple(spec.module.overloads):
         if overload.common is not global_slot:
             continue
 
@@ -480,111 +482,181 @@ def _move_global_slot(spec, global_slot, error_log):
                         overload)
             continue
 
-        # For rich comparisons the first argument must be a class or an enum.
-        # For cross-module slots then it may only be a class.  (This latter
-        # limitation is artificial, but is unlikely to be a problem in
-        # practice.)
-        if is_rich_compare_slot(global_slot.py_slot):
-            if is_second:
-                _log_overload_error(error_log,
-                        "argument 1 must be a class or enum", overload)
-                continue
-
-            if arg_module is not global_slot.module and arg0.type is ArgumentType.ENUM:
-                _log_overload_error(error_log, "argument 1 must be a class",
-                        overload)
-                continue
-
-        if arg_module is not global_slot.module:
-            if is_rich_compare_slot(global_slot.py_slot):
-                proxy = _get_proxy(arg_module, arg0.definition)
-
-                # Create a new proxy member if needed.
-                for proxy_member in proxy.members:
-                    if proxy_member.py_slot is global_slot.py_slot:
-                        break
-                else:
-                    proxy_member = Member(arg_module, global_slot.py_name,
-                            py_slot=global_slot.py_slot,
-                            namespace_iface_file=global_slot.namespace_iface_file)
-
-                    proxy.members.insert(0, proxy_member)
-
-                # Remove the overload from the list.
-                spec.module.overloads.remove(overload)
-
-                # Add the overload to the proxy.
-                overload.common = proxy_member
-                overload.no_typehint = True
-
-                proxy.overloads.insert(0, overload)
-
-                # Remove the overload's first argument.
-                del overload.py_signature.args[0]
-
-            continue
-
-        # Remove from the list.
-        spec.module.overloads.remove(overload)
-
-        if arg_enum is not None:
-            _enum_iface_file_is_used(arg_enum, arg_module)
-            arg_enum.py_name.used = True
-
-        # See if there is already a member or create a new one.
-        inject_equality_slot = False
-
-        for arg_member in arg_members:
-            if arg_member.py_slot is global_slot.py_slot:
-                break
+        if spec.target_abi >= (14, 0):
+            _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
+                    arg_members, arg_overloads, arg_enum, is_second)
         else:
-            arg_member = copy(global_slot)
+            slot_extender = _move_slot_v12v13(spec, error_log, global_slot,
+                    overload, arg_module, arg_members, arg_overloads, arg_enum,
+                    is_second)
 
-            arg_member.module = arg_module
-            arg_members.insert(0, arg_member)
+            if slot_extender:
+                remove_member = False
 
-            # Legacy enum members, when accessed as scoped values, are created
-            # on the fly.  By default these members compare for equality
-            # correctly (ie. 'E.M == E.M' works as expected).  However if there
-            # is another equality operator defined then it will fail so we have
-            # to explicitly inject the comparison.
-            if spec.target_abi < (13, 0) and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
-                inject_equality_slot = True
+    if remove_member:
+        # Remove the slot itself as it has no remaining overloads.
+        spec.module.global_functions.remove(global_slot)
 
-        # Move the overload to the end of the destination list.
+
+def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
+        arg_members, arg_overloads, arg_enum, is_second):
+    """ Move a slot and adjust it's signature appropriately. """
+
+    if arg_module is not global_slot.module:
+        _log_overload_error(error_log, "slot extenders are not yet supported",
+                    overload)
+        return
+
+    if arg_enum is not None:
+        _enum_iface_file_is_used(arg_enum, arg_module)
+
+    # See if there is already a member or create a new one.
+    for arg_member in arg_members:
+        if arg_member.py_slot is global_slot.py_slot:
+            break
+    else:
+        arg_member = copy(global_slot)
+
+        arg_member.module = arg_module
+        arg_members.append(arg_member)
+
+    # Move the overload to the end of the destination list.
+    if is_second:
+        overload.is_reflected = True
+
+    overload.access_specifier = AccessSpecifier.PUBLIC
+    overload.common = arg_member
+    # TODO Is this necessary/used by v14?
+    overload.is_global = True
+
+    arg_overloads.append(overload)
+
+    # Remove the first argument.
+    # What is is_second is True?
+    del overload.py_signature.args[0]
+
+    # Remove from the list.
+    spec.module.overloads.remove(overload)
+
+
+def _move_slot_v12v13(spec, error_log, global_slot, overload, arg_module,
+        arg_members, arg_overloads, arg_enum, is_second):
+    """ Move a slot and adjust it's signature appropriately.  Return True if
+    the slot wasn't moved so it can be handled at a later state.
+    """
+
+    arg0 = overload.py_signature.args[0]
+
+    # For rich comparisons the first argument must be a class or an enum.  For
+    # cross-module slots then it may only be a class.  (This latter limitation
+    # is artificial, but is unlikely to be a problem in practice.)
+    if is_rich_compare_slot(global_slot.py_slot):
         if is_second:
-            overload.is_reflected = True
+            _log_overload_error(error_log,
+                    "argument 1 must be a class or enum", overload)
+            return False
 
-        overload.access_specifier = AccessSpecifier.PUBLIC
-        overload.common = arg_member
-        overload.is_global = True
+        if arg_module is not global_slot.module and arg0.type is ArgumentType.ENUM:
+            _log_overload_error(error_log, "argument 1 must be a class",
+                    overload)
+            return False
 
-        arg_overloads.append(overload)
+    if arg_module is not global_slot.module:
+        if is_rich_compare_slot(global_slot.py_slot):
+            proxy = _get_proxy(arg_module, arg0.definition)
 
-        # Inject an additional equality slot if necessary.
-        if inject_equality_slot:
-            eq_overload = copy(overload)
-            eq_overload.py_signature = copy(eq_overload.py_signature)
-            eq_overload.py_signature.args = copy(eq_overload.py_signature.args)
-            eq_overload.cpp_signature = eq_overload.py_signature
+            # Create a new proxy member if needed.
+            for proxy_member in proxy.members:
+                if proxy_member.py_slot is global_slot.py_slot:
+                    break
+            else:
+                proxy_member = Member(arg_module, global_slot.py_name,
+                        py_slot=global_slot.py_slot,
+                        namespace_iface_file=global_slot.namespace_iface_file)
 
-            eq_overload.py_signature.args[0].derefs = [False]
-            del eq_overload.py_signature.args[1]
+                proxy.members.insert(0, proxy_member)
 
-            arg_overloads.append(eq_overload)
+            # Remove the overload from the list.
+            spec.module.overloads.remove(overload)
 
-        # Remove the first argument of inplace numeric operators and comparison
-        # operators.
-        if is_inplace_number_slot(arg_member.py_slot) or is_rich_compare_slot(arg_member.py_slot):
-            # Remember if the argument was a pointer.
-            if len(arg0.derefs) > 0:
-                overload.dont_deref_self = True
+            # Add the overload to the proxy.
+            overload.common = proxy_member
+            overload.no_typehint = True
 
+            proxy.overloads.insert(0, overload)
+
+            # Remove the overload's first argument.
             del overload.py_signature.args[0]
 
-        # Remove the only argument of unary operators.
-        if is_zero_arg_slot(arg_member.py_slot):
-            del overload.py_signature.args[0]
+            slot_extender = False
+        else:
+            slot_extender = True
+
+        return slot_extender
+
+    # Remove from the list.
+    spec.module.overloads.remove(overload)
+
+    if arg_enum is not None:
+        _enum_iface_file_is_used(arg_enum, arg_module)
+        arg_enum.py_name.used = True
+
+    # See if there is already a member or create a new one.
+    inject_equality_slot = False
+
+    for arg_member in arg_members:
+        if arg_member.py_slot is global_slot.py_slot:
+            break
+    else:
+        arg_member = copy(global_slot)
+
+        arg_member.module = arg_module
+        arg_members.insert(0, arg_member)
+
+        # Legacy enum members, when accessed as scoped values, are created on
+        # the fly.  By default these members compare for equality correctly
+        # (ie. 'E.M == E.M' works as expected).  However if there is another
+        # equality operator defined then it will fail so we have to explicitly
+        # inject the comparison.
+        if SipModuleConfiguration.CustomEnums in spec.sip_module_configuration and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
+            inject_equality_slot = True
+
+    # Move the overload to the end of the destination list.
+    if is_second:
+        overload.is_reflected = True
+
+    overload.access_specifier = AccessSpecifier.PUBLIC
+    overload.common = arg_member
+    overload.is_global = True
+
+    arg_overloads.append(overload)
+
+    # Inject an additional equality slot if necessary.
+    if inject_equality_slot:
+        eq_overload = copy(overload)
+        eq_overload.py_signature = copy(eq_overload.py_signature)
+        eq_overload.py_signature.args = copy(eq_overload.py_signature.args)
+        eq_overload.cpp_signature = eq_overload.py_signature
+
+        eq_overload.py_signature.args[0].derefs = [False]
+        del eq_overload.py_signature.args[1]
+
+        arg_overloads.append(eq_overload)
+
+    # Remove the first argument of inplace numeric operators and comparison
+    # operators.
+    if is_inplace_number_slot(arg_member.py_slot) or is_rich_compare_slot(arg_member.py_slot):
+        # Remember if the argument was a pointer.
+        if len(arg0.derefs) > 0:
+            overload.dont_deref_self = True
+
+        del overload.py_signature.args[0]
+
+    # Remove the only argument of unary operators.
+    if is_zero_arg_slot(arg_member.py_slot):
+        del overload.py_signature.args[0]
+
+    return False
 
 
 def _get_proxy(mod, klass):

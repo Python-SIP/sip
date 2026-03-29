@@ -184,7 +184,7 @@ def get_mapped_type_flags(mapped_type):
     return '|'.join(flags)
 
 
-def get_method_table(klass):
+def get_method_table(klass, ignore_slots=False):
     """ Return a sorted list of relevant methods (either lazy or non-lazy) for
     a class.
     """
@@ -199,7 +199,7 @@ def get_method_table(klass):
     members = []
 
     for visible_member in klass.visible_members:
-        if visible_member.member.py_slot is not None:
+        if ignore_slots and visible_member.member.py_slot is not None:
             continue
 
         need_member = False

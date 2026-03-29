@@ -72,7 +72,7 @@ public:
 
 
 %ModuleCode
-int operator+(NamedEnum e, int incr) {return (int)e + incr;}
+int operator+(NamedEnum e, int incr) {return (int)e + 10 * incr;}
 bool operator==(NamedEnum e, int v) {return (int)e == v;}
 %End
 

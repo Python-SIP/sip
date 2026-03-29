@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from .specification import PySlot
@@ -93,6 +93,12 @@ def invalid_global_slot(slot):
         return False
 
     return True
+
+
+def is_extendable_slot(slot):
+    """ Return True is a slot is extendable. """
+
+    return is_rich_compare_slot(slot) or is_number_slot(slot) or is_inplace_number_slot(slot)
 
 
 def is_hash_return_slot(slot):

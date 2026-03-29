@@ -3,14 +3,15 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from ....python_slots import is_number_slot, is_multi_arg_slot
 from ....scoped_name import STRIP_GLOBAL
 from ....specification import (AccessSpecifier, ArgumentType, IfaceFileType,
-        MappedType, WrappedClass, WrappedEnum)
+        MappedType, PySlot, WrappedClass, WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type
 
-from ..snippets import (g_class_docstring, g_method_docstring,
+from ..snippets import (g_class_docstring, g_keyword_list, g_method_docstring,
         g_module_docstring, g_type_init_body, g_py_slot, g_pyqt_class_plugin,
         g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
 from ..utils import (get_class_flags, get_class_from_void, get_const_cast,
@@ -27,6 +28,58 @@ from .abstract_backend import AbstractBackend
 
 class v12v13Backend(AbstractBackend):
     """ The backend code generator for v12 and v13 of the ABI. """
+
+    def g_arg_parser_arguments(self, sf, scope, ctor, overload, py_signature,
+            signature_nr):
+        """ Generate any code required before an argument parser is invoked and
+        return a 3-tuple of the name of the parser function, the parser
+        arguments (prior to the format string) and a flag which is set if the
+        signature is known to require a single argument.
+        """
+
+        args = []
+        single_arg = False
+
+        if overload is not None and is_number_slot(overload.common.py_slot):
+            parser_function = 'sipParsePair'
+            args.append('&sipParseErr')
+            args.append('sipArg0')
+            args.append('sipArg1')
+
+        elif overload is not None and overload.common.py_slot is PySlot.SETATTR:
+            # We don't even try to invoke the parser if there is a value and
+            # there shouldn't be (or vice versa) so that the list of errors
+            # doesn't get polluted with signatures that can never apply.
+            if overload.is_delattr:
+                operator = '=='
+                sip_value = 'SIP_NULLPTR'
+            else:
+                operator = '!='
+                sip_value = 'sipValue'
+
+            parser_function = f'sipValue {operator} SIP_NULLPTR && sipParsePair'
+            args.append('&sipParseErr')
+            args.append('sipName')
+            args.append(sip_value)
+
+        elif (overload is not None and overload.common.allow_keyword_args) or ctor is not None:
+            kwd_list = g_keyword_list(self, sf, ctor, overload, py_signature)
+
+            parser_function = 'sipParseKwdArgs'
+            args.append('sipParseErr' if ctor is not None else '&sipParseErr')
+            args.append('sipArgs')
+            args.append('sipKwds')
+            args.append(kwd_list)
+            args.append('sipUnused' if ctor is not None else 'SIP_NULLPTR')
+
+        else:
+            single_arg = not (overload is None or overload.common.py_slot is None or is_multi_arg_slot(overload.common.py_slot))
+
+            parser_function = 'sipParseArgs'
+            args.append('&sipParseErr')
+            args.append('sipArg' + ('' if single_arg else 's'))
+
+        return parser_function, args, single_arg
 
     def g_cast_function(self, sf, klass):
         """ Generate the function that casts a C++ pointer to a target type.
@@ -794,6 +847,17 @@ const char sipStrings_{module.py_name}[] = {{
     return Py_NotImplemented;
 ''')
 
+    def g_other_members(self, sf, bindings, scope, members):
+        """ Generate other (backend-specific) members for a scope. """
+
+        is_ns = isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE
+
+        for member in members:
+            if is_ns:
+                g_static_function(self, sf, bindings, member, scope=scope)
+            elif member.py_slot is not None:
+                g_py_slot(self, sf, bindings, member, scope=scope)
+
     def g_py_method_end(self, sf, state, nr_signatures):
         """ Generate the end of a method implementation. """
 
@@ -817,7 +881,7 @@ f'''
 
         sf.write('}\n')
 
-    def g_py_method_start(self, sf, bindings, klass, member, original_klass,
+    def g_py_method_start(self, sf, bindings, scope, member, original_scope,
             need_args, need_self):
         """ Generate the start of a method implementation and return a 4-tuple
         the class, member, whether it has an automatically generated docstring
@@ -825,16 +889,16 @@ f'''
         """
 
         spec = self.spec
-        klass_name = klass.iface_file.fq_cpp_name.as_word
+        scope_name = scope.iface_file.fq_cpp_name.as_word
         member_py_name = member.py_name.name
 
         # Generate the docstrings.
-        if has_method_docstring(bindings, member, original_klass.overloads):
-            sf.write(f'PyDoc_STRVAR(doc_{klass_name}_{member_py_name}, "')
+        if has_method_docstring(bindings, member, original_scope.overloads):
+            sf.write(f'PyDoc_STRVAR(doc_{scope_name}_{member_py_name}, "')
 
             has_auto_docstring = g_method_docstring(sf, spec, bindings, member,
-                    original_klass.overloads,
-                    is_method=not klass.is_hidden_namespace)
+                    original_scope.overloads,
+                    is_method=not scope.is_hidden_namespace)
 
             sf.write('");\n\n')
         else:
@@ -847,11 +911,11 @@ f'''
             kw_fw_decl = kw_decl = ''
 
         if not spec.c_bindings:
-            sf.write(f'extern "C" {{static PyObject *meth_{klass_name}_{member_py_name}({self.get_py_method_args(is_impl=False)}{kw_fw_decl});}}\n')
+            sf.write(f'extern "C" {{static PyObject *meth_{scope_name}_{member_py_name}({self.get_py_method_args(is_impl=False)}{kw_fw_decl});}}\n')
 
-        sf.write(f'static PyObject *meth_{klass_name}_{member_py_name}({self.get_py_method_args(is_impl=True, need_self=need_self, need_args=need_args)}{kw_decl})\n{{\n')
+        sf.write(f'static PyObject *meth_{scope_name}_{member_py_name}({self.get_py_method_args(is_impl=True, need_self=need_self, need_args=need_args)}{kw_decl})\n{{\n')
 
-        return klass, member, has_auto_docstring, need_args
+        return scope, member, has_auto_docstring, need_args
 
     def g_py_method_support_vars(self, sf, need_args):
         """ Generate the variables needed by a method implementation. """
@@ -1102,17 +1166,6 @@ f'''
 /* The strings used by this module. */
 extern const char sipStrings_{module_name}[];
 ''')
-
-    def g_slot_implementations(self, sf, bindings, scope, members):
-        """ Generate the slot implementations for a scope. """
-
-        is_ns = isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE
-
-        for member in members:
-            if is_ns:
-                g_static_function(self, sf, bindings, member, scope=scope)
-            elif member.py_slot is not None:
-                g_py_slot(self, sf, bindings, member, scope=scope)
 
     def g_static_function_end(self, sf, state, nr_signatures):
         """ Generate the end of a static function implementation. """
@@ -1587,6 +1640,16 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return self._abi_version_check((12, 11), (13, 4))
 
+    def arg_parser_handles_self(self, overload):
+        """ Return True if the argument parser for an overload handles self.
+        """
+
+        if overload.common.py_slot is not None:
+            return False
+
+        # In ABI v13 static methods use self for the type object.
+        return True if self.spec.target_abi >= (13, 0) else not overload.is_static
+
     @staticmethod
     def cached_name_ref(cached_name, as_nr=False):
         """ Return a reference to a cached name. """
@@ -1766,7 +1829,7 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         if klass.iface_file.type is IfaceFileType.NAMESPACE:
             members = get_function_table(klass.members)
         else:
-            members = get_method_table(klass)
+            members = get_method_table(klass, ignore_slots=True)
 
         return self._g_py_method_table(sf, bindings, members, klass)
 

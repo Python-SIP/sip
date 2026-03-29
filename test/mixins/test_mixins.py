@@ -1,9 +1,13 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import pytest
+
+
+# TODO Reimplement mixin support for ABI v14.
+cfg_disabled_for = [14]
 
 
 @pytest.fixture

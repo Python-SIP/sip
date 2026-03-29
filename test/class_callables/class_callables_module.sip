@@ -82,7 +82,12 @@ public:
     if (a0 < 0 || a0 >= sipCpp->count())
     {
         PyErr_SetNone(PyExc_IndexError);
+#if SIP_ABI_MAJOR_VERSION >= 14
+        sipSetParserError(sipPStateP);
+        return NULL;
+#else
         return -1;
+#endif
     }
 
     (*sipCpp)[a0] = a1;

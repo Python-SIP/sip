@@ -85,7 +85,7 @@ def test_module_named_value_legacy(module):
     assert module.NamedMember == 20
 
 def test_enum_operator_add(module):
-    assert module.NamedEnum.NamedMember + 10 == 30
+    assert module.NamedEnum.NamedMember + 10 == 120
 
 def test_enum_operator_eq(module):
     assert module.NamedEnum.NamedMember == 20

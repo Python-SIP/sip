@@ -37,3 +37,14 @@ def test_extended_callable_or_overload(package, abi_package_version):
 
         assert isinstance(thrice_f, float)
         assert thrice_f == 15.0
+
+def test_extended_attribute_get(package):
+    assert package.core_module.NameSpace.in_extras1 == 33
+
+def test_extended_attribute_set(package, abi_package_version):
+    package.core_module.NameSpace.in_extras1 = 44
+    assert package.core_module.NameSpace.in_extras1 == 44
+
+    # For ABI v14 check the C++ value has changed and not the type dict.
+    if abi_package_version >= 14:
+        assert package.extras1_module.get_in_extras1() == 44

@@ -26,6 +26,17 @@ class AbstractBackend(ABC):
         return backend(spec)
 
     @abstractmethod
+    def g_arg_parser_arguments(self, sf, scope, ctor, overload, py_signature,
+            signature_nr):
+        """ Generate any code required before an argument parser is invoked and
+        return a 3-tuple of the name of the parser function, the parser
+        arguments (prior to the format string) and a flag which is set if the
+        signature is known to require a single argument.
+        """
+
+        ...
+
+    @abstractmethod
     def g_cast_function(self, sf, klass):
         """ Generate the function that casts a C++ pointer to a target type.
         """
@@ -183,13 +194,19 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_other_members(self, sf, bindings, scope, members):
+        """ Generate other (backend-specific) members for a scope. """
+
+        ...
+
+    @abstractmethod
     def g_py_method_end(self, sf, state, nr_signatures):
         """ Generate the end of a method implementation. """
 
         ...
 
     @abstractmethod
-    def g_py_method_start(self, sf, bindings, klass, member, original_klass,
+    def g_py_method_start(self, sf, bindings, scope, member, original_scope,
             need_args, need_self):
         """ Generate the start of a method implementation and return an
         ABI-specific object which will be passed to g_py_method_end().
@@ -208,18 +225,6 @@ class AbstractBackend(ABC):
         """ Generate the SIP API as seen by generated code. """
 
         ...
-
-    @abstractmethod
-    def g_slot_implementations(self, sf, bindings, scope, members):
-        """ Generate the slot implementations for a scope. """
-
-        ...
-
-    def g_slot_support_vars(self, sf, scope, member):
-        """ Generate the variables needed by a slot function. """
-
-        # This default implementation does nothing.
-        pass
 
     @abstractmethod
     def g_static_function_end(self, sf, state, nr_signatures):
@@ -286,6 +291,13 @@ class AbstractBackend(ABC):
         """ Return True if the ABI supports sip.array. """
 
         return True
+
+    @abstractmethod
+    def arg_parser_handles_self(self, overload):
+        """ Return True if the argument parser for an overload handles self.
+        """
+
+        ...
 
     @staticmethod
     @abstractmethod
