@@ -639,23 +639,27 @@ class Project(AbstractProject, Configurable):
     def setup(self, pyproject, tool, tool_description):
         """ Complete the configuration of the project. """
 
-        # Create any programmatically defined bindings.
-        for bindings_factory in self.bindings_factories:
-            bindings = bindings_factory(self)
-            self.bindings[bindings.name] = bindings
+        pending_exception = None
 
-        # Set the initial configuration from the pyproject.toml file.
-        self._set_initial_configuration(pyproject, tool)
+        try:
+            # Create any programmatically defined bindings.
+            for bindings_factory in self.bindings_factories:
+                bindings = bindings_factory(self)
+                self.bindings[bindings.name] = bindings
+
+            # Set the initial configuration from the pyproject.toml file.
+            self._set_initial_configuration(pyproject, tool)
+        except Exception as e:
+            pending_exception = e
 
         # Add any tool-specific command line arguments for (so far unspecified)
-        # parts of the configuration.
+        # parts of the configuration.
         self._configure_from_arguments(tool, tool_description)
 
-        # Now that any help has been given we can report a missing
+        # Now that any help has been given we can report problems with the
         # pyproject.toml file.
-        if pyproject.pyproject is None:
-            raise PyProjectException(
-                    "there is no such file in the current directory")
+        if pending_exception is not None:
+            raise pending_exception
 
         # Make sure the configuration is complete.
         self.apply_user_defaults(tool)
@@ -808,7 +812,10 @@ class Project(AbstractProject, Configurable):
         self.add_command_line_options(parser, tool, all_options,
                 options=options)
 
-        self.builder.add_command_line_options(parser, tool, all_options)
+        # We may not have a builder if there is a pending exception related to
+        # pyproject.toml
+        if self.builder is not None:
+            self.builder.add_command_line_options(parser, tool, all_options)
 
         for bindings in self.bindings.values():
             bindings.add_command_line_options(parser, tool, all_options)

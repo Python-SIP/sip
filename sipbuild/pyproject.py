@@ -76,8 +76,8 @@ class PyProject:
             self.pyproject = toml_loads(self._raw_toml)
 
         except FileNotFoundError:
-            # Delay the exception in case the user is asking for help.
-            self.pyproject = None
+            raise PyProjectException(
+                    "there is no such file in the current directory")
 
         except UnicodeDecodeError as e:
             raise PyProjectException("is not a UTF-8 encoded file",
@@ -89,10 +89,6 @@ class PyProject:
 
     def get_metadata(self):
         """ Return a dict containing the PEP 566 metadata. """
-
-        if self.pyproject is None:
-            # Provide a minimal default.
-            return dict(name='unknown', version='0.1')
 
         # See if PEP 621 project metadata is supplied.  Make this required when
         # support for the legacy metadata is removed.
