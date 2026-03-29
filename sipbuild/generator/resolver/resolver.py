@@ -6,6 +6,9 @@
 
 from copy import copy
 
+from ...sip_module_configuration import (apply_module_defaults,
+        SipModuleConfiguration)
+
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_type_hints
 from ..python_slots import (is_hash_return_slot, is_int_return_slot,
@@ -169,6 +172,10 @@ def resolve(spec, modules):
         for enum in spec.enums:
             if enum.module is spec.module:
                 _enum_iface_file_is_used(enum, spec.module)
+
+    # Finalise the sip module configuration.
+    spec.sip_module_configuration = apply_module_defaults(
+            spec.sip_module_configuration)
 
     # Perform any final checks.
     for check in final_checks:
@@ -1535,7 +1542,7 @@ _STRING_TYPES = (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING,
 def _resolve_variable_type(spec, variable, error_log):
     """ Resolve the type of a variable. """
 
-    if variable.scope is None:
+    if spec.target_abi < (14, 0) and variable.scope is None:
         if variable.get_code is not None or variable.set_code is not None:
             error_log.log("%GetCode or %SetCode cannot be specified for global variables")
 
@@ -1578,7 +1585,9 @@ def _resolve_variable_type(spec, variable, error_log):
         error_log.log(f"'{variable.fq_cpp_name}' has an unsupported type - provide %GetCode{set_s}")
  
     if variable.access_code is not None:
-        if variable_type.type is not ArgumentType.CLASS:
+        if spec.target_abi >= (14, 0):
+            error_log.log(f"'{variable.fq_cpp_name}' has %AccessCode which is not supported by ABI v14 and later, use %GetCode instead")
+        elif variable_type.type is not ArgumentType.CLASS:
             error_log.log(f"'{variable.fq_cpp_name}' has %AccessCode but isn't a class instance")
 
     if variable.scope is not None:
@@ -1588,6 +1597,7 @@ def _resolve_variable_type(spec, variable, error_log):
 
     # Scoped variables need a handler unless they have %AccessCode.
     if variable.access_code is None:
+        # TODO Is this specific to ABI <14?
         if variable.scope is not None and not variable.scope.is_hidden_namespace:
             variable.needs_handler = True
             variable.scope.has_variable_handlers = True
