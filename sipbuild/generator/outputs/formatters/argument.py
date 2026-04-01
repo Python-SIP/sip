@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...scoped_name import STRIP_NONE
@@ -229,12 +229,15 @@ def fmt_argument_as_py_default_value(spec, arg, type_name, embedded=False,
 
 
 def fmt_argument_as_py_type(spec, arg, pep484=False, default_value=False,
-        as_xml=False):
+        as_xml=False, is_optional=False):
     """ Return an argument as a Python type. """
 
     scope, name = _py_arg(spec, arg, pep484, as_xml)
 
     s = fmt_scoped_py_name(scope, name)
+
+    if is_optional:
+        s += '|None'
 
     if default_value and arg.default_value is not None:
         if arg.name is not None:
@@ -335,7 +338,8 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
             # There would normally be a type hint.
             type_name = 'typing.Any' if pep484 else 'Any'
         else:
-            type_name = fmt_argument_as_py_type(spec, arg, pep484=pep484)
+            type_name = fmt_argument_as_py_type(spec, arg, pep484=pep484,
+                    is_optional=is_optional)
     else:
         type_hint_manager = TypeHintManager(spec)
 
