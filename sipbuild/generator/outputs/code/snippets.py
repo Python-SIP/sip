@@ -4700,11 +4700,16 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
     # In case we have to fiddle with it.
     py_signature_adjusted = False
 
-    if spec.target_abi >= (14, 0):
-        _arg_parser(backend, sf, scope, py_signature, signature_nr,
-                is_method=is_method, overload=overload)
+    # ABI v14 handles slots as normal callables.
+    py_slot = None if spec.target_abi >= (14, 0) else overload.common.py_slot
 
-    elif is_number_slot(overload.common.py_slot):
+    # XXX
+    #if spec.target_abi >= (14, 0):
+    #    _arg_parser(backend, sf, scope, py_signature, signature_nr,
+    #            is_method=is_method, overload=overload)
+
+    #elif is_number_slot(overload.common.py_slot):
+    if is_number_slot(py_slot):
         # Number slots must have two arguments because we parse them slightly
         # differently.
         if len(py_signature.args) == 1:
@@ -4719,7 +4724,8 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
 
-    elif not is_int_arg_slot(overload.common.py_slot) and not is_zero_arg_slot(overload.common.py_slot):
+    #elif not is_int_arg_slot(overload.common.py_slot) and not is_zero_arg_slot(overload.common.py_slot):
+    elif not is_int_arg_slot(py_slot) and not is_zero_arg_slot(py_slot):
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
 
@@ -5459,12 +5465,12 @@ def _get_result_decl(spec, scope, overload, result):
     """
 
     # See if sipRes is needed.
-    no_result = (is_inplace_number_slot(overload.common.py_slot) or
-             is_inplace_sequence_slot(overload.common.py_slot) or
-             (result.type is ArgumentType.VOID and len(result.derefs) == 0))
-
-    if no_result:
+    if result.type is ArgumentType.VOID and len(result.derefs) == 0:
         return None
+
+    if spec.target_abi < (14, 0):
+        if is_inplace_number_slot(overload.common.py_slot) or is_inplace_sequence_slot(overload.common.py_slot):
+            return None
 
     result_decl = get_named_value_decl(spec, scope, result, 'sipRes')
 
@@ -5716,8 +5722,11 @@ def _get_number_slot_call(spec, overload, operator):
     """ Return the call to a binary number slot method. """
 
     if spec.target_abi >= (14, 0):
-        arg0 = 'sipCpp'
+        arg0 = 'sipCpp' if overload.dont_deref_self else '*sipCpp'
         arg1 = _get_slot_arg(spec, overload, 0)
+
+        if overload.is_reflected:
+            arg0, arg1 = arg1, arg0
     else:
         arg0 = _get_slot_arg(spec, overload, 0)
         arg1 = _get_slot_arg(spec, overload, 1)

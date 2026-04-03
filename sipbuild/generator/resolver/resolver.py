@@ -13,13 +13,13 @@ from ..error_log import ErrorLog
 from ..instantiations import instantiate_type_hints
 from ..python_slots import (is_hash_return_slot, is_int_return_slot,
         is_inplace_number_slot, is_rich_compare_slot, is_ssize_return_slot,
-        is_void_return_slot, is_zero_arg_slot)
+        is_void_return_slot, is_zero_arg_slot, reflected_slot)
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, ClassKey, Constructor, EnumBaseType, IfaceFileType,
-        IndexedClassList, MappedType, Member, PyQtMethodSpecifier, PySlot,
-        Signature, Transfer, ValueType, VirtualHandler, VirtualOverload,
-        VisibleMember, WrappedClass)
+        ArrayArgument, CachedName, ClassKey, Constructor, EnumBaseType,
+        IfaceFileType, IndexedClassList, MappedType, Member,
+        PyQtMethodSpecifier, PySlot, Signature, Transfer, ValueType,
+        VirtualHandler, VirtualOverload, VisibleMember, WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
@@ -515,22 +515,29 @@ def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
         return
 
     if arg_enum is not None:
+        overload.dont_deref_self = True
         _enum_iface_file_is_used(arg_enum, arg_module)
+
+    # Fix the member name if it is a reflected slot.
+    member_name = reflected_slot(global_slot.py_slot)
+    if member_name is not None and is_second:
+        member_name = CachedName(member_name)
+        overload.is_reflected = True
+    else:
+        member_name = global_slot.py_name
 
     # See if there is already a member or create a new one.
     for arg_member in arg_members:
-        if arg_member.py_slot is global_slot.py_slot:
+        if arg_member.py_name is member_name:
             break
     else:
         arg_member = copy(global_slot)
 
         arg_member.module = arg_module
+        arg_member.py_name = member_name
         arg_members.append(arg_member)
 
     # Move the overload to the end of the destination list.
-    if is_second:
-        overload.is_reflected = True
-
     overload.access_specifier = AccessSpecifier.PUBLIC
     overload.common = arg_member
     # TODO Is this necessary/used by v14?
@@ -538,9 +545,8 @@ def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
 
     arg_overloads.append(overload)
 
-    # Remove the first argument.
-    # What is is_second is True?
-    del overload.py_signature.args[0]
+    # Remove the self argument.
+    del overload.py_signature.args[1 if is_second else 0]
 
     # Remove from the list.
     spec.module.overloads.remove(overload)

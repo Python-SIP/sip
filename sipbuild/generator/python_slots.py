@@ -128,7 +128,7 @@ def is_inplace_sequence_slot(slot):
 _INT_ARG_SLOTS = (PySlot.REPEAT, PySlot.IREPEAT)
 
 def is_int_arg_slot(slot):
-    """ Return True if a slot taks an int argument. """
+    """ Return True if a slot takes an int argument. """
 
     return slot in _INT_ARG_SLOTS
 
