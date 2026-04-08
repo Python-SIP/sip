@@ -639,6 +639,7 @@ class Project(AbstractProject, Configurable):
     def setup(self, pyproject, tool, tool_description):
         """ Complete the configuration of the project. """
 
+        # Remember any exceptions until we have parsed the command line.
         pending_exception = None
 
         try:
@@ -656,8 +657,8 @@ class Project(AbstractProject, Configurable):
         # parts of the configuration.
         self._configure_from_arguments(tool, tool_description)
 
-        # Now that any help has been given we can report problems with the
-        # pyproject.toml file.
+        # Now that we have parsed the command line (and any help has been
+        # given) we can report any problems with the pyproject.toml file.
         if pending_exception is not None:
             raise pending_exception
 

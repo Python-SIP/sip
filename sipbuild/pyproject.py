@@ -69,6 +69,7 @@ class PyProject:
     def __init__(self):
         """ Initialise the object. """
 
+        # We remember any exception for now.
         try:
             with open('pyproject.toml', encoding='UTF-8') as f:
                 self._raw_toml = f.read()
@@ -76,19 +77,27 @@ class PyProject:
             self.pyproject = toml_loads(self._raw_toml)
 
         except FileNotFoundError:
-            raise PyProjectException(
+            self._pending_exception = PyProjectException(
                     "there is no such file in the current directory")
 
         except UnicodeDecodeError as e:
-            raise PyProjectException("is not a UTF-8 encoded file",
-                    details=str(e))
+            self._pending_exception = PyProjectException(
+                    "is not a UTF-8 encoded file", details=str(e))
 
         except Exception as e:
             # Raise the exception now about a possibly badly formed file.
-            raise PyProjectException(str(e))
+            self._pending_exception = PyProjectException(str(e))
+
+        else:
+            self._pending_exception = None
 
     def get_metadata(self):
         """ Return a dict containing the PEP 566 metadata. """
+
+        # By this stage we have parsed the command line so stop if there has
+        # been a problem.
+        if self._pending_exception is not None:
+            raise self._pending_exception
 
         # See if PEP 621 project metadata is supplied.  Make this required when
         # support for the legacy metadata is removed.
@@ -168,7 +177,9 @@ class PyProject:
     def get_section(self, section_name, *, required=False):
         """ Return a sub-section with a dotted name. """
 
-        if self.pyproject is None:
+        # By this stage we may not have parsed the command line so pretend
+        # everything is ok.
+        if self._pending_exception is not None:
             return None
 
         section = self.pyproject
