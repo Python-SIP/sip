@@ -48,3 +48,17 @@ def test_extended_attribute_set(package, abi_package_version):
     # For ABI v14 check the C++ value has changed and not the type dict.
     if abi_package_version >= 14:
         assert package.extras1_module.get_in_extras1() == 44
+
+def test_extended_operator_overload(package):
+    klass = package.core_module.Klass()
+    klass.set_int_attr(10)
+
+    assert klass + 2.0 == 12.0
+
+def test_extended_operator(package, abi_package_version):
+    # Older versions of the ABI do not support new slots in extensions.
+    if abi_package_version >= 14:
+        klass = package.core_module.Klass()
+        klass.set_int_attr(10)
+
+        assert klass * 2 == 20

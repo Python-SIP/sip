@@ -24,3 +24,17 @@ namespace NameSpace
 {
     int twice(int n /Constrained/);
 };
+
+class Klass
+{
+%TypeHeaderCode
+#include "klass.h"
+%End
+
+public:
+    Klass();
+
+    void set_int_attr(int value);
+
+    int operator+(int n /Constrained/) const;
+};

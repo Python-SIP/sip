@@ -1006,6 +1006,9 @@ class Module:
     # The module's docstring.
     docstring: Docstring|None = None
 
+    # The cross-module extenders.
+    extenders: list['WrappedClass'] = field(default_factory=list)
+
     # The fully qualified name of the module.  It is only None until %Module is
     # specified.
     fq_py_name: CachedName|None = None
@@ -1060,9 +1063,6 @@ class Module:
 
     # The code specified by any %PostInitialisationCode directives.
     postinitialisation_code: list[CodeBlock] = field(default_factory=list)
-
-    # The proxy classes.
-    proxies: list['WrappedClass'] = field(default_factory=list)
 
     # The code specified by any %PreInitialisationCode directives.
     preinitialisation_code: list[CodeBlock] = field(default_factory=list)

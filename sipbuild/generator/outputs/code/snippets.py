@@ -234,42 +234,37 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
             sf.write('}\n')
 
     # Generate the global functions.
-    slot_extenders = False
+    has_slot_extenders = False
 
     for member in module.global_functions:
         if member.py_slot is None:
             g_static_function(backend, sf, bindings, member)
         else:
-            # TODO Handle slot extenders for v14.
-            g_py_slot(backend, sf, bindings, member)
-            slot_extenders = True
+            backend.g_slot_extender_impl(sf, bindings, member)
+            has_slot_extenders = True
 
     # Generate the global functions for any hidden namespaces.
     for klass in spec.classes:
         if klass.iface_file.module is module and klass.is_hidden_namespace:
             for member in klass.members:
-                # TODO If there really can be slots here then fix for v14.
-                # TODO Maybe the legacy code doesn't support slot extenders in
-                # hidden namespaces.
                 if member.py_slot is None:
                     g_static_function(backend, sf, bindings, member,
                             scope=klass)
 
     # Generate any class specific __init__ or slot extenders.
-    init_extenders = False
+    has_init_extenders = False
 
-    for klass in module.proxies:
+    for klass in module.extenders:
         if len(klass.ctors) != 0:
             _type_init(backend, sf, bindings, klass)
-            init_extenders = True
+            has_init_extenders = True
 
         for member in klass.members:
-            # TODO Handle slot extenders for v14.
-            g_py_slot(backend, sf, bindings, member, scope=klass)
-            slot_extenders = True
+            backend.g_slot_extender_impl(sf, bindings, member, klass=klass)
+            has_slot_extenders = True
 
-    # Generate any __init__ extender table.
-    if init_extenders:
+    # Generate any __init__ extenders table.
+    if has_init_extenders:
         sf.write(
 '''
 static sipInitExtenderDef initExtenders[] = {
@@ -277,7 +272,7 @@ static sipInitExtenderDef initExtenders[] = {
 
         first_field = '-1, ' if spec.target_abi < (13, 0) else ''
 
-        for klass in module.proxies:
+        for klass in module.extenders:
             if len(klass.ctors) != 0:
                 klass_name = klass.iface_file.fq_cpp_name.as_word
                 encoded_type = get_encoded_type(module, klass)
@@ -289,38 +284,9 @@ f'''    {{{first_field}SIP_NULLPTR, {{0, 0, 0}}, SIP_NULLPTR}}
 }};
 ''')
 
-    # Generate any slot extender table.
-    # TODO sipPySlotExtend() only seems to be called for number and richcompare
-    # slots, so shouldn't slot extenders be appropriately limited - or have
-    # others already been filtered out by this stage?
-    # TODO Move the the legacy backend.
-    if slot_extenders:
-        sf.write(
-'''
-static sipPySlotExtenderDef slotExtenders[] = {\n''')
-
-        for member in module.global_functions:
-            if member.py_slot is None:
-                continue
-
-            for overload in module.overloads:
-                if overload.common is member:
-                    slot_ref = backend.get_slot_ref(member.py_slot)
-                    sf.write(
-f'    {{(void *)slot_{member.py_name}, {slot_ref}, {{0, 0, 0}}}},\n')
-                    break
-
-        for klass in module.proxies:
-            for member in klass.members:
-                klass_name = klass.iface_file.fq_cpp_name.as_word
-                slot_ref = backend.get_slot_ref(member.py_slot)
-                encoded_type = get_encoded_type(module, klass)
-                sf.write(f'    {{(void *)slot_{klass_name}_{member.py_name}, {slot_ref}, {encoded_type}}},\n')
-
-        sf.write(
-'''    {SIP_NULLPTR, (sipPySlotType)0, {0, 0, 0}}
-};
-''')
+    # Generate any slot extenders table.
+    if has_slot_extenders:
+        backend.g_slot_extenders_table(sf)
 
     # Generate the global access functions.
     _access_functions(spec, sf)
@@ -525,8 +491,8 @@ static sipQtAPI qtAPI = {{
         has_virtual_error_handlers,
         nr_subclass_convertors,
         static_variables_state,
-        slot_extenders,
-        init_extenders
+        has_slot_extenders,
+        has_init_extenders
     )
 
 
@@ -1582,7 +1548,7 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
             sf.write('            {\n')
 
         if klass.has_shadow:
-            sf.write('                sipCpp->sipPySelf = sipSelf;\n\n')
+            backend.g_wrapper_ref_set(sf)
 
         # Call any post-hook.
         if ctor.posthook is not None:
@@ -1622,7 +1588,7 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
 ''')
 
         if klass.has_shadow:
-            sf.write('            sipCpp->sipPySelf = sipSelf;\n\n')
+            backend.g_wrapper_ref_set(sf)
 
         # Call any post-hook.
         if ctor.posthook is not None:
@@ -2200,7 +2166,7 @@ def g_static_function(backend, sf, bindings, member, scope=None):
         if signature_nr == 0:
             backend.g_static_function_support_vars(sf, scope)
 
-        _function_body(backend, sf, bindings, scope, overload, signature_nr)
+        g_function_body(backend, sf, bindings, scope, overload, signature_nr)
         signature_nr += 1
 
     backend.g_static_function_end(sf, state, signature_nr)
@@ -2463,223 +2429,6 @@ def _convert_to_definitions(backend, sf, scope):
         sf.write(f'    {type_s} **sipCppPtr = {cast_value};\n\n')
 
     sf.write_code(convert_to_type_code)
-
-    sf.write('}\n')
-
-
-# TODO Move this to the legacy backend.
-def g_py_slot(backend, sf, bindings, member, scope=None):
-    """ Generate a Python slot handler for either a class, an enum or an
-    extender.
-    """
-
-    spec = backend.spec
-
-    if scope is None:
-        prefix = ''
-        py_name = None
-        fq_cpp_name = None
-        overloads = spec.module.overloads
-    elif isinstance(scope, WrappedEnum):
-        prefix = 'Type'
-        py_name = scope.py_name
-        fq_cpp_name = scope.fq_cpp_name
-        overloads = scope.overloads
-    else:
-        prefix = 'Type'
-        py_name = scope.py_name
-        fq_cpp_name = scope.iface_file.fq_cpp_name
-        overloads = scope.overloads
-
-    if is_void_return_slot(member.py_slot) or is_int_return_slot(member.py_slot):
-        ret_type = 'int '
-        ret_value = '-1'
-    elif is_ssize_return_slot(member.py_slot):
-        ret_type = 'Py_ssize_t '
-        ret_value = '0'
-    elif is_hash_return_slot(member.py_slot):
-        if spec.target_abi >= (13, 0):
-            ret_type = 'Py_hash_t '
-            ret_value = '0'
-        else:
-            ret_type = 'long '
-            ret_value = '0L'
-    else:
-        ret_type = 'PyObject *'
-        ret_value = 'SIP_NULLPTR'
-
-    has_args = True
-
-    if member.py_slot is PySlot.CALL:
-        if spec.c_bindings or member.allow_keyword_args or member.no_arg_parser:
-            arg_str = 'PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds'
-        else:
-            arg_str = 'PyObject *sipSelf, PyObject *sipArgs, PyObject *'
-
-        decl_arg_str = 'PyObject *, PyObject *, PyObject *'
-    elif member.py_slot is PySlot.SETATTR:
-        arg_str = 'PyObject *sipSelf, PyObject *sipName, PyObject *sipValue'
-        decl_arg_str = 'PyObject *, PyObject *, PyObject *'
-    elif spec.target_abi >= (14, 0) and member.py_slot is PySlot.SETITEM:
-        arg_str = 'PyObject *sipSelf, PyObject *sipKey, PyObject *sipValue'
-        decl_arg_str = 'PyObject *, PyObject *, PyObject *'
-    elif is_int_arg_slot(member.py_slot):
-        has_args = False
-        arg_str = 'PyObject *sipSelf, int a0'
-        decl_arg_str = 'PyObject *, int'
-    elif is_multi_arg_slot(member.py_slot):
-        arg_str = 'PyObject *sipSelf, PyObject *sipArgs'
-        decl_arg_str = 'PyObject *, PyObject *'
-    elif is_zero_arg_slot(member.py_slot):
-        has_args = False
-        arg_str = 'PyObject *sipSelf'
-        decl_arg_str = 'PyObject *'
-    elif is_number_slot(member.py_slot):
-        arg_str = 'PyObject *sipArg0, PyObject *sipArg1'
-        decl_arg_str = 'PyObject *, PyObject *'
-    else:
-        arg_str = 'PyObject *sipSelf, PyObject *sipArg'
-        decl_arg_str = 'PyObject *, PyObject *'
-
-    sf.write('\n\n')
-
-    slot_decl = f'static {ret_type}slot_'
-
-    if fq_cpp_name is not None:
-        slot_decl += fq_cpp_name.as_word + '_'
-
-    if not spec.c_bindings:
-        sf.write(f'extern "C" {{{slot_decl}{member.py_name.name}({decl_arg_str});}}\n')
-
-    sf.write(f'{slot_decl}{member.py_name.name}({arg_str})\n{{\n')
-
-    if member.py_slot is PySlot.CALL and member.no_arg_parser:
-        for overload in overloads:
-            if overload.common is member:
-                sf.write_code(overload.method_code)
-    else:
-        if is_inplace_number_slot(member.py_slot):
-            # TODO Fix for v14.
-            sf.write(
-f'''    if (!PyObject_TypeCheck(sipSelf, sipTypeAsPyTypeObject(sip{prefix}_{fq_cpp_name.as_word})))
-    {{
-        Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
-    }}
-
-''')
-
-        if not is_number_slot(member.py_slot):
-            if isinstance(scope, WrappedClass):
-                cpp_name = scoped_class_name(spec, scope)
-                type_ref = backend.get_type_ref(scope)
-                sip_module = 'sipMS, ' if spec.target_abi >= (14, 0) else ''
-
-                sf.write(
-f'''    {cpp_name} *sipCpp = reinterpret_cast<{cpp_name} *>(sipGetCppPtr({sip_module}{backend.get_wrapper_type_cast()}sipSelf, {type_ref}));
-
-    if (!sipCpp)
-''')
-            else:
-                backend.g_conversion_to_enum(sf, scope)
-
-            sf.write(f'        return {ret_value};\n\n')
-
-        p_state = 'sipPState' if spec.target_abi >= (14, 0) else 'sipParseErr'
-
-        if has_args:
-            sf.write(f'    PyObject *{p_state} = SIP_NULLPTR;\n')
-
-        for overload in overloads:
-            if overload.common is member and overload.is_abstract:
-                sf.write('    PyObject *sipOrigSelf = sipSelf;\n')
-                break
-
-        scope_not_enum = not isinstance(scope, WrappedEnum)
-        signature_nr = 0
-
-        for overload in overloads:
-            if overload.common is member:
-                dereferenced = scope_not_enum and not overload.dont_deref_self
-
-                _function_body(backend, sf, bindings, scope, overload,
-                        signature_nr, dereferenced=dereferenced)
-                signature_nr += 1
-
-        if has_args:
-            if member.py_slot in (PySlot.CONCAT, PySlot.ICONCAT, PySlot.REPEAT, PySlot.IREPEAT):
-                slot_ref = backend.get_slot_ref(member.py_slot)
-                sf.write(
-f'''
-    /* Raise an exception if the argument couldn't be parsed. */
-    sipBadOperatorArg(sipSelf, sipArg, {slot_ref});
-
-    return SIP_NULLPTR;
-''')
-
-            else:
-                if is_rich_compare_slot(member.py_slot):
-                    sf.write(
-f'''
-    Py_XDECREF({p_state});
-''')
-                elif is_number_slot(member.py_slot) or is_inplace_number_slot(member.py_slot):
-                    # TODO Fix this for v14 at least (don't test the value
-                    # after the XDECREF).
-                    sf.write(
-f'''
-    Py_XDECREF({p_state});
-
-    if ({p_state} == Py_None)
-        return SIP_NULLPTR;
-''')
-
-                if is_number_slot(member.py_slot) or is_rich_compare_slot(member.py_slot):
-                    if spec.target_abi >= (14, 0):
-                        extend_context = 'sipMS'
-                    else:
-                        extend_context = f'&sipModuleAPI_{spec.module.py_name}'
-
-                    # We can only extend class slots. */
-                    if isinstance(scope, WrappedClass):
-                        slot_ref = backend.get_slot_ref(member.py_slot)
-
-                        if is_number_slot(member.py_slot):
-                            sf.write(
-f'''
-    return sipPySlotExtend({extend_context}, {slot_ref}, SIP_NULLPTR, sipArg0, sipArg1);
-''')
-                        else:
-                            sf.write(
-f'''
-    return sipPySlotExtend({extend_context}, {slot_ref}, {backend.get_type_ref(scope)}, sipSelf, sipArg);
-''')
-                    else:
-                        backend.g_not_implemented(sf)
-                elif is_inplace_number_slot(member.py_slot):
-                    backend.g_not_implemented(sf)
-                else:
-                    member_name = '(sipValue != SIP_NULLPTR ? sipName___setattr__ : sipName___delattr__)' if member.py_slot is PySlot.SETATTR else backend.cached_name_ref(member.py_name)
-
-                    if spec.target_abi >= (14, 0):
-                        sf.write(
-f'''
-    sipNoCallable(sipPState, {backend.cached_name_ref(py_name)}, {member_name});
-
-    return {ret_value};
-''')
-                    else:
-                        sf.write(
-f'''
-    sipNoMethod(sipParseErr, {backend.cached_name_ref(py_name)}, {member_name}, SIP_NULLPTR);
-
-    return {ret_value};
-''')
-        else:
-            sf.write(
-'''
-    return 0;
-''')
 
     sf.write('}\n')
 
@@ -3090,8 +2839,9 @@ def _shadow_code(backend, sf, bindings, klass):
         protected_call_args = _protected_call_args(spec, ctor.cpp_signature)
         args = fmt_signature_as_cpp_definition(spec, ctor.cpp_signature,
                 scope=klass.iface_file)
+        wrapper_ref_init = backend.get_wrapper_ref_init()
 
-        sf.write(f'\nsip{klass_name}::sip{klass_name}({args}){throw_specifier}: {scoped_class_name(spec, klass)}({protected_call_args}), sipPySelf(SIP_NULLPTR)\n{{\n')
+        sf.write(f'\nsip{klass_name}::sip{klass_name}({args}){throw_specifier}: {scoped_class_name(spec, klass)}({protected_call_args}), {wrapper_ref_init}\n{{\n')
 
         if bindings.tracing:
             args = fmt_signature_as_cpp_declaration(spec, ctor.cpp_signature,
@@ -4487,11 +4237,8 @@ protected:
         _overload_decl(sf, spec, bindings, klass, virtual_overload.overload)
         sf.write(';\n')
 
-    sf.write(
-f'''
-public:
-    {backend.get_wrapper_type()}sipPySelf;
-''')
+    sf.write('\npublic:\n')
+    backend.g_wrapper_ref_decl(sf)
 
     # The private declarations.
     sf.write(
@@ -4677,14 +4424,14 @@ def g_member_function(backend, sf, bindings, scope, member,
             sf.write_code(overload.method_code)
             break
 
-        _function_body(backend, sf, bindings, scope, overload, signature_nr,
+        g_function_body(backend, sf, bindings, scope, overload, signature_nr,
                 is_method=True, original_scope=original_scope)
         signature_nr += 1
 
     backend.g_py_method_end(sf, state, signature_nr)
 
 
-def _function_body(backend, sf, bindings, scope, overload, signature_nr,
+def g_function_body(backend, sf, bindings, scope, overload, signature_nr,
         is_method=False, original_scope=None, dereferenced=True):
     """ Generate the function calls for a particular overload. """
 
@@ -4703,12 +4450,6 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
     # ABI v14 handles slots as normal callables.
     py_slot = None if spec.target_abi >= (14, 0) else overload.common.py_slot
 
-    # XXX
-    #if spec.target_abi >= (14, 0):
-    #    _arg_parser(backend, sf, scope, py_signature, signature_nr,
-    #            is_method=is_method, overload=overload)
-
-    #elif is_number_slot(overload.common.py_slot):
     if is_number_slot(py_slot):
         # Number slots must have two arguments because we parse them slightly
         # differently.
@@ -4724,7 +4465,6 @@ def _function_body(backend, sf, bindings, scope, overload, signature_nr,
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
 
-    #elif not is_int_arg_slot(overload.common.py_slot) and not is_zero_arg_slot(overload.common.py_slot):
     elif not is_int_arg_slot(py_slot) and not is_zero_arg_slot(py_slot):
         _arg_parser(backend, sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)

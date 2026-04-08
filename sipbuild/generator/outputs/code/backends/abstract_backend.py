@@ -84,8 +84,8 @@ class AbstractBackend(ABC):
         has_virtual_error_handlers,
         nr_subclass_convertors,
         inst_state,
-        slot_extenders,
-        init_extenders
+        has_slot_extenders,
+        has_init_extenders
     ):
         """ Generate the code to create a wrapped module and return an
         ABI-specific object that will be passed back to the backend at some
@@ -184,9 +184,8 @@ class AbstractBackend(ABC):
         # This default implementation returns None.
         return None
 
-    @staticmethod
     @abstractmethod
-    def g_not_implemented(sf):
+    def g_not_implemented(self, sf):
         """ Generate the code to clear any exception and return
         Py_NotImplemented.
         """
@@ -223,6 +222,18 @@ class AbstractBackend(ABC):
     @abstractmethod
     def g_sip_api(self, sf, module_name, module_closure):
         """ Generate the SIP API as seen by generated code. """
+
+        ...
+
+    @abstractmethod
+    def g_slot_extender_impl(self, sf, bindings, member, klass=None):
+        """ Generate the implementation of a slot extender. """
+
+        ...
+
+    @abstractmethod
+    def g_slot_extenders_table(self, sf):
+        """ Generate the table of slot implementations. """
 
         ...
 
@@ -269,6 +280,18 @@ class AbstractBackend(ABC):
 
         ...
 
+    @abstractmethod
+    def g_wrapper_ref_decl(self, sf):
+        """ Generate the code that declares a wrapper reference. """
+
+        ...
+
+    @abstractmethod
+    def g_wrapper_ref_set(self, sf):
+        """ Generate the code that sets the value of a wrapper reference. """
+
+        ...
+
     def abi_has_deprecated_message(self):
         """ Return True if the ABI implements sipDeprecated() with a message.
         """
@@ -299,9 +322,8 @@ class AbstractBackend(ABC):
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def cached_name_ref(cached_name, as_nr=False):
+    def cached_name_ref(self, cached_name, as_nr=False):
         """ Return a reference to a cached name. """
 
         ...
@@ -324,8 +346,7 @@ class AbstractBackend(ABC):
 
         ...
 
-    @staticmethod
-    def get_module_context():
+    def get_module_context(self):
         """ Return the value of a module context passed as the first argument
         to many ABI calls.
         """
@@ -333,8 +354,7 @@ class AbstractBackend(ABC):
         # This default implementation returns nothing.
         return ''
 
-    @staticmethod
-    def get_module_context_decl():
+    def get_module_context_decl(self):
         """ Return the declaration of the value of a module context passed as
         the first argument to many ABI calls.
         """
@@ -351,17 +371,15 @@ class AbstractBackend(ABC):
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_raise_unknown_exception():
+    def get_raise_unknown_exception(self):
         """ Return the call to raise an exception about an unknown exception.
         """
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_result_parser():
+    def get_result_parser(self):
         """ Return the name of the Python reimplementation result parser. """
 
         ...
@@ -374,9 +392,8 @@ class AbstractBackend(ABC):
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_slot_ref(slot_type):
+    def get_slot_ref(self, slot_type):
         """ Return a reference to a slot. """
 
         ...
@@ -405,37 +422,38 @@ class AbstractBackend(ABC):
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_spec_suffix():
+    def get_spec_suffix(self):
         """ Return the suffix used for immutable specifications. """
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_type_ref(wrapped_object):
+    def get_type_ref(self, wrapped_object):
         """ Return the reference to the type of a wrapped object. """
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_types_table_decl(module):
+    def get_types_table_decl(self, module):
         """ Return the declaration of a module's wrapped types table. """
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_wrapper_type():
+    def get_wrapper_ref_init(self):
+        """ Return the initialisation of a wrapper reference. """
+
+        ...
+
+    @abstractmethod
+    def get_wrapper_type(self):
         """ Return the type of the C representation of a wrapped object. """
 
         ...
 
-    @staticmethod
     @abstractmethod
-    def get_wrapper_type_cast():
+    def get_wrapper_type_cast(self):
         """ Return the cast from a PyObject* of the C representation of a
         wrapped object.
         """
@@ -447,8 +465,7 @@ class AbstractBackend(ABC):
 
         return False
 
-    @staticmethod
-    def need_deprecated_error_flag(code):
+    def need_deprecated_error_flag(self, code):
         """ Return True if the deprecated error flag is needed by some
         handwritten code.
         """

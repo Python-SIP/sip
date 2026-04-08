@@ -105,14 +105,14 @@ def resolve(spec, modules):
                 _add_auto_overload(spec, klass, overload)
 
     # Move casts and slots around to their correct classes (if in the same
-    # module) or create proxies for them (if cross-module).
+    # module) or create extenders for them (if cross-module).
     _move_main_module_casts_slots(spec, error_log)
 
     # Automatically generate missing complementary slots.
     for klass in spec.classes:
         _add_complementary_slots(spec, klass)
 
-    for klass in spec.module.proxies:
+    for klass in spec.module.extenders:
         _add_complementary_slots(spec, klass)
 
     # Generate the different class views.
@@ -140,8 +140,8 @@ def resolve(spec, modules):
         for overload in mod.overloads:
             _iface_files_are_used_by_overload(spec, mod.used, overload)
 
-        # Update proxies with some information from the real classes.
-        for klass in mod.proxies:
+        # Update class extenders with some information from the real classes.
+        for klass in mod.extenders:
             klass.iface_file.type_nr = klass.real_class.iface_file.type_nr
 
     # Additional class specific checks.
@@ -404,7 +404,7 @@ def _move_class_casts(spec, klass, error_log):
         # If the destination class is in a different module then use a proxy.
         if dst_klass.iface_file.module is not spec.module:
             _iface_file_is_used(spec.module.used, arg)
-            dst_klass = _get_proxy(spec.module, dst_klass)
+            dst_klass = _get_extender(spec.module, dst_klass)
             ctor.no_typehint = True
 
         _iface_file_is_used(dst_klass.iface_file.used, arg)
@@ -510,9 +510,24 @@ def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
     """ Move a slot and adjust it's signature appropriately. """
 
     if arg_module is not global_slot.module:
-        _log_overload_error(error_log, "slot extenders are not yet supported",
+        # We don't support cross-module enum extenders, ie. you can't specify
+        # a global operator in a module that takes an enum defined in another
+        # module.  This limitation could be overcome (potentially the most
+        # difficult issue is having to override the __getattr__ of the Python
+        # Enum type).  It is also a little different to the limitations imposed
+        # by ABIs v12 and v13 so it's possible that some things are possible in
+        # those that aren't supported by v14.  If so we'll consider them as v14
+        # bugs and deal with them as they arise.
+        extending = overload.py_signature.args[1 if is_second else 0]
+
+        if extending.type is not ArgumentType.CLASS:
+            _log_overload_error(error_log, "argument 1 must be a class",
                     overload)
-        return
+            return
+
+        extender = _get_extender(global_slot.module, extending.definition)
+        arg_members = extender.members
+        arg_overloads = extender.overloads
 
     if arg_enum is not None:
         overload.dont_deref_self = True
@@ -555,7 +570,7 @@ def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
 def _move_slot_v12v13(spec, error_log, global_slot, overload, arg_module,
         arg_members, arg_overloads, arg_enum, is_second):
     """ Move a slot and adjust it's signature appropriately.  Return True if
-    the slot wasn't moved so it can be handled at a later state.
+    the slot wasn't moved so it can be handled at a later stage.
     """
 
     arg0 = overload.py_signature.args[0]
@@ -576,7 +591,7 @@ def _move_slot_v12v13(spec, error_log, global_slot, overload, arg_module,
 
     if arg_module is not global_slot.module:
         if is_rich_compare_slot(global_slot.py_slot):
-            proxy = _get_proxy(arg_module, arg0.definition)
+            proxy = _get_extender(arg_module, arg0.definition)
 
             # Create a new proxy member if needed.
             for proxy_member in proxy.members:
@@ -672,21 +687,20 @@ def _move_slot_v12v13(spec, error_log, global_slot, overload, arg_module,
     return False
 
 
-def _get_proxy(mod, klass):
-    """ Create a proxy for a class if it doesn't already exist.  Proxies are
-    used as containers for cross-module extenders.
-    """
+def _get_extender(mod, klass):
+    """ Create an extender for a class if it doesn't already exist. """
 
-    for proxy in mod.proxies:
-        if proxy.iface_file is klass.iface_file:
-            return proxy
+    for extender in mod.extenders:
+        if extender.iface_file is klass.iface_file:
+            return extender
 
-    proxy = WrappedClass(klass.iface_file, klass.py_name, scope=klass.scope,
+    extender = WrappedClass(klass.iface_file, klass.py_name, scope=klass.scope,
             mro=klass.mro, real_class=klass, superclasses=klass.superclasses)
 
-    mod.proxies.insert(0, proxy)
+    # We insert to be consistent with old code.
+    mod.extenders.insert(0, extender)
 
-    return proxy
+    return extender
 
 
 def _add_auto_overload(spec, auto_klass, auto_overload):

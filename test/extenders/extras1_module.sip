@@ -7,6 +7,8 @@
 
 
 %ModuleHeaderCode
+#include "klass.h"
+
 namespace NameSpace
 {
     float twice(float n);
@@ -16,6 +18,8 @@ namespace NameSpace
 };
 
 int get_in_extras1();
+
+double operator+(const Klass &lhs, double rhs);
 %End
 
 
@@ -36,6 +40,11 @@ int get_in_extras1()
 }
 
 int NameSpace::in_extras1 = 33;
+
+double operator+(const Klass &lhs, double rhs)
+{
+    return lhs.int_attr + rhs;
+}
 %End
 
 
@@ -48,3 +57,5 @@ namespace NameSpace
 };
 
 int get_in_extras1();
+
+double operator+(const Klass &lhs, double rhs);
