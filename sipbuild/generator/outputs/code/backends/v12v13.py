@@ -605,6 +605,31 @@ static sipImportedModuleDef importsTable[] = {
         if imported_module.nr_exceptions != 0:
             sf.write(f'extern sipImportedExceptionDef sipImportedExceptions_{module_name}_{imported_module_name}[];\n')
 
+    def g_init_extenders_table(self, sf):
+        """ Generate the init extenders table. """
+
+        spec = self.spec
+        module = spec.module
+
+        sf.write(
+'''
+static sipInitExtenderDef initExtenders[] = {
+''')
+
+        first_field = '-1, ' if spec.target_abi < (13, 0) else ''
+
+        for klass in module.extenders:
+            if len(klass.ctors) != 0:
+                klass_name = klass.iface_file.fq_cpp_name.as_word
+                encoded_type = get_encoded_type(module, klass)
+
+                sf.write(f'    {{{first_field}init_type_{klass_name}, {encoded_type}, SIP_NULLPTR}},\n')
+
+        sf.write(
+f'''    {{{first_field}SIP_NULLPTR, {{0, 0, 0}}, SIP_NULLPTR}}
+}};
+''')
+
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation
         function.

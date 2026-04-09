@@ -20,6 +20,21 @@ namespace NameSpace
 int get_in_extras1();
 
 double operator+(const Klass &lhs, double rhs);
+
+class Cast
+{
+public:
+    Cast(int n) : int_attr(n) {}
+
+    operator Klass() const {
+        Klass klass;
+        klass.int_attr = int_attr;
+        return klass;
+    };
+
+private:
+    int int_attr;
+};
 %End
 
 
@@ -59,3 +74,11 @@ namespace NameSpace
 int get_in_extras1();
 
 double operator+(const Klass &lhs, double rhs);
+
+class Cast
+{
+public:
+    Cast(int n);
+
+    operator Klass() const;
+};

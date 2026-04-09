@@ -265,24 +265,7 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
 
     # Generate any __init__ extenders table.
     if has_init_extenders:
-        sf.write(
-'''
-static sipInitExtenderDef initExtenders[] = {
-''')
-
-        first_field = '-1, ' if spec.target_abi < (13, 0) else ''
-
-        for klass in module.extenders:
-            if len(klass.ctors) != 0:
-                klass_name = klass.iface_file.fq_cpp_name.as_word
-                encoded_type = get_encoded_type(module, klass)
-
-                sf.write(f'    {{{first_field}init_type_{klass_name}, {encoded_type}, SIP_NULLPTR}},\n')
-
-        sf.write(
-f'''    {{{first_field}SIP_NULLPTR, {{0, 0, 0}}, SIP_NULLPTR}}
-}};
-''')
+        backend.g_init_extenders_table(sf)
 
     # Generate any slot extenders table.
     if has_slot_extenders:

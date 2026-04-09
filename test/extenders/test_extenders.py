@@ -62,3 +62,9 @@ def test_extended_operator(package, abi_package_version):
         klass.set_int_attr(10)
 
         assert klass * 2 == 20
+
+def test_init_extender(package):
+    cast = package.extras1_module.Cast(20)
+    klass = package.core_module.Klass(cast)
+
+    assert klass.get_int_attr() == 20

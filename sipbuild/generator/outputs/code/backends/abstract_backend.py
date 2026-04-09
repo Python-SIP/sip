@@ -141,6 +141,12 @@ class AbstractBackend(ABC):
     ...
 
     @abstractmethod
+    def g_init_extenders_table(self, sf):
+        """ Generate the init extenders table. """
+
+        ...
+
+    @abstractmethod
     def g_init_mixin_impl_body(self, sf, klass):
         """ Generate the body of the implementation of a mixin initialisation
         function.

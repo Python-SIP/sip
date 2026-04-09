@@ -34,6 +34,7 @@ class Klass
 public:
     Klass();
 
+    int get_int_attr() const;
     void set_int_attr(int value);
 
     int operator+(int n /Constrained/) const;
