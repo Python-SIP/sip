@@ -8,18 +8,19 @@ from ....python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_rich_compare_slot, is_ssize_return_slot, is_void_return_slot,
         is_zero_arg_slot)
 from ....scoped_name import STRIP_GLOBAL
-from ....specification import (AccessSpecifier, ArgumentType, IfaceFileType,
-        MappedType, PySlot, WrappedClass, WrappedEnum)
+from ....specification import (AccessSpecifier, ArgumentType,
+        DocstringSignature, IfaceFileType, MappedType, PySlot, WrappedClass,
+        WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type
 
-from ..snippets import (g_class_docstring, g_function_body, g_keyword_list,
-        g_method_docstring, g_module_docstring, g_type_init_body,
+from ..snippets import (g_ctor_type_hint, g_function_body, g_keyword_list,
+        g_module_docstring, g_overload_type_hint, g_type_init_body,
         g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init,
         g_static_function)
-from ..utils import (get_class_flags, get_class_from_void, get_const_cast,
-        get_docstring_text, get_encoded_type, get_enum_member,
+from ..utils import (callable_overloads, get_class_flags, get_class_from_void,
+        get_const_cast, get_docstring_text, get_encoded_type, get_enum_member,
         get_function_table, get_mapped_type_flags, get_method_table,
         get_named_value_decl, get_normalised_cached_name, get_optional_ptr,
         get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
@@ -913,8 +914,8 @@ f'''
         if has_method_docstring(bindings, member, original_scope.overloads):
             sf.write(f'PyDoc_STRVAR(doc_{scope_name}_{member_py_name}, "')
 
-            has_auto_docstring = g_method_docstring(sf, spec, bindings, member,
-                    original_scope.overloads,
+            has_auto_docstring = _g_method_docstring(sf, spec, bindings,
+                    member, original_scope.overloads,
                     is_method=not scope.is_hidden_namespace)
 
             sf.write('");\n\n')
@@ -1220,8 +1221,8 @@ f'''
         # Generate the docstrings.
         if has_method_docstring(bindings, member, overloads):
             sf.write(f'PyDoc_STRVAR(doc_{member_name}, "')
-            has_auto_docstring = g_method_docstring(sf, spec, bindings, member,
-                    overloads)
+            has_auto_docstring = _g_method_docstring(sf, spec, bindings,
+                    member, overloads)
             sf.write('");\n\n')
         else:
             has_auto_docstring = False
@@ -1472,7 +1473,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
         sv_state = self.g_static_variables_table(sf, scope=klass)
 
         # Generate the docstring.
-        docstring_ref = self._g_class_docstring(sf, bindings, klass)
+        docstring_ref = _g_class_docstring(sf, spec, bindings, klass)
 
         # Generate any plugin-specific data structures.
         plugin_ref = 'SIP_NULLPTR'
@@ -1875,22 +1876,6 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         target_abi = self.spec.target_abi
 
         return target_abi >= min_13 or (min_12 <= target_abi < (13, 0))
-
-    def _g_class_docstring(self, sf, bindings, klass):
-        """ Generate any docstring for a class and return an appropriate
-        reference to it.
-        """
-
-        if self._has_class_docstring(bindings, klass):
-            docstring_ref = 'doc_' + klass.iface_file.fq_cpp_name.as_word
-
-            sf.write(f'\nPyDoc_STRVAR({docstring_ref}, "')
-            g_class_docstring(sf, self.spec, bindings, klass)
-            sf.write('");\n')
-        else:
-            docstring_ref = 'SIP_NULLPTR'
-
-        return docstring_ref
 
     def _g_class_method_table(self, sf, bindings, klass):
         """ Generate the sorted table of methods for a class and return the
@@ -3129,32 +3114,6 @@ f'''
 
         return statement
 
-    @staticmethod
-    def _has_class_docstring(bindings, klass):
-        """ Return True if a class has a docstring. """
-
-        auto_docstring = False
-
-        # Check for any explicit docstrings and remember if there were any that
-        # could be automatically generated.
-        if klass.docstring is not None:
-            return True
-
-        for ctor in klass.ctors:
-            if ctor.access_specifier is AccessSpecifier.PRIVATE:
-                continue
-
-            if ctor.docstring is not None:
-                return True
-
-            if bindings.docstrings:
-                auto_docstring = True
-
-        if not klass.can_create:
-            return False
-
-        return auto_docstring
-
     def _write_int_instances(self, sf, scope, target_type, type_name):
         """ Generate the code to add a set of a particular type to a
         dictionary.  Return True if there was at least one.
@@ -3191,6 +3150,89 @@ static sip{table_type_name}InstanceDef {table_name}Instances{{suffix}}[]'''
                 declaration_template)
 
 
+def _g_class_docstring(sf, spec, bindings, klass):
+    """ Generate any docstring for a class and return an appropriate reference
+    to it.
+    """
+
+    if _has_class_docstring(bindings, klass):
+        docstring_ref = 'doc_' + klass.iface_file.fq_cpp_name.as_word
+
+        sf.write(f'\nPyDoc_STRVAR({docstring_ref}, "')
+        _g_class_docstring_text(sf, spec, bindings, klass)
+        sf.write('");\n')
+    else:
+        docstring_ref = 'SIP_NULLPTR'
+
+    return docstring_ref
+
+
+def _g_class_docstring_text(sf, spec, bindings, klass):
+    """ Generate the docstring text for a class. """
+
+    NEWLINE = '\\n"\n"'
+
+    # See if all the docstrings are automatically generated.
+    all_auto = (klass.docstring is None)
+    any_implied = False
+
+    for ctor in klass.ctors:
+        if ctor.access_specifier is AccessSpecifier.PRIVATE:
+            continue
+
+        if ctor.docstring is not None:
+            all_auto = False
+
+            if ctor.docstring.signature is not DocstringSignature.DISCARDED:
+                any_implied = True
+
+    # Generate the docstring.
+    if all_auto:
+        sf.write('\\1')
+
+    if klass.docstring is not None and klass.docstring.signature is not DocstringSignature.PREPENDED:
+        sf.write(get_docstring_text(klass.docstring))
+        is_first = False
+    else:
+        is_first = True
+
+    if klass.docstring is None or klass.docstring.signature is not DocstringSignature.DISCARDED:
+        for ctor in klass.ctors:
+            if ctor.access_specifier is AccessSpecifier.PRIVATE:
+                continue
+
+            if not is_first:
+                sf.write(NEWLINE)
+
+                # Insert a blank line if any explicit docstring wants to
+                # include a signature.  This maintains compatibility with
+                # previous versions.
+                if any_implied:
+                    sf.write(NEWLINE)
+
+            if ctor.docstring is not None:
+                if ctor.docstring.signature is DocstringSignature.PREPENDED:
+                    _g_ctor_auto_docstring(sf, spec, bindings, klass, ctor)
+                    sf.write(NEWLINE)
+
+                sf.write(get_docstring_text(ctor.docstring))
+
+                if ctor.docstring.signature is DocstringSignature.APPENDED:
+                    sf.write(NEWLINE)
+                    _g_ctor_auto_docstring(sf, spec, bindings, klass, ctor)
+            elif all_auto or any_implied:
+                _g_ctor_auto_docstring(sf, spec, bindings, klass, ctor)
+
+            is_first = False
+
+    if klass.docstring is not None and klass.docstring.signature is DocstringSignature.PREPENDED:
+        if not is_first:
+            sf.write(NEWLINE)
+            sf.write(NEWLINE)
+
+        sf.write(get_docstring_text(klass.docstring))
+
+
 def _g_conversion_to_enum(sf, enum):
     """ Generate the code to convert a Python enum (sipSelf) to a C/C++ enum
     (sipCpp).
@@ -3204,6 +3246,74 @@ f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {t
 
     if (PyErr_Occurred())
 ''')
+
+
+def _g_ctor_auto_docstring(sf, spec, bindings, klass, ctor):
+    """ Generate the automatic docstring for a ctor. """
+
+    if bindings.docstrings:
+        g_ctor_type_hint(sf, spec, bindings, klass, ctor)
+
+
+def _g_method_auto_docstring(sf, spec, bindings, overload, is_method):
+    """ Generate the automatic docstring for a function/method. """
+
+    if bindings.docstrings:
+        g_overload_type_hint(sf, spec, overload, is_method=is_method)
+
+
+def _g_method_docstring(sf, spec, bindings, member, overloads, is_method=False):
+    """ Generate the docstring for all overloads of a function/method.  Return
+    True if the docstring was entirely automatically generated.
+    """
+
+    NEWLINE = '\\n"\n"'
+
+    auto_docstring = True
+
+    # See if all the docstrings are automatically generated.
+    all_auto = True
+    any_implied = False
+
+    for overload in callable_overloads(member, overloads):
+        if overload.docstring is not None:
+            all_auto = False
+
+            if overload.docstring.signature is not DocstringSignature.DISCARDED:
+                any_implied = True
+
+    # Generate the docstring.
+    is_first = True
+
+    for overload in callable_overloads(member, overloads):
+        if not is_first:
+            sf.write(NEWLINE)
+
+            # Insert a blank line if any explicit docstring wants to include a
+            # signature.  This maintains compatibility with previous versions.
+            if any_implied:
+                sf.write(NEWLINE)
+
+        if overload.docstring is not None:
+            if overload.docstring.signature is DocstringSignature.PREPENDED:
+                _g_method_auto_docstring(sf, spec, bindings, overload,
+                        is_method)
+                sf.write(NEWLINE)
+
+            sf.write(get_docstring_text(overload.docstring))
+
+            if overload.docstring.signature is DocstringSignature.APPENDED:
+                sf.write(NEWLINE)
+                _g_method_auto_docstring(sf, spec, bindings, overload,
+                        is_method)
+
+            auto_docstring = False
+        elif all_auto or any_implied:
+            _g_method_auto_docstring(sf, spec, bindings, overload, is_method)
+
+        is_first = False
+
+    return auto_docstring
 
 
 def _g_not_implemented(sf):
@@ -3469,6 +3579,32 @@ def _get_type_ref(wrapped_object):
     fq_cpp_name = wrapped_object.fq_cpp_name if isinstance(wrapped_object, WrappedEnum) else wrapped_object.iface_file.fq_cpp_name
 
     return 'sipType_' + fq_cpp_name.as_word
+
+
+def _has_class_docstring(bindings, klass):
+    """ Return True if a class has a docstring. """
+
+    auto_docstring = False
+
+    # Check for any explicit docstrings and remember if there were any that
+    # could be automatically generated.
+    if klass.docstring is not None:
+        return True
+
+    for ctor in klass.ctors:
+        if ctor.access_specifier is AccessSpecifier.PRIVATE:
+            continue
+
+        if ctor.docstring is not None:
+            return True
+
+        if bindings.docstrings:
+            auto_docstring = True
+
+    if not klass.can_create:
+        return False
+
+    return auto_docstring
 
 
 def _name_cache_as_list(name_cache):

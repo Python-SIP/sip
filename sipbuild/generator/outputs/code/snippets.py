@@ -21,7 +21,7 @@ from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_signature_as_cpp_declaration, fmt_signature_as_cpp_definition,
         fmt_signature_as_type_hint, fmt_value_list_as_cpp_expression)
 
-from .utils import (callable_overloads, get_class_from_void, get_const_cast,
+from .utils import (get_class_from_void, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
         get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
         get_optional_ptr, get_type_from_void, get_use_in_code,
@@ -1338,79 +1338,6 @@ def _class_api(backend, sf, klass):
         backend.g_class_spec_extern_decl(sf, klass)
 
 
-def g_class_docstring(sf, spec, bindings, klass):
-    """ Generate the docstring for a class. """
-
-    NEWLINE = '\\n"\n"'
-
-    # See if all the docstrings are automatically generated.
-    all_auto = (klass.docstring is None)
-    any_implied = False
-
-    for ctor in klass.ctors:
-        if ctor.access_specifier is AccessSpecifier.PRIVATE:
-            continue
-
-        if ctor.docstring is not None:
-            all_auto = False
-
-            if ctor.docstring.signature is not DocstringSignature.DISCARDED:
-                any_implied = True
-
-    # Generate the docstring.
-    if all_auto:
-        sf.write('\\1')
-
-    if klass.docstring is not None and klass.docstring.signature is not DocstringSignature.PREPENDED:
-        sf.write(get_docstring_text(klass.docstring))
-        is_first = False
-    else:
-        is_first = True
-
-    if klass.docstring is None or klass.docstring.signature is not DocstringSignature.DISCARDED:
-        for ctor in klass.ctors:
-            if ctor.access_specifier is AccessSpecifier.PRIVATE:
-                continue
-
-            if not is_first:
-                sf.write(NEWLINE)
-
-                # Insert a blank line if any explicit docstring wants to
-                # include a signature.  This maintains compatibility with
-                # previous versions.
-                if any_implied:
-                    sf.write(NEWLINE)
-
-            if ctor.docstring is not None:
-                if ctor.docstring.signature is DocstringSignature.PREPENDED:
-                    _ctor_auto_docstring(sf, spec, bindings, klass, ctor)
-                    sf.write(NEWLINE)
-
-                sf.write(get_docstring_text(ctor.docstring))
-
-                if ctor.docstring.signature is DocstringSignature.APPENDED:
-                    sf.write(NEWLINE)
-                    _ctor_auto_docstring(sf, spec, bindings, klass, ctor)
-            elif all_auto or any_implied:
-                _ctor_auto_docstring(sf, spec, bindings, klass, ctor)
-
-            is_first = False
-
-    if klass.docstring is not None and klass.docstring.signature is DocstringSignature.PREPENDED:
-        if not is_first:
-            sf.write(NEWLINE)
-            sf.write(NEWLINE)
-
-        sf.write(get_docstring_text(klass.docstring))
-
-
-def _ctor_auto_docstring(sf, spec, bindings, klass, ctor):
-    """ Generate the automatic docstring for a ctor. """
-
-    if bindings.docstrings:
-        g_ctor_type_hint(sf, spec, bindings, klass, ctor)
-
-
 def g_ctor_type_hint(sf, spec, bindings, klass, ctor):
     """ Generate the type hint for a ctor. """
 
@@ -1730,66 +1657,6 @@ def _has_optional_args(overload):
     args = overload.cpp_signature.args
 
     return len(args) != 0 and args[-1].default_value is not None
-
-
-def _method_auto_docstring(sf, spec, bindings, overload, is_method):
-    """ Generate the automatic docstring for a function/method. """
-
-    if bindings.docstrings:
-        g_overload_type_hint(sf, spec, overload, is_method=is_method)
-
-
-def g_method_docstring(sf, spec, bindings, member, overloads, is_method=False):
-    """ Generate the docstring for all overloads of a function/method.  Return
-    True if the docstring was entirely automatically generated.
-    """
-
-    NEWLINE = '\\n"\n"'
-
-    auto_docstring = True
-
-    # See if all the docstrings are automatically generated.
-    all_auto = True
-    any_implied = False
-
-    for overload in callable_overloads(member, overloads):
-        if overload.docstring is not None:
-            all_auto = False
-
-            if overload.docstring.signature is not DocstringSignature.DISCARDED:
-                any_implied = True
-
-    # Generate the docstring.
-    is_first = True
-
-    for overload in callable_overloads(member, overloads):
-        if not is_first:
-            sf.write(NEWLINE)
-
-            # Insert a blank line if any explicit docstring wants to
-                # include a signature.  This maintains compatibility with
-                # previous versions.
-            if any_implied:
-                sf.write(NEWLINE)
-
-        if overload.docstring is not None:
-            if overload.docstring.signature is DocstringSignature.PREPENDED:
-                _method_auto_docstring(sf, spec, bindings, overload, is_method)
-                sf.write(NEWLINE)
-
-            sf.write(get_docstring_text(overload.docstring))
-
-            if overload.docstring.signature is DocstringSignature.APPENDED:
-                sf.write(NEWLINE)
-                _method_auto_docstring(sf, spec, bindings, overload, is_method)
-
-            auto_docstring = False
-        elif all_auto or any_implied:
-            _method_auto_docstring(sf, spec, bindings, overload, is_method)
-
-        is_first = False
-
-    return auto_docstring
 
 
 def g_overload_type_hint(sf, spec, overload, is_method=True):

@@ -3154,7 +3154,10 @@ def p_namespace_docstring(p):
     if pm.skipping:
         return
 
-    if pm.scope.docstring is None:
+    if pm.scope is None:
+        pm.parser_error(p, 1,
+                "module docstrings must be defined by the %Module directive")
+    elif pm.scope.docstring is None:
         pm.scope.docstring = p[1]
     else:
         pm.parser_error(p, 1,

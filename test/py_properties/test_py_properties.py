@@ -11,3 +11,6 @@ def test_property_setter(module):
     ao = module.AnObject()
     ao.int_val = 100
     assert ao.int_val == 100
+
+def test_property_docstring(module):
+    assert module.AnObject.int_val.__doc__ == 'property'
