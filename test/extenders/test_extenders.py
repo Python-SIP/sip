@@ -18,6 +18,11 @@ def test_core_callable(package, abi_package_version):
         assert isinstance(twice_i, int)
         assert twice_i == 10
 
+def test_core_callable_docstrings(package, abi_package_version):
+    # Older versions of the ABI do not support dynamic docstrings.
+    if abi_package_version >= 14:
+        assert len(package.core_module.NameSpace.twice.__doc__.split('\n')) == 2
+
 def test_extended_overload(package):
     twice_f = package.core_module.NameSpace.twice(5.0)
 
@@ -37,6 +42,11 @@ def test_extended_callable_or_overload(package, abi_package_version):
 
         assert isinstance(thrice_f, float)
         assert thrice_f == 15.0
+
+def test_extended_callable_or_overload_docstrings(package, abi_package_version):
+    # Older versions of the ABI do not support dynamic docstrings.
+    if abi_package_version >= 14:
+        assert len(package.core_module.NameSpace.thrice.__doc__.split('\n')) == 2
 
 def test_extended_attribute_get(package):
     assert package.core_module.NameSpace.in_extras1 == 33
@@ -68,3 +78,9 @@ def test_init_extender(package):
     klass = package.core_module.Klass(cast)
 
     assert klass.get_int_attr() == 20
+
+def test_init_extender_docstrings(package, abi_package_version):
+    # Older versions of the ABI do not support dynamic docstrings.
+    if abi_package_version >= 14:
+        print(package.core_module.Klass.__doc__)
+        assert len(package.core_module.Klass.__doc__.split('\n')) == 3
