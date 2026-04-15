@@ -960,6 +960,10 @@ class ParserManager:
             mapped_type.no_copy_ctor = True
             mapped_type.no_default_ctor = True
 
+        if mapped_type.movable:
+            mapped_type.no_assignment_operator = True
+            mapped_type.no_copy_ctor = True
+
         pyqt_flags = self._get_plugin_annotation(p, symbol, annotations,
                 'PyQtFlags', 'PyQt6')
         if pyqt_flags is not None:

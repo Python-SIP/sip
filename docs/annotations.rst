@@ -581,6 +581,9 @@ Mapped Type Annotations
     `std::move()`, SIP automatically transfers ownership of the instance to C++
     so that Python doesn't try to call its destructor.
 
+    :manno:`Movable` also implies :manno:`NoAssignmentOperator` and
+    :manno:`NoCopyCtor`.
+
     .. note::
         SIP does not automatically generate the declaration of `std::move()`
         so the :directive:`%TypeHeaderCode` for the mapped type should include
@@ -611,6 +614,9 @@ Mapped Type Annotations
     support the :c:func:`sipReleaseType()` function.  Any
     :directive:`%ConvertToTypeCode` should not create temporary instances of
     the mapped type, i.e. it should not return :c:macro:`SIP_TEMPORARY`.
+
+    :manno:`NoRelease` also implies :manno:`NoAssignmentOperator`,
+    :manno:`NoCopyCtor` and :manno:`NoDefaultCtor`.
 
 
 .. mapped-type-annotation:: PyName

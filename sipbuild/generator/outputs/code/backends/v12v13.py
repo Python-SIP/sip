@@ -738,7 +738,7 @@ f'''        SIP_NULLPTR,
 f'''        {cod_nrenummembers}, {cod_enummembers},
 ''')
 
-        mtd_assign = 'SIP_NULLPTR' if mapped_type.no_assignment_operator else 'assign_' + mapped_type_name
+        mtd_assign = 'SIP_NULLPTR' if mapped_type.no_assignment_operator and not mapped_type.movable else 'assign_' + mapped_type_name
         mtd_array = 'SIP_NULLPTR' if mapped_type.no_default_ctor else 'array_' + mapped_type_name
         mtd_copy = 'SIP_NULLPTR' if mapped_type.no_copy_ctor else 'copy_' + mapped_type_name
         mtd_release = 'SIP_NULLPTR' if mapped_type.no_release else 'release_' + mapped_type_name

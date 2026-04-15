@@ -47,3 +47,13 @@ def test_movable(module):
     # Re-test the state of the object.
     assert getrefcount(ao) == ao_base_refcount
     assert module.ispyowned(ao) is True
+
+def test_virtual_result(module):
+    class SubWrapper(module.ObjectWrapper):
+        def createObject(self):
+            return module.AnObject(500)
+
+    w = SubWrapper()
+    w.recreateObject()
+
+    assert w.getObjectValue() == 500

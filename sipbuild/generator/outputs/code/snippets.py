@@ -2051,66 +2051,73 @@ def _mapped_type_cpp(backend, sf, bindings, mapped_type):
 
     sf.write_code(mapped_type.type_code)
 
-    if not mapped_type.no_release:
+    if not mapped_type.no_assignment_operator or mapped_type.movable:
         # Generate the assignment helper.  Note that the source pointer is not
         # const.  This is to allow the source instance to be modified as a
         # consequence of the assignment, eg. if it is implementing some sort of
         # reference counting scheme.
-        if not mapped_type.no_assignment_operator:
-            sf.write('\n\n')
+        sf.write('\n\n')
 
-            src_cast = get_type_from_void(spec, mapped_type_type, 'sipSrc',
-                    tight=True)
-            dst_cast = get_type_from_void(spec, mapped_type_type, 'sipDst',
-                    tight=True)
+        src_cast = get_type_from_void(spec, mapped_type_type, 'sipSrc',
+                tight=True)
+        dst_cast = get_type_from_void(spec, mapped_type_type, 'sipDst',
+                tight=True)
 
-            if not spec.c_bindings:
-                sf.write(f'extern "C" {{static void assign_{mapped_type_name}(void *, Py_ssize_t, void *);}}\n')
+        if mapped_type.movable:
+            movable_start = 'std::move('
+            movable_end = ')'
+        else:
+            movable_start = movable_end = ''
 
-            sf.write(
+        if not spec.c_bindings:
+            sf.write(f'extern "C" {{static void assign_{mapped_type_name}(void *, Py_ssize_t, void *);}}\n')
+
+        sf.write(
 f'''static void assign_{mapped_type_name}(void *sipDst, Py_ssize_t sipDstIdx, void *sipSrc)
 {{
-    {dst_cast}[sipDstIdx] = *{src_cast};
+    {dst_cast}[sipDstIdx] = {movable_start}*{src_cast}{movable_end};
 }}
 ''')
 
-        # Generate the array allocation helper.
-        if not mapped_type.no_default_ctor:
-            sf.write('\n\n')
+    # Generate the array allocation helper.
+    if not mapped_type.no_default_ctor:
+        sf.write('\n\n')
 
-            if not spec.c_bindings:
-                sf.write(f'extern "C" {{static void *array_{mapped_type_name}(Py_ssize_t);}}\n')
+        if not spec.c_bindings:
+            sf.write(f'extern "C" {{static void *array_{mapped_type_name}(Py_ssize_t);}}\n')
 
-            sf.write(f'static void *array_{mapped_type_name}(Py_ssize_t sipNrElem)\n{{\n')
+        sf.write(f'static void *array_{mapped_type_name}(Py_ssize_t sipNrElem)\n{{\n')
 
-            if spec.c_bindings:
-                sf.write(f'    return sipMalloc(sizeof ({mapped_type_type}) * sipNrElem);\n')
-            else:
-                sf.write(f'    return new {mapped_type_type}[sipNrElem];\n')
+        if spec.c_bindings:
+            sf.write(f'    return sipMalloc(sizeof ({mapped_type_type}) * sipNrElem);\n')
+        else:
+            sf.write(f'    return new {mapped_type_type}[sipNrElem];\n')
 
-            sf.write('}\n')
+        sf.write('}\n')
 
-        # Generate the copy helper.
-        if not mapped_type.no_copy_ctor:
-            sf.write('\n\n')
+    # Generate the copy helper.
+    if not mapped_type.no_copy_ctor:
+        sf.write('\n\n')
 
-            if not spec.c_bindings:
-                sf.write(f'extern "C" {{static void *copy_{mapped_type_name}(const void *, Py_ssize_t);}}\n')
+        if not spec.c_bindings:
+            sf.write(f'extern "C" {{static void *copy_{mapped_type_name}(const void *, Py_ssize_t);}}\n')
 
-            sf.write(f'static void *copy_{mapped_type_name}(const void *sipSrc, Py_ssize_t sipSrcIdx)\n{{\n')
+        sf.write(f'static void *copy_{mapped_type_name}(const void *sipSrc, Py_ssize_t sipSrcIdx)\n{{\n')
 
-            if spec.c_bindings:
-                sf.write(
+        if spec.c_bindings:
+            sf.write(
 f'''    {mapped_type_type} *sipPtr = sipMalloc(sizeof ({mapped_type_type}));
     *sipPtr = ((const {mapped_type_type} *)sipSrc)[sipSrcIdx];
 
     return sipPtr;
 ''')
-            else:
-                sf.write(f'    return new {mapped_type_type}(reinterpret_cast<const {mapped_type_type} *>(sipSrc)[sipSrcIdx]);\n')
+        else:
+            sf.write(f'    return new {mapped_type_type}(reinterpret_cast<const {mapped_type_type} *>(sipSrc)[sipSrcIdx]);\n')
 
-            sf.write('}\n')
+        sf.write('}\n')
 
+    # Generate the dtor.
+    if not mapped_type.no_release:
         sf.write('\n\n/* Call the mapped type\'s destructor. */\n')
 
         need_state = is_used_in_code(mapped_type.release_code, 'sipState')

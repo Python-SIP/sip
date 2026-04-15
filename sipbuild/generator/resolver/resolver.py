@@ -1471,6 +1471,16 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
                                 'C' if spec.c_bindings else 'C++'),
                         overload, scope=scope)
 
+        # If a copy of a mapped type is needed then make sure it can be
+        # assigned or moved.
+        if result.type is ArgumentType.MAPPED and len(result.derefs) == 0 and not result.is_reference:
+            mapped_type = result.definition
+
+            if mapped_type.no_assignment_operator and not mapped_type.movable:
+                _log_overload_error(error_log,
+                        "the mapped type result needs an assignment operator or be movable",
+                        overload, scope=scope)
+
     for arg_nr, arg in enumerate(overload.py_signature.args):
         _resolve_type(spec, mod, scope, arg, error_log)
 

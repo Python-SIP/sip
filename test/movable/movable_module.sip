@@ -5,7 +5,7 @@
 
 
 template <TYPE>
-%MappedType std::unique_ptr<TYPE> /Movable, NoRelease, AllowNone/
+%MappedType std::unique_ptr<TYPE> /Movable, AllowNone/
 {
 %TypeHeaderCode
 #include <memory>
@@ -135,6 +135,16 @@ public:
         mObject->increment();
     }
 
+    virtual std::unique_ptr<AnObject> createObject()
+    {
+        return std::unique_ptr<AnObject>(new AnObject(100));
+    }
+
+    void recreateObject()
+    {
+        mObject = std::move(createObject());
+    }
+
 private:
     std::unique_ptr<AnObject> mObject;
 };
@@ -152,4 +162,8 @@ public:
     std::unique_ptr<AnObject> takeObject();
 
     void setObject(std::unique_ptr<AnObject> anObject);
+
+    virtual std::unique_ptr<AnObject> createObject() /Factory/;
+
+    void recreateObject();
 };
