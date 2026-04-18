@@ -1452,8 +1452,9 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
     """ Resolve the types of a Python signature. """
 
     result = overload.py_signature.result
+    nr_derefs = len(result.derefs)
 
-    if result.type is not ArgumentType.VOID or len(result.derefs) != 0:
+    if result.type is not ArgumentType.VOID or nr_derefs != 0:
         if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
             _log_overload_error(error_log, "is a signal and must return void",
                     overload, scope=scope)
@@ -1471,14 +1472,21 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
                                 'C' if spec.c_bindings else 'C++'),
                         overload, scope=scope)
 
-        # If a copy of a mapped type is needed then make sure it can be
-        # assigned or moved.
-        if result.type is ArgumentType.MAPPED and len(result.derefs) == 0 and not result.is_reference:
-            mapped_type = result.definition
+        # Additional checks for results that are copied.
+        if nr_derefs == 0 and not result.is_reference:
+            # Make sure a mapped type can be copied or moved.
+            if result.type is ArgumentType.MAPPED:
+                mapped_type = result.definition
 
-            if mapped_type.no_assignment_operator and not mapped_type.movable:
+                if mapped_type.no_assignment_operator and not mapped_type.movable:
+                    _log_overload_error(error_log,
+                            "the mapped type result needs an assignment operator or be movable",
+                            overload, scope=scope)
+
+            # /Factory/ makes no sense when the result is copied.
+            if overload.factory:
                 _log_overload_error(error_log,
-                        "the mapped type result needs an assignment operator or be movable",
+                        "/Factory/ cannot be applied when a result will be copied",
                         overload, scope=scope)
 
     for arg_nr, arg in enumerate(overload.py_signature.args):

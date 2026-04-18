@@ -13,6 +13,8 @@ template <TYPE>
 %End
 
 %ConvertFromTypeCode
+    /* This must result in ownership being with Python. */
+
 #if SIP_ABI_MAJOR_VERSION >= 14
     sipTypeID type_id = sipFindTypeID(sipMS, "TYPE*");
 
@@ -25,6 +27,8 @@ template <TYPE>
 %End
 
 %ConvertToTypeCode
+    /* This must result in ownership being with C++. */
+
 #if SIP_ABI_MAJOR_VERSION >= 14
     sipTypeID type_id = sipFindTypeID(sipMS, "TYPE");
 
@@ -34,17 +38,18 @@ template <TYPE>
     if (sipPy == Py_None)
         return 1;
 
-    int state;
-    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipMS, sipPy, type_id, sipTransferObj, 0, &state, sipIsErr));
-
-    sipReleaseType(sipMS, t, type_id, state);
+    /* Get the C++ pointer with no convertors or ownership changes. */
+    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipMS, sipPy, type_id, NULL, SIP_NO_CONVERTORS, NULL, sipIsErr));
 
     if (*sipIsErr)
         return 0;
 
+    /* Give ownership to C++ but don't lose the Python object. */
+    sipTransferTo(sipMS, sipPy, Py_None);
+
     *sipCppPtr = new std::unique_ptr<TYPE>(t);
 
-    return sipGetState(sipTransferObj);
+    return 0;
 #else
     const sipTypeDef *td = sipFindType("TYPE");
 
@@ -54,17 +59,18 @@ template <TYPE>
     if (sipPy == Py_None)
         return 1;
 
-    int state;
-    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipPy, td, sipTransferObj, 0, &state, sipIsErr));
-
-    sipReleaseType(t, td, state);
+    /* Get the C++ pointer with no convertors or ownership changes. */
+    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipPy, td, NULL, SIP_NO_CONVERTORS, NULL, sipIsErr));
 
     if (*sipIsErr)
         return 0;
 
+    /* Give ownership to C++ but don't lose the Python object. */
+    sipTransferTo(sipPy, Py_None);
+
     *sipCppPtr = new std::unique_ptr<TYPE>(t);
 
-    return sipGetState(sipTransferObj);
+    return 0;
 #endif
 %End
 };
@@ -163,7 +169,7 @@ public:
 
     void setObject(std::unique_ptr<AnObject> anObject);
 
-    virtual std::unique_ptr<AnObject> createObject() /Factory/;
+    virtual std::unique_ptr<AnObject> createObject();
 
     void recreateObject();
 };
