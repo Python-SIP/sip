@@ -82,5 +82,7 @@ def test_init_extender(package):
 def test_init_extender_docstrings(package, abi_package_version):
     # Older versions of the ABI do not support dynamic docstrings.
     if abi_package_version >= 14:
-        print(package.core_module.Klass.__doc__)
         assert len(package.core_module.Klass.__doc__.split('\n')) == 3
+
+def test_dir(package):
+    assert 'thrice' in dir(package.core_module.NameSpace)

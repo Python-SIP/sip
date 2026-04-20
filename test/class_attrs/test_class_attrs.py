@@ -76,3 +76,9 @@ def test_del_instance_attribute(klass):
 def test_attribute_is_instance_attribute(module):
     with pytest.raises(AttributeError):
         module.Klass.attr
+
+def test_dir(klass):
+    assert 'get_attr' in dir(klass)
+
+def test_dir_dynamic(klass):
+    assert 'attr' in dir(klass)

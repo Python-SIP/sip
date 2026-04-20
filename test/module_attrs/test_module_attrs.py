@@ -343,3 +343,9 @@ def test_getters_and_setters(module, abi_version):
         assert module.int_attr_no_setter == 10
         with pytest.raises(ValueError):
             module.int_attr_no_setter = 0
+
+def test_dir(module):
+    assert 'get_int_attr' in dir(module)
+
+def test_dir_dynamic(module):
+    assert 'bool_attr' in dir(module)
