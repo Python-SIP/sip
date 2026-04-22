@@ -1483,12 +1483,6 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
                             "the mapped type result needs an assignment operator or be movable",
                             overload, scope=scope)
 
-            # /Factory/ makes no sense when the result is copied.
-            if overload.factory:
-                _log_overload_error(error_log,
-                        "/Factory/ cannot be applied when a result will be copied",
-                        overload, scope=scope)
-
     for arg_nr, arg in enumerate(overload.py_signature.args):
         _resolve_type(spec, mod, scope, arg, error_log)
 
