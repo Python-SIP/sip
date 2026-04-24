@@ -147,14 +147,6 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_init_mixin_impl_body(self, sf, klass):
-        """ Generate the body of the implementation of a mixin initialisation
-        function.
-        """
-
-        ...
-
-    @abstractmethod
     def g_mapped_type_api(self, sf, mapped_type):
         """ Generate the API details for a mapped type. """
 
@@ -175,6 +167,12 @@ class AbstractBackend(ABC):
 
         # This default implementation does nothing.
         return False
+
+    def g_mixin_support(self, sf, klass):
+        """ Generate the support for mixins. """
+
+        # This default implementation does nothing.
+        pass
 
     @abstractmethod
     def g_module_definition(self, sf, has_module_functions=False):

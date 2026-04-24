@@ -2544,21 +2544,8 @@ f'''static int final_{as_word}(PyObject *{sip_self}, void *{sip_cpp_v}, PyObject
 
         sf.write('}\n')
 
-    # The mixin initialisation function.
-    if klass.mixin:
-        sf.write('\n\n')
-
-        if not spec.c_bindings:
-            sf.write(f'extern "C" {{static int mixin_{as_word}(PyObject *, PyObject *, PyObject *);}}\n')
-
-        sf.write(
-f'''static int mixin_{as_word}(PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds)
-{{
-''')
-
-        backend.g_init_mixin_impl_body(sf, klass)
-
-        sf.write('}\n')
+    # The mixin support.
+    backend.g_mixin_support(sf, klass)
 
     # The array allocation helpers.
     if spec.c_bindings or klass.needs_array_helper:

@@ -631,16 +631,6 @@ f'''    {{{first_field}SIP_NULLPTR, {{0, 0, 0}}, SIP_NULLPTR}}
 }};
 ''')
 
-    def g_init_mixin_impl_body(self, sf, klass):
-        """ Generate the body of the implementation of a mixin initialisation
-        function.
-        """
-
-        module_name = self.spec.module.py_name
-        klass_name = klass.iface_file.fq_cpp_name.as_word
-
-        sf.write(f'    return sipInitMixin(sipSelf, sipArgs, sipKwds, (sipClassTypeDef *)&sipTypeDef_{module_name}_{klass_name});\n')
-
     def g_mapped_type_api(self, sf, mapped_type):
         """ Generate the API details for a mapped type. """
 
@@ -764,6 +754,26 @@ f'''        0, SIP_NULLPTR,
         """
 
         return self._g_instances_int(sf, mapped_type)
+
+    def g_mixin_support(self, sf, klass):
+        """ Generate the support for mixins. """
+
+        if klass.mixin:
+            spec = self.spec
+            module_name = spec.module.py_name
+            klass_name = klass.iface_file.fq_cpp_name.as_word
+
+            sf.write('\n\n')
+
+            if not spec.c_bindings:
+                sf.write(f'extern "C" {{static int mixin_{klass_name}(PyObject *, PyObject *, PyObject *);}}\n')
+
+            sf.write(
+f'''static int mixin_{klass_name}(PyObject *sipSelf, PyObject *sipArgs, PyObject *sipKwds)
+{{
+    return sipInitMixin(sipSelf, sipArgs, sipKwds, (sipClassTypeDef *)&sipTypeDef_{module_name}_{klass_name});
+}}
+''')
 
     def g_module_definition(self, sf, has_module_functions=False):
         """ Generate the module definition structure. """
