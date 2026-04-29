@@ -759,8 +759,10 @@ class ParserManager:
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
         overload.factory = annotations.get('Factory', False)
         overload.deprecated = annotations.get('Deprecated')
-        overload.new_thread = annotations.get('NewThread', False)
         overload.transfer = self.get_transfer(p, symbol, annotations)
+
+        if self.target_major_abi < 14:
+            overload.new_thread = annotations.get('NewThread', False)
 
         if overload.access_specifier is not AccessSpecifier.PRIVATE:
             if member.py_slot is None or member.py_slot is PySlot.CALL:

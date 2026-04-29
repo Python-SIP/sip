@@ -1175,7 +1175,7 @@ class Overload:
     # The code specified by any %MethodCode directive.
     method_code: CodeBlock|None = None
 
-    # Set if /NewThread/ was specified.
+    # Set if /NewThread/ was specified.  (ABI v12 and v13 only.)
     new_thread: bool = False
 
     # Set if the type hint should be suppressed.
@@ -1625,7 +1625,7 @@ class WrappedClass:
     # The value of /Metatype/ if specified.
     metatype: CachedName|None = None
 
-    # Set if /Mixin/ was specified.
+    # Set if /Mixin/ was specified.  (ABI v12 and v13 only.)
     mixin: bool = False
 
     # The list of all classes in the class hierarchy starting with itself.
