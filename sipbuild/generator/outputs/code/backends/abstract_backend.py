@@ -26,13 +26,9 @@ class AbstractBackend(ABC):
         return backend(spec)
 
     @abstractmethod
-    def g_arg_parser_arguments(self, sf, scope, ctor, overload, py_signature,
-            signature_nr):
-        """ Generate any code required before an argument parser is invoked and
-        return a 3-tuple of the name of the parser function, the parser
-        arguments (prior to the format string) and a flag which is set if the
-        signature is known to require a single argument.
-        """
+    def g_arg_parser(self, sf, scope, py_signature, signature_nr, ctor=None,
+        is_method=False, overload=None):
+        """ Generate an argument parser call. """
 
         ...
 
@@ -318,13 +314,6 @@ class AbstractBackend(ABC):
         """ Return True if the ABI supports sip.array. """
 
         return True
-
-    @abstractmethod
-    def arg_parser_handles_self(self, overload):
-        """ Return True if the argument parser for an overload handles self.
-        """
-
-        ...
 
     @abstractmethod
     def cached_name_ref(self, cached_name, as_nr=False):

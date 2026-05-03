@@ -326,6 +326,17 @@ def has_method_docstring(bindings, member, overloads):
     return auto_docstring
 
 
+def is_string(type):
+    """ Check if a type is a string rather than a char type. """
+
+    nr_derefs = len(type.derefs)
+
+    if type.is_out and not type.is_reference:
+        nr_derefs -= 1
+
+    return nr_derefs > 0
+
+
 def is_used_in_code(code, s):
     """ Return True if a string is used in code. """
 

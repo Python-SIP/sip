@@ -26,9 +26,9 @@ from .utils import (get_class_from_void, get_const_cast,
         get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
         get_optional_ptr, get_type_from_void, get_use_in_code,
         get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
-        is_used_in_code, keep_py_reference, need_dealloc, need_error_flag,
-        py_scope, pyqt5_supported, pyqt6_supported, release_gil,
-        scoped_class_name, skip_overload, type_needs_user_state,
+        is_string, is_used_in_code, keep_py_reference, need_dealloc,
+        need_error_flag, py_scope, pyqt5_supported, pyqt6_supported,
+        release_gil, scoped_class_name, skip_overload, type_needs_user_state,
         variables_in_scope)
 
 
@@ -604,7 +604,7 @@ def g_type_init_body(backend, sf, bindings, klass):
         else:
             error_flag = old_error_flag = False
 
-        _arg_parser(backend, sf, klass, ctor.py_signature, signature_nr,
+        backend.g_arg_parser(sf, klass, ctor.py_signature, signature_nr,
                 ctor=ctor)
         _ctor_call(backend, sf, bindings, klass, ctor, error_flag,
                 old_error_flag)
@@ -708,343 +708,7 @@ def _arg_is_v13_typed_enum(spec, arg):
     return spec.target_abi[0] == 13 and arg.type is ArgumentType.ENUM and arg.definition.enum_base_type is not None
 
 
-def _arg_parser(backend, sf, scope, py_signature, signature_nr, ctor=None,
-        is_method=False, overload=None):
-    """ Generate the argument variables for a callable. """
-
-    spec = backend.spec
-
-    # If the scope is a mapped type or a namespace, then ignore it.
-    if isinstance(scope, MappedType) or (isinstance(scope, WrappedClass) and scope.iface_file.type is IfaceFileType.NAMESPACE):
-        scope = None
-
-    # See if the parser handles self.
-    if scope is None or overload is None:
-        handle_self = False
-    else:
-        handle_self = backend.arg_parser_handles_self(overload)
-
-    # Generate the local variables that will hold the parsed arguments and
-    # values returned via arguments.
-    array_len_arg_nr = -1
-    need_owner = False
-    ctor_needs_self = False
-
-    for arg_nr, arg in enumerate(py_signature.args):
-        if arg.array is ArrayArgument.ARRAY_SIZE:
-            array_len_arg_nr = arg_nr
-
-        _argument_variable(backend, sf, scope, arg, arg_nr)
-
-        if arg.transfer is Transfer.TRANSFER_THIS:
-            need_owner = True
-
-        if ctor is not None and arg.transfer is Transfer.TRANSFER:
-            ctor_needs_self = True
-
-    if overload is not None and need_owner:
-        sf.write('        sipWrapper *sipOwner = SIP_NULLPTR;\n')
-
-    if handle_self and not overload.is_static:
-        cpp_type = 'const ' if overload.is_const else ''
-
-        if isinstance(scope, WrappedEnum):
-            ptr = ''
-            cpp_type = fmt_enum_as_cpp_type(scope)
-        else:
-            ptr = '*'
-            if overload.access_specifier is AccessSpecifier.PROTECTED and scope.has_shadow:
-                cpp_type += 'sip' + scope.iface_file.fq_cpp_name.as_word
-            else:
-                cpp_type += scoped_class_name(spec, scope)
-
-        sf.write(f'        {cpp_type} {ptr}sipCpp;\n\n')
-    elif len(py_signature.args) != 0:
-        sf.write('\n')
-
-    # Generate the call to the parser function.
-    parser_function, args, single_arg = backend.g_arg_parser_arguments(sf,
-            scope, ctor, overload, py_signature, signature_nr)
-
-    # Generate the format string.
-    format_s = '"'
-    optional_args = False
-
-    if single_arg:
-        format_s += '1'
-
-    if ctor_needs_self:
-        format_s += '#'
-    elif handle_self:
-        if overload.is_static:
-            format_s += 'C'
-        elif overload.access_is_really_protected:
-            format_s += 'p'
-        else:
-            format_s += 'B'
-
-    for arg in py_signature.args:
-        if not arg.is_in:
-            continue
-
-        if arg.default_value is not None and not optional_args:
-            format_s += '|'
-            optional_args = True
-
-        # Get the wrapper if explicitly asked for or we are going to keep a
-        # reference to.  However if it is an encoded string then we will get
-        # the actual wrapper from the format character.
-        if arg.get_wrapper:
-            format_s += '@'
-        elif arg.key is not None:
-            if not (arg.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING) and len(arg.derefs) == 1):
-                format_s += '@'
-
-        if arg.type is ArgumentType.ASCII_STRING:
-            format_s += 'AA' if _is_string(arg) else 'aA'
-
-        elif arg.type is ArgumentType.LATIN1_STRING:
-            format_s += 'AL' if _is_string(arg) else 'aL'
-
-        elif arg.type is ArgumentType.UTF8_STRING:
-            format_s += 'A8' if _is_string(arg) else 'a8'
-
-        elif arg.type in (ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING):
-            if arg.array is ArrayArgument.ARRAY:
-                format_s += 'k'
-            elif _is_string(arg):
-                format_s += 's'
-            else:
-                format_s += 'c'
-
-        elif arg.type is ArgumentType.WSTRING:
-            if arg.array is ArrayArgument.ARRAY:
-                format_s += 'K'
-            elif _is_string(arg):
-                format_s += 'x'
-            else:
-                format_s += 'w'
-
-        elif arg.type is ArgumentType.ENUM:
-            if arg.definition.fq_cpp_name is None:
-                format_s += 'e'
-            elif arg.is_constrained:
-                format_s += 'XE'
-            else:
-                format_s += 'E'
-
-        elif arg.type is ArgumentType.BOOL:
-            format_s += 'b'
-
-        elif arg.type is ArgumentType.CBOOL:
-            format_s += 'Xb'
-
-        elif arg.type is ArgumentType.INT:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'i'
-
-        elif arg.type is ArgumentType.UINT:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'u'
-
-        elif arg.type is ArgumentType.SIZE:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += '='
-
-        elif arg.type is ArgumentType.CINT:
-            format_s += 'Xi'
-
-        elif arg.type is ArgumentType.BYTE:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'I' if backend.abi_has_working_char_conversion() else 'L'
-
-        elif arg.type is ArgumentType.SBYTE:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'L'
-
-        elif arg.type is ArgumentType.UBYTE:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'M'
-
-        elif arg.type is ArgumentType.SHORT:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'h'
-
-        elif arg.type is ArgumentType.USHORT:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 't'
-
-        elif arg.type is ArgumentType.LONG:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'l'
-
-        elif arg.type is ArgumentType.ULONG:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'm'
-
-        elif arg.type is ArgumentType.LONGLONG:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'n'
-
-        elif arg.type is ArgumentType.ULONGLONG:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                format_s += 'o'
-
-        elif arg.type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
-            format_s += 'v'
-
-        elif arg.type is ArgumentType.CAPSULE:
-            format_s += 'z'
-
-        elif arg.type is ArgumentType.FLOAT:
-            format_s += 'f'
-
-        elif arg.type is ArgumentType.CFLOAT:
-            format_s += 'Xf'
-
-        elif arg.type is ArgumentType.DOUBLE:
-            format_s += 'd'
-
-        elif arg.type is ArgumentType.CDOUBLE:
-            format_s += 'Xd'
-
-        elif arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
-            if arg.array is ArrayArgument.ARRAY:
-                format_s += '>' if arg.type is ArgumentType.CLASS and backend.abi_supports_array() else 'r'
-            else:
-                format_s += 'J' + _get_subformat_char(arg)
-
-        elif arg.type is ArgumentType.PYOBJECT:
-            format_s += 'P' + _get_subformat_char(arg)
-
-        elif arg.type in (ArgumentType.PYTUPLE, ArgumentType.PYLIST, ArgumentType.PYDICT, ArgumentType.PYSLICE, ArgumentType.PYTYPE):
-            format_s += 'N' if arg.allow_none else 'T'
-
-        elif arg.type is ArgumentType.PYCALLABLE:
-            format_s += 'H' if arg.allow_none else 'F'
-
-        elif arg.type is ArgumentType.PYBUFFER:
-            format_s += '$' if arg.allow_none else '!'
-
-        elif arg.type is ArgumentType.PYENUM:
-            format_s += '^' if arg.allow_none else '&'
-
-        elif arg.type is ArgumentType.ELLIPSIS:
-            format_s += 'W'
-
-    format_s += '"'
-    args.append(format_s)
-
-    # Generate the parameters corresponding to the format string.
-    if ctor_needs_self:
-        args.append('sipSelf')
-    elif handle_self:
-        args.append('&sipSelf')
-
-        if not overload.is_static:
-            args.append(backend.get_type_ref(scope))
-            args.append('&sipCpp')
-
-    for arg_nr, arg in enumerate(py_signature.args):
-        if not arg.is_in:
-            continue
-
-        arg_name = fmt_argument_as_name(spec, arg, arg_nr)
-        arg_name_ref = '&' + arg_name
-
-        # Use the wrapper name if it was explicitly asked for.
-        if arg.get_wrapper:
-            args.append(f'&{arg_name}Wrapper')
-        elif arg.key is not None:
-            args.append(f'&{arg_name}Keep')
-
-        if arg.type is ArgumentType.MAPPED:
-            mapped_type = arg.definition
-
-            args.append(backend.get_type_ref(mapped_type))
-            args.append(arg_name_ref)
-
-            if arg.array is ArrayArgument.ARRAY:
-                array_len_arg_name = fmt_argument_as_name(spec,
-                        py_signature.args[array_len_arg_nr], array_len_arg_nr)
-                args.append('&' + array_len_arg_name)
-            elif mapped_type.convert_to_type_code is not None and not arg.is_constrained:
-                args.append('SIP_NULLPTR' if mapped_type.no_release else f'&{arg_name}State')
-
-                if mapped_type.needs_user_state:
-                    args.append(f'&{arg_name}UserState')
-
-        elif arg.type is ArgumentType.CLASS:
-            klass = arg.definition
-
-            args.append(backend.get_type_ref(klass))
-            args.append(arg_name_ref)
-
-            if arg.array is ArrayArgument.ARRAY:
-                array_len_arg_name = fmt_argument_as_name(spec,
-                        py_signature.args[array_len_arg_nr], array_len_arg_nr)
-                args.append('&' + array_len_arg_name)
-
-                if backend.abi_supports_array():
-                    args.append(f'&{arg_name}IsTemp')
-            else:
-                if arg.transfer is Transfer.TRANSFER_THIS:
-                    args.append('sipOwner' if ctor is not None else '&sipOwner')
-
-                if klass.convert_to_type_code is not None and not arg.is_constrained:
-                    args.append(f'&{arg_name}State')
-
-        elif arg.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING):
-            if arg.key is None and len(arg.derefs) == 1:
-                args.append(f'&{arg_name}Keep')
-
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.PYTUPLE:
-            args.append('&PyTuple_Type')
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.PYLIST:
-            args.append('&PyList_Type')
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.PYDICT:
-            args.append('&PyDict_Type')
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.PYSLICE:
-            args.append('&PySlice_Type')
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.PYTYPE:
-            args.append('&PyType_Type')
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.ENUM:
-            if arg.definition.fq_cpp_name is not None:
-                args.append(backend.get_type_ref(arg.definition))
-
-            args.append(arg_name_ref)
-
-        elif arg.type is ArgumentType.CAPSULE:
-            args.append('"' + arg.definition.as_cpp + '"')
-            args.append(arg_name_ref)
-
-        else:
-            if arg.array is not ArrayArgument.ARRAY_SIZE:
-                args.append(arg_name_ref)
-
-            if arg.array is ArrayArgument.ARRAY:
-                array_len_arg_name = fmt_argument_as_name(spec,
-                        py_signature.args[array_len_arg_nr], array_len_arg_nr)
-                args.append('&' + array_len_arg_name)
-
-    args = ', '.join(args)
-
-    sf.write(f'        if ({parser_function}({args}))\n')
-
-
-def _argument_variable(backend, sf, scope, arg, arg_nr):
+def g_argument_variable(backend, sf, scope, arg, arg_nr):
     """ Generate the definition of an argument variable and any supporting
     variables.
     """
@@ -1619,30 +1283,6 @@ def _gc_ellipsis(sf, signature):
         sf.write(f'\n            Py_DECREF(a{last});\n')
 
 
-def _get_subformat_char(arg):
-    """ Return the sub-format character for an argument. """
-
-    flags = 0
-
-    if arg.transfer is Transfer.TRANSFER:
-        flags |= 0x02
-
-    if arg.transfer is Transfer.TRANSFER_BACK:
-        flags |= 0x04
-
-    if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
-        if len(arg.derefs) == 0 or arg.disallow_none:
-            flags |= 0x01
-
-        if arg.transfer is Transfer.TRANSFER_THIS:
-            flags |= 0x10
-
-        if arg.is_constrained or (arg.type is ArgumentType.CLASS and arg.definition.convert_to_type_code is None):
-            flags |= 0x08
-
-    return chr(ord('0') + flags)
-
-
 def _handling_exceptions(bindings, throw_args):
     """ Return True if exceptions from a callable are being handled. """
 
@@ -1703,7 +1343,7 @@ f'''static int emit_{klass_name}_{overload.cpp_name}(void *sipCppV, PyObject *si
             # overloaded signal.
             sf.write('\n    {\n')
 
-            _arg_parser(backend, sf, klass, overload.py_signature,
+            backend.g_arg_parser(sf, klass, overload.py_signature,
                     signature_nr)
             signature_nr += 1
 
@@ -4306,11 +3946,11 @@ def g_function_body(backend, sf, bindings, scope, overload, signature_nr,
 
             py_signature_adjusted = True
 
-        _arg_parser(backend, sf, scope, py_signature, signature_nr,
+        backend.g_arg_parser(sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
 
     elif not is_int_arg_slot(py_slot) and not is_zero_arg_slot(py_slot):
-        _arg_parser(backend, sf, scope, py_signature, signature_nr,
+        backend.g_arg_parser(sf, scope, py_signature, signature_nr,
                 is_method=is_method, overload=overload)
 
     _function_call(backend, sf, bindings, scope, overload, dereferenced,
@@ -4615,13 +4255,13 @@ def _get_build_result_format(type):
         return 'b'
 
     if type.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING):
-        return 'A' if _is_string(type) else 'a'
+        return 'A' if is_string(type) else 'a'
 
     if type.type in (ArgumentType.SSTRING, ArgumentType.USTRING, ArgumentType.STRING):
-        return 's' if _is_string(type) else 'c'
+        return 's' if is_string(type) else 'c'
 
     if type.type is ArgumentType.WSTRING:
-        return 'x' if _is_string(type) else 'w'
+        return 'x' if is_string(type) else 'w'
 
     if type.type is ArgumentType.ENUM:
         return 'F' if type.definition.fq_cpp_name is not None else 'e'
@@ -4677,17 +4317,6 @@ def _get_build_result_format(type):
 
     # We should never get here.
     return ''
-
-
-def _is_string(type):
-    """ Check if a type is a string rather than a char type. """
-
-    nr_derefs = len(type.derefs)
-
-    if type.is_out and not type.is_reference:
-        nr_derefs -= 1
-
-    return nr_derefs > 0
 
 
 def _needs_heap_copy(arg, using_copy_ctor=True):
