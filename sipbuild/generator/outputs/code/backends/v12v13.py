@@ -9,16 +9,16 @@ from ....python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_zero_arg_slot)
 from ....scoped_name import STRIP_GLOBAL
 from ....specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        DocstringSignature, IfaceFileType, MappedType, PySlot, Transfer,
-        WrappedClass, WrappedEnum)
+        DocstringSignature, IfaceFileType, KwArgs, MappedType, PySlot,
+        Transfer, WrappedClass, WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type, fmt_argument_as_name
 
 from ..snippets import (g_argument_variable, g_ctor_type_hint, g_function_body,
-        g_keyword_list, g_module_docstring, g_overload_type_hint,
-        g_type_init_body, g_pyqt_class_plugin, g_pyqt_helper_defns,
-        g_pyqt_helper_init, g_static_function)
+        g_module_docstring, g_overload_type_hint, g_type_init_body,
+        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init,
+        g_static_function)
 from ..utils import (callable_overloads, get_class_flags, get_class_from_void,
         get_const_cast, get_docstring_text, get_encoded_type, get_enum_member,
         get_function_table, get_mapped_type_flags, get_method_table,
@@ -3477,7 +3477,7 @@ def _arg_parser_arguments(backend, sf, scope, ctor, overload, py_signature,
         args.append(sip_value)
 
     elif (overload is not None and overload.common.allow_keyword_args) or ctor is not None:
-        kwd_list = g_keyword_list(backend, sf, ctor, overload, py_signature)
+        kwd_list = _g_keyword_list(sf, ctor, overload, py_signature)
 
         parser_function = 'sipParseKwdArgs'
         args.append('sipParseErr' if ctor is not None else '&sipParseErr')
@@ -3599,6 +3599,50 @@ def _g_ctor_auto_docstring(sf, spec, bindings, klass, ctor):
 
     if bindings.docstrings:
         g_ctor_type_hint(sf, spec, bindings, klass, ctor)
+
+
+def _g_keyword_list(sf, ctor, overload, py_signature):
+    """ Generate the list of keywords for a signature.  Return an appropriate
+    reference to the list.
+    """
+
+    # We handle keywords if we might have been passed some (because one of the
+    # overloads uses them or we are a ctor).  However this particular signature
+    # might not have any.
+    if overload is not None:
+        kw_args = overload.kw_args
+    elif ctor is not None:
+        kw_args = ctor.kw_args
+    else:
+        kw_args = KwArgs.NONE
+
+    # The above test isn't good enough because when the flags were set in the
+    # parser we couldn't know for sure if an argument was an output pointer.
+    # Therefore we check here.  The drawback is that we may generate the name
+    # string for the argument but never use it, or we might have an empty
+    # keyword name array or one that contains only NULLs.
+    is_ka_list = False
+
+    if kw_args is not KwArgs.NONE:
+        for arg in py_signature.args:
+            if not arg.is_in:
+                continue
+
+            if not is_ka_list:
+                sf.write('        static const char *sipKwdList[] = {\n')
+                is_ka_list = True
+
+            if arg.name is not None and (kw_args is KwArgs.ALL or arg.default_value is not None):
+                arg_name_ref = _get_cached_name_ref(arg.name)
+            else:
+                arg_name_ref = 'SIP_NULLPTR'
+
+            sf.write(f'            {arg_name_ref},\n')
+
+        if is_ka_list:
+            sf.write('        };\n\n')
+
+    return 'sipKwdList' if is_ka_list else 'SIP_NULLPTR'
 
 
 def _g_method_auto_docstring(sf, spec, bindings, overload, is_method):

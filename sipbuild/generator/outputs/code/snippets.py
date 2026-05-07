@@ -11,7 +11,7 @@ from ...python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_ssize_return_slot, is_void_return_slot, is_zero_arg_slot)
 from ...scoped_name import STRIP_GLOBAL
 from ...specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, DocstringSignature, IfaceFileType, KwArgs, MappedType,
+        ArrayArgument, DocstringSignature, IfaceFileType, MappedType,
         PyQtMethodSpecifier, PySlot, QualifierType, Transfer, WrappedClass,
         WrappedEnum)
 from ...utils import py_as_int, same_signature
@@ -127,50 +127,6 @@ def g_iface_file_code(backend, sf, bindings, project, buildable, py_debug,
     for mapped_type in spec.mapped_types:
         if mapped_type.iface_file is iface_file:
             _mapped_type_cpp(backend, sf, bindings, mapped_type)
-
-
-def g_keyword_list(backend, sf, ctor, overload, py_signature):
-    """ Generate the list of keywords for a signature.  Return an appropriate
-    reference to the list.
-    """
-
-    # We handle keywords if we might have been passed some (because one of the
-    # overloads uses them or we are a ctor).  However this particular signature
-    # might not have any.
-    if overload is not None:
-        kw_args = overload.kw_args
-    elif ctor is not None:
-        kw_args = ctor.kw_args
-    else:
-        kw_args = KwArgs.NONE
-
-    # The above test isn't good enough because when the flags were set in the
-    # parser we couldn't know for sure if an argument was an output pointer.
-    # Therefore we check here.  The drawback is that we may generate the name
-    # string for the argument but never use it, or we might have an empty
-    # keyword name array or one that contains only NULLs.
-    is_ka_list = False
-
-    if kw_args is not KwArgs.NONE:
-        for arg in py_signature.args:
-            if not arg.is_in:
-                continue
-
-            if not is_ka_list:
-                sf.write('        static const char *sipKwdList[] = {\n')
-                is_ka_list = True
-
-            if arg.name is not None and (kw_args is KwArgs.ALL or arg.default_value is not None):
-                arg_name_ref = backend.cached_name_ref(arg.name)
-            else:
-                arg_name_ref = 'SIP_NULLPTR'
-
-            sf.write(f'            {arg_name_ref},\n')
-
-        if is_ka_list:
-            sf.write('        };\n\n')
-
-    return 'sipKwdList' if is_ka_list else 'SIP_NULLPTR'
 
 
 def g_module_code(backend, sf, bindings, project, py_debug, buildable):
@@ -710,7 +666,8 @@ def _arg_is_v13_typed_enum(spec, arg):
 
 def g_argument_variable(backend, sf, scope, arg, arg_nr):
     """ Generate the definition of an argument variable and any supporting
-    variables.
+    variables.  Return a list of the names of all the generated variables that
+    will be passed as parameters to the argument parser.
     """
 
     spec = backend.spec
@@ -718,6 +675,7 @@ def g_argument_variable(backend, sf, scope, arg, arg_nr):
     arg_name = fmt_argument_as_name(spec, arg, arg_nr)
     supporting_default_value = ' = 0' if arg.default_value is not None else ''
     nr_derefs = len(arg.derefs)
+    params = []
 
     if arg.is_in and arg.default_value is not None and arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and (nr_derefs == 0 or arg.is_reference):
         arg_cpp_type = fmt_argument_as_cpp_type(spec, arg,
@@ -766,6 +724,7 @@ def g_argument_variable(backend, sf, scope, arg, arg_nr):
             scope=scope_iface_file, use_typename=use_typename)
 
     sf.write(f'        {modified_arg_cpp_type} {arg_name}')
+    params.append(arg_name)
 
     # Restore the argument to its original state.
     arg.derefs = saved_derefs
@@ -793,31 +752,49 @@ def g_argument_variable(backend, sf, scope, arg, arg_nr):
     # Some types have supporting variables.
     if arg.is_in:
         if arg.get_wrapper:
-            sf.write(f'        PyObject *{arg_name}Wrapper{supporting_default_value};\n')
+            sup_name = arg_name + 'Wrapper'
+            sf.write(f'        PyObject *{sup_name}{supporting_default_value};\n')
+            params.append(sup_name)
         elif arg.key is not None:
-            sf.write(f'        PyObject *{arg_name}Keep{supporting_default_value};\n')
+            sup_name = arg_name + 'Keep'
+            sf.write(f'        PyObject *{sup_name}{supporting_default_value};\n')
+            params.append(sup_name)
 
         if arg.type is ArgumentType.CLASS:
             if arg.array is ArrayArgument.ARRAY and backend.abi_supports_array():
                 if backend.abi_supports_array():
-                    sf.write(f'        int {arg_name}IsTemp = 0;\n')
+                    sup_name = arg_name + 'IsTemp'
+                    sf.write(f'        int {sup_name} = 0;\n')
+                    params.append(sup_name)
             else:
                 if arg.definition.convert_to_type_code is not None and not arg.is_constrained:
-                    sf.write(f'        int {arg_name}State = 0;\n')
+                    sup_name = arg_name + 'State'
+                    sf.write(f'        int {sup_name} = 0;\n')
+                    params.append(sup_name)
 
                     if type_needs_user_state(arg):
-                        sf.write(f'        void *{arg_name}UserState = SIP_NULLPTR;\n')
+                        sup_name = arg_name + 'UserState'
+                        sf.write(f'        void *{sup_name} = SIP_NULLPTR;\n')
+                        params.append(sup_name)
 
         elif arg.type is ArgumentType.MAPPED:
             if not arg.definition.no_release and not arg.is_constrained:
-                sf.write(f'        int {arg_name}State = 0;\n')
+                sup_name = arg_name + 'State'
+                sf.write(f'        int {sup_name} = 0;\n')
+                params.append(sup_name)
 
                 if type_needs_user_state(arg):
-                    sf.write(f'        void *{arg_name}UserState = SIP_NULLPTR;\n')
+                    sup_name = arg_name + 'UserState'
+                    sf.write(f'        void *{sup_name} = SIP_NULLPTR;\n')
+                    params.append(sup_name)
 
         elif arg.type in (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING, ArgumentType.UTF8_STRING):
             if arg.key is None and nr_derefs == 1:
-                sf.write(f'        PyObject *{arg_name}Keep{supporting_default_value};\n')
+                sup_name = arg_name + 'Keep'
+                sf.write(f'        PyObject *{sup_name}{supporting_default_value};\n')
+                params.append(sup_name)
+
+    return params
 
 
 def _call_args(sf, spec, cpp_signature, py_signature):
