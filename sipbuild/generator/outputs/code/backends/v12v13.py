@@ -16,9 +16,8 @@ from ....utils import find_method
 from ...formatters import fmt_argument_as_cpp_type, fmt_argument_as_name
 
 from ..snippets import (g_argument_variable, g_ctor_type_hint, g_function_body,
-        g_module_docstring, g_overload_type_hint, g_type_init_body,
-        g_pyqt_class_plugin, g_pyqt_helper_defns, g_pyqt_helper_init,
-        g_static_function)
+        g_overload_type_hint, g_type_init_body, g_pyqt_class_plugin,
+        g_pyqt_helper_defns, g_pyqt_helper_init, g_static_function)
 from ..utils import (callable_overloads, get_class_flags, get_class_from_void,
         get_const_cast, get_docstring_text, get_encoded_type, get_enum_member,
         get_function_table, get_mapped_type_flags, get_method_table,
@@ -269,7 +268,11 @@ f'''    {exception_handler},
 }};
 ''')
 
-        g_module_docstring(sf, module)
+        if module.docstring is not None:
+            sf.write(
+f'''
+PyDoc_STRVAR(doc_mod_{module_name}, "{get_docstring_text(module.docstring)}");
+''')
 
         # Generate the storage for the external API pointers.
         sf.write(

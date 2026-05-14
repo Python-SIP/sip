@@ -435,16 +435,6 @@ static sipQtAPI qtAPI = {{
     )
 
 
-def g_module_docstring(sf, module):
-    """ Generate the definition of the module's optional docstring. """
-
-    if module.docstring is not None:
-        sf.write(
-f'''
-PyDoc_STRVAR(doc_mod_{module.py_name}, "{get_docstring_text(module.docstring)}");
-''')
-
-
 def g_module_header_file(backend, sf, bindings, py_debug, state):
     """ Generate the internal module API header. """
 
