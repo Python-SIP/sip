@@ -65,7 +65,12 @@ static void sip_import_component_module(PyObject *d, const char *name)
 }
 ''')
 
-    g_module_docstring(sf, module)
+    if module.docstring is not None:
+        sf.write(
+f'''
+PyDoc_STRVAR(doc_mod_{module.py_name}, "{get_docstring_text(module.docstring)}");
+''')
+
     backend.g_module_init_start(sf)
     backend.g_module_definition(sf)
 
