@@ -238,36 +238,8 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
     # Generate any sub-class convertors.
     nr_subclass_convertors = _subclass_convertors(sf, spec, module)
 
-    # Generate the external classes table if needed.
-    has_external = False
-
-    for klass in spec.classes:
-        if not klass.external:
-            continue
-
-        if klass.iface_file.module is not module:
-            continue
-
-        if not has_external:
-            sf.write(
-'''
-
-/* This defines each external type declared in this module, */
-static sipExternalTypeDef externalTypesTable[] = {
-''')
-
-            has_external = True
-
-        type_nr = klass.iface_file.type_nr
-        klass_py = klass.iface_file.fq_cpp_name.as_py
-
-        sf.write(f'    {{{type_nr}, "{klass_py}"}},\n')
-
-    if has_external:
-        sf.write(
-'''    {-1, SIP_NULLPTR}
-};
-''')
+    # Generate the external types.
+    has_external = backend.g_externals(sf)
 
     # Generate the wrapped enum specifications.
     enums_state = backend.g_enums_specifications(sf, bindings)
@@ -277,7 +249,7 @@ static sipExternalTypeDef externalTypesTable[] = {
 
     # Generate the types table.
     if len(module.needed_types) != 0:
-        _types_table(backend, sf, module, enums_state)
+        backend.g_types_table(sf, enums_state)
 
     # Generate the typedefs table.
     if module.nr_typedefs > 0:
@@ -970,7 +942,7 @@ def _class_api(backend, sf, klass):
 
     _enum_macros(backend, sf, scope=klass)
 
-    if not klass.external and not klass.is_hidden_namespace:
+    if not klass.is_hidden_namespace and not klass.external:
         backend.g_class_spec_extern_decl(sf, klass)
 
 
@@ -1500,46 +1472,6 @@ def _try(sf, bindings, throw_args):
 '''            try
             {
 ''')
-
-
-def _types_table(backend, sf, module, enums_state):
-    """ Generate the types table for a module. """
-
-    sf.write(
-f'''
-
-/*
- * This defines each type in this module.
- */
-{backend.get_types_table_decl(module)}[] = {{
-''')
-
-    # TODO Does this exclude types defined in another module?
-    for needed_type in module.needed_types:
-        if needed_type.type is ArgumentType.CLASS:
-            klass = needed_type.definition
-
-            if klass.external:
-                sf.write('    0,\n')
-            elif not klass.is_hidden_namespace:
-                sf.write(f'    &{backend.get_spec_for_class(klass)},\n')
-
-        elif needed_type.type is ArgumentType.MAPPED:
-            mapped_type = needed_type.definition
-
-            sf.write(f'    &{backend.get_spec_for_mapped_type(mapped_type)},\n')
-
-        elif needed_type.type is ArgumentType.ENUM:
-            enum = needed_type.definition
-
-            sf.write(f'    &{backend.get_spec_for_enum(enum, enums_state)},\n')
-
-        elif needed_type.type is ArgumentType.EXCEPTION:
-            exception = needed_type.definition
-
-            sf.write(f'    &{backend.get_spec_for_exception(exception)},\n')
-
-    sf.write('};\n')
 
 
 def _subclass_convertors(sf, spec, module):

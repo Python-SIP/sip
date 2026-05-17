@@ -419,6 +419,46 @@ f'''
 PyObject *sipExportedExceptions_{module.py_name}[{module.nr_exceptions + 1}];
 ''')
 
+    def g_externals(self, sf):
+        """ Generate the external types.  Return True if something was
+        generated.
+        """
+
+        spec = self.spec
+        module = spec.module
+
+        has_external = False
+
+        for klass in spec.classes:
+            if not klass.external:
+                continue
+
+            if klass.iface_file.module is not module:
+                continue
+
+            if not has_external:
+                sf.write(
+'''
+
+/* This defines each external type declared in this module, */
+static sipExternalTypeDef externalTypesTable[] = {
+''')
+
+                has_external = True
+
+            type_nr = klass.iface_file.type_nr
+            klass_py = klass.iface_file.fq_cpp_name.as_py
+
+            sf.write(f'    {{{type_nr}, "{klass_py}"}},\n')
+
+        if has_external:
+            sf.write(
+'''    {-1, SIP_NULLPTR}
+};
+''')
+
+        return has_external
+
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
         virtual.
@@ -1644,6 +1684,45 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         sf.write('}\n')
 
+    def g_types_table(self, sf, enums_state):
+        """ Generate the types table for a module. """
+
+        module = self.spec.module
+        module_name = module.py_name
+
+        sf.write(
+f'''
+
+/*
+ * This defines each type in this module.
+ */
+sipTypeDef *sipExportedTypes_{module_name}[] = {{
+''')
+
+        for needed_type in module.needed_types:
+            if needed_type.type is ArgumentType.CLASS:
+                klass = needed_type.definition
+
+                if klass.external:
+                    sf.write('    0,\n')
+                elif not klass.is_hidden_namespace:
+                    sf.write(f'    &sipTypeDef_{module_name}_{klass.iface_file.fq_cpp_name.as_word}.ctd_base,\n')
+
+            elif needed_type.type is ArgumentType.MAPPED:
+                mapped_type = needed_type.definition
+
+                sf.write(f'    &sipTypeDef_{module_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base, \n')
+
+            elif needed_type.type is ArgumentType.ENUM:
+                enum = needed_type.definition
+
+                _, needed_enums = enums_state
+                enum_nr = needed_enums.index(enum)
+
+                sf.write(f'    &enumTypes[{enum_nr}].etd_base,\n')
+
+        sf.write('};\n')
+
     @staticmethod
     def g_wrapper_ref_decl(sf):
         """ Generate the code that declares a wrapper reference. """
@@ -1752,24 +1831,6 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
 
         return _get_slot_ref(slot_type)
 
-    def get_spec_for_class(self, klass):
-        """ Return the name of the data structure specifying a class. """
-
-        return f'sipTypeDef_{self.spec.module.py_name}_{klass.iface_file.fq_cpp_name.as_word}.ctd_base'
-
-    def get_spec_for_mapped_type(self, mapped_type):
-        """ Return the name of the data structure specifying a mapped type. """
-
-        return f'sipTypeDef_{self.spec.module.py_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base'
-
-    def get_spec_for_enum(self, enum, enums_state):
-        """ Return the name of the data structure specifying an enum. """
-
-        _, needed_enums = enums_state
-        enum_nr = needed_enums.index(enum)
-
-        return f'enumTypes[{enum_nr}].etd_base'
-
     @staticmethod
     def get_spec_suffix():
         """ Return the suffix used for immutable specifications. """
@@ -1781,12 +1842,6 @@ f'''static void *init_type_{klass_name}(sipSimpleWrapper *{sip_self}, PyObject *
         """ Return the reference to the type of a wrapped object. """
 
         return _get_type_ref(wrapped_object)
-
-    @staticmethod
-    def get_types_table_decl(module):
-        """ Return the declaration of a module's wrapped types table. """
-
-        return f'sipTypeDef *sipExportedTypes_{module.py_name}'
 
     @staticmethod
     def get_wrapper_type():

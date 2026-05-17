@@ -9,6 +9,11 @@ import pytest
 cfg_package = 'imports'
 
 
+def test_external_classes(package):
+    # Note that this only verifies that the generated code compiles but not
+    # that is actually works.
+    assert package.core_module.get_external() is None
+
 def test_superclasses(package):
     assert issubclass(package.extras_module.Subclass,
             package.core_module.BaseClass)

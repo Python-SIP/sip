@@ -14,6 +14,12 @@ class Subclass : public BaseClass
 public:
     Subclass() {}
 };
+
+class ExternalClass
+{
+public:
+    ExternalClass() {}
+};
 %End
 
 
@@ -21,4 +27,10 @@ class Subclass : public BaseClass
 {
 public:
     Subclass();
+};
+
+class ExternalClass
+{
+public:
+    ExternalClass();
 };

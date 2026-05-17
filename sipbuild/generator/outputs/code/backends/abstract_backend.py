@@ -117,6 +117,14 @@ class AbstractBackend(ABC):
         pass
 
     @abstractmethod
+    def g_externals(self, sf):
+        """ Generate the external types.  Return an ABI-specific object which
+        will be passed back to the backend at some point.
+        """
+
+        ...
+
+    @abstractmethod
     def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
         virtual.
@@ -281,6 +289,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_types_table(self, sf, enums_state):
+        """ Generate the types table for a module. """
+
+        ...
+
+    @abstractmethod
     def g_wrapper_ref_decl(self, sf):
         """ Generate the code that declares a wrapper reference. """
 
@@ -392,30 +406,6 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_spec_for_class(self, klass):
-        """ Return the name of the data structure specifying a class. """
-
-        ...
-
-    @abstractmethod
-    def get_spec_for_enum(self, enum, enums_closure):
-        """ Return the name of the data structure specifying an enum. """
-
-        ...
-
-    def get_spec_for_exception(self, exception):
-        """ Return the name of the data structure specifying an exception. """
-
-        # This default implementation does nothing.
-        pass
-
-    @abstractmethod
-    def get_spec_for_mapped_type(self, mapped_type):
-        """ Return the name of the data structure specifying a mapped type. """
-
-        ...
-
-    @abstractmethod
     def get_spec_suffix(self):
         """ Return the suffix used for immutable specifications. """
 
@@ -424,12 +414,6 @@ class AbstractBackend(ABC):
     @abstractmethod
     def get_type_ref(self, wrapped_object):
         """ Return the reference to the type of a wrapped object. """
-
-        ...
-
-    @abstractmethod
-    def get_types_table_decl(self, module):
-        """ Return the declaration of a module's wrapped types table. """
 
         ...
 
