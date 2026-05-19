@@ -1151,7 +1151,7 @@ def _delete_temporaries(backend, sf, py_signature):
                 if arg.type is ArgumentType.MAPPED and arg.definition.no_release:
                     continue
 
-                sf.write(f'            sipReleaseType{get_user_state_suffix(spec, arg)}({backend.get_module_context()}')
+                sf.write(f'            sipReleaseType{get_user_state_suffix(spec, arg)}(')
 
                 if spec.c_bindings or not arg.is_const:
                     sf.write(arg_name)
@@ -2964,14 +2964,12 @@ f'''
             nr_values += 1
 
     # Call the method.
-    context = backend.get_module_context()
-
     if nr_values == 0:
         sf.write(
-f'    sipCallProcedureMethod({context}sipGILState, sipErrorHandler, sipPySelf, sipMethod, ')
+f'    sipCallProcedureMethod(sipGILState, sipErrorHandler, sipPySelf, sipMethod, ')
     else:
         sf.write(
-f'    PyObject *sipResObj = sipCallMethod({context}SIP_NULLPTR, sipMethod, ')
+f'    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ')
 
     sf.write(_tuple_builder(backend, handler.py_signature))
 
@@ -3031,7 +3029,7 @@ f'    PyObject *sipResObj = sipCallMethod({context}SIP_NULLPTR, sipMethod, ')
 
     sf.write(f''');
 
-    {return_code}{backend.get_result_parser()}({backend.get_module_context()}{params});
+    {return_code}{backend.get_result_parser()}({params});
 ''')
 
     if result_is_returned:
@@ -3867,7 +3865,6 @@ f'''            Py_INCREF(Py_None);
             result_owner = 'SIP_NULLPTR'
 
         sip_res = get_const_cast(spec, result, 'sipRes')
-        context = backend.get_module_context()
 
         # Note that this used to test for /Factory/ as well but such a method
         # can still return a previously wrapped instance if ends up calling a
@@ -3878,7 +3875,7 @@ f'''            Py_INCREF(Py_None);
             this_action = action if nr_return_values == 1 else 'PyObject *sipResObj ='
             owner = '(PyObject *)sipOwner' if has_owner and overload.factory else result_owner
 
-            sf.write(f'            {this_action} sipConvertFromNewType({context}{sip_res}, {result_type_ref}, {owner});\n')
+            sf.write(f'            {this_action} sipConvertFromNewType({sip_res}, {result_type_ref}, {owner});\n')
 
             # Shortcut if this is the only value returned.
             if nr_return_values == 1:
@@ -3889,7 +3886,7 @@ f'''            Py_INCREF(Py_None);
             this_action = 'PyObject *sipResObj =' if nr_return_values > 1 or need_xfer else action
             owner = 'SIP_NULLPTR' if need_xfer else result_owner
 
-            sf.write(f'            {this_action} sipConvertFromType({context}{sip_res}, {result_type_ref}, {owner});\n')
+            sf.write(f'            {this_action} sipConvertFromType({sip_res}, {result_type_ref}, {owner});\n')
 
             # Transferring the result of a static overload needs an explicit
             # call to sipTransferTo().
@@ -3905,12 +3902,7 @@ f'''            Py_INCREF(Py_None);
 
     # If there are multiple values then build a tuple.
     if nr_return_values > 1:
-        build_result_args = []
-
-        if spec.target_abi >= (14, 0):
-            build_result_args.append('sipMS')
-
-        build_result_args.append('0')
+        build_result_args = ['0']
 
         # Build the format string.
         format_s = ''

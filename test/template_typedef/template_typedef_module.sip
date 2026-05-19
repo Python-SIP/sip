@@ -7,9 +7,9 @@
 %ExportedHeaderCode
 // The need for this, ie. to resolve the type as a typedef, is a SIP bug.
 #if SIP_ABI_MAJOR_VERSION >= 14
-#define getSipType(mod, name)   sipFindTypeID(mod, sipResolveTypedef(mod, name))
+#define getSipType(name)    sipFindType(sipResolveTypedef(name))
 #else
-#define getSipType(name)        (sipResolveTypedef(name) ? sipFindType(sipResolveTypedef(name)) : sipFindType(name))
+#define getSipType(name)    (sipResolveTypedef(name) ? sipFindType(sipResolveTypedef(name)) : sipFindType(name))
 #endif
 %End
 
@@ -21,19 +21,11 @@ template<TYPE>
 %End
 
 %ConvertFromTypeCode
-#if SIP_ABI_MAJOR_VERSION >= 14
-    //sipTypeID kp_type_id = sipFindTypeID(sipMS, "TYPE");
-    sipTypeID kp_type_id = getSipType(sipMS, "TYPE");
+    //sipTypeID kp_type_id = sipFindType("TYPE");
+    sipTypeID kp_type_id = getSipType("TYPE");
 
-    if (!kp_type_id)
+    if (kp_type_id == sipType_Invalid)
         return NULL;
-#else
-    //const sipTypeDef *kpTypeDef = sipFindType("TYPE");
-    const sipTypeDef *kpTypeDef = getSipType("TYPE");
-
-    if (!kpTypeDef)
-        return NULL;
-#endif
 
     // Create the Python list of the correct length.
     PyObject *l;
@@ -47,12 +39,8 @@ template<TYPE>
     for (size_t i = 0; i < sipCpp->size(); ++i) {
         TYPE *cpp = new TYPE(sipCpp->at(i));
 
-#if SIP_ABI_MAJOR_VERSION >= 14
-        PyObject *pobj = sipConvertFromNewType(sipMS, cpp, kp_type_id,
+        PyObject *pobj = sipConvertFromNewType(cpp, kp_type_id,
                 sipTransferObj);
-#else
-        PyObject *pobj = sipConvertFromNewType(cpp, kpTypeDef, sipTransferObj);
-#endif
 
         if (pobj == NULL) {
             // There was an error so garbage collect the Python list.
@@ -69,19 +57,11 @@ template<TYPE>
 %End
 
 %ConvertToTypeCode
-#if SIP_ABI_MAJOR_VERSION >= 14
-    //sipTypeID kp_type_id = sipFindTypeID(sipMS, "TYPE");
-    sipTypeID kp_type_id = getSipType(sipMS, "TYPE");
+    //sipTypeID kp_type_id = sipFindType("TYPE");
+    sipTypeID kp_type_id = getSipType("TYPE");
 
-    if (!kp_type_id)
+    if (kp_type_id == sipType_Invalid)
         return 0;
-#else
-    //const sipTypeDef *kpTypeDef = sipFindType("TYPE");
-    const sipTypeDef *kpTypeDef = getSipType("TYPE");
-
-    if (!kpTypeDef)
-        return 0;
-#endif
 
     // Check if type is compatible
     if (sipIsErr == NULL) {
@@ -95,33 +75,19 @@ template<TYPE>
     for (Py_ssize_t i = 0; i < PyList_GET_SIZE(sipPy); ++i) {
         int state;
 
-#if SIP_ABI_MAJOR_VERSION >= 14
-        TYPE *p = static_cast<TYPE *>(sipConvertToType(sipMS,
+        TYPE *p = static_cast<TYPE *>(sipConvertToType(
                 PyList_GET_ITEM(sipPy, i), kp_type_id, sipTransferObj,
                 SIP_NOT_NONE, &state, sipIsErr));
-#else
-        TYPE *p = static_cast<TYPE *>(sipConvertToType(
-                PyList_GET_ITEM(sipPy, i), kpTypeDef, sipTransferObj,
-                SIP_NOT_NONE, &state, sipIsErr));
-#endif
 
         if (*sipIsErr) {
-#if SIP_ABI_MAJOR_VERSION >= 14
-            sipReleaseType(sipMS, p, kp_type_id, state);
-#else
-            sipReleaseType(p, kpTypeDef, state);
-#endif
+            sipReleaseType(p, kp_type_id, state);
             delete v;
             return 0;
         }
 
         v->push_back(*p);
 
-#if SIP_ABI_MAJOR_VERSION >= 14
-        sipReleaseType(sipMS, p, kp_type_id, state);
-#else
-        sipReleaseType(p, kpTypeDef, state);
-#endif
+        sipReleaseType(p, kp_type_id, state);
     }
 
     *sipCppPtr = v;

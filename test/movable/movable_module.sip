@@ -15,52 +15,23 @@ template <TYPE>
 %ConvertFromTypeCode
     /* This must result in ownership being with Python. */
 
-#if SIP_ABI_MAJOR_VERSION >= 14
-    sipTypeID type_id = sipFindTypeID(sipMS, "TYPE*");
-
-    return sipConvertFromType(sipMS, sipCpp->release(), type_id, Py_None);
-#else
-    const sipTypeDef *td = sipFindType("TYPE*");
-
-    return sipConvertFromType(sipCpp->release(), td, Py_None);
-#endif
+    return sipConvertFromType(sipCpp->release(), sipFindType("TYPE*"),
+            Py_None);
 %End
 
 %ConvertToTypeCode
     /* This must result in ownership being with C++. */
 
-#if SIP_ABI_MAJOR_VERSION >= 14
-    sipTypeID type_id = sipFindTypeID(sipMS, "TYPE");
+    sipTypeID type_id = sipFindType("TYPE");
 
     if (sipIsErr == NULL)
-        return sipCanConvertToType(sipMS, sipPy, type_id, 0);
+        return sipCanConvertToType(sipPy, type_id, 0);
 
     if (sipPy == Py_None)
         return 1;
 
     /* Get the C++ pointer with no convertors or ownership changes. */
-    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipMS, sipPy, type_id, NULL, SIP_NO_CONVERTORS, NULL, sipIsErr));
-
-    if (*sipIsErr)
-        return 0;
-
-    /* Give ownership to C++ but don't lose the Python object. */
-    sipTransferTo(sipMS, sipPy, Py_None);
-
-    *sipCppPtr = new std::unique_ptr<TYPE>(t);
-
-    return 0;
-#else
-    const sipTypeDef *td = sipFindType("TYPE");
-
-    if (sipIsErr == NULL)
-        return sipCanConvertToType(sipPy, td, 0);
-
-    if (sipPy == Py_None)
-        return 1;
-
-    /* Get the C++ pointer with no convertors or ownership changes. */
-    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipPy, td, NULL, SIP_NO_CONVERTORS, NULL, sipIsErr));
+    TYPE *t = reinterpret_cast<TYPE *>(sipConvertToType(sipPy, type_id, NULL, SIP_NO_CONVERTORS, NULL, sipIsErr));
 
     if (*sipIsErr)
         return 0;
@@ -71,7 +42,6 @@ template <TYPE>
     *sipCppPtr = new std::unique_ptr<TYPE>(t);
 
     return 0;
-#endif
 %End
 };
 

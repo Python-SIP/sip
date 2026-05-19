@@ -200,6 +200,13 @@ typedef struct _sipWrapper sipWrapper;
 
 
 /*
+ * The following make it easier to write code that supports ABI v14.
+ */
+#define sipType_Invalid NULL
+typedef const sipTypeDef *sipTypeID;
+
+
+/*
  * The different events a handler can be registered for.
  */
 typedef enum

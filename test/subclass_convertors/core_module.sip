@@ -27,17 +27,10 @@ public:
     void init_instance();
 
 %ConvertToSubClassCode
-#if SIP_ABI_MAJOR_VERSION >= 14
-    if (sipCpp->get_type() == 1)
-        sipType = sipTypeID_Subclass1;
-    else
-        sipType = sipTypeID_Invalid;
-#else
     if (sipCpp->get_type() == 1)
         sipType = sipType_Subclass1;
     else
-        sipType = NULL;
-#endif
+        sipType = sipType_Invalid;
 %End
 };
 

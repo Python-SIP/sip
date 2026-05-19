@@ -25,16 +25,9 @@ public:
     Subclass2();
 
 %ConvertToSubClassCode
-#if SIP_ABI_MAJOR_VERSION >= 14
-    if (sipCpp->get_type() == 2)
-        sipType = sipTypeID_Subclass2;
-    else
-        sipType = sipTypeID_Invalid;
-#else
     if (sipCpp->get_type() == 2)
         sipType = sipType_Subclass2;
     else
-        sipType = NULL;
-#endif
+        sipType = sipType_Invalid;
 %End
 };
