@@ -236,7 +236,7 @@ void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}
     _access_functions(spec, sf)
 
     # Generate any sub-class convertors.
-    nr_subclass_convertors = _subclass_convertors(sf, spec, module)
+    nr_subclass_convertors = _subclass_convertors(backend, sf)
 
     # Generate the external types.
     has_external = backend.g_externals(sf)
@@ -319,29 +319,7 @@ static sipVirtErrorHandlerDef virtErrorHandlersTable[] = {
 
     # Generate the table of sub-class convertors
     if nr_subclass_convertors > 0:
-        sf.write(
-'''
-
-/* This defines the class sub-convertors that this module defines. */
-static sipSubClassConvertorDef convertorsTable[] = {
-''')
-
-        for klass in spec.classes:
-            if klass.iface_file.module is not module:
-                continue
-
-            if klass.convert_to_subclass_code is None:
-                continue
-
-            klass_name = klass.iface_file.fq_cpp_name.as_word
-            encoded_type = get_encoded_type(module, klass.subclass_base)
-
-            sf.write(f'    {{sipSubClass_{klass_name}, {encoded_type}, SIP_NULLPTR}},\n')
-
-        sf.write(
-'''    {SIP_NULLPTR, {0, 0, 0}, SIP_NULLPTR}
-};
-''')
+        backend.g_subclass_convertors_table(sf)
 
     # Generate any license information.
     if module.license is not None:
@@ -1474,10 +1452,13 @@ def _try(sf, bindings, throw_args):
 ''')
 
 
-def _subclass_convertors(sf, spec, module):
+def _subclass_convertors(backend, sf):
     """ Generate all the sub-class convertors for a module and return the
     number of them.
     """
+
+    spec = backend.spec
+    module = spec.module
 
     nr_subclass_convertors = 0
 
@@ -1494,36 +1475,7 @@ def _subclass_convertors(sf, spec, module):
 /* Convert to a sub-class if possible. */
 ''')
 
-        klass_name = klass.iface_file.fq_cpp_name.as_word
-        base_cpp = klass.subclass_base.iface_file.fq_cpp_name.as_cpp
-
-        if not spec.c_bindings:
-            sf.write(
-f'extern "C" {{static const sipTypeDef *sipSubClass_{klass_name}(void **);}}\n')
-
-        # Allow the deprecated use of sipClass rather than sipType.
-        if is_used_in_code(klass.convert_to_subclass_code, 'sipClass'):
-            decl = 'sipWrapperType *sipClass'
-            result = '(sipClass ? sipClass->wt_td : 0)'
-        else:
-            decl = 'const sipTypeDef *sipType'
-            result = 'sipType'
-
-        sf.write(
-f'''static const sipTypeDef *sipSubClass_{klass_name}(void **sipCppRet)
-{{
-    {base_cpp} *sipCpp = reinterpret_cast<{base_cpp} *>(*sipCppRet);
-    {decl};
-
-''')
-
-        sf.write_code(klass.convert_to_subclass_code)
-
-        sf.write(
-f'''
-    return {result};
-}}
-''')
+        backend.g_subclass_convertor(sf, klass)
 
         nr_subclass_convertors += 1
 

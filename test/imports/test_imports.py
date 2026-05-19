@@ -11,7 +11,7 @@ cfg_package = 'imports'
 
 def test_external_classes(package):
     # Note that this only verifies that the generated code compiles but not
-    # that is actually works.
+    # that it actually works.
     assert package.core_module.get_external() is None
 
 def test_superclasses(package):

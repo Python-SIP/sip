@@ -1348,6 +1348,70 @@ f'    {{(void *)slot_{member.py_name}, {slot_ref}, {{0, 0, 0}}}},\n')
 
         return inst_state
 
+    def g_subclass_convertor(self, sf, klass):
+        """ Generate a sub-class convertor. """
+
+        klass_name = klass.iface_file.fq_cpp_name.as_word
+        base_cpp = klass.subclass_base.iface_file.fq_cpp_name.as_cpp
+
+        if not self.spec.c_bindings:
+            sf.write(
+f'extern "C" {{static const sipTypeDef *sipSubClass_{klass_name}(void **);}}\n')
+
+        # Allow the deprecated use of sipClass rather than sipType.
+        if is_used_in_code(klass.convert_to_subclass_code, 'sipClass'):
+            decl = 'sipWrapperType *sipClass'
+            result = '(sipClass ? sipClass->wt_td : 0)'
+        else:
+            decl = 'const sipTypeDef *sipType'
+            result = 'sipType'
+
+        sf.write(
+f'''static const sipTypeDef *sipSubClass_{klass_name}(void **sipCppRet)
+{{
+    {base_cpp} *sipCpp = reinterpret_cast<{base_cpp} *>(*sipCppRet);
+    {decl};
+
+''')
+
+        sf.write_code(klass.convert_to_subclass_code)
+
+        sf.write(
+f'''
+    return {result};
+}}
+''')
+
+    def g_subclass_convertors_table(self, sf):
+        """ Generate the table of sub-class convertors. """
+
+        spec = self.spec
+        module = spec.module
+
+        sf.write(
+'''
+
+/* This defines the class sub-convertors that this module defines. */
+static sipSubClassConvertorDef convertorsTable[] = {
+''')
+
+        for klass in spec.classes:
+            if klass.iface_file.module is not module:
+                continue
+
+            if klass.convert_to_subclass_code is None:
+                continue
+
+            klass_name = klass.iface_file.fq_cpp_name.as_word
+            encoded_type = get_encoded_type(module, klass.subclass_base)
+
+            sf.write(f'    {{sipSubClass_{klass_name}, {encoded_type}, SIP_NULLPTR}},\n')
+
+        sf.write(
+'''    {SIP_NULLPTR, {0, 0, 0}, SIP_NULLPTR}
+};
+''')
+
     def g_type_definition(self, sf, bindings, klass, py_debug):
         """ Generate the type structure that contains all the information
         needed by the meta-type.  A sub-set of this is used to extend

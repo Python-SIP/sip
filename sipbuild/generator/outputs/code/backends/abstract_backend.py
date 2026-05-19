@@ -273,6 +273,20 @@ class AbstractBackend(ABC):
         set of strings corresponding to the tables actually generated.
         """
 
+        ...
+
+    @abstractmethod
+    def g_subclass_convertor(self, sf, klass):
+        """ Generate a sub-class convertor. """
+
+        ...
+
+    @abstractmethod
+    def g_subclass_convertors_table(self, sf):
+        """ Generate the table of sub-class convertors. """
+
+        ...
+
     @abstractmethod
     def g_type_definition(self, sf, bindings, klass, py_debug):
         """ Generate the type structure that contains all the information
