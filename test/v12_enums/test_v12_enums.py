@@ -3,9 +3,10 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from enum import Enum
-
 import pytest
+
+from enum import Enum
+import pickle
 
 
 cfg_enabled_for = [12, 14]
@@ -110,6 +111,20 @@ def test_named_overload_set(module, members_valid):
     members_valid.named_overload_set(
             module.EnumClass.ClassNamedEnum.ClassNamedMember)
     assert members_valid.named_overload
+
+def test_pickle(module):
+    d = pickle.dumps(module.NamedEnum.NamedMember)
+    l = pickle.loads(d)
+
+    assert isinstance(l, module.NamedEnum)
+    assert l == module.NamedEnum.NamedMember
+
+def test_class_pickle(module):
+    d = pickle.dumps(module.EnumClass.ClassNamedEnum.ClassNamedMember)
+    l = pickle.loads(d)
+
+    assert isinstance(l, module.EnumClass.ClassNamedEnum)
+    assert l == module.EnumClass.ClassNamedEnum.ClassNamedMember
 
 
 # The following test scoped enums.
