@@ -1,8 +1,15 @@
 # `sip` Module v13 History
 
 
-## v13.11.1
+## v13.12.0
 
+- Added support for Python v3.15.
+- The format use to pickle wrapped types has changed so that it is more robust
+  and faster.  The legacy format can still be read and will be converted to the
+  new format when written.  Older versions of the sip module can already read
+  the new format.
+- Added definitions of `sipTypeID` and `sipType_Invalid` to aid porting to ABI
+  v14.
 - Fixed a bug with operators that take an enum as their first argument.
 
 

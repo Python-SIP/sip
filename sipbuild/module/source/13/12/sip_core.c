@@ -664,7 +664,6 @@ static PyObject **unused_backdoor = NULL;   /* For passing dict of unused argume
 
 static PyObject *init_name = NULL;      /* '__init__'. */
 static PyObject *empty_tuple;           /* The empty tuple. */
-static PyObject *type_unpickler;        /* The type unpickler function. */
 static sipSymbol *sipSymbolList = NULL; /* The list of published symbols. */
 static sipAttrGetter *sipAttrGetters = NULL;  /* The list of attribute getters. */
 static sipProxyResolver *proxyResolvers = NULL; /* The list of proxy resolvers. */
@@ -844,7 +843,6 @@ static int user_state_is_valid(const sipTypeDef *td, void **user_statep);
 const sipAPIDef *sip_init_library(PyObject *mod_dict)
 {
     static PyMethodDef methods[] = {
-        /* The type unpickler must be first. */
         {"_unpickle_type", unpickle_type, METH_VARARGS, NULL},
         {"assign", assign, METH_VARARGS, NULL},
         {"cast", cast, METH_VARARGS, NULL},
@@ -899,12 +897,6 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict)
 
         if (sip_dict_set_and_discard(mod_dict, md->ml_name, meth) < 0)
             return NULL;
-
-        if (md == &methods[0])
-        {
-            Py_INCREF(meth);
-            type_unpickler = meth;
-        }
     }
 
     /* Initialise the types. */
@@ -5849,7 +5841,7 @@ static sipExportedModuleDef *getModule(PyObject *mname_obj)
 
 
 /*
- * The type unpickler.
+ * The legacy type unpickler.
  */
 static PyObject *unpickle_type(PyObject *obj, PyObject *args)
 {
@@ -5931,8 +5923,7 @@ static PyObject *pickle_type(PyObject *obj, PyObject *args)
                         return NULL;
                     }
 
-                    return Py_BuildValue("O(OsN)", type_unpickler,
-                            em->em_nameobj, pyname, init_args);
+                    return Py_BuildValue("ON", Py_TYPE(obj), init_args);
                 }
         }
     }
@@ -8432,7 +8423,6 @@ static void *findSlot(PyObject *self, sipPySlotType st)
     PyTypeObject *py_type = Py_TYPE(self);
 
     /* See if it is a wrapper. */
-    /* TODO: will this always be TRUE? */
     if (PyObject_TypeCheck((PyObject *)py_type, &sipWrapperType_Type))
     {
         const sipClassTypeDef *ctd;
@@ -8440,6 +8430,19 @@ static void *findSlot(PyObject *self, sipPySlotType st)
         ctd = (sipClassTypeDef *)((sipWrapperType *)(py_type))->wt_td;
 
         slot = findSlotInClass(ctd, st);
+    }
+    else
+    {
+        sipEnumTypeDef *etd;
+
+        /* If it is not a wrapper then it must be an enum. */
+        etd = (sipEnumTypeDef *)sip_enum_get_generated_type(
+                (PyObject *)py_type);
+
+        assert(etd != NULL);
+        assert(etd->etd_pyslots != NULL);
+
+        slot = findSlotInSlotList(etd->etd_pyslots, st);
     }
 
     return slot;

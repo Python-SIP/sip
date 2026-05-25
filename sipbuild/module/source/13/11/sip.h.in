@@ -39,7 +39,7 @@ extern "C" {
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       13
 #define SIP_ABI_MINOR_VERSION       11
-#define SIP_MODULE_PATCH_VERSION    1
+#define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
@@ -197,13 +197,6 @@ typedef struct _sipWrapperType sipWrapperType;
 
 struct _sipWrapper;
 typedef struct _sipWrapper sipWrapper;
-
-
-/*
- * The following make it easier to write code that supports ABI v14.
- */
-#define sipType_Invalid NULL
-typedef const sipTypeDef *sipTypeID;
 
 
 /*

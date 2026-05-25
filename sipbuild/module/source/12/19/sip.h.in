@@ -3,7 +3,7 @@
 /*
  * The SIP module interface.
  *
- * Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+ * Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
  */
 
 
@@ -38,12 +38,21 @@ extern "C" {
 
 /* The version of the ABI. */
 #define SIP_ABI_MAJOR_VERSION       12
-#define SIP_ABI_MINOR_VERSION       18
+#define SIP_ABI_MINOR_VERSION       19
 #define SIP_MODULE_PATCH_VERSION    0
 
 
 /*
  * The change history of the ABI.
+ *
+ * v12.19
+ *  - Added support for Python v3.15.
+ *  - The format use to pickle wrapped types has changed so that it is more
+ *    robust and faster.  The legacy format can still be read and will be
+ *    converted to the new format when written.  Older versions of the sip
+ *    module can already read the new format.
+ *  - Added definitions of sipTypeID and sipType_Invalid to aid porting to ABI
+ *    v14.
  *
  * v12.18
  *  - Added support for Python v3.14.
@@ -222,6 +231,13 @@ typedef struct _sipWrapperType sipWrapperType;
 
 struct _sipWrapper;
 typedef struct _sipWrapper sipWrapper;
+
+
+/*
+ * The following make it easier to write code that supports ABI v14.
+ */
+#define sipType_Invalid NULL
+typedef const sipTypeDef *sipTypeID;
 
 
 /*

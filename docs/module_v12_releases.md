@@ -1,6 +1,17 @@
 # `sip` Module v12 History
 
 
+## v12.19.0
+
+- Added support for Python v3.15.
+- The format use to pickle wrapped types has changed so that it is more robust
+  and faster.  The legacy format can still be read and will be converted to the
+  new format when written.  Older versions of the sip module can already read
+  the new format.
+- Added definitions of `sipTypeID` and `sipType_Invalid` to aid porting to ABI
+  v14.
+
+
 ## v12.18.0
 
 - Added support for Python v3.14.

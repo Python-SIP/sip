@@ -1939,6 +1939,12 @@ being pickled.
 Both named and unnamed enums can be pickled automatically without providing any
 handwritten code.
 
+.. note::
+    When using ABI v12.18 (and earlier) or ABI v13.11 (and earlier) a different
+    (legacy) pickle format was used.  The legacy format could be unreliable in
+    certain cases.  The legacy format can still be read but the new format will
+    be used if they are rewritten.  All ABI versions can read the new format.
+
 
 .. directive:: %Platforms
 

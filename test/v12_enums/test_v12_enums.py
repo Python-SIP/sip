@@ -119,12 +119,39 @@ def test_pickle(module):
     assert isinstance(l, module.NamedEnum)
     assert l == module.NamedEnum.NamedMember
 
+V14_PICKLE = b'\x80\x05\x95X\x00\x00\x00\x00\x00\x00\x00\x8c\x07copyreg\x94\x8c\x0e_reconstructor\x94\x93\x94\x8c\x10v12_enums_module\x94\x8c\tNamedEnum\x94\x93\x94\x8c\x08builtins\x94\x8c\x03int\x94\x93\x94K\x14\x87\x94R\x94.'
+
+def test_pickle_compatibility(module, abi_version):
+    if abi_version >= 14:
+        d = pickle.dumps(module.NamedEnum.NamedMember)
+        assert d == V14_PICKLE
+    else:
+        l = pickle.loads(V14_PICKLE)
+        assert isinstance(l, module.NamedEnum)
+        assert l == module.NamedEnum.NamedMember
+
 def test_class_pickle(module):
     d = pickle.dumps(module.EnumClass.ClassNamedEnum.ClassNamedMember)
     l = pickle.loads(d)
 
     assert isinstance(l, module.EnumClass.ClassNamedEnum)
     assert l == module.EnumClass.ClassNamedEnum.ClassNamedMember
+
+V14_CLASS_PICKLE = b'\x80\x05\x95g\x00\x00\x00\x00\x00\x00\x00\x8c\x07copyreg\x94\x8c\x0e_reconstructor\x94\x93\x94\x8c\x10v12_enums_module\x94\x8c\x18EnumClass.ClassNamedEnum\x94\x93\x94\x8c\x08builtins\x94\x8c\x03int\x94\x93\x94K2\x87\x94R\x94.'
+LEGACY_CLASS_PICKLE = b'\x80\x05\x95Q\x00\x00\x00\x00\x00\x00\x00\x8c\x10v12_enums_module\x94\x8c\x0e_unpickle_enum\x94\x93\x94\x8c\x10v12_enums_module\x94\x8c\x0eClassNamedEnum\x94K2\x87\x94R\x94.'
+
+def test_class_pickle_compatibility(module, abi_version):
+    if abi_version >= 14:
+        d = pickle.dumps(module.EnumClass.ClassNamedEnum.ClassNamedMember)
+        assert d == V14_CLASS_PICKLE
+    else:
+        l = pickle.loads(V14_CLASS_PICKLE)
+        assert isinstance(l, module.EnumClass.ClassNamedEnum)
+        assert l == module.EnumClass.ClassNamedEnum.ClassNamedMember
+
+        l = pickle.loads(LEGACY_CLASS_PICKLE)
+        assert isinstance(l, module.EnumClass.ClassNamedEnum)
+        assert l == module.EnumClass.ClassNamedEnum.ClassNamedMember
 
 
 # The following test scoped enums.
