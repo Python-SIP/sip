@@ -11,6 +11,7 @@ import sys
 from ..exceptions import UserException
 from ..py_versions import (DEFAULT_ABI_MAJOR, MINIMUM_SETUPTOOLS,
         OLDEST_SUPPORTED_MINOR)
+from ..sip_module_configuration import SipModuleConfiguration
 from ..version import SIP_VERSION, SIP_VERSION_STR
 
 from .abi_version import (get_module_source_dir, get_source_version_range,
@@ -42,8 +43,8 @@ def module(sip_module, abi_version, sip_module_configuration, project, sdist,
         project = sip_module.replace('.', '_')
 
     # Create the patches.
-    patches = _create_patches(sip_module, module_source_dir,
-            sip_module_shared=True, project=project)
+    patches = _create_patches(sip_module, sip_module_configuration,
+            module_source_dir, sip_module_shared=True, project=project)
 
     # The names of generated files.
     sdist_dir = project + '-' + patches['@SIP_MODULE_VERSION@']
@@ -66,13 +67,14 @@ def module(sip_module, abi_version, sip_module_configuration, project, sdist,
         _create_sip_file(sip_rst_fn, module_source_dir, patches)
 
 
-def copy_sip_h(abi_version, sip_module, target_dir, *, sip_module_shared=True,
-        version_info=True):
+def copy_sip_h(abi_version, sip_module, sip_module_configuration, target_dir,
+        *, sip_module_shared=True, version_info=True):
     """ Copy the sip.h file. """
 
     module_source_dir = get_module_source_dir(abi_version)
-    patches = _create_patches(sip_module, module_source_dir,
-            sip_module_shared=sip_module_shared, version_info=version_info)
+    patches = _create_patches(sip_module, sip_module_configuration,
+            module_source_dir, sip_module_shared=sip_module_shared,
+            version_info=version_info)
     _install_source_file('sip.h', module_source_dir, target_dir, patches)
 
 
@@ -83,11 +85,13 @@ def copy_sip_pyi(abi_version, target_dir):
     shutil.copy(os.path.join(module_source_dir, 'sip.pyi'), target_dir)
 
 
-def copy_nonshared_sources(abi_version, sip_module, target_dir):
+def copy_nonshared_sources(abi_version, sip_module, sip_module_configuration,
+        target_dir):
     """ Copy the module sources as a non-shared module. """
 
     # Copy the patched sip.h.
-    copy_sip_h(abi_version, sip_module, target_dir, sip_module_shared=False)
+    copy_sip_h(abi_version, sip_module, sip_module_configuration, target_dir,
+            sip_module_shared=False)
 
     # Copy the remaining source code.
     sources = []
@@ -106,17 +110,13 @@ def copy_nonshared_sources(abi_version, sip_module, target_dir):
     return sources
 
 
-def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
-        project='', version_info=True):
+def _create_patches(sip_module, sip_module_configuration, module_source_dir, *,
+        sip_module_shared, project='', version_info=True):
     """ Return a dict of the patches. """
 
     sip_module_parts = sip_module.split('.')
     sip_module_package_name = '.'.join(sip_module_parts[:-1])
     sip_module_name = sip_module_parts[-1]
-
-    # We special case this because this should be the only package requiring
-    # the support.
-    legacy = (sip_module == 'PyQt5.sip')
 
     if version_info:
         sip_version = SIP_VERSION
@@ -125,8 +125,8 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
         sip_version = 0
         sip_version_str = ''
 
-    # Get the full version number of the sip module.
-    abi_major = abi_minor = abi_patch = '???'
+    # Get the full version number of the sip module from the sip.h file.
+    abi_major = abi_minor = abi_patch = None
 
     with open(os.path.join(module_source_dir, 'sip.h.in')) as vf:
         for line in vf:
@@ -136,17 +136,18 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
                 value = parts[2]
 
                 if name == 'SIP_ABI_MAJOR_VERSION':
-                    abi_major = value
+                    abi_major = int(value)
                 elif name == 'SIP_ABI_MINOR_VERSION':
-                    abi_minor = value
+                    abi_minor = int(value)
                 elif name == 'SIP_MODULE_PATCH_VERSION':
-                    abi_patch = value
+                    abi_patch = int(value)
 
     sip_module_version = f'{abi_major}.{abi_minor}.{abi_patch}'
+    sip_module_entry_prefix = 'PyModExport_' if abi_major >= 14 else 'PyInit_'
 
     type_name_prefix = 'sip' if abi_major == 12 or SipModuleConfiguration.BrokenTypeNames in sip_module_configuration else sip_module
 
-    return {
+    patches = {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
         '@SIP_MODULE_FQ_NAME@':                 sip_module,
@@ -155,12 +156,13 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
         '@SIP_MODULE_VERSION@':                 sip_module_version,
 
         # These are internal.
+        '@_SIP_CONFIGURATION@':                 f'0x{sip_module_configuration:04x}',
         '@_SIP_MINIMUM_SETUPTOOLS@':            MINIMUM_SETUPTOOLS,
         '@_SIP_MODULE_FQ_NAME@':                sip_module,
         '@_SIP_MODULE_NAME@':                   sip_module_name,
         '@_SIP_MODULE_SHARED@':                 '1' if sip_module_shared else '0',
-        '@_SIP_MODULE_ENTRY@':                  'PyInit_' + sip_module_name,
-        '@_SIP_MODULE_LEGACY@':                 "1" if legacy else "0",
+        '@_SIP_MODULE_SLOTS@':                  'sipModuleSlots_' + sip_module_name,
+        '@_SIP_MODULE_ENTRY@':                  sip_module_entry_prefix + sip_module_name,
         '@_SIP_OLDEST_SUPPORTED_MINOR@':        str(OLDEST_SUPPORTED_MINOR),
         '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR,
                                                         '02x'),
@@ -168,6 +170,20 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
         '@_SIP_VERSION@':                       hex(sip_version),
         '@_SIP_VERSION_STR@':                   sip_version_str
     }
+
+    if abi_major == 12:
+        # We special case this because it should be the only package requiring
+        # the support.
+        legacy = (sip_module == 'PyQt5.sip')
+        patches['@_SIP_MODULE_LEGACY@'] = '1' if legacy else '0'
+
+    elif abi_major >= 14:
+        for opt_name, opt_value in SipModuleConfiguration.__members__.items():
+            patch_name = f'@_SIP_{opt_name}_STATE@'
+            patch_value = '#define' if opt_value in sip_module_configuration else '#undef'
+            patches[patch_name] = patch_value
+
+    return patches
 
 
 def _create_sdist(sdist_dir, module_source_dir, patches, setup_cfg):
