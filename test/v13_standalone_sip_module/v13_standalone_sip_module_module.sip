@@ -1,7 +1,7 @@
-// The SIP implementation of the ns.standalone_sip_module test module.
+// The SIP implementation of the v13_ns.v13_standalone_sip_module test module.
 
 
-%Module(name=ns.standalone_sip_module_module)
+%Module(name=v13_ns.v13_standalone_sip_module_module)
 
 
 %ModuleHeaderCode

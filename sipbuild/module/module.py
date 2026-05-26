@@ -144,6 +144,8 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
 
     sip_module_version = f'{abi_major}.{abi_minor}.{abi_patch}'
 
+    type_name_prefix = 'sip' if abi_major == 12 or SipModuleConfiguration.BrokenTypeNames in sip_module_configuration else sip_module
+
     return {
         # The public patches are those that might be needed in setup.cfg or any
         # automatically generated user documentation.
@@ -162,6 +164,7 @@ def _create_patches(sip_module, module_source_dir, *, sip_module_shared,
         '@_SIP_OLDEST_SUPPORTED_MINOR@':        str(OLDEST_SUPPORTED_MINOR),
         '@_SIP_OLDEST_SUPPORTED_MINOR_HEX@':    format(OLDEST_SUPPORTED_MINOR,
                                                         '02x'),
+        '@_SIP_TYPE_NAME_PREFIX@':              type_name_prefix,
         '@_SIP_VERSION@':                       hex(sip_version),
         '@_SIP_VERSION_STR@':                   sip_version_str
     }

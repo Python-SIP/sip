@@ -74,6 +74,8 @@ def module(request):
     abi_version, exceptions, package, sip_module_configuration, tags, test_dir = _get_configuration_details(request)
 
     # Build the test module.
+    _clean_test_dir(test_dir)
+
     module_name = _build_test_module(_get_only_sip_file(test_dir), test_dir,
             abi_version, package, exceptions, tags)
 
@@ -111,10 +113,9 @@ def package(request):
 
     module_names = [package]
 
-    # Remove any previous package directory.
-    shutil.rmtree(os.path.join(test_dir, package), ignore_errors=True)
-
     # Build each module in the package.
+    _clean_test_dir(test_dir)
+
     for sip_file in _get_sip_files(test_dir):
         module_name = _build_test_module(sip_file, test_dir, abi_version,
                 package, exceptions, tags)
@@ -359,6 +360,23 @@ def _build_sip_module(test_dir, abi_version, package,
             test_dir)
 
     return sip_module_name
+
+
+def _clean_test_dir(test_dir):
+    """ Clean the test directory. """
+
+    for name in os.listdir(test_dir):
+        name = os.path.join(test_dir, name)
+
+        if os.path.isdir(name):
+            shutil.rmtree(name, ignore_errors=True)
+        else:
+            _, ext = os.path.splitext(name)
+
+            if ext in ('.h', '.py', '.sip'):
+                continue
+
+            os.remove(name)
 
 
 def _get_configuration_details(request):

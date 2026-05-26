@@ -10,6 +10,7 @@ import pickle
 
 
 cfg_enabled_for = [12, 14]
+cfg_sip_module_configuration = ['CustomEnums']
 
 
 @pytest.fixture(scope='module')
