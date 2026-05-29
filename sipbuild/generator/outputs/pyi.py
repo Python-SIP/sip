@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...version import SIP_VERSION_STR
@@ -50,7 +50,7 @@ def _module(pf, spec):
 
     # Generate the imports. Note that we assume the super-types are the
     # standard SIP ones.
-    stdlib_imports = ['collections', 're', 'typing']
+    stdlib_imports = ['collections.abc', 're', 'typing']
 
     if spec.target_abi >= (13, 0):
         for enum in spec.enums:
