@@ -1456,9 +1456,6 @@ class VirtualHandler:
     # The code specified by any %VirtualCatcherCode directive.
     virtual_catcher_code: CodeBlock|None
 
-    # The virtual error handler.
-    virtual_error_handler: VirtualErrorHandler
-
     # Set if execution should abort if there is an exception.
     abort_on_exception: bool = False
 
@@ -1479,6 +1476,9 @@ class VirtualOverload:
     # The handler for the overload.  It is only set for the module for which
     # code is being generated.
     handler: VirtualHandler|None
+
+    # The virtual error handler.
+    error_handler: VirtualErrorHandler
 
 
 @dataclass

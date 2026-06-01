@@ -1194,6 +1194,8 @@ def _add_virtual_overload(spec, overload, klass, error_log):
     if klass.iface_file.module is spec.module:
         virtual_handler = _get_virtual_handler(spec, overload, klass,
                 error_log)
+        virtual_error_handler = _get_virtual_error_handler(spec, overload,
+                klass, error_log);
 
         # Make sure we get the name.
         overload.common.py_name.used = True
@@ -1204,9 +1206,11 @@ def _add_virtual_overload(spec, overload, klass, error_log):
                 need_types=True)
     else:
         virtual_handler = None
+        virtual_error_handler = None
 
     # Add it to the class.
-    virtual_overload = VirtualOverload(overload, virtual_handler)
+    virtual_overload = VirtualOverload(overload, virtual_handler,
+            virtual_error_handler)
     klass.virtual_overloads.insert(0, virtual_overload)
 
 
@@ -1270,8 +1274,7 @@ def _get_virtual_handler(spec, overload, klass, error_log):
 
     # Create a new one.
     handler = VirtualHandler(overload.cpp_signature, overload.py_signature,
-            overload.virtual_catcher_code,
-            _get_virtual_error_handler(spec, overload, klass, error_log))
+            overload.virtual_catcher_code)
 
     handler.handler_nr = spec.nr_virtual_handlers
     spec.nr_virtual_handlers += 1
@@ -1292,12 +1295,6 @@ def _check_virtual_handler(spec, overload, virtual_handler):
 
     if overload.virtual_catcher_code is not virtual_handler.virtual_catcher_code:
         return False
-
-    # If the overload has an explicit error handler then it must be the same as
-    # the candidate.
-    if overload.virtual_error_handler is not None:
-        if virtual_handler.virtual_error_handler is None or overload.virtual_error_handler != virtual_handler.virtual_error_handler.name:
-            return False
 
     if (overload.factory or overload.transfer is Transfer.TRANSFER_BACK) and  not virtual_handler.transfer_result:
         return False

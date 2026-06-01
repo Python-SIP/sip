@@ -2447,7 +2447,7 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
 
             _restore_protections(protection_state)
 
-    error_handler = handler.virtual_error_handler
+    error_handler = virtual_overload.error_handler
 
     if error_handler is None:
         error_handler_ref = '0'
