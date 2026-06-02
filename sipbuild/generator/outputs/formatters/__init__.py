@@ -10,7 +10,7 @@ from .argument import (fmt_argument_as_cpp_type, fmt_argument_as_name,
 from .enum import (fmt_enum_as_cpp_type, fmt_enum_as_rest_ref,
         fmt_enum_as_type_hint)
 from .klass import (fmt_class_as_rest_ref, fmt_class_as_scoped_name,
-        fmt_class_as_type_hint)
+        fmt_class_as_scoped_py_name, fmt_class_as_type_hint)
 from .misc import fmt_copying, fmt_scoped_py_name
 from .signature import (fmt_signature_as_cpp_declaration,
         fmt_signature_as_cpp_definition, fmt_signature_as_type_hint)

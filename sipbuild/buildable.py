@@ -60,8 +60,9 @@ class BuildableFromSources(Buildable):
         self.debug = False
 
         if self.uses_limited_api:
-            self.define_macros.append(
-                    'Py_LIMITED_API=' + project.limited_abi_version_str)
+            # Force v3.15 for ABI v14.
+            limited_api = '0x030f0000' if project.target_abi >= (14, 0) else project.limited_abi_version_str
+            self.define_macros.append('Py_LIMITED_API=' + limited_api)
 
     def make_names_relative(self):
         """ Make all file and directory names relative to the build directory.
@@ -154,6 +155,8 @@ class BuildableBindings(BuildableModule):
 
         self.bindings = bindings
 
+        self.sip_module_configuration = None
+
     def get_bindings_installable(self, name):
         """ Return an installable for the buildable's bindings directory. """
 
@@ -195,3 +198,6 @@ sip-abi-version = "{abi_major}.{abi_minor}"
 module-tags = [{tags}]
 module-disabled-features = [{disabled}]
 ''')
+
+            if self.project.target_abi >= (14, 0):
+                cf.write(f'sip-module-configuration = {self.sip_module_configuration}\n')

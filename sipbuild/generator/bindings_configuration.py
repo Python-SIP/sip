@@ -6,6 +6,7 @@
 import os
 
 from ..exceptions import UserFileException, UserParseException
+from ..sip_module_configuration import incompatible_module_configurations
 from ..toml import toml_load
 
 
@@ -49,6 +50,19 @@ def get_bindings_configuration(spec, sip_file, sip_include_dirs):
             raise UserFileException(toml_file,
                 f"'{bindings_name}' was built against ABI v{cfg_abi_major} "
                 f"but this module is being built against ABI v{major_version}")
+
+    # Check the sip module configurations are compatible.
+    if cfg_abi_major >= 14:
+        cfg_sip_module_config = cfg.get('sip-module-configuration')
+        if cfg_sip_module_config is None or not isinstance(cfg_sip_module_config, int):
+            raise UserFileException(toml_file,
+                    "'sip-module-configuration' must be specified as an integer")
+
+        if incompatible_module_configurations(spec.sip_module_configuration, cfg_sip_module_config):
+            raise UserFileException(toml_file,
+                    f"'{bindings_name}' was built with a sip module "
+                    f"configuration (0x{cfg_sip_module_config:04x}) that is "
+                    f"incompatible with this one (0x{spec.sip_module_configuration:04x})")
 
     # Return the tags and disabled features.
     return (_get_string_list(toml_file, cfg, 'module-tags'),

@@ -790,7 +790,6 @@ Function Annotations
 
     This boolean annotation specifies that the value returned by the function
     (which should be a pointer to a wrapped C structure or C++ class instance)
-    is a newly created instance and is owned by Python.  If the value is not a
     pointer (and so will be implicitly copied) then the annotation has no
     effect.
 

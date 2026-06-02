@@ -15,7 +15,7 @@ import pytest
 
 
 # The different ABI versions.
-ABI_VERSIONS = (12, 13)
+ABI_VERSIONS = (12, 13, 14)
 
 
 def pytest_addoption(parser):

@@ -174,6 +174,7 @@ class Bindings(Configurable):
         buildable.extra_link_args = self.extra_link_args
         buildable.extra_objects = self.extra_objects
         buildable.static = self.static
+        buildable.sip_module_configuration = spec.sip_module_configuration
 
         # Generate any API file.
         if project.api_dir and not self.internal:
@@ -237,7 +238,9 @@ class Bindings(Configurable):
         else:
             buildable.sources.extend(
                     copy_nonshared_sources(project.build_abi,
-                            module.fq_py_name.name, buildable.build_dir))
+                            module.fq_py_name.name,
+                            spec.sip_module_configuration,
+                            buildable.build_dir))
 
         buildable.include_dirs.extend(self.include_dirs)
         buildable.sources.extend(self.sources)
