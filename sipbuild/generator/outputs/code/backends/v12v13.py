@@ -1787,6 +1787,39 @@ sipTypeDef *sipExportedTypes_{module_name}[] = {{
 
         sf.write('};\n')
 
+    def g_virt_error_handler_decls(self, sf):
+        """ Generate the declarations of any locally defined virtual error
+        handlers.
+        """
+
+        spec = self.spec
+        module = spec.module
+
+        for virtual_error_handler in spec.virtual_error_handlers:
+            if virtual_error_handler.module is module:
+                sf.write(f'\nvoid sipVEH_{module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper *, sip_gilstate_t);\n')
+
+    def g_virt_error_handler_impl(self, sf, virtual_error_handler):
+        """ Generate the implementations of any locally defined virtual error
+        handlers.
+        """
+
+        code = virtual_error_handler.code
+
+        self_name = get_use_in_code(code, 'sipPySelf')
+        state_name = get_use_in_code(code, 'sipGILState')
+
+        sf.write(
+f'''
+
+void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper *{self_name}, sip_gilstate_t {state_name})
+{{
+''')
+
+        sf.write_code(code)
+
+        sf.write('}\n')
+
     @staticmethod
     def g_wrapper_ref_decl(sf):
         """ Generate the code that declares a wrapper reference. """
@@ -1853,6 +1886,26 @@ sipTypeDef *sipExportedTypes_{module_name}[] = {{
             return f'sipExportedTypes_{spec.module.py_name}[{enum.type_nr}]'
 
         return f'sipImportedTypes_{spec.module.py_name}_{enum.module.py_name}[{enum.type_nr}].it_td'
+
+    def get_error_handler_ref(self, error_handler):
+        """ Return a reference to an error handler. """
+
+        if error_handler is None:
+            return '0'
+
+        module = self.spec.module
+        module_name = module.py_name
+
+        if error_handler.module is module:
+            return f'sipVEH_{module_name}_{error_handler.name}'
+
+        return f'sipImportedVirtErrorHandlers_{module_name}_{error_handler.module.py_name}[{error_handler.handler_nr}].iveh_handler'
+
+    @staticmethod
+    def get_error_handler_ref_type():
+        """ Return the type of a reference to an error handler. """
+
+        return 'sipVirtErrorHandlerFunc'
 
     def get_py_method_args(self, *, is_impl, need_self=False, need_args=True):
         """ Return the part of a Python method signature that are ABI

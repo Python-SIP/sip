@@ -1890,6 +1890,10 @@ def p_class_head(p):
 
     pm.check_annotations(p, 3, "class", _CLASS_ANNOTATIONS)
 
+    if pm.target_major_abi >= 14 and 'DelayDtor' in p[3]:
+        pm.parser_error(p, 3,
+                "DelayDtor is not supported by ABI v14 and later")
+
     if p[2] is not None:
         pm.cpp_only(p, 2, "super-classes")
 

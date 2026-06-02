@@ -174,25 +174,9 @@ def g_module_code(backend, sf, bindings, project, py_debug, buildable):
         _virtual_handler(backend, sf, handler)
 
     # Generate any virtual error handlers.
-    wrapper_type = backend.get_wrapper_type()
-
     for virtual_error_handler in spec.virtual_error_handlers:
         if virtual_error_handler.module is module:
-            self_name = get_use_in_code(virtual_error_handler.code,
-                    'sipPySelf')
-            state_name = get_use_in_code(virtual_error_handler.code,
-                    'sipGILState')
-
-            sf.write(
-f'''
-
-void sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}{self_name}, sip_gilstate_t {state_name})
-{{
-''')
-
-            sf.write_code(virtual_error_handler.code)
-
-            sf.write('}\n')
+            backend.g_virt_error_handler_impl(sf, virtual_error_handler)
 
     # Generate the global functions.
     has_slot_extenders = False
@@ -296,13 +280,13 @@ static sipTypedef{backend.get_spec_suffix()} typedefsTable[] = {{
             has_virtual_error_handlers = True
 
             sf.write(
-'''
+f'''
 
 /*
  * This defines the virtual error handlers that this module implements and
  * can be used by other modules.
  */
-static sipVirtErrorHandlerDef virtErrorHandlersTable[] = {
+static sipVirtErrorHandler{backend.get_spec_suffix()} virtErrorHandlersTable[] = {{
 ''')
 
         sf.write(f'    {{"{handler.name}", sipVEH_{module_name}_{handler.name}}},\n')
@@ -2402,7 +2386,7 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
     result_type = fmt_argument_as_cpp_type(spec, overload.cpp_signature.result,
             scope=klass.iface_file)
 
-    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, sipVirtErrorHandlerFunc, {backend.get_wrapper_type()}, PyObject *')
+    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, {backend.get_error_handler_ref_type()}, {backend.get_wrapper_type()}, PyObject *')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_declaration(spec,
@@ -2447,17 +2431,8 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
 
             _restore_protections(protection_state)
 
-    error_handler = virtual_overload.error_handler
-
-    if error_handler is None:
-        error_handler_ref = '0'
-    elif error_handler.module is module:
-        error_handler_ref = f'sipVEH_{module_name}_{error_handler.name}'
-    else:
-        # TODO ABI v14 will get the handler directly from the imported module's
-        # definition (possibly via an API call) rather than taking a copy of
-        # the handler.
-        error_handler_ref = f'sipImportedVirtErrorHandlers_{module_name}_{error_handler.module.py_name}[{error_handler.handler_nr}].iveh_handler'
+    error_handler_ref = backend.get_error_handler_ref(
+            virtual_overload.error_handler)
 
     sf.write(f'sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context()}sipGILState, {error_handler_ref}, sipPySelf, sipMeth')
 
@@ -2818,7 +2793,7 @@ def _virtual_handler(backend, sf, handler):
 
     sf.write(
 f'''
-{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, sipVirtErrorHandlerFunc sipErrorHandler, {backend.get_wrapper_type()}sipPySelf, PyObject *sipMethod''')
+{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, {backend.get_error_handler_ref_type()} sipErrorHandler, {backend.get_wrapper_type()}sipPySelf, PyObject *sipMethod''')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_definition(spec,
@@ -2938,7 +2913,7 @@ f'''
             sf.write(
 f'''
     if ({error_test})
-        sipCallErrorHandler(sipErrorHandler, sipPySelf, sipGILState);
+        sipCallErrorHandler({backend.get_module_context}sipErrorHandler, sipPySelf, sipGILState);
 ''')
 
         sf.write(
@@ -3440,12 +3415,7 @@ def _module_api(backend, sf, bindings):
 
     backend.g_exceptions_decls(sf)
     _enum_macros(backend, sf)
-
-    wrapper_type = backend.get_wrapper_type()
-
-    for virtual_error_handler in spec.virtual_error_handlers:
-        if virtual_error_handler.module is module:
-            sf.write(f'\nvoid sipVEH_{module_name}_{virtual_error_handler.name}({wrapper_type}, sip_gilstate_t);\n')
+    backend.g_virt_error_handler_decls(sf)
 
 
 def _imported_module_api(backend, sf, imported_module):

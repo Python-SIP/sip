@@ -309,6 +309,14 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_virt_error_handler_decls(self, sf):
+        """ Generate the declarations of any locally defined virtual error
+        handlers.
+        """
+
+        ...
+
+    @abstractmethod
     def g_wrapper_ref_decl(self, sf):
         """ Generate the code that declares a wrapper reference. """
 
@@ -364,6 +372,18 @@ class AbstractBackend(ABC):
     @abstractmethod
     def get_enum_ref_value(self, enum):
         """ Return the value of an enum's reference. """
+
+        ...
+
+    @abstractmethod
+    def get_error_handler_ref(self, error_handler):
+        """ Return a reference to an error handler. """
+
+        ...
+
+    @abstractmethod
+    def get_error_handler_ref_type():
+        """ Return the type of a reference to an error handler. """
 
         ...
 
