@@ -1930,6 +1930,10 @@ class ParserManager:
         if major_version == 13 and minor_version < 1:
             self._deprecated_target_abi(major_version, minor_version, '13.1')
 
+        # ABI v14 and later don't use plugins.
+        if major_version >= 14:
+            self.spec.plugins = []
+
         self.spec.target_abi = (major_version, minor_version)
 
     @staticmethod

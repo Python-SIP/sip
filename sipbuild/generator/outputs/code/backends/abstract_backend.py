@@ -471,11 +471,6 @@ class AbstractBackend(ABC):
 
         ...
 
-    def legacy_qt_support(self):
-        """ Return True if the module implements legacy Qt support. """
-
-        return False
-
     def need_deprecated_error_flag(self, code):
         """ Return True if the deprecated error flag is needed by some
         handwritten code.

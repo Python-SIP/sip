@@ -11,9 +11,8 @@ from ...python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_ssize_return_slot, is_void_return_slot, is_zero_arg_slot)
 from ...scoped_name import STRIP_GLOBAL
 from ...specification import (AccessSpecifier, Argument, ArgumentType,
-        ArrayArgument, DocstringSignature, IfaceFileType, MappedType,
-        PyQtMethodSpecifier, PySlot, QualifierType, Transfer, WrappedClass,
-        WrappedEnum)
+        ArrayArgument, DocstringSignature, IfaceFileType, MappedType, PySlot,
+        QualifierType, Transfer, WrappedClass, WrappedEnum)
 from ...utils import py_as_int, same_signature
 
 from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
@@ -149,19 +148,6 @@ def g_module_code(backend, sf, bindings, project, py_debug, buildable):
     _used_includes(sf, module.used)
 
     sf.write_code(module.unit_postinclude_code)
-
-    # If there should be a Qt support API then generate stubs values for the
-    # optional parts.  These should be undefined in %ModuleCode if a C++
-    # implementation is provided.
-    if spec.target_abi < (13, 0) and backend.legacy_qt_support():
-        sf.write(
-'''
-#define sipQtCreateUniversalSignal          0
-#define sipQtFindUniversalSignal            0
-#define sipQtEmitSignal                     0
-#define sipQtConnectPySignal                0
-#define sipQtDisconnectPySignal             0
-''')
 
     # Generate the name cache.
     name_cache_state = backend.g_name_cache(sf)
@@ -335,32 +321,6 @@ static sipLicenseDef module_license = {{
         if backend.abi_has_next_exception_handler():
             _exception_handler(backend, sf)
 
-    # Generate any Qt support API.
-    if spec.target_abi < (13, 0) and backend.legacy_qt_support():
-        sf.write(
-f'''
-
-/* This defines the Qt support API. */
-
-static sipQtAPI qtAPI = {{
-    &sipExportedTypes_{module_name}[{spec.pyqt_qobject.iface_file.type_nr}],
-    sipQtCreateUniversalSignal,
-    sipQtFindUniversalSignal,
-    sipQtCreateUniversalSlot,
-    sipQtDestroyUniversalSlot,
-    sipQtFindSlot,
-    sipQtConnect,
-    sipQtDisconnect,
-    sipQtSameSignalSlotName,
-    sipQtFindSipslot,
-    sipQtEmitSignal,
-    sipQtConnectPySignal,
-    sipQtDisconnectPySignal
-}};
-''')
-
-    sf.write('\n\n')
-
     # Generate the code to create the wrapped module
     return backend.g_create_wrapped_module(sf, bindings,
         name_cache_state,
@@ -500,82 +460,6 @@ def g_type_init_body(backend, sf, bindings, klass):
     sf.write(
 '''
     return SIP_NULLPTR;
-''')
-
-
-def g_pyqt_class_plugin(backend, sf, bindings, klass):
-    """ Generate any extended class definition data for PyQt.  Return True if
-    anything was generated.
-    """
-
-    spec = backend.spec
-
-    is_signals = _pyqt_signals_table(backend, sf, bindings, klass)
-
-    # The PyQt6 support code doesn't assume the structure is generated.
-    if pyqt6_supported(spec):
-        generated = is_signals
-
-        if klass.is_qobject and not klass.pyqt_no_qmetaobject:
-            generated = True
-
-        if klass.pyqt_interface is not None:
-            generated = True
-
-        if not generated:
-            return False
-
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-
-    pyqt_version = '5' if pyqt5_supported(spec) else '6'
-    sf.write(f'\n\nstatic pyqt{pyqt_version}ClassPluginDef plugin_{klass_name} = {{\n')
-
-    mo_ref = f'&{scoped_class_name(spec, klass)}::staticMetaObject' if klass.is_qobject and not klass.pyqt_no_qmetaobject else 'SIP_NULLPTR'
-    sf.write(f'    {mo_ref},\n')
-
-    if pyqt5_supported(spec):
-        sf.write(f'    {klass.pyqt_flags},\n')
-
-    signals_ref = f'signals_{klass_name}' if is_signals else 'SIP_NULLPTR'
-    sf.write(f'    {signals_ref},\n')
-
-    interface_ref = f'"{klass.pyqt_interface}"' if klass.pyqt_interface is not None else 'SIP_NULLPTR'
-    sf.write(f'    {interface_ref}\n')
-
-    sf.write('};\n')
-
-    return True
-
-
-def g_pyqt_helper_defns(sf, spec):
-    """ Generate the PyQt helper definitions. """
-
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        module_name = spec.module.py_name
-
-        sf.write(
-f'''
-sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
-sip_qt_metacall_func sip_{module_name}_qt_metacall;
-sip_qt_metacast_func sip_{module_name}_qt_metacast;
-''')
-
-
-def g_pyqt_helper_init(sf, spec):
-    """ Initialise the PyQt helpers. """
-
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        module_name = spec.module.py_name
-
-        sf.write(
-f'''
-
-    sip_{module_name}_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol("qtcore_qt_metaobject");
-    sip_{module_name}_qt_metacall = (sip_qt_metacall_func)sipImportSymbol("qtcore_qt_metacall");
-    sip_{module_name}_qt_metacast = (sip_qt_metacast_func)sipImportSymbol("qtcore_qt_metacast");
-
-    if (!sip_{module_name}_qt_metacast)
-        Py_FatalError("Unable to import qtcore_qt_metacast");
 ''')
 
 
@@ -726,7 +610,7 @@ def g_argument_variable(backend, sf, scope, arg, arg_nr):
     return params
 
 
-def _call_args(sf, spec, cpp_signature, py_signature):
+def g_call_args(sf, spec, cpp_signature, py_signature):
     """ Generate typed arguments for a call. """
 
     for arg_nr, arg in enumerate(cpp_signature.args):
@@ -827,7 +711,7 @@ def _catch(backend, sf, bindings, py_signature, throw_args, release_gil):
 ''')
 
     _delete_outs(sf, spec, py_signature)
-    _delete_temporaries(backend, sf, py_signature)
+    g_delete_temporaries(backend, sf, py_signature)
 
     if use_handler:
         backend.g_catch_body(sf)
@@ -864,7 +748,7 @@ f'''            catch ({exception_cpp_stripped} &{sip_exception_ref})
 
     if py_signature is not None:
         _delete_outs(sf, spec, py_signature)
-        _delete_temporaries(backend, sf, py_signature)
+        g_delete_temporaries(backend, sf, py_signature)
         result = 'SIP_NULLPTR'
     else:
         result = 'true'
@@ -979,7 +863,7 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
 
             sf.write(f'a0->operator {cast_call}()')
         else:
-            _call_args(sf, spec, ctor.cpp_signature, ctor.py_signature)
+            g_call_args(sf, spec, ctor.cpp_signature, ctor.py_signature)
 
         sf.write(');\n')
 
@@ -1007,7 +891,7 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
             sf.write(f'\n            sipKeepReference((PyObject *)sipSelf, {arg.key}, {arg_name}{suffix});\n')
 
     _gc_ellipsis(sf, ctor.py_signature)
-    _delete_temporaries(backend, sf, ctor.py_signature)
+    g_delete_temporaries(backend, sf, ctor.py_signature)
 
     sf.write('\n')
 
@@ -1028,6 +912,7 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
             sf.write('            {\n')
 
         if klass.has_shadow:
+            sf.write('    ')
             backend.g_wrapper_ref_set(sf)
 
         # Call any post-hook.
@@ -1089,7 +974,7 @@ def _delete_outs(sf, spec, py_signature):
             sf.write(f'                delete {fmt_argument_as_name(spec, arg, arg_nr)};\n')
 
 
-def _delete_temporaries(backend, sf, py_signature):
+def g_delete_temporaries(backend, sf, py_signature):
     """ Generate the code to delete any temporary variables on the heap created
     by type convertors.
     """
@@ -1197,14 +1082,6 @@ def _handling_exceptions(bindings, throw_args):
     return bindings.exceptions and (throw_args is None or throw_args.arguments is not None)
 
 
-def _has_optional_args(overload):
-    """ Return True if an overload has optional arguments. """
-
-    args = overload.cpp_signature.args
-
-    return len(args) != 0 and args[-1].default_value is not None
-
-
 def g_overload_type_hint(sf, spec, overload, is_method=True):
     """ Generate the type hint for a single API overload. """
 
@@ -1212,216 +1089,6 @@ def g_overload_type_hint(sf, spec, overload, is_method=True):
     signature = fmt_signature_as_type_hint(spec, overload.py_signature,
             need_self=need_self)
     sf.write(overload.common.py_name.name + signature)
-
-
-def _pyqt_emitters(backend, sf, klass):
-    """ Generate the PyQt emitters for a class. """
-
-    spec = backend.spec
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-    scope_s = scoped_class_name(spec, klass)
-    klass_name_ref = backend.cached_name_ref(klass.py_name)
-
-    for member in klass.members:
-        in_emitter = False
-        signature_nr = 0
-
-        for overload in klass.overloads:
-            if not (overload.common is member and overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL and _has_optional_args(overload)):
-                continue
-
-            if not in_emitter:
-                in_emitter = True
-
-                sf.write('\n\n')
-
-                if not spec.c_bindings:
-                    sf.write(f'extern "C" {{static int emit_{klass_name}_{overload.cpp_name}(void *, PyObject *);}}\n\n')
-
-                sf.write(
-f'''static int emit_{klass_name}_{overload.cpp_name}(void *sipCppV, PyObject *sipArgs)
-{{
-    PyObject *sipParseErr = SIP_NULLPTR;
-    {scope_s} *sipCpp = reinterpret_cast<{scope_s} *>(sipCppV);
-''')
-
-            # Generate the code that parses the args and emits the appropriate
-            # overloaded signal.
-            sf.write('\n    {\n')
-
-            backend.g_arg_parser(sf, klass, overload.py_signature,
-                    signature_nr)
-            signature_nr += 1
-
-            sf.write(
-f'''        {{
-            Py_BEGIN_ALLOW_THREADS
-            sipCpp->{overload.cpp_name}(''')
-
-            _call_args(sf, spec, overload.cpp_signature, overload.py_signature)
-
-            sf.write(''');
-            Py_END_ALLOW_THREADS
-
-''')
-
-            _delete_temporaries(backend, sf, overload.py_signature)
-
-            sf.write(
-'''
-            return 0;
-        }
-    }
-''')
-
-        if in_emitter:
-            member_name_ref = backend.cached_name_ref(member.py_name)
-
-            sf.write(
-f'''
-    sipNoMethod(sipParseErr, {klass_name_ref}, {member_name_ref}, SIP_NULLPTR);
-
-    return -1;
-}}
-''')
-
-
-def _pyqt_signal_table_entry(sf, spec, bindings, klass, signal, member_nr):
-    """ Generate an entry in the PyQt signal table. """
-
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-
-    stripped = False
-    signature_state = {}
-
-    args = []
-
-    for arg in signal.cpp_signature.args:
-        # Do some signal argument normalisation so that Qt doesn't have to.
-        if arg.is_const and (arg.is_reference or len(arg.derefs) == 0):
-            signature_state[arg] = arg.is_reference
-
-            arg.is_const = False
-            arg.is_reference = False
-
-        if arg.scopes_stripped != 0:
-            strip = arg.scopes_stripped
-            stripped = True
-        else:
-            strip = STRIP_GLOBAL
-
-        args.append(
-                fmt_argument_as_cpp_type(spec, arg, scope=klass.iface_file,
-                        strip=strip))
-
-    # Note the lack of a separating space.
-    args = ','.join(args)
-
-    sf.write(f'    {{"{signal.cpp_name}({args})')
-
-    # If a scope was stripped then append an unstripped version which can
-        # be parsed by PyQt.
-    if stripped:
-        args = []
-
-        for arg in signal.cpp_signature.args:
-            args.append(
-                    fmt_argument_as_cpp_type(spec, arg,
-                            scope=klass.iface_file, strip=STRIP_GLOBAL))
-
-        # Note the lack of a separating space.
-        args = ','.join(args)
-
-        sf.write(f'|({args})')
-
-    sf.write('", ')
-
-    # Restore the signature state.
-    for arg, is_reference in signature_state.items():
-        arg.is_const = True
-        arg.is_reference = is_reference
-
-    if bindings.docstrings:
-        sf.write('"')
-
-        if signal.docstring is not None:
-            if signal.docstring.signature is DocstringSignature.PREPENDED:
-                g_overload_type_hint(sf, spec, signal)
-                sf.write('\\n')
-
-            sf.write(get_docstring_text(signal.docstring))
-
-            if signal.docstring.signature is DocstringSignature.APPENDED:
-                sf.write('\\n')
-                g_overload_type_hint(sf, spec, signal)
-        else:
-            sf.write('\\1')
-            g_overload_type_hint(sf, spec, signal)
-
-        sf.write('", ')
-    else:
-        sf.write('SIP_NULLPTR, ')
-
-    sf.write(f'&methods_{klass_name}[{member_nr}], ' if member_nr >= 0 else 'SIP_NULLPTR, ')
-
-    sf.write(f'emit_{klass_name}_{signal.cpp_name}' if _has_optional_args(signal) else 'SIP_NULLPTR')
-
-    sf.write('},\n')
-
-
-def _pyqt_signals_table(backend, sf, bindings, klass):
-    """ Generate the PyQt signals table and return True if anything was
-    generated.
-    """
-
-    # Handle the trivial case.
-    if not klass.is_qobject:
-        return False
-
-    spec = backend.spec
-    is_signals = False
-
-    # The signals must be grouped by name.
-    for member in klass.members:
-        member_nr = member.member_nr
-
-        for overload in klass.overloads:
-            if overload.common is not member or overload.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
-                continue
-
-            if member_nr >= 0:
-                # See if there is a non-signal overload.
-                for non_sig in klass.overloads:
-                    if non_sig is not overload and non_sig.common is member and non_sig.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
-                        break
-                else:
-                    member_nr = -1
-
-            if not is_signals:
-                is_signals = True
-
-                _pyqt_emitters(backend, sf, klass)
-
-                pyqt_version = '5' if pyqt5_supported(spec) else '6'
-                sf.write(
-f'''
-
-/* Define this type's signals. */
-static const pyqt{pyqt_version}QtSignal signals_{klass.iface_file.fq_cpp_name.as_word}[] = {{
-''')
-
-            # We enable a hack that supplies any missing optional arguments.
-            # We only include the version with all arguments and provide an
-            # emitter function which handles the optional arguments.
-            _pyqt_signal_table_entry(sf, spec, bindings, klass, overload,
-                    member_nr)
-
-            member_nr = -1
-
-    if is_signals:
-        sf.write('    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}\n};\n')
-
-    return is_signals
 
 
 def _try(sf, bindings, throw_args):
@@ -2913,7 +2580,7 @@ f'''
             sf.write(
 f'''
     if ({error_test})
-        sipCallErrorHandler({backend.get_module_context}sipErrorHandler, sipPySelf, sipGILState);
+        sipCallErrorHandler({backend.get_module_context()}sipErrorHandler, sipPySelf, sipGILState);
 ''')
 
         sf.write(
@@ -4346,7 +4013,8 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
             _cpp_function_call(backend, sf, scope, overload, original_scope)
         elif overload.common.py_slot is PySlot.CALL:
             sf.write('(*sipCpp)(')
-            _call_args(sf, spec, overload.cpp_signature, overload.py_signature)
+            g_call_args(sf, spec, overload.cpp_signature,
+                    overload.py_signature)
             sf.write(')')
         else:
             sf.write(_get_slot_call(backend, scope, overload, dereferenced))
@@ -4390,7 +4058,7 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
     _gc_ellipsis(sf, overload.py_signature)
 
     if delete_temporaries and not is_zero_arg_slot(py_slot):
-        _delete_temporaries(backend, sf, overload.py_signature)
+        g_delete_temporaries(backend, sf, overload.py_signature)
 
     sf.write('\n')
 
@@ -4446,7 +4114,7 @@ f'''            if (sipIsErr)
 
         # Delete the temporaries now if we haven't already done so.
         if not delete_temporaries:
-            _delete_temporaries(backend, sf, overload.py_signature)
+            g_delete_temporaries(backend, sf, overload.py_signature)
 
         # Keep a reference to a pointer to a class if it isn't owned by Python.
         if result.key is not None:
@@ -4674,13 +4342,13 @@ def _cpp_function_call(backend, sf, scope, overload, original_scope):
             sf.write(f'sipCpp->sipProtect_{cpp_name}(')
     elif not overload.is_abstract and (overload.is_virtual or overload.is_virtual_reimplementation):
         sf.write(f'(sipSelfWasArg ? sipCpp->{original_scope.iface_file.fq_cpp_name.as_cpp}::{cpp_name}(')
-        _call_args(sf, spec, overload.cpp_signature, overload.py_signature)
+        g_call_args(sf, spec, overload.cpp_signature, overload.py_signature)
         sf.write(f') : sipCpp->{cpp_name}(')
         nr_parens += 1
     else:
         sf.write(f'sipCpp->{cpp_name}(')
 
-    _call_args(sf, spec, overload.cpp_signature, overload.py_signature)
+    g_call_args(sf, spec, overload.cpp_signature, overload.py_signature)
 
     sf.write(')' * nr_parens)
 
