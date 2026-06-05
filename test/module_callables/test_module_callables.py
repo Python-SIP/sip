@@ -23,6 +23,17 @@ def test_module_int_int_ret_int_int_args(module):
     assert res[0] == 4
     assert res[1] == 2
 
+def test_module_capsule(module):
+    cap = module.create_capsule(b'data', b'CapsuleType')
+    data = module.get_capsule_data(cap)
+    assert data == b'data'
+
+def test_module_capsule_invalid(module):
+    cap = module.create_capsule(b'data', b'WrongName')
+
+    with pytest.raises(TypeError):
+        module.get_capsule_data(cap)
+
 def test_module_var_args(module):
     res = module.module_var_args(0, 1, 2)
 

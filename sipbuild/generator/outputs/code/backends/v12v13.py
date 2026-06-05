@@ -3638,7 +3638,7 @@ def _g_arg_parser(backend, sf, scope, py_signature, signature_nr, ctor,
             args.append(arg_name_ref)
 
         elif arg.type is ArgumentType.CAPSULE:
-            args.append('"' + arg.definition.as_cpp + '"')
+            args.append('"' + arg.definition + '"')
             args.append(arg_name_ref)
 
         else:

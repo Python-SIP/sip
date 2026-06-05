@@ -119,8 +119,7 @@ def fmt_argument_as_cpp_type(spec, arg, name=None, scope=None,
             s += 'union ' + arg.definition.as_cpp
 
         elif arg.type is ArgumentType.CAPSULE:
-            nr_derefs = 1
-            s += 'void'
+            s += 'void *'
 
         elif arg.type in (ArgumentType.FAKE_VOID, ArgumentType.VOID):
             s += 'void'
@@ -430,7 +429,7 @@ def _py_arg(spec, arg, pep484, as_xml):
         name = definition.as_py
 
     elif type is ArgumentType.CAPSULE:
-        name = definition.base_name
+        name = definition
 
     elif type in (ArgumentType.STRUCT, ArgumentType.UNION, ArgumentType.VOID):
         name = format_voidptr(spec, as_xml)

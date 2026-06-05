@@ -3226,6 +3226,7 @@ def p_typedef_decl(p):
         # Make sure the type is 'void *'.
         if type.type is ArgumentType.VOID and len(type.derefs) == 1 and not type.is_const and not type.is_reference:
             type.type = ArgumentType.CAPSULE
+            type.definition = cpp_name
             type.derefs = []
         else:
             pm.parser_error(p, annos_symbol,

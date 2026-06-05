@@ -37,13 +37,10 @@ def fmt_class_as_scoped_name(spec, klass, scope=None, strip=STRIP_NONE,
     return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
 
 
-def fmt_class_as_scoped_py_name(klass):
-    """ Return a fully qualified Python name. """
+def fmt_class_as_qualified_py_name(klass):
+    """ Return a qualified Python name. """
 
-    module_name = klass.iface_file.module.fq_py_name.name
-    klass_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
-
-    return module_name + '.' + klass_name
+    return fmt_scoped_py_name(klass.scope, klass.py_name.name)
 
 
 def fmt_class_as_type_hint(spec, klass, defined, is_optional=False):
