@@ -6,9 +6,6 @@
 import pytest
 
 
-# TODO Expand the tests to include attributes that are instances of Python
-# sub-classes of wrapped types.  Specifically that the objects don't get
-# garbage collected prematurely.
 @pytest.fixture
 def klass(module):
     """ This is a fixture that returns an instance of Klass. """
@@ -76,6 +73,30 @@ def test_del_instance_attribute(klass):
 def test_attribute_is_instance_attribute(module):
     with pytest.raises(AttributeError):
         module.Klass.attr
+
+def test_class_attribute(module):
+    klass = module.Klass()
+    value = module.Value()
+    value.my_attr = 10
+    klass.class_attr = value
+
+    assert klass.get_class_attr().my_attr == 10
+
+def test_class_attribute_invalid(module):
+    klass = module.Klass()
+    value = module.Klass()
+
+    with pytest.raises(TypeError):
+        klass.class_attr = value
+
+def test_subclass_attribute(module):
+    class MyValue(module.Value): pass
+
+    klass = module.Klass()
+    value = MyValue()
+    klass.class_attr = value
+
+    assert klass.get_class_attr() is value
 
 def test_dir(klass):
     assert 'get_attr' in dir(klass)

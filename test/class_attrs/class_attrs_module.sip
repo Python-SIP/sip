@@ -5,16 +5,25 @@
 
 
 %ModuleHeaderCode
+class Value
+{
+public:
+    Value() {}
+};
+
 class Klass
 {
 public:
-    Klass() : attr(0) {}
+    Klass() : attr(0), class_attr(0) {}
 
     static int s_attr;
     static int get_s_attr() {return s_attr;}
 
     int attr;
     int get_attr() {return attr;}
+
+    Value *class_attr;
+    Value *get_class_attr() const {return class_attr;}
 };
 %End
 
@@ -23,6 +32,12 @@ public:
 int Klass::s_attr = 0;
 %End
 
+
+class Value
+{
+public:
+    Value();
+};
 
 class Klass
 {
@@ -34,4 +49,7 @@ public:
 
     int attr;
     int get_attr();
+
+    Value *class_attr;
+    Value *get_class_attr() const;
 };
