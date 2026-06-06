@@ -22,11 +22,14 @@ def test_nested_wrapped_types(module):
     assert module.Klass.Nested.__qualname__ == 'Klass.Nested'
 
 def test_sip_simplewrapper(module):
-    from v12_ns.sip import simplewrapper
+    from v12_ns.sip import simplewrapper, wrapper
 
     assert simplewrapper.__module__ == 'sip'
     assert simplewrapper.__name__ == 'simplewrapper'
     assert simplewrapper.__qualname__ == 'simplewrapper'
+
+    assert issubclass(module.Klass.Nested, simplewrapper)
+    assert not issubclass(module.Klass.Nested, wrapper)
 
 def test_sip_wrapper(module):
     from v12_ns.sip import wrapper

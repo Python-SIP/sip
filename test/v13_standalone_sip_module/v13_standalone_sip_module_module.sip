@@ -18,7 +18,7 @@ public:
 class Klass
 {
 public:
-    class Nested
+    class Nested /Supertype=v13_ns.sip.simplewrapper/
     {
     };
 };

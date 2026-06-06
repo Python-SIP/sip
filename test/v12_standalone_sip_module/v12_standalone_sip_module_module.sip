@@ -20,7 +20,7 @@ public:
 class Klass
 {
 public:
-    class Nested
+    class Nested /Supertype=sip.simplewrapper/
     {
     };
 };
