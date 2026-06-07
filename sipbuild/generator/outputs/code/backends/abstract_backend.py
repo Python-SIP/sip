@@ -172,6 +172,18 @@ class AbstractBackend(ABC):
         # This default implementation does nothing.
         return False
 
+    @abstractmethod
+    def g_method_error_handler_end(sf, overload):
+        """ Generate the end of the error handling of a method. """
+
+        ...
+
+    @abstractmethod
+    def g_method_error_handler_start(self, sf, overload, error_value):
+        """ Generate the start of the error handling of a method. """
+
+        ...
+
     def g_mixin_support(self, sf, klass):
         """ Generate the support for mixins. """
 
@@ -360,6 +372,12 @@ class AbstractBackend(ABC):
     @abstractmethod
     def custom_enums_supported(self):
         """ Return True if custom enums are supported. """
+
+        ...
+
+    @abstractmethod
+    def get_add_exception_call(self, error_state):
+        """ Return a call to sipAddException(). """
 
         ...
 

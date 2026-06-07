@@ -924,31 +924,35 @@ def _ctor_call(backend, sf, bindings, klass, ctor, error_flag, old_error_flag):
         if klass.has_shadow or ctor.posthook is not None:
             sf.write('            }\n')
 
-        sf.write(
-'''
-            if (sipUnused)
-            {
-                Py_XDECREF(*sipUnused);
-            }
+        add_exception_call = backend.get_add_exception_call('sipError')
 
-            sipAddException(sipError, sipParseErr);
+        sf.write(
+f'''
+            if (sipUnused)
+            {{
+                Py_XDECREF(*sipUnused);
+            }}
+
+            {add_exception_call};
 
             if (sipError == sipErrorFail)
                 return SIP_NULLPTR;
 ''')
     else:
         if old_error_flag:
-            sf.write(
-'''            if (sipIsErr)
-            {
-                if (sipUnused)
-                {
-                    Py_XDECREF(*sipUnused);
-                }
+            add_exception_call = backend.get_add_exception_call('sipErrorFail')
 
-                sipAddException(sipErrorFail, sipParseErr);
+            sf.write(
+f'''            if (sipIsErr)
+            {{
+                if (sipUnused)
+                {{
+                    Py_XDECREF(*sipUnused);
+                }}
+
+                {add_exception_call};
                 return SIP_NULLPTR;
-            }
+            }}
 
 ''')
 
@@ -3879,7 +3883,7 @@ def _function_call(backend, sf, bindings, scope, overload, dereferenced,
     # See if we want to keep a reference to the result.
     post_process = result.key is not None
 
-    delete_temporaries = True
+    delay_delete_temporaries = False
     result_size_arg_nr = -1
 
     for arg_nr, arg in enumerate(overload.py_signature.args):
@@ -3893,7 +3897,7 @@ def _function_call(backend, sf, bindings, scope, overload, dereferenced,
         # the destruction of any temporary variables until after we have
         # converted the outputs.
         if arg.is_in and arg.is_out and get_convert_to_type_code(arg) is not None:
-            delete_temporaries = False
+            delay_delete_temporaries = True
             post_process = True
 
         # If we are returning a class via an output only reference or pointer
@@ -4057,7 +4061,7 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
 
     _gc_ellipsis(sf, overload.py_signature)
 
-    if delete_temporaries and not is_zero_arg_slot(py_slot):
+    if not delay_delete_temporaries:
         g_delete_temporaries(backend, sf, overload.py_signature)
 
     sf.write('\n')
@@ -4072,17 +4076,7 @@ f'''            if (PyErr_Occurred())
 
 ''')
     elif error_flag:
-        if not is_zero_arg_slot(py_slot):
-            sf.write(
-f'''            if (sipError == sipErrorFail)
-                return {error_value};
-
-''')
-
-        sf.write(
-'''            if (sipError == sipErrorNone)
-            {
-''')
+        backend.g_method_error_handler_start(sf, overload, error_value)
     elif old_error_flag:
         sf.write(
 f'''            if (sipIsErr)
@@ -4113,7 +4107,7 @@ f'''            if (sipIsErr)
                 result_size_arg_nr, action)
 
         # Delete the temporaries now if we haven't already done so.
-        if not delete_temporaries:
+        if delay_delete_temporaries:
             g_delete_temporaries(backend, sf, overload.py_signature)
 
         # Keep a reference to a pointer to a class if it isn't owned by Python.
@@ -4137,10 +4131,7 @@ f'''            if (sipIsErr)
             sf.write('\n            return sipResObj;\n')
 
     if error_flag:
-        sf.write('            }\n')
-
-        if not is_zero_arg_slot(py_slot):
-            sf.write('\n            sipAddException(sipError, &sipParseErr);\n')
+        backend.g_method_error_handler_end(sf, overload)
 
     sf.write('        }\n')
 

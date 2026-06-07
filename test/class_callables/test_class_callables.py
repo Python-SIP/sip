@@ -25,6 +25,14 @@ def test_class_callables(module):
     module.Klass.set_s_attr_int(10)
     assert module.Klass.get_s_attr_int() == 10
 
+def test_ctor_error(module):
+    with pytest.raises(ValueError):
+        module.Klass(10)
+
+def test_method_error(klass):
+    with pytest.raises(ValueError):
+        klass.error_method()
+
 def test_instance_callables(klass):
     assert klass.get_attr_int() == 0
     klass.set_attr_int(10)

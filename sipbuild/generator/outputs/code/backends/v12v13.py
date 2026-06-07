@@ -778,6 +778,31 @@ f'''        0, SIP_NULLPTR,
 
         return self._g_instances_int(sf, mapped_type)
 
+    @staticmethod
+    def g_method_error_handler_end(sf, overload):
+        """ Generate the end of the error handling of a method. """
+
+        sf.write('            }\n')
+
+        if not is_zero_arg_slot(overload.common.py_slot):
+            sf.write('\n            sipAddException(sipError, &sipParseErr);\n')
+
+    @staticmethod
+    def g_method_error_handler_start(sf, overload, error_value):
+        """ Generate the start of the error handling of a method. """
+
+        if not is_zero_arg_slot(overload.common.py_slot):
+            sf.write(
+f'''            if (sipError == sipErrorFail)
+                return {error_value};
+
+''')
+
+        sf.write(
+'''            if (sipError == sipErrorNone)
+            {
+''')
+
     def g_mixin_support(self, sf, klass):
         """ Generate the support for mixins. """
 
@@ -1902,6 +1927,12 @@ void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWra
         """ Return True if custom enums are supported. """
 
         return self.spec.target_abi[0] < 13
+
+    @staticmethod
+    def get_add_exception_call(error_state):
+        """ Return a call to sipAddException(). """
+
+        return f'sipAddException({error_state}, sipParseErr)'
 
     def get_enum_to_py_conversion(self, enum, value_name):
         """ Return the code to convert a C/C++ enum to a Python object. """

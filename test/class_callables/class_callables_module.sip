@@ -121,6 +121,17 @@ class Klass
 {
 public:
     Klass();
+    Klass(int v);
+%MethodCode
+        PyErr_SetString(PyExc_ValueError, "bad ctor");
+        sipError = sipErrorFail;
+%End
+
+    void error_method();
+%MethodCode
+        PyErr_SetString(PyExc_ValueError, "bad method");
+        sipError = sipErrorFail;
+%End
 
     static int get_s_attr_int();
     static void set_s_attr_int(int value);
