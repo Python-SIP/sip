@@ -734,7 +734,7 @@ class ParserManager:
         # See if the function is a non-lazy method.  These are methods that
         # Python expects to see defined in the type before any instance of the
         # type is created.
-        if self.scope is not None:
+        if self.scope is not None and self.target_major_abi < 14:
             NONLAZY_METHOD_NAMES = (
                 '__getattribute__',
                 '__getattr__',

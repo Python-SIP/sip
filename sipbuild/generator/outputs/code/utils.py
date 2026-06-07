@@ -18,35 +18,6 @@ def callable_overloads(member, overloads):
             yield overload
 
 
-def get_class_flags(spec, klass, py_debug):
-    """ Return the flags for a class. """
-
-    module = spec.module
-    flags = []
-
-    if klass.is_abstract:
-        flags.append('SIP_TYPE_ABSTRACT')
-
-    if klass.subclass_base is not None:
-        flags.append('SIP_TYPE_SCC')
-
-    if klass.handles_none:
-        flags.append('SIP_TYPE_ALLOW_NONE')
-
-    if klass.has_nonlazy_method:
-        flags.append('SIP_TYPE_NONLAZY')
-
-    if module.call_super_init:
-        flags.append('SIP_TYPE_SUPER_INIT')
-
-    if not py_debug and module.use_limited_api:
-        flags.append('SIP_TYPE_LIMITED_API')
-
-    flags.append('SIP_TYPE_NAMESPACE' if klass.iface_file.type is IfaceFileType.NAMESPACE else 'SIP_TYPE_CLASS')
-
-    return '|'.join(flags)
-
-
 def get_class_from_void(spec, klass):
     """ Return an assignment statement from a void * variable to a class
     instance variable.

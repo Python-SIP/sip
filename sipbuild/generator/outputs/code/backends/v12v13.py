@@ -18,8 +18,8 @@ from ...formatters import fmt_argument_as_cpp_type, fmt_argument_as_name
 from ..snippets import (g_argument_variable, g_call_args, g_ctor_type_hint,
         g_delete_temporaries, g_function_body, g_overload_type_hint,
         g_type_init_body, g_static_function)
-from ..utils import (callable_overloads, get_class_flags, get_class_from_void,
-        get_const_cast, get_docstring_text, get_encoded_type, get_enum_member,
+from ..utils import (callable_overloads, get_class_from_void, get_const_cast,
+        get_docstring_text, get_encoded_type, get_enum_member,
         get_function_table, get_mapped_type_flags, get_method_table,
         get_named_value_decl, get_normalised_cached_name, get_optional_ptr,
         get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
@@ -1602,7 +1602,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
             base_fields.append('SIP_NULLPTR')
 
         base_fields.append('SIP_NULLPTR')
-        base_fields.append(get_class_flags(spec, klass, py_debug))
+        base_fields.append(_get_class_flags(module, klass, py_debug))
         base_fields.append(_get_cached_name_ref(klass.iface_file.cpp_name,
                 as_nr=True))
         base_fields.append('SIP_NULLPTR')
@@ -4437,6 +4437,34 @@ def _get_cached_name_ref(cached_name, as_nr=False):
     prefix = 'sipNameNr_' if as_nr else 'sipName_'
 
     return prefix + get_normalised_cached_name(cached_name)
+
+
+def _get_class_flags(module, klass, py_debug):
+    """ Return the flags for a class. """
+
+    flags = []
+
+    if klass.is_abstract:
+        flags.append('SIP_TYPE_ABSTRACT')
+
+    if klass.subclass_base is not None:
+        flags.append('SIP_TYPE_SCC')
+
+    if klass.handles_none:
+        flags.append('SIP_TYPE_ALLOW_NONE')
+
+    if klass.has_nonlazy_method:
+        flags.append('SIP_TYPE_NONLAZY')
+
+    if module.call_super_init:
+        flags.append('SIP_TYPE_SUPER_INIT')
+
+    if not py_debug and module.use_limited_api:
+        flags.append('SIP_TYPE_LIMITED_API')
+
+    flags.append('SIP_TYPE_NAMESPACE' if klass.iface_file.type is IfaceFileType.NAMESPACE else 'SIP_TYPE_CLASS')
+
+    return '|'.join(flags)
 
 
 def _get_encoding(type):

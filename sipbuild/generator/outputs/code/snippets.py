@@ -1593,7 +1593,7 @@ f'''static int clear_{as_word}(void *sipCppV)
 
         sf.write('\n\n')
 
-        if not py_debug and spec.module.use_limited_api:
+        if not py_debug and spec.module.use_limited_api and spec.target_abi < (14, 0):
             if not spec.c_bindings:
                 sf.write(f'extern "C" {{static int getbuffer_{as_word}(PyObject *, void *, sipBufferDef *);}}\n')
 
@@ -1624,7 +1624,7 @@ f'''static int clear_{as_word}(void *sipCppV)
 
         sf.write('\n\n')
 
-        if not py_debug and spec.module.use_limited_api:
+        if not py_debug and spec.module.use_limited_api and spec.target_abi < (14, 0):
             if not spec.c_bindings:
                 sf.write(f'extern "C" {{static void releasebuffer_{as_word}(PyObject *, void *);}}\n')
 
