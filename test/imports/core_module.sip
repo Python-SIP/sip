@@ -6,13 +6,18 @@
 
 %ModuleCode
 class ExternalClass;
-
 ExternalClass *get_external() {return 0;}
+
+class UndefinedExternalClass;
+void check_undefined(const UndefinedExternalClass *u) {(void)u;}
 %End
 
 
 class ExternalClass /External/;
 ExternalClass *get_external();
+
+class UndefinedExternalClass /External/;
+void check_undefined(const UndefinedExternalClass *u);
 
 class BaseClass
 {

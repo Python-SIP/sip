@@ -5970,6 +5970,7 @@ static PyObject *convertToSequence(void *array, Py_ssize_t nr_elem,
         {
             release(el, td, 0);
             Py_DECREF(seq);
+            return NULL;
         }
 
         PyTuple_SET_ITEM(seq, i, el_obj);

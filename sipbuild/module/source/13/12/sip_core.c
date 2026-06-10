@@ -3962,7 +3962,7 @@ static int parsePass1(PyObject **parseErrp, PyObject **selfp, int *selfargp,
                 else
                     va_arg(va, int *);
 
-                if (sipTypeNeedsUserState(td))
+                if (td != NULL && sipTypeNeedsUserState(td))
                     va_arg(va, void **);
 
                 if (arg != NULL && !sip_api_can_convert_to_type(arg, td, iflgs))
@@ -5258,6 +5258,7 @@ static PyObject *convertToSequence(void *array, Py_ssize_t nr_elem,
         {
             release(el, td, 0, NULL);
             Py_DECREF(seq);
+            return NULL;
         }
 
         PyTuple_SET_ITEM(seq, i, el_obj);
