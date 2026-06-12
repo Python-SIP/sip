@@ -16,4 +16,4 @@ void throwException()
 %End
 
 
-void throwException();
+void throwException() /ReleaseGIL/;

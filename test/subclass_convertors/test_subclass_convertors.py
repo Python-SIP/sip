@@ -20,3 +20,9 @@ def test_imported_module(package):
     obj.init_instance()
 
     assert isinstance(obj.get_instance(), package.extras_module.Subclass2)
+
+def test_needs_cast(package):
+    obj = package.extras_module.Subclass4()
+    obj.init_instance()
+
+    assert isinstance(obj.get_instance(), package.extras_module.Subclass4)

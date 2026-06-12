@@ -729,7 +729,7 @@ def _catch_block(backend, sf, exception, py_signature=None, release_gil=False):
     exception_fq_cpp_name = exception.iface_file.fq_cpp_name
 
     # The global scope is stripped from the exception name to be consistent
-        # with older versions of SIP.
+    # with older versions of SIP.
     exception_cpp_stripped = exception_fq_cpp_name.cpp_stripped(
                 STRIP_GLOBAL)
 
