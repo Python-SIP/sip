@@ -1370,9 +1370,9 @@ def _resolve_ctor_types(spec, scope, ctor, error_log):
             # The error has already been logged.
             continue
 
-        if not _supported_type(scope, None, arg, error_log):
+        if not _supported_type(spec, scope, None, arg, error_log):
             error_log.log(
-                    "argument {0} of ctor '{1}' has an unsupported type for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
+                    "argument {0} of ctor '{1}' has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
                             arg_nr + 1, scope.iface_file.fq_cpp_name))
             continue
 
@@ -1392,7 +1392,7 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
 
         _resolve_type(spec, mod, scope, result, error_log, allow_defined=True)
 
-        if (result.type is not ArgumentType.VOID or len(result.derefs) != 0) and overload.is_virtual and not _supported_type(scope, overload, result, error_log) and overload.virtual_catcher_code is None:
+        if (result.type is not ArgumentType.VOID or len(result.derefs) != 0) and overload.is_virtual and not _supported_type(spec, scope, overload, result, error_log) and overload.virtual_catcher_code is None:
             _log_overload_error(error_log,
                     "has an unsupported virtual function return type - provide %VirtualCatcherCode",
                     overload, scope=scope)
@@ -1462,7 +1462,7 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
         if result.type is ArgumentType.NONE:
             # The error has already been logged.
             pass
-        elif not _supported_type(scope, overload, result, error_log):
+        elif not _supported_type(spec, scope, overload, result, error_log):
             if overload.cpp_signature is overload.py_signature or overload.method_code is None:
                 _log_overload_error(error_log,
                         "has an unsupported return type - provide %MethodCode and a {0} signature".format(
@@ -1489,21 +1489,21 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
         # Note signal arguments are restricted in their types because we don't
         # (yet) support handwritten code for them.
         if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-            if not _supported_type(scope, overload, arg, error_log):
+            if not _supported_type(spec, scope, overload, arg, error_log):
                 _log_overload_error(error_log,
-                        "argument {0} has an unsupported type for a Python signature".format(
+                        "argument {0} has an unsupported type and/or annotation for a Python signature".format(
                                 arg_nr + 1),
                         overload, scope=scope)
 
-        elif not _supported_type(scope, overload, arg, error_log, outputs=True):
+        elif not _supported_type(spec, scope, overload, arg, error_log, outputs=True):
             if overload.is_virtual:
                 _log_overload_error(error_log,
-                        "argument {0} has an unsupported type for a Python signature - provide a valid type, %MethodCode, %VirtualCatcherCode and a C++ signature".format(
+                        "argument {0} has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode, %VirtualCatcherCode and a C++ signature".format(
                                 arg_nr + 1),
                         overload, scope=scope)
 
             _log_overload_error(error_log,
-                    "argument {0} has an unsupported type for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
+                    "argument {0} has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
                             arg_nr + 1),
                     overload, scope=scope)
 
@@ -1611,7 +1611,7 @@ def _resolve_variable_type(spec, variable, error_log):
         else:
             set_s = " and %SetCode"
 
-        error_log.log(f"'{variable.fq_cpp_name}' has an unsupported type - provide %GetCode{set_s}")
+        error_log.log(f"'{variable.fq_cpp_name}' has an unsupported type and/or annotation - provide %GetCode{set_s}")
  
     if variable.access_code is not None:
         if spec.target_abi >= (14, 0):
@@ -1632,8 +1632,8 @@ def _resolve_variable_type(spec, variable, error_log):
             variable.scope.has_variable_handlers = True
 
 
-def _supported_type(klass, overload, arg, error_log, outputs=False):
-    """ See if a type is supported by the generated code. """
+def _supported_type(spec, klass, overload, arg, error_log, outputs=False):
+    """ See if a type and annotations are supported by the generated code. """
 
     if arg.type in _CLASS_TYPES:
         if arg.is_reference:
@@ -1672,6 +1672,9 @@ def _supported_type(klass, overload, arg, error_log, outputs=False):
             return True
 
         elif len(arg.derefs) == 1:
+            if spec.target_abi < (14, 0) and arg.disallow_none:
+                return False
+
             if outputs:
                 _default_input(arg)
             else:
