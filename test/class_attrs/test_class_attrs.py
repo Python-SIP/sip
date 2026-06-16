@@ -82,6 +82,11 @@ def test_class_attribute(module):
 
     assert klass.get_class_attr().my_attr == 10
 
+def test_class_attribute_with_code(module):
+    assert module.Klass.s_attr_with_code == 0
+    module.Klass.s_attr_with_code = 5
+    assert module.Klass.s_attr_with_code == 5
+
 def test_class_attribute_invalid(module):
     klass = module.Klass()
     value = module.Klass()

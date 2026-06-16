@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -28,7 +28,7 @@ def output_code(spec, bindings, project, buildable):
                 'sip' + module.py_name + 'cmodule.c')
 
         with CompilationUnit(source_name, "Composite module code.", module, project, buildable, sip_api_file=False) as sf:
-            g_composite_module_code(backend, sf, py_debug)
+            g_composite_module_code(backend, sf, bindings, py_debug)
     else:
         _module_code(backend, bindings, project, py_debug, buildable)
 

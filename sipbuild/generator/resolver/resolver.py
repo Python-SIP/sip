@@ -555,7 +555,6 @@ def _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
     # Move the overload to the end of the destination list.
     overload.access_specifier = AccessSpecifier.PUBLIC
     overload.common = arg_member
-    # TODO Is this necessary/used by v14?
     overload.is_global = True
 
     arg_overloads.append(overload)
@@ -1625,8 +1624,7 @@ def _resolve_variable_type(spec, variable, error_log):
         _iface_file_is_used(variable.module.used, variable_type)
 
     # Scoped variables need a handler unless they have %AccessCode.
-    if variable.access_code is None:
-        # TODO Is this specific to ABI <14?
+    if spec.target_abi < (14, 0) and variable.access_code is None:
         if variable.scope is not None and not variable.scope.is_hidden_namespace:
             variable.needs_handler = True
             variable.scope.has_variable_handlers = True

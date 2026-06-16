@@ -19,6 +19,8 @@ public:
     static int s_attr;
     static int get_s_attr() {return s_attr;}
 
+    static int s_attr_with_code;
+
     int attr;
     int get_attr() {return attr;}
 
@@ -30,6 +32,7 @@ public:
 
 %ModuleCode
 int Klass::s_attr = 0;
+int Klass::s_attr_with_code = 0;
 %End
 
 
@@ -46,6 +49,19 @@ public:
 
     static int s_attr;
     static int get_s_attr();
+
+    static int s_attr_with_code
+    {
+        %GetCode
+            sipPy = PyLong_FromLong(Klass::s_attr_with_code);
+        %End
+        %SetCode
+            Klass::s_attr_with_code = PyLong_AsLong(sipPy);
+
+            if (PyErr_Occurred())
+                sipErr = 1;
+        %End
+    };
 
     int attr;
     int get_attr();

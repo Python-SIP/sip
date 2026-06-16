@@ -110,13 +110,6 @@ def template_expansions(template_names, instantiation_values,
     used in a particular instantiation.
     """
 
-    # TODO: This is broken (or possibly just over-complicated).  The
-    # declaration of template parameters is used for two purposes: firstly to
-    # allow real types to be used to distinguish between overloaded templates;
-    # secondly to define the names of the parameters that will be replaced by
-    # values provided at instantiation.  It's possible that only the latter
-    # will ever be expanded.
-
     expansions = {}
 
     for arg_nr, name_arg in enumerate(template_names.args):

@@ -25,13 +25,13 @@ from .utils import (get_class_from_void, get_const_cast,
         get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
         get_optional_ptr, get_type_from_void, get_use_in_code,
         get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
-        is_string, is_used_in_code, keep_py_reference, need_dealloc,
-        need_error_flag, py_scope, pyqt5_supported, pyqt6_supported,
-        release_gil, scoped_class_name, skip_overload, type_needs_user_state,
-        variables_in_scope)
+        is_string, is_used_in_code, keep_py_reference, module_classes,
+        need_dealloc, need_error_flag, py_scope, pyqt5_supported,
+        pyqt6_supported, release_gil, scoped_class_name, skip_overload,
+        type_needs_user_state, variables_in_scope)
 
 
-def g_composite_module_code(backend, sf, py_debug):
+def g_composite_module_code(backend, sf, bindings, py_debug):
     """ Generate the code for a composite module. """
 
     spec = backend.spec
@@ -71,7 +71,7 @@ PyDoc_STRVAR(doc_mod_{module.py_name}, "{get_docstring_text(module.docstring)}")
 ''')
 
     backend.g_module_init_start(sf)
-    backend.g_module_definition(sf)
+    backend.g_module_definition(sf, bindings)
 
     sf.write(
 '''
@@ -175,8 +175,8 @@ def g_module_code(backend, sf, bindings, project, py_debug, buildable):
             has_slot_extenders = True
 
     # Generate the global functions for any hidden namespaces.
-    for klass in spec.classes:
-        if klass.iface_file.module is module and klass.is_hidden_namespace:
+    for klass in module_classes(spec):
+        if klass.is_hidden_namespace:
             for member in klass.members:
                 if member.py_slot is None:
                     g_static_function(backend, sf, bindings, member,
@@ -237,21 +237,10 @@ static sipTypedef{backend.get_spec_suffix()} typedefsTable[] = {{
                 continue
 
             cpp_name = typedef.fq_cpp_name.cpp_stripped(STRIP_GLOBAL)
+            cpp_type = fmt_argument_as_cpp_type(spec, typedef.type,
+                    strip=STRIP_GLOBAL, use_typename=False)
 
-            sf.write(f'    {{"{cpp_name}", "')
-
-            # The default behaviour isn't right in a couple of cases.
-            # TODO: is this still true?
-            if typedef.type.type is ArgumentType.LONGLONG:
-                sf.write('long long')
-            elif typedef.type.type is ArgumentType.ULONGLONG:
-                sf.write('unsigned long long')
-            else:
-                sf.write(
-                        fmt_argument_as_cpp_type(spec, typedef.type,
-                                strip=STRIP_GLOBAL, use_typename=False))
-
-            sf.write('"},\n')
+            sf.write(f'    {{"{cpp_name}", "{cpp_type}"}},\n')
 
         sf.write('};\n')
 
@@ -378,7 +367,6 @@ f'''#ifndef _{module_name}API_H
 
     _module_api(backend, sf, bindings)
 
-    # TODO Move to the backend when everything else gets moved.
     if spec.target_abi < (14, 0):
         sf.write(
 f'''
@@ -1113,14 +1101,10 @@ def _subclass_convertors(backend, sf):
     """
 
     spec = backend.spec
-    module = spec.module
 
     nr_subclass_convertors = 0
 
-    for klass in spec.classes:
-        if klass.iface_file.module is not module:
-            continue
-
+    for klass in module_classes(spec):
         if klass.convert_to_subclass_code is None:
             continue
 
@@ -3119,9 +3103,7 @@ def _imported_module_api(backend, sf, imported_module):
         iface_file = exception.iface_file
 
         if iface_file.module is imported_module and exception.exception_nr >= 0:
-            # TODO ABI v14 will get the exception directly from the imported
-            # module's state (possibly via an API call) rather than keeping a
-            # reference to the Python object.
+            # Note that we don't get this far with ABI v14.
             sf.write(f'\n#define sipException_{iface_file.fq_cpp_name.as_word} sipImportedExceptions_{module_name}_{iface_file.module.py_name}[{exception.exception_nr}].iexc_object\n')
 
     _enum_macros(backend, sf, imported_module=imported_module)
@@ -3681,7 +3663,6 @@ f'''            if ({value_name} == SIP_NULLPTR)
 ''')
 
     elif value.type in (ArgumentType.BOOL, ArgumentType.CBOOL):
-        # TODO v14 and C uses _Bool.
         sf.write(f'            {action} PyBool_FromLong({value_name});\n')
 
     elif value.type in (ArgumentType.BYTE, ArgumentType.SBYTE, ArgumentType.SHORT, ArgumentType.INT, ArgumentType.CINT, ArgumentType.LONG):

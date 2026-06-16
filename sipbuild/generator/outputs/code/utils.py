@@ -11,7 +11,7 @@ from ..formatters import fmt_argument_as_cpp_type, fmt_class_as_scoped_name
 
 
 def callable_overloads(member, overloads):
-    """ An iterator over the non-private and non-signal overloads. """
+    """ A generator of the non-private and non-signal overloads. """
 
     for overload in overloads:
         if overload.common is member and overload.access_specifier is not AccessSpecifier.PRIVATE and overload.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
@@ -344,6 +344,16 @@ def keep_py_reference(spec, arg):
     # wchar_t strings/arrays don't leak in ABI v14 and later.  Note that
     # this solution could be adopted for earlier ABIs.
     return spec.target_abi >= (14, 0) and arg.type is ArgumentType.WSTRING
+
+
+def module_classes(spec):
+    """ A generator of the classes defined in the module being generated. """
+
+    module = spec.module
+
+    for klass in spec.classes:
+        if klass.iface_file.module is module:
+            yield klass
 
 
 def need_dealloc(spec, bindings, klass):

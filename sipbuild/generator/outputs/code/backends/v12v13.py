@@ -24,9 +24,9 @@ from ..utils import (callable_overloads, get_class_from_void, get_const_cast,
         get_named_value_decl, get_normalised_cached_name, get_optional_ptr,
         get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
         has_method_docstring, is_string, is_used_in_code, keep_py_reference,
-        need_dealloc, py_scope, pyqt5_supported, pyqt6_supported,
-        scoped_class_name, scoped_variable_name, type_needs_user_state,
-        variables_in_scope)
+        module_classes, need_dealloc, py_scope, pyqt5_supported,
+        pyqt6_supported, scoped_class_name, scoped_variable_name,
+        type_needs_user_state, variables_in_scope)
 
 from .abstract_backend import AbstractBackend
 
@@ -146,7 +146,6 @@ f'''    if (targetType == {sc_type_ref})
         sf.write('    sipInstanceDestroyedEx(&sipPySelf);\n')
 
     def g_create_wrapped_module(self, sf, bindings,
-        # TODO These will probably be generated here at some point.
         name_cache_state,
         has_external,
         enums_state,
@@ -310,7 +309,8 @@ const sipAPIDef *sipAPI_{module_name};
         self.g_module_init_start(sf)
         has_module_functions = self._g_module_functions_table(sf, bindings,
                 module)
-        self.g_module_definition(sf, has_module_functions=has_module_functions)
+        self.g_module_definition(sf, bindings,
+                has_module_functions=has_module_functions)
         self._g_module_init_body(sf)
 
         return name_cache_state
@@ -823,7 +823,7 @@ f'''static int mixin_{klass_name}(PyObject *sipSelf, PyObject *sipArgs, PyObject
 }}
 ''')
 
-    def g_module_definition(self, sf, has_module_functions=False):
+    def g_module_definition(self, sf, bindings, has_module_functions=False):
         """ Generate the module definition structure. """
 
         module = self.spec.module
@@ -1457,10 +1457,7 @@ f'''
 static sipSubClassConvertorDef convertorsTable[] = {
 ''')
 
-        for klass in spec.classes:
-            if klass.iface_file.module is not module:
-                continue
-
+        for klass in module_classes(spec):
             if klass.convert_to_subclass_code is None:
                 continue
 
@@ -2996,7 +2993,7 @@ f'''    if (sipVal == SIP_NULLPTR)
         if not need_sip_cpp:
             first_arg = ''
 
-        last_arg = 'sipPySelf' if spec.c_bindings or (not variable.is_static and keep) else ''
+        last_arg = 'sipPySelf' if spec.c_bindings or variable.is_static or keep else ''
 
         sip_py = 'sipPy' if spec.c_bindings or variable.set_code is None or is_used_in_code(variable.set_code, 'sipPy') else ''
         variable_as_word = variable.fq_cpp_name.as_word

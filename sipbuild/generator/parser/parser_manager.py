@@ -9,6 +9,7 @@ import os
 from ...exceptions import deprecated, UserException
 from ...module import get_latest_version
 from ...py_versions import DEFAULT_ABI_MAJOR
+from ...sip_module_configuration import SipModuleConfiguration
 
 from ..bindings_configuration import get_bindings_configuration
 from ..error_log import ErrorLog
@@ -653,12 +654,21 @@ class ParserManager:
         w_enum.no_scope = annotations.get('NoScope', False)
         w_enum.no_type_hint = annotations.get('NoTypeHint', False)
 
+        # Check the member name if it is going to be visible in the current
+        # scope.
+        members_visible = False
+
+        if cpp_name is None:
+            members_visible = True
+        elif not is_scoped:
+            if self.target_major_abi == 12:
+                members_visible = True
+            elif self.target_major_abi >= 14 and SipModuleConfiguration.CustomEnums in self.spec.sip_module_configuration:
+                members_visible = True
+
         # Create the members.
         for m_cpp_name, m_py_name, m_no_type_hint in members:
-            # Check the member name if it is going to be visible in the current
-            # scope.
-            # TODO Also check for ABI v14 and custom enums.
-            if cpp_name is None or (self.target_major_abi == 12 and not is_scoped):
+            if members_visible:
                 self.check_attributes(p, symbol, m_py_name.name,
                         "an enum member")
 
