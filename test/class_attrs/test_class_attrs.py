@@ -74,13 +74,63 @@ def test_attribute_is_instance_attribute(module):
     with pytest.raises(AttributeError):
         module.Klass.attr
 
-def test_class_attribute(module):
+def test_instance_attribute(module):
     klass = module.Klass()
     value = module.Value()
     value.my_attr = 10
     klass.class_attr = value
 
     assert klass.get_class_attr().my_attr == 10
+
+def test_value_attribute(module):
+    # This tests (probably unexpected) behaviour as explained in the following
+    # comments.
+    klass = module.Klass()
+
+    # The 'value' object is cached and will always be returned on future gets
+    # of the attribute.  It wraps the address of the underlying value so it
+    # will reflect changes made internally by the library being wrapped.  It
+    # also means that new Python-specific attributes added to 'value' will be
+    # retained.
+    value = klass.value_attr
+
+    assert value.get_value() == 0
+
+    # Set a new Python-specific attribute.
+    value.py_attr = 10
+
+    # Remove our explicit reference to the value object.
+    del value
+
+    # Create a new value object with a different Python-specific attribute than
+    # before.
+    new_value = module.Value(50)
+    new_value.py_attr = 500
+
+    # Set the new value.
+    klass.value_attr = new_value
+
+    # Get the value.
+    value = klass.value_attr
+
+    # This shows that the new value object isn't simply being returned.
+    assert value is not new_value
+
+    # This shows that the new value was copied to the wrapped attribute.
+    assert value.get_value() == 50
+
+    # This shows that the value object is the original one with the original
+    # Python-specific attribute rather than the newer attribute as might be
+    # expected.  There are a number of potential solutions to this:
+    # 1. Replace the original cached object with the new one when it is set.
+    #    The problem is that it doesn't wrap the same C/C++ instance.
+    # 2. Stop caching the value object meaning that Python-specific attributes
+    #    will be lost.
+    # 3. Update the cached object so that it has the same Python-specific
+    #    attributes as the new one.
+    # For now we stick with the existing behaviour as any change would not be
+    # backwards compatible (and may be the best compromise anyway).
+    assert value.py_attr == 10
 
 def test_class_attribute_with_code(module):
     assert module.Klass.s_attr_with_code == 0

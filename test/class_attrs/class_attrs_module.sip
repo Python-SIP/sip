@@ -8,7 +8,12 @@
 class Value
 {
 public:
-    Value() {}
+    Value(int v = 0) : m_value(v) {}
+
+    int get_value() const {return m_value;}
+
+private:
+    int m_value;
 };
 
 class Klass
@@ -26,6 +31,8 @@ public:
 
     Value *class_attr;
     Value *get_class_attr() const {return class_attr;}
+
+    Value value_attr;
 };
 %End
 
@@ -39,7 +46,9 @@ int Klass::s_attr_with_code = 0;
 class Value
 {
 public:
-    Value();
+    Value(int v = 0);
+
+    int get_value() const;
 };
 
 class Klass
@@ -68,4 +77,6 @@ public:
 
     Value *class_attr;
     Value *get_class_attr() const;
+
+    Value value_attr;
 };

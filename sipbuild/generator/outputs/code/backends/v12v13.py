@@ -2721,7 +2721,9 @@ f'''    if ((sipAPI_{module_name} = sip_init_library(sipModuleDict)) == SIP_NULL
         # memory, ie. the variable itself, that is managed by the former).
         # Therefore the Python object wrapping the variable must keep a
         # reference to the Python object wrapping the containing class (but
-        # only if the latter is non-static).
+        # only if the latter is non-static).  However this can result in some
+        # surprising behaviour which is best illustrated by an example (see the
+        # 'tests/class_attrs/test_class_attrs.py::test_value_attribute' test).
         var_key = self_key = 0
 
         if variable_type is ArgumentType.CLASS and len(variable.type.derefs) == 0 and not variable.type.is_const:
