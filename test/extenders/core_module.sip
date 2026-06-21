@@ -1,7 +1,8 @@
 // The SIP implementation of the core_module test module.
 
 
-%Module(name=extenders.core_module)
+%Module(name=extenders.core_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

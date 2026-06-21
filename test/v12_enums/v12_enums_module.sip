@@ -1,7 +1,8 @@
 // The SIP implementation of the v12_enums_module test module.
 
 
-%Module(name=v12_enums_module)
+%Module(name=v12_enums_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 %SipModuleConfiguration {CustomEnums}
 

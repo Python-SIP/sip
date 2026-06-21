@@ -1,7 +1,8 @@
 // The SIP implementation of the extras2_module test module.
 
 
-%Module(name=extenders.extras2_module)
+%Module(name=extenders.extras2_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 %Import core_module.sip
 

@@ -1,7 +1,8 @@
 // The SIP implementation of the arg_parser_module test module.
 
 
-%Module(name=arg_parser_module)
+%Module(name=arg_parser_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

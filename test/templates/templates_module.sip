@@ -1,7 +1,8 @@
 // The SIP implementation of the templates_module test module.
 
 
-%Module(name=templates_module)
+%Module(name=templates_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

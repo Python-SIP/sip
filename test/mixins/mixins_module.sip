@@ -1,7 +1,9 @@
 // The SIP implementation of the mixins_module test module.
 
 
-%Module(name=mixins_module, call_super_init=True, keyword_arguments="Optional")
+%Module(name=mixins_module, call_super_init=True, keyword_arguments="Optional",
+        gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

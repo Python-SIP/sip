@@ -1,7 +1,8 @@
 // The SIP implementation of the buffer_protocol_module test module.
 
 
-%Module(name=buffer_protocol_module)
+%Module(name=buffer_protocol_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

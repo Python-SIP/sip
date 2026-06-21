@@ -1,7 +1,8 @@
 // The SIP implementation of the py_properties_module test module.
 
 
-%Module(name=py_properties_module)
+%Module(name=py_properties_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

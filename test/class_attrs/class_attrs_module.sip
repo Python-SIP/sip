@@ -1,7 +1,8 @@
 // The SIP implementation of the class_attrs_module test module.
 
 
-%Module(name=class_attrs_module)
+%Module(name=class_attrs_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

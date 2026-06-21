@@ -1,7 +1,8 @@
 // The SIP implementation of the namespaces_module test module.
 
 
-%Module(name=namespaces_module)
+%Module(name=namespaces_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

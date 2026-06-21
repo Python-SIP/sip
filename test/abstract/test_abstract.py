@@ -6,6 +6,19 @@
 import pytest
 
 
+# This is the first test in the entire suite.
+def test_free_threading(module, abi_version):
+    import sys
+
+    if hasattr(sys.flags, 'gil') and not sys.flags.gil:
+        # The interpreter supports free threading.
+        if abi_version >= 14:
+            # Check that the GIL hasn't been enabled.
+            assert not sys._is_gil_enabled()
+        else:
+            # Check that the GIL has been enabled.
+            assert sys._is_gil_enabled()
+
 def test_abstract_instantiation(module):
     with pytest.raises(TypeError):
         module.AbstractBaseClass()

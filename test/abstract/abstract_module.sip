@@ -1,7 +1,8 @@
 // The SIP implementation of the abstract_module test module.
 
 
-%Module(name=abstract_module)
+%Module(name=abstract_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

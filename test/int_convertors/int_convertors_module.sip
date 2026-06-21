@@ -1,7 +1,8 @@
 // The SIP implementation of the int_convertors_module tets module.
 
 
-%Module(name=int_convertors_module)
+%Module(name=int_convertors_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %PostInitialisationCode

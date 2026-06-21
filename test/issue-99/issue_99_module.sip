@@ -3,7 +3,8 @@
 // behaviour once built.
 
 
-%Module(name=issue_99_module)
+%Module(name=issue_99_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

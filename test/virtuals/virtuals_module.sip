@@ -1,7 +1,8 @@
 // The SIP implementation of the virtuals_module test module.
 
 
-%Module(name=virtuals_module)
+%Module(name=virtuals_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

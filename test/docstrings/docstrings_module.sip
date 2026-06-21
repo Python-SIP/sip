@@ -3,7 +3,8 @@
 
 %DefaultDocstringFormat "deindented"
 
-%Module(name=docstrings_module)
+%Module(name=docstrings_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 {
 %Docstring
 Module

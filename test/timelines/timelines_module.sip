@@ -1,7 +1,8 @@
 // The SIP implementation of the timelines_module test module.
 
 
-%Module(name=timelines_module)
+%Module(name=timelines_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %Timeline {v1 v2 v3}

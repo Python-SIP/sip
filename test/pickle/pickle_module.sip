@@ -1,7 +1,8 @@
 // The SIP implementation of the pickle_module test module.
 
 
-%Module(name=pickle_module)
+%Module(name=pickle_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

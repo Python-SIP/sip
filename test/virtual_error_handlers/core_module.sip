@@ -2,7 +2,8 @@
 
 
 %Module(name=virtual_error_handlers.core_module,
-        default_VirtualErrorHandler=default)
+        default_VirtualErrorHandler=default, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %VirtualErrorHandler(name=default)

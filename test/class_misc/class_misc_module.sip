@@ -1,7 +1,8 @@
 // The SIP implementation of the class_misc_module test module.
 
 
-%Module(name=class_misc_module)
+%Module(name=class_misc_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ModuleHeaderCode

@@ -1,7 +1,8 @@
 // The SIP implementation of the movable_module test module.
 
 
-%Module(name=movable_module)
+%Module(name=movable_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 template <TYPE>

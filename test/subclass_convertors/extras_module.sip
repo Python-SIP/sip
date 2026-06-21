@@ -1,7 +1,8 @@
 // The SIP implementation of the extras_module test module.
 
 
-%Module(name=subclass_convertors.extras_module)
+%Module(name=subclass_convertors.extras_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 %Import core_module.sip
 

@@ -1,7 +1,8 @@
 // The SIP implementation of the template_typedef_module test module.
 
 
-%Module(name=template_typedef_module)
+%Module(name=template_typedef_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %ExportedHeaderCode

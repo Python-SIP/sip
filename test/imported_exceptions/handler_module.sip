@@ -1,7 +1,8 @@
 // The SIP implementation of the handler_module test module.
 
 
-%Module(name=imported_exceptions.handler_module)
+%Module(name=imported_exceptions.handler_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 
 %Exception std::exception(SIP_Exception) /PyName=StdException, Default/

@@ -1,7 +1,8 @@
 // The SIP implementation of the v13_enums_module test module.
 
 
-%Module(name=v13_enums_module)
+%Module(name=v13_enums_module, gil_use="NotUsed",
+        multi_interpreter_support="PerInterpreterGILSupported")
 
 %SipModuleConfiguration {PyEnums}
 
