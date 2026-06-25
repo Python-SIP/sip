@@ -875,7 +875,9 @@ class Project(AbstractProject, Configurable):
     def _remove_build_dir(self):
         """ Remove the build directory. """
 
-        self._temp_build_dir = None
+        if self._temp_build_dir is not None:
+            self._temp_build_dir.cleanup()
+            self._temp_build_dir = None
 
     def _set_initial_configuration(self, pyproject, tool):
         """ Set the project's initial configuration. """
