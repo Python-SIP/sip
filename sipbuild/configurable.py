@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from packaging.markers import Marker
@@ -24,11 +24,6 @@ class Configurable:
             options = self.get_options()
 
         for option in options:
-            # If it has already been set explicitly then the user cannot change
-            # it.
-            if getattr(self, option.name) is not None:
-                continue
-
             # If there is no help then the user can never specify it.
             if option.help is None:
                 continue
