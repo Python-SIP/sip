@@ -33,20 +33,20 @@ class BuildableFromSources(Buildable):
     etc.
     """
 
-    def __init__(self, project, name, target, *, uses_limited_api=False):
+    def __init__(self, project, name, target, *, uses_limited_api=False,
+            gil_disabled=False):
         """ Initialise the buildable. """
 
         super().__init__(project, name)
 
-        if project.py_debug:
-            uses_limited_api = False
-        elif uses_limited_api and not project.sip_module:
+        if uses_limited_api and not project.sip_module:
             raise UserException(
                     "{0} cannot use the limited API without using a shared "
                     "'sip' module".format(name))
 
         self.target = target
         self.uses_limited_api = uses_limited_api
+        self.gil_disabled = gil_disabled
 
         self.define_macros = []
         self.sources = []
@@ -60,9 +60,14 @@ class BuildableFromSources(Buildable):
         self.debug = False
 
         if self.uses_limited_api:
-            # Force v3.15 for ABI v14.
-            limited_api = '0x030f0000' if project.target_abi >= (14, 0) else project.limited_abi_version_str
-            self.define_macros.append('Py_LIMITED_API=' + limited_api)
+            major, minor, micro = project.limited_abi_version
+            hex_version = '0x{0:02x}{1:02x}{2:02x}00'.format(major, minor,
+                    micro)
+
+            self.define_macros.append('Py_LIMITED_API=' + hex_version)
+
+            if self.gil_disabled:
+                self.define_macros.append('Py_TARGET_ABI3T=' + hex_version)
 
     def make_names_relative(self):
         """ Make all file and directory names relative to the build directory.
@@ -108,11 +113,12 @@ class BuildableExecutable(BuildableFromSources):
 class BuildableModule(BuildableFromSources):
     """ Encapsulate the sources used to build an extension module. """
 
-    def __init__(self, project, name, fq_name, *, uses_limited_api=False):
+    def __init__(self, project, name, fq_name, *, uses_limited_api=False,
+            gil_disabled=False):
         """ Initialise the sources. """
 
         super().__init__(project, name, fq_name.split('.')[-1],
-                uses_limited_api=uses_limited_api)
+                uses_limited_api=uses_limited_api, gil_disabled=gil_disabled)
 
         self.fq_name = fq_name
 
@@ -134,9 +140,16 @@ class BuildableModule(BuildableFromSources):
 
         from importlib.machinery import EXTENSION_SUFFIXES
 
-        if self.uses_limited_api:
+        if self.gil_disabled:
+            target = '.abi3t'
+        elif self.uses_limited_api:
+            target = '.abi3'
+        else:
+            target = None
+
+        if target:
             for s in EXTENSION_SUFFIXES:
-                if '.abi3' in s:
+                if target in s:
                     return s
 
         return EXTENSION_SUFFIXES[0]
@@ -147,11 +160,12 @@ class BuildableBindings(BuildableModule):
     bindings.
     """
 
-    def __init__(self, bindings, fq_name, *, uses_limited_api=False):
+    def __init__(self, bindings, fq_name, *, uses_limited_api=False,
+            gil_disabled=False):
         """ Initialise the sources. """
 
         super().__init__(bindings.project, fq_name.split('.')[-1], fq_name,
-                uses_limited_api=uses_limited_api)
+                uses_limited_api=uses_limited_api, gil_disabled=gil_disabled)
 
         self.bindings = bindings
 

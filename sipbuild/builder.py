@@ -130,12 +130,19 @@ class Builder(AbstractBuilder):
         # wheel does.
         wheel_tag = []
 
-        if project.all_modules_use_limited_abi:
+        all_use_limited_api, all_have_gil_disabled = project.all_modules_summary
+
+        if all_use_limited_api:
             # When the ABI tag is 'abi3' the interpreter tag is interpreted as
             # a minimum Python version.  This doesn't seem to be defined in a
             # PEP but is implemented in current pips.
-            wheel_tag.append('cp3' + str(OLDEST_SUPPORTED_MINOR))
-            wheel_tag.append('abi3')
+            major, minor, _ = project.limited_abi_version
+            wheel_tag.append(f'cp{major}{minor}')
+
+            if all_have_gil_disabled:
+                wheel_tag.append('abi3.abi3t')
+            else:
+                wheel_tag.append('abi3')
         else:
             major_minor = '{}{}'.format((sys.hexversion >> 24) & 0xff,
                     (sys.hexversion >> 16) & 0xff)

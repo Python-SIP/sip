@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -10,6 +10,7 @@ from .buildable import BuildableBindings
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .generator import parse, resolve
+from .generator.specification import GILUse
 from .generator.outputs import (output_api, output_code, output_extract,
         output_pyi)
 from .installable import Installable
@@ -160,12 +161,13 @@ class Bindings(Configurable):
         module = spec.module
 
         uses_limited_api = module.use_limited_api or spec.is_composite
+        gil_disabled = module.gil_use is GILUse.NOT_USED or spec.is_composite
 
         # The details of things that will have been generated.  Note that we
         # don't include anything for .api files or generic extracts as the
         # arguments include a file name.
         buildable = BuildableBindings(self, module.fq_py_name.name,
-                uses_limited_api=uses_limited_api)
+                uses_limited_api=uses_limited_api, gil_disabled=gil_disabled)
 
         buildable.builder_settings.extend(self.builder_settings)
         buildable.debug = self.debug

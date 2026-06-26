@@ -168,6 +168,7 @@ class Project(AbstractProject, Configurable):
         # which case we will build against the oldest we do have.
         self.target_abi = None
         self._build_abi = None
+        self._limited_abi_version = None
 
         self._metadata_overrides = None
         self._temp_build_dir = None
@@ -175,15 +176,23 @@ class Project(AbstractProject, Configurable):
         self.initialise_options(kwargs)
 
     @property
-    def all_modules_use_limited_abi(self):
-        """ True if all modules in the project use the limited ABI. """
+    def all_modules_summary(self):
+        """ Return a 2-tuple of True if all modules use the limited ABI and
+        True if all modules disable the GIL.
+        """
+
+        uses_limited_api = True
+        gil_disabled = True
 
         for buildable in self.buildables:
             if isinstance(buildable, BuildableFromSources):
                 if not buildable.uses_limited_api:
-                    return False
+                    uses_limited_api = False
 
-        return True
+                if not buildable.gil_disabled:
+                    gil_disabled = False
+
+        return uses_limited_api, gil_disabled
 
     def apply_nonuser_defaults(self, tool):
         """ Set default values for non-user options that haven't been set yet.
@@ -374,9 +383,12 @@ class Project(AbstractProject, Configurable):
                         min_minor = user_min_minor
 
                 # Enforce a minimum macOS version for limited ABI projects.
-                if self.all_modules_use_limited_abi and (min_major, min_minor) < (MACOS_MIN_OS_MAJOR, MACOS_MIN_OS_MINOR):
-                    min_major = MACOS_MIN_OS_MAJOR
-                    min_minor = MACOS_MIN_OS_MINOR
+                if (min_major, min_minor) < (MACOS_MIN_OS_MAJOR, MACOS_MIN_OS_MINOR):
+                    all_use_limited_api, _ = self.all_modules_summary
+
+                    if all_use_limited_abi:
+                        min_major = MACOS_MIN_OS_MAJOR
+                        min_minor = MACOS_MIN_OS_MINOR
 
                 # Enforce a minimum macOS version for arm64 binaries.
                 if parts[2] == 'arm64' and min_major < 11:
@@ -900,9 +912,6 @@ class Project(AbstractProject, Configurable):
 
         self.version = version.major << 16 | version.minor << 8 | version.micro
 
-        # Get the limited ABI version string.
-        self.limited_abi_version_str = self._get_limited_abi_version_str()
-
         # Configure the project.
         self.configure(pyproject, 'tool.sip.project', tool)
 
@@ -929,8 +938,12 @@ class Project(AbstractProject, Configurable):
             bindings.configure(pyproject, 'tool.sip.bindings.' + bindings.name,
                     tool)
 
-    def _get_limited_abi_version_str(self):
-        """ Get the version of the limited ABI to be used. """
+    @property
+    def limited_abi_version(self):
+        """ Get the 3-tuple of the version of the limited ABI to be used. """
+
+        if self._limited_abi_version is not None:
+            return self._limited_abi_version
 
         try:
             # The version of the ABI to use is taken from the project metadata.
@@ -943,13 +956,18 @@ class Project(AbstractProject, Configurable):
                     spec_set.filter((f'3.{v}' for v in range(100))))
 
             min_req_version = packaging.version.parse(min_req_version)
-            limited_abi_version_str = '0x{0:02x}{1:02x}{2:02x}00'.format(
-                    min_req_version.major,
-                    min_req_version.minor,
-                    min_req_version.micro)
+            minor = min_req_version.minor
+            micro = min_req_version.micro
+
+            # ABI v14 requires Python v3.15 as a minimum.
+            if self.target_abi >= (14, 0) and minor < 15:
+                minor = 15
+                micro = 0
         except Exception as e:
             # Default to the oldest version of Python we support.
-            limited_abi_version_str = '0x03{0:02x}0000'.format(
-                    OLDEST_SUPPORTED_MINOR)
+            minor = OLDEST_SUPPORTED_MINOR
+            micro = 0
 
-        return limited_abi_version_str
+        self._limited_abi_version = (3, minor, micro)
+
+        return self._limited_abi_version

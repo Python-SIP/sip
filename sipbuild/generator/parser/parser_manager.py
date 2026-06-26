@@ -18,7 +18,7 @@ from ..python_slots import invalid_global_slot, slot_name_detail_map
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CachedName, ClassKey, CodeBlock, Constructor,
-        DocstringFormat, DocstringSignature, EnumBaseType, GILAction,
+        DocstringFormat, DocstringSignature, EnumBaseType, GILAction, GILUse,
         IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
         PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, Signature,
         SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
@@ -1940,9 +1940,12 @@ class ParserManager:
         if major_version == 13 and minor_version < 1:
             self._deprecated_target_abi(major_version, minor_version, '13.1')
 
-        # ABI v14 and later don't use plugins.
         if major_version >= 14:
+            # ABI v14 and later don't use plugins.
             self.spec.plugins = []
+        else:
+            # ABIs prior to v14 always use the GIL.
+            self.gil_use = GILUse.USED
 
         self.spec.target_abi = (major_version, minor_version)
 
