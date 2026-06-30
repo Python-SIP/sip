@@ -769,19 +769,19 @@ module, that can be used by handwritten code in specification files.
         later on.
 
 
-.. cpp:enum:: sipEventType
+.. c:enum:: sipEventType
 
     This is the enum that defines the different event types.
 
 
-.. cpp:enumerator:: sipEventWrappedInstance
+.. c:enumerator:: sipEventWrappedInstance
 
     This event is triggered whenever a C/C++ instance that is created by C/C++
     (and not by Python) is wrapped.  The handler is passed a ``void *`` which
     is the address of the C/C++ instance.
 
 
-.. cpp:enumerator:: sipEventCollectingWrapper
+.. c:enumerator:: sipEventCollectingWrapper
 
     This event is triggered whenever a Python wrapper object is being garbage
     collected.  The handler is passed a pointer to the

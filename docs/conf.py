@@ -22,7 +22,7 @@ version = 'v6.15.3'
 extensions = ['myst_parser', 'sphinx.ext.intersphinx']
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
-#templates_path = ['_templates']
+suppress_warnings = ['duplicate_declaration.c']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
