@@ -295,6 +295,16 @@ def _class(pf, spec, klass, defined, indent=0):
                     _property(pf, spec, prop, True, setter, klass.overloads,
                             defined, indent)
 
+    if klass.bi_get_buffer_code is not None:
+        s = _indent(indent)
+        s += 'def __buffer__(self, flags: int, /) -> memoryview: ...\n'
+        pf.write(s)
+
+    if klass.bi_release_buffer_code is not None:
+        s = _indent(indent)
+        s += 'def __release_buffer__(self, buffer: memoryview, /) -> None: ...\n'
+        pf.write(s)
+
     if not klass.is_hidden_namespace:
         # Keep track of what has been defined so that forward references are no
         # longer required.
