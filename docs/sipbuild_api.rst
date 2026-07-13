@@ -603,6 +603,14 @@ build systems.
 
         :return: the contents of the :file:`__init__.py` file.
 
+    .. py:method:: get_limited_abi_version()
+
+        Called by the project to get a 3-tuple of the version number of the
+        limited ABI to use.  If ``None`` is returned then the project will
+        determine the version to use from the project metadata.
+
+        :return: the version of the limited ABI to use.
+
     .. py:method:: get_metadata_overrides()
 
         Called by the project to get a mapping of `PEP 566

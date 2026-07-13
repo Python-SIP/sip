@@ -938,9 +938,22 @@ class Project(AbstractProject, Configurable):
             bindings.configure(pyproject, 'tool.sip.bindings.' + bindings.name,
                     tool)
 
+    def get_limited_abi_version(self):
+        """ Return a 3-tuple of the limited ABI version to use.  None may be
+        returned to indicate that the version should be taken from the project
+        metadata.
+        """
+
+        return None
+
     @property
     def limited_abi_version(self):
         """ Get the 3-tuple of the version of the limited ABI to be used. """
+
+        if self._limited_abi_version is not None:
+            return self._limited_abi_version
+
+        self._limited_abi_version = self.get_limited_abi_version()
 
         if self._limited_abi_version is not None:
             return self._limited_abi_version
