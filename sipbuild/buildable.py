@@ -66,7 +66,7 @@ class BuildableFromSources(Buildable):
 
             self.define_macros.append('Py_LIMITED_API=' + hex_version)
 
-            if self.gil_disabled:
+            if self.gil_disabled and (major, minor) >= (3, 15):
                 self.define_macros.append('Py_TARGET_ABI3T=' + hex_version)
 
     def make_names_relative(self):
