@@ -314,7 +314,11 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
     if hint is None and allow_none:
         is_optional = True
     else:
-        is_optional = (not arg.disallow_none and len(arg.derefs) != 0)
+        nr_derefs = len(arg.derefs)
+        if out:
+            nr_derefs -= 1
+
+        is_optional = (not arg.disallow_none and nr_derefs > 0)
 
     if arg.array is ArrayArgument.ARRAY:
         s += _sip_module_name(spec) + 'array['
