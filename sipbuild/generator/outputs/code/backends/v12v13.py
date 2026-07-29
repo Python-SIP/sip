@@ -1834,7 +1834,7 @@ sipTypeDef *sipExportedTypes_{module_name}[] = {{
             elif needed_type.type is ArgumentType.MAPPED:
                 mapped_type = needed_type.definition
 
-                sf.write(f'    &sipTypeDef_{module_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base, \n')
+                sf.write(f'    &sipTypeDef_{module_name}_{mapped_type.iface_file.fq_cpp_name.as_word}.mtd_base,\n')
 
             elif needed_type.type is ArgumentType.ENUM:
                 enum = needed_type.definition

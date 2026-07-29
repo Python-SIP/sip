@@ -93,7 +93,8 @@ def fmt_signature_as_type_hint(spec, py_signature, need_self=True,
         out_args = []
 
         if is_result:
-            type_hint = fmt_argument_as_type_hint(spec, result, defined)
+            type_hint = fmt_argument_as_type_hint(spec, result, defined,
+                    is_result=True)
             if type_hint:
                 out_args.append(type_hint)
 

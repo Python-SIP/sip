@@ -280,7 +280,7 @@ def fmt_argument_as_rest_ref(spec, arg, out, as_xml=False):
     return s
 
 
-def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
+def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
     """ Return an argument as a type hint. """
 
     if arg.array is ArrayArgument.ARRAY_SIZE:
@@ -315,13 +315,10 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
         is_optional = True
     else:
         nr_derefs = len(arg.derefs)
-        if out:
+        if out and not is_result:
             nr_derefs -= 1
 
         is_optional = (not arg.disallow_none and nr_derefs > 0)
-
-    if arg.array is ArrayArgument.ARRAY:
-        s += _sip_module_name(spec) + 'array['
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
@@ -355,9 +352,6 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1):
             type_name = type_hint_manager.as_docstring(hint, out, context)
 
     s += type_name
-
-    if arg.array is ArrayArgument.ARRAY:
-        s += ']'
 
     # See if the argument is optional.
     if arg_nr is not None and arg_nr >= 0 and arg.default_value is not None:
