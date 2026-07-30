@@ -1,8 +1,9 @@
 // Define the SIP wrapper to the (theoretical) fib library.
 
-%Module(name=fib, language="C")
+%Module(name=fib, language="C", gil_use="NotUsed",
+        multi_interpreter_support="Supported")
 
-%MinimumABIVersion "13.1"
+%MinimumABIVersion "14"
 
 int fib_n(int n);
 %MethodCode

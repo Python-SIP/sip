@@ -2,13 +2,14 @@ Introduction
 ============
 
 SIP is a tool for automatically generating `Python <https://www.python.org>`__
-bindings for C and C++ libraries.  SIP was originally developed in 1998 for
+extension modules that implement bindings for C and C++ libraries.  SIP was
+originally developed in 1998 for
 `PyQt <https://www.riverbankcomputing.com/software/pyqt>`__ - the Python
 bindings for the Qt GUI toolkit - but is suitable for generating bindings for
 any C or C++ library.  SIP can also be used write self contained extension
 modules, i.e. without a library to be wrapped.
 
-This version of SIP generates bindings for Python v3.10 and later.
+This version of SIP generates extension modules for Python v3.10 and later.
 
 SIP is hosted at `GitHub <https://github.com/Python-SIP/sip>`__.
 
@@ -25,21 +26,27 @@ SIP is licensed under the BSD 2 clause license.
 Features
 --------
 
-SIP, and the bindings it produces, have the following features:
+SIP, and the extension modules it produces, have the following features:
 
-- bindings run under Linux, Windows, macOS, Android and iOS
+- extension modules target a specific SIP :ref:`ABI version <ref-abi-versions>`
+  allowing different behaviours to be selected
 
-- bindings can be built to use the `PEP 384
+- extension modules run under Linux, Windows, macOS, Android and iOS
+
+- extension modules can be built that support multiple interpreters and free
+  threading
+
+- extension modules can be built to use the `PEP 384
   <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI so that they do not
   need to be built for each supported version of Python
 
 - an extendable, `PEP 517
   <https://www.python.org/dev/peps/pep-0517/>`__-compliant build system that
-  will build and install your bindings and create sdist and wheel files that
-  you can upload to PyPI
+  will build and install your extension modules and create sdist and wheel
+  files that you can upload to PyPI
 
-- bindings are fast to load and minimise memory consumption especially when
-  only a small sub-set of a large library is being used
+- extension modules are fast to load and minimise memory consumption especially
+  when only a small sub-set of a large library is being used
 
 - automatic conversion between standard Python and C/C++ data types
 
@@ -94,9 +101,10 @@ SIP, and the bindings it produces, have the following features:
   code is responsible for calling the instance's destructor) and how the
   ownership may change during the execution of an application
 
-- the ability to generate bindings for a C++ class library that itself is built
-  on another C++ class library which also has had bindings generated so that
-  the different bindings integrate and share code properly
+- the ability to generate extension modules for a C++ class library that itself
+  is built on another C++ class library which also has had extension modules
+  generated so that the different extension modules integrate and share code
+  properly
 
 - a sophisticated versioning system that allows the full lifetime of a C++
   class library, including any platform specific or optional features, to be
@@ -121,33 +129,34 @@ Overview
 
 At its simplest a SIP project contains a :ref:`specification file
 <ref-specification>` (:file:`.sip` file) that describes the API that the
-generated bindings will wrap, and a :file:`pyproject.toml` file that describes
-how the bindings will be built.  A specification file is very like a C/C++
-header file with embedded :ref:`directives <ref-directives>` and
-:ref:`annotations <ref-annotations>`.  The format of a :file:`pyproject.toml`
-file is described in `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__.
+generated extension modules will wrap, and a :file:`pyproject.toml` file that
+describes how the extension modules will be built.  A specification file is
+very like a C/C++ header file with embedded :ref:`directives <ref-directives>`
+and :ref:`annotations <ref-annotations>`.  The format of a
+:file:`pyproject.toml` file is described in
+`PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__.
 
 A SIP project can either be a *standalone* project or a *package* project.  A
-standalone project implements a single set of bindings (i.e. a single extension
-module) that cannot be extended by another set of bindings.  A package project
-implements one or more sets of mutually dependent bindings (i.e. one set of
-bindings will import another set of bindings).  Such bindings may be defined in
-the same project or a completely different package project (possibly with a
-different maintainer).  Often the bindings of all related package projects
-will be installed as part of a single top-level Python package.  For example,
-the whole of PyQt5 is current implemented as 6 separate package projects each
-containing between 1 and 52 sets of bindings all installed as part of the
-:mod:`PyQt5` top-level package.  However there are also 3rd-party packages that
-extend PyQt5 but are not installed in the :mod:`PyQt5` top-level package.
+standalone project implements a single extension module that cannot itself be
+extended.  A package project implements one or more sets of mutually dependent
+extension modules (i.e. one extension module may import another extension
+module).  Such extension modules may be defined in the same project or a
+completely different package project (possibly with a different maintainer).
+Often the extension modules of all related package projects will be installed
+as part of a single top-level Python package.  For example, the whole of PyQt6
+is current implemented as 7 separate package projects each containing between 1
+and 36 individual extension modules all installed as part of the :mod:`PyQt6`
+top-level package.  However there are also 3rd-party packages that extend PyQt6
+but are not installed in the :mod:`PyQt6` top-level package.
 
 SIP also generates a :mod:`sip` module which performs the following functions:
 
-- it implements a private C ABI used by the bindings of package projects that
-  allows them to interact
+- it implements a private C :ref:`ABI <ref-abi-versions>` used by the
+  extension modules of package projects that allows them to interact
 
-- it implements a public C API used by bindings authors in hand-written code in
-  situations where SIP's normal behaviour is insufficient and also when
-  embedding Python in C/C++ applications
+- it implements a public C :ref:`API <ref-c-api>` used by bindings authors in
+  hand-written code in situations where SIP's normal behaviour is insufficient
+  and also when embedding Python in C/C++ applications
 
 - it implements a public Python API used by application authors typically to
   configure the behaviour of bindings and to aid debugging.
@@ -161,7 +170,7 @@ that the module implements. Like SIP itself, this uses `semantic versioning
 <https://semver.org/spec/v2.0.0.html>`__.
 
 When used with standalone projects the :mod:`sip` module is not a separate
-module and is instead embedded in the single set of bindings.  When used with
+module and is instead part of the single extension module.  When used with
 package projects the :mod:`sip` module is a separate extension module installed
 somewhere under the top-level package.
 
@@ -205,8 +214,8 @@ SIP also includes some additional command line tools.
       uploaded to PyPI
 
     - a :file:`sip.h` header file which defines the module's ABI.  Normally you
-      do not need to worry about this file but this will install a local copy
-      of it if required
+      do not need to worry about this file as a copy it will be installed
+      automatically if required
 
     - a :file:`sip.rst` file that documents the Python API of the module for
       inclusion in your project's documentation.

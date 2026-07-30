@@ -231,7 +231,7 @@ build systems.
 :py:class:`~sipbuild.BuildableBindings`
 ---------------------------------------
 
-.. py:class:: BuildableBindings(bindings, fq_name, *, uses_limited_api=False)
+.. py:class:: BuildableBindings(bindings, fq_name, *, uses_limited_api=False, gil_disabled=False)
 
     A :py:class:`~sipbuild.BuildableModule` sub-class that encapsulates the
     Python extension module for a set of bindings.
@@ -240,6 +240,8 @@ build systems.
     :param str fq_name: is the fully qualified name of the bindings module.
     :param bool uses_limited_api: is ``True`` if the source code uses only the
         limited Python API.
+    :param bool gil_disabled: is ``True`` if the source code supports
+        free-threading.
 
     .. py:attribute:: bindings
 
@@ -249,7 +251,7 @@ build systems.
 :py:class:`~sipbuild.BuildableExecutable`
 -----------------------------------------
 
-.. py:class:: BuildableExecutable(project, name, target, *, uses_limited_api=False)
+.. py:class:: BuildableExecutable(project, name, target, *, uses_limited_api=False, gil_disabled=False)
 
     A :py:class:`~sipbuild.BuildableFromSources` sub-class that encapsulates an
     executable.
@@ -260,12 +262,14 @@ build systems.
         built.
     :param bool uses_limited_api: is ``True`` if the source code uses only the
         limited Python API.
+    :param bool gil_disabled: is ``True`` if the source code supports
+        free-threading.
 
 
 :py:class:`~sipbuild.BuildableFromSources`
 ------------------------------------------
 
-.. py:class:: BuildableFromSources(project, name, target, *, uses_limited_api=False)
+.. py:class:: BuildableFromSources(project, name, target, *, uses_limited_api=False, gil_disabled=False)
 
     A :py:class:`~sipbuild.Buildable` sub-class that encapsulates a target that
     is built from source code.
@@ -275,6 +279,8 @@ build systems.
     :param str target: is the name of the target being built.
     :param bool uses_limited_api: is ``True`` if the source code uses only the
         limited Python API.
+    :param bool gil_disabled: is ``True`` if the source code supports
+        free-threading.
 
     .. py:attribute:: debug
 
@@ -284,6 +290,10 @@ build systems.
 
         The list of ``#define`` names and values in the form ``"NAME"`` or
         ``"NAME=VALUE"``.
+
+    .. py:attribute:: gil_disabled
+
+        ``True`` if the source code supports free-threading.
 
     .. py:attribute:: headers
 
@@ -334,6 +344,8 @@ build systems.
     :param str fq_name: is the fully qualified name of the module.
     :param bool uses_limited_api: is ``True`` if the source code uses only the
         limited Python API.
+    :param bool gil_disabled: is ``True`` if the source code supports
+        free-threading.
 
     .. py:attribute:: exceptions
 

@@ -10,8 +10,13 @@ equivalent::
 
 Note that, for the build tools, the command line options described in this
 section are the standard options.  Any of these options could be removed, or
-new options added, by build system extensions including project-specific
+new options added, by build system extensions defined in project-specific
 :file:`project.py` files.
+
+.. note::
+    The descriptions of the `--abi-version` option in the following sections
+    states that the default is the latest version.  This will be ABI v13 until
+    v14 is no longer considered to be experimental.
 
 
 :program:`sip-build`
@@ -227,7 +232,7 @@ The full set of command line options is:
 
 .. option:: --sbom FILE
 
-    .. versionadded:: 6.13
+    .. version-added:: 6.13
 
     ``FILE`` is copied to the :file:`sboms` subdirectory of the
     :file:`.dist-info` directory as defined in PEP 770.  ``FILE`` may be a

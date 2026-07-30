@@ -373,37 +373,41 @@ Class Annotations
     The :c:func:`sipDelayedDtors()` function must be specified using the
     :directive:`%ModuleCode` directive.
 
-.. c:function:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
+    .. c:function:: void sipDelayedDtors(const sipDelayedDtor *dd_list)
 
-    :param dd_list:
-        the linked list of delayed instances.
+        :param dd_list:
+            the linked list of delayed instances.
 
-.. c:type:: sipDelayedDtor
+    .. c:type:: sipDelayedDtor
 
-    This structure describes a particular delayed destructor.
+        This structure describes a particular delayed destructor.
 
-    .. c:member:: const char* dd_name
+        .. c:member:: const char* dd_name
 
-        This is the name of the class excluding any package or module name.
+            This is the name of the class excluding any package or module name.
 
-    .. c:member:: void* dd_ptr
+        .. c:member:: void* dd_ptr
 
-        This is the address of the C or C++ instance to be destroyed.  It's
-        exact type depends on the value of :c:member:`dd_isderived`.
+            This is the address of the C or C++ instance to be destroyed.  It's
+            exact type depends on the value of :c:member:`dd_isderived`.
 
-    .. c:member:: int dd_isderived
+        .. c:member:: int dd_isderived
 
-        This is non-zero if the type of :c:member:`dd_ptr` is actually the
-        generated derived class.  This allows the correct destructor to be
-        called.  See :ref:`ref-derived-classes`.
+            This is non-zero if the type of :c:member:`dd_ptr` is actually the
+            generated derived class.  This allows the correct destructor to be
+            called.  See :ref:`ref-derived-classes`.
 
-    .. c:member:: sipDelayedDtor* dd_next
+        .. c:member:: sipDelayedDtor* dd_next
 
-        This is the address of the next entry in the list or zero if this is
-        the last one.
+            This is the address of the next entry in the list or zero if this is
+            the last one.
 
-    Note that the above applies only to C and C++ instances that are owned by
-    Python.
+        Note that the above applies only to C and C++ instances that are owned
+        by Python.
+
+    .. note::
+        ABI v14 does not support the concept of delayed dtors and it will
+        ignore this annotation.
 
 
 .. class-annotation:: Deprecated
@@ -436,7 +440,7 @@ Class Annotations
 
 .. class-annotation:: ExportDerivedLocally
 
-    .. versionadded:: 6.13
+    .. version-added:: 6.13
 
     This boolean annotation is similar to the :canno:`ExportDerived` class
     annotation except that the declaration of the derived class is only
@@ -480,6 +484,10 @@ Class Annotations
       arguments.
 
     - The class should not have any virtual methods.
+
+    This annotation is ignored if ABI v14 is being targeted as any wrapped
+    class can be used as a mixin.  As with older ABIs mixins are implemented by
+    composition rather than by genuine multi-inheritance.
 
 
 .. class-annotation:: NoDefaultCtors
@@ -570,7 +578,7 @@ Mapped Type Annotations
 
 .. mapped-type-annotation:: Movable
 
-    .. versionadded:: 6.11
+    .. version-added:: 6.11
 
     If a C++ instance is passed by value as an argument to a function then the
     class's assignment operator is normally used under the covers.  If the
@@ -798,9 +806,10 @@ Function Annotations
 
 .. function-annotation:: HoldGIL
 
-    This boolean annotation specifies that the Python Global Interpreter Lock
-    (GIL) is not released before the call to the underlying C or C++ function.
-    See :ref:`ref-gil` and the :fanno:`ReleaseGIL` annotation.
+    This boolean annotation specifies that the Python GIL (or the attached
+    thread state in the context of free-threading) is not released before the
+    call to the underlying C or C++ function.  See :ref:`ref-gil` and
+    the :fanno:`ReleaseGIL` annotation.
 
 
 .. function-annotation:: __imatmul__
@@ -863,6 +872,7 @@ Function Annotations
     This boolean annotation specifies that the function (which must be a
     virtual) will be executed in a new thread.
 
+    This annotation is ignored if ABI v14 is being targeted.
 
 .. function-annotation:: NoArgParser
 
@@ -979,11 +989,11 @@ Function Annotations
 
 .. function-annotation:: ReleaseGIL
 
-    This boolean annotation specifies that the Python Global Interpreter Lock
-    (GIL) is released before the call to the underlying C or C++ function and
-    reacquired afterwards.  It should be used for functions that might block or
-    take a significant amount of time to execute.  See :ref:`ref-gil` and the
-    :fanno:`HoldGIL` annotation.
+    This boolean annotation specifies that the Python GIL (or attached thread
+    state in the context of free-threading) is released before the call to the
+    underlying C or C++ function and reacquired afterwards.  It should be used
+    for functions that might block or take a significant amount of time to
+    execute.  See :ref:`ref-gil` and the :fanno:`HoldGIL` annotation.
 
 
 .. function-annotation:: Sequence

@@ -178,6 +178,13 @@ class Bindings(Configurable):
         buildable.static = self.static
         buildable.sip_module_configuration = spec.sip_module_configuration
 
+        # Each ABI version has a different minimum C++ standard.
+        if not spec.c_bindings:
+            if project.target_abi[0] >= 14:
+                buildable.cpp_standard = 'c++20'
+            elif project.target_abi[0] == 13:
+                buildable.cpp_standard = 'c++11'
+
         # Generate any API file.
         if project.api_dir and not self.internal:
             project.progress(

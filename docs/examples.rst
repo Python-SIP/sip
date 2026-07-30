@@ -45,16 +45,18 @@ entirety below.
 
 .. literalinclude:: ../examples/standalone/fib.sip
 
-The first line of interest is the :directive:`%Module` directive.  This defines
-the name of the extension module that will be created.  In the case of
+The first line of interest is the :directive:`%Module` directive.  *name*
+defines the name of the extension module that will be created.  In the case of
 standalone projects this would normally be the same as the name defined in the
-:file:`pyproject.toml` file.  It also specifies that the code being wrapped is
-implemented in C (as opposed to C++).
+:file:`pyproject.toml` file.  *language* specifies that the code being wrapped
+is implemented in C (as opposed to C++).  *gil_use* specifies that any
+handwritten code does not use the GIL.  *multi_interpreter_support* specifies
+that the extension module can be used with multiple interpreters.
 
 The next line of interest is the :directive:`MinimumABIVersion` directive.
 This specifies the ABI version being targeted.  This example is so simple that
-it will will work with any ABI version but it is good practice to specify a
-particular version.
+it will work with any ABI version (but *gil_use* and
+*multi_interpreter_support* will be ignored by ABI versions prior to v14).
 
 Next is the declaration of the :c:func:`fib_n` function to be wrapped.
 
@@ -125,7 +127,10 @@ The :file:`.sip` file would look more like that shown below.
 .. parsed-literal::
     // Define the SIP wrapper to the (actual) fib library.
 
-    %Module(name=fib, language="C")
+    %Module(name=fib, language="C", gil_use="NotUsed",
+            multi_interpreter_support="Supported")
+
+    %MinimumABIVersion "14"
 
     %ModuleCode
     #include <fib.h>
@@ -152,9 +157,7 @@ possible approaches:
   allows the user to specify the locations.
 
 The first approach, while not particularly user friendly, is legitimate so long
-as you document it.  However note that it cannot work when building and
-installing directly from an sdist because :program:`pip` does not currently
-fully implement `PEP 517 <https://www.python.org/dev/peps/pep-0517/>`__.
+as you document it.
 
 The second approach is the most flexible but requires code to implement it.  If
 SIP finds a file called (by default) :file:`project.py` in the same directory
@@ -267,14 +270,14 @@ within the :file:`.sip` files.
 
 In order to create an sdist for the :mod:`~examples.sip` module, run::
 
-    sip-module --sdist examples.sip
+    sip-module --abi-version 14 --sdist examples.sip
 
 If you want to create a wheel from the sdist then run::
 
     pip wheel examples_sip-X.Y.Z.tar.gz
 
 ``X.Y.Z`` is the version number of the ABI implemented by the
-:mod:`~examples.sip` module and it will default to the latest version.
+:mod:`~examples.sip` module.
 
 
 :mod:`examples.core`
@@ -306,7 +309,8 @@ We next look at the :file:`core.sip` file (downloadable from
 
 The :directive:`%Module` directive, as well as specifying the full package name
 of the :mod:`~examples.core` module, specifies that the bindings will use the
-`PEP 384 <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI.
+`PEP 384 <https://www.python.org/dev/peps/pep-0384/>`__ stable ABI and
+supports free-threading and multiple interpreters.
 
 The :directive:`%MinimumABIVersion` directive specifies the ABI version being
 targeted.

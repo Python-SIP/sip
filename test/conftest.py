@@ -125,8 +125,9 @@ def package(request):
     sip_module_name = _build_sip_module(test_dir, abi_version, package,
             sip_module_configuration)
 
-    # Import the modules.
-    for module_name in module_names:
+    # Import the modules in a consistent order.  The order can matter for
+    # extender tests.
+    for module_name in sorted(module_names):
         importlib.import_module(module_name)
 
     # The fixture is the package object.
@@ -235,8 +236,7 @@ def _build_module(module_name, package, build_args, src_dir, test_dir,
         pkg_dir = os.path.join(pkg_dir, os.path.join(*pkg_subdirs))
         os.makedirs(pkg_dir, exist_ok=True)
 
-    impl_pattern.append(
-            module_name + '*.pyd' if sys.platform == 'win32' else '*.so')
+    impl_pattern.append('*.pyd' if sys.platform == 'win32' else '*.so')
 
     impl_paths = glob.glob(os.path.join(*impl_pattern))
     if len(impl_paths) == 0:
@@ -300,11 +300,6 @@ def _build_test_module(sip_file, test_dir, abi_version, package, exceptions,
             if tags is not None:
                 tags_s = ', '.join([f'"{t}"' for t in tags])
                 f.write(f'tags = [{tags_s}]\n')
-
-    # Configure the C++11 support.
-    cxxflags = os.environ.get('CXXFLAGS', '')
-    if '-std=c++11' not in cxxflags:
-        os.environ['CXXFLAGS'] = f'{cxxflags} -std=c++11'
 
     # Build and move the test module.
     _build_module(module_name, package,

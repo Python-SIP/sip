@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
+import sys
 
 from setuptools import Extension, setup
 
@@ -119,6 +120,26 @@ class SetuptoolsBuilder(Builder):
             define_macros.append((name, value))
 
         buildable.make_names_relative()
+
+        # Handle any minimum C++ standard.
+        if buildable.cpp_standard is not None:
+            # There doesn't seem to be a way to check that the Windows compiler
+            # is MSVC so we just assume it.
+            if sys.platform == 'win32':
+                name = 'CL'
+                new_value = '/std:' + buildable.cpp_standard
+            else:
+                name = 'CXXFLAGS'
+                new_value = '-std=' + buildable.cpp_standard
+
+            # We can't use 'extra_compile_flags' because they get passed to
+            # both the C and the C++ compiler and clang (and probably gcc)
+            # can't handle the flag when compiling a C source file.  MSVC has
+            # no way of configuring the C and C++ compilers differently but it
+            # doesn't care.
+            value = os.environ.get(name, '')
+            if new_value not in value:
+                os.environ[name] = f'{value} {new_value}'
 
         setup_args['ext_modules'] = [
             Extension(buildable.fq_name, buildable.sources,

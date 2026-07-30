@@ -66,15 +66,15 @@ double operator+(const Klass &lhs, double rhs)
 
 namespace NameSpace
 {
-    float twice(float n);
-    float thrice(float n);
+    float twice(float n /Constrained/);
+    float thrice(float n /Constrained/);
 
     int in_extras1;
 };
 
 int get_in_extras1();
 
-double operator+(const Klass &lhs, double rhs);
+double operator+(const Klass &lhs, double rhs /Constrained/);
 
 class Cast
 {

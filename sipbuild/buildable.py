@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -58,6 +58,7 @@ class BuildableFromSources(Buildable):
         self.extra_link_args = []
         self.extra_objects = []
         self.debug = False
+        self.cpp_standard = None
 
         if self.uses_limited_api:
             major, minor, micro = project.limited_abi_version

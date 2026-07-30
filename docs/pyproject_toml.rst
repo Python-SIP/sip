@@ -64,7 +64,7 @@ system extensions may do so.
 ``[tool.sip.metadata]`` Section
 -------------------------------
 
-.. deprecated:: 6.8
+.. version-deprecated:: 6.8
 
     The ``[project]`` section as defined in
     `PEP 621 <https://www.python.org/dev/peps/pep-0621/>`__ should be used
@@ -380,10 +380,11 @@ values of all list options may contain environment markers as defined in `PEP
     a corresponding command line option.
 
 **release-gil**
-    The boolean value specifies if the Python GIL is always released when
-    calling a function in the library being wrapped irrespective of any
-    :fanno:`ReleaseGIL` annotation.  By default the GIL is only released as
-    determined by :fanno:`ReleaseGIL`.
+    The boolean value specifies if the Python GIL (or attached thread state in
+    the context of free-threading) is always released when calling a function
+    in the library being wrapped irrespective of any :fanno:`ReleaseGIL`
+    annotation.  By default the GIL (or attached thread state) is only released
+    as determined by :fanno:`ReleaseGIL`.
 
 **static**
     The boolean value specifies that the bindings should be built as a static

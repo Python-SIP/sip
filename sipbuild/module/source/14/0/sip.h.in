@@ -1,0 +1,1360 @@
+/* SPDX-License-Identifier: BSD-2-Clause */
+
+/*
+ * The SIP module interface.
+ *
+ * Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
+ */
+
+
+#ifndef _SIP_H
+#define _SIP_H
+
+
+#include <Python.h>
+
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+
+/* Sanity check on the Python version. */
+#if PY_VERSION_HEX < 0x030f0000
+#error "This version of @_SIP_MODULE_FQ_NAME@ requires Python v3.15 or later"
+#endif
+
+
+/* Specify the module configuration. */
+#define SIP_CONFIGURATION @_SIP_CONFIGURATION@
+@_SIP_BrokenTypeNames_STATE@ SIP_CONFIGURATION_BrokenTypeNames
+@_SIP_PyEnums_STATE@ SIP_CONFIGURATION_PyEnums
+@_SIP_CustomEnums_STATE@ SIP_CONFIGURATION_CustomEnums
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Forward declarations of structures.
+ */
+struct _sipABISpec;
+typedef struct _sipABISpec sipABISpec;
+
+struct _sipAttrSpec;
+typedef struct _sipAttrSpec sipAttrSpec;
+
+struct _sipClassTypeSpec;
+typedef struct _sipClassTypeSpec sipClassTypeSpec;
+
+struct _sipEnumTypeSpec;
+typedef struct _sipEnumTypeSpec sipEnumTypeSpec;
+
+struct _sipExceptionTypeSpec;
+typedef struct _sipExceptionTypeSpec sipExceptionTypeSpec;
+
+struct _sipImportedModuleSpec;
+typedef struct _sipImportedModuleSpec sipImportedModuleSpec;
+
+struct _sipModuleSpec;
+typedef struct _sipModuleSpec sipModuleSpec;
+
+struct _sipModuleState;
+typedef struct _sipModuleState sipModuleState;
+
+struct _sipTypeSpec;
+typedef struct _sipTypeSpec sipTypeSpec;
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#ifdef __cplusplus
+#include <exception>
+typedef bool (*sipExceptionHandler)(sipModuleState *, std::exception_ptr);
+#else
+typedef void *sipExceptionHandler;
+#endif
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* The version of the ABI. */
+#define SIP_ABI_MAJOR_VERSION       14
+#define SIP_ABI_MINOR_VERSION       0
+#define SIP_MODULE_PATCH_VERSION    0
+
+
+/*
+ * The change history of the ABI.
+ *
+ * v14.0
+ *  - The initial v14 version.
+ */
+
+
+/* The version of the code generator. */
+#define SIP_VERSION                 @_SIP_VERSION@
+#define SIP_VERSION_STR             "@_SIP_VERSION_STR@"
+
+/* These are all dependent on the user-specified name of the sip module. */
+#define _SIP_LEGACY_MODULE_ENTRY    @_SIP_LEGACY_MODULE_ENTRY@
+#define _SIP_MODULE_FQ_NAME         "@_SIP_MODULE_FQ_NAME@"
+#define _SIP_MODULE_NAME            "@_SIP_MODULE_NAME@"
+#define _SIP_MODULE_SHARED          @_SIP_MODULE_SHARED@
+#define _SIP_MODULE_ENTRY           @_SIP_MODULE_ENTRY@
+#define _SIP_MODULE_SLOTS           @_SIP_MODULE_SLOTS@
+#define _SIP_TYPE_NAME_PREFIX       "@_SIP_TYPE_NAME_PREFIX@"
+
+
+/* Some C++ compatibility stuff. */
+#if defined(__cplusplus)
+
+#if __cplusplus >= 201103L || defined(_MSVC_LANG)
+
+/* C++11 and later. */
+#define SIP_NULLPTR     nullptr
+#define SIP_OVERRIDE    override
+
+#else
+
+/* Earlier versions of C++. */
+#define SIP_NULLPTR     NULL
+#define SIP_OVERRIDE
+
+#endif
+
+#else
+
+/* C. */
+#define SIP_NULLPTR     NULL
+#define SIP_OVERRIDE
+
+#endif
+
+
+/*
+ * The mask that can be passed to sipTrace().
+ */
+#define SIP_TRACE_CATCHERS  0x0001
+#define SIP_TRACE_CTORS     0x0002
+#define SIP_TRACE_DTORS     0x0004
+#define SIP_TRACE_INITS     0x0008
+#define SIP_TRACE_DEALLOCS  0x0010
+#define SIP_TRACE_METHODS   0x0020
+
+
+/*
+ * Compatibility stuff to make porting from legacy APIs easier.  Note that some
+ * of these are still used by the ABI v14 code generator.
+ */
+typedef PyObject sipSimpleWrapper;
+typedef PyObject sipWrapper;
+typedef PyTypeObject sipWrapperType;
+typedef PyThreadStateToken *sip_gilstate_t;
+#define SIP_RELEASE_GIL(gs) PyThreadState_Release(gs);
+
+
+/*
+ * The thread state management macros.
+ */
+#define SIP_BLOCK_THREADS   { \
+    PyThreadStateToken *sipTST = PyThreadState_EnsureFromView(sipGetInterpreterView()); \
+    if (sipTST != NULL) {
+
+#define SIP_UNBLOCK_THREADS PyThreadState_Release(sipTST);}}
+
+
+/* The bootstrap API that supports standalone and embedded sip modules. */
+typedef const sipABISpec *(*sipBootstrapFunc)(int abi_major);
+int sip_api_module_exec(PyObject *mod, const sipModuleSpec *m_spec);
+
+
+/*
+ * A wrapped type ID.
+ */
+typedef uint32_t sipTypeID;
+typedef uint16_t sipTypeNr;
+typedef uint8_t sipModuleNr;
+
+
+/*
+ * Some convenient function pointers.
+ */
+typedef void *(*sipArrayFunc)(Py_ssize_t);
+typedef void (*sipArrayDeleteFunc)(void *);
+typedef void (*sipAssignFunc)(void *, Py_ssize_t, void *);
+typedef PyObject *(*sipCallableImplFunc)(sipModuleState *, PyObject **,
+        PyObject *, PyObject *const *, Py_ssize_t, PyObject *);
+typedef void *(*sipCastFunc)(sipModuleState *, void *,
+        const sipClassTypeSpec *);
+typedef int (*sipClearFunc)(void *);
+typedef PyObject *(*sipConvertFromFunc)(sipModuleState *, void *, PyObject *);
+typedef int (*sipConvertToFunc)(sipModuleState *, PyObject *, void **, int *,
+        PyObject *, void **);
+typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
+typedef void (*sipDeallocFunc)(PyObject *);
+typedef void *(*sipInitFunc)(sipModuleState *, PyObject **, PyObject *,
+        PyObject *const *, Py_ssize_t, PyObject *, PyObject **, PyObject **);
+typedef int (*sipFinalFunc)(PyObject *, void *, PyObject *, PyObject **);
+typedef PyObject *(*sipPickleFunc)(void *);
+typedef void (*sipReleaseFunc)(void *, int);
+typedef void (*sipReleaseUSFunc)(void *, int, void *);
+typedef sipTypeID (*sipSubClassConvertFunc)(void **);
+typedef int (*sipTraverseFunc)(void *, visitproc, void *);
+typedef void *(*sipVariableAddrGetterFunc)(void *);
+typedef void (*sipVirtErrorHandlerFunc)(sipModuleState *, PyObject *,
+        PyThreadStateToken *);
+typedef int (*sipVirtHandlerFunc)(PyThreadStateToken *, const char *,
+        PyObject *, PyObject *, ...);
+typedef void (*sipWrapperVisitorFunc)(PyObject *, void *);
+typedef int (*sipGetBufferFunc)(PyObject *, void *, Py_buffer *, int);
+typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
+
+
+/*
+ * The different events a handler can be registered for.
+ */
+typedef enum
+{
+    sipEventNone = 0,           /* The sentinal value. */
+    sipEventCollectingModule,   /* When garbage collecting a module. */
+    sipEventCollectingWrapper,  /* When garbage collecting a wrapper object. */
+    sipEventFinalisingAddress,  /* Before wrapping a C/C++ instance. */
+    sipEventFinalisingType,     /* When finalising a wrapper type. */
+    sipEventWrappedInstance,    /* After wrapping a C/C++ instance. */
+} sipEventType;
+
+/*
+ * The event handlers.
+ */
+typedef void (*sipCollectingModuleEventHandler)();
+typedef void (*sipCollectingWrapperEventHandler)(sipModuleState *sipMS,
+        sipTypeID sipType, PyObject *winst);
+typedef void *(*sipFinalisingAddressEventHandler)(sipModuleState *sipMS,
+        sipTypeID sipType, void *sipCpp);
+typedef int (*sipFinalisingTypeEventHandler)(sipModuleState *sipMS,
+        sipTypeID sipType, PyTypeObject *py_type);
+typedef void (*sipWrappedInstanceEventHandler)(sipModuleState *sipMS,
+        sipTypeID sipType, void *sipCpp);
+
+/*
+ * The immutable specification of an event handler.
+ */
+typedef struct {
+    sipEventType event_type;        /* The type of the event. */
+    sipTypeID type_id;              /* The type the handler handles. */
+    void *handler;                  /* The handler. */
+} sipEventHandlerSpec;
+
+
+/*
+ * The immutable specification of an exported name/symbol pair.
+ */
+typedef struct {
+    const char *name;               /* The name. */
+    void *symbol;                   /* The symbol. */
+} sipSymbolSpec;
+
+
+/*
+ * The different types of overload that can call the argument parser.  Each
+ * handles self in a different way and takes different parameters.
+ */
+typedef enum {
+    /*
+     * A general type that doesn't require any special handling and so has no
+     * corresponding parameters.
+     */
+    sipOverloadOther,
+
+    /*
+     * An ordinary method.  The parameters are a pointer with which self is
+     * returned, the type ID of self and a pointer with which the C/C++
+     * instance address is returned.
+     */
+    sipOverloadMethod,
+
+    /*
+     * A protected method.  The parameters are a pointer with which self is
+     * returned, the type ID of self and a pointer with which the C/C++
+     * instance address is returned.
+     */
+    sipOverloadProtectedMethod,
+
+    /*
+     * A static function.  A pointer with which self is returned is passed as a
+     * parameter.
+     */
+    sipOverloadStaticMethod,
+} sipOverloadType;
+
+
+/*
+ * The argument parser format flags.
+ */
+#define SIP_APFF_TRANSFER_MASK  0x0003      /* The transfer type mask. */
+#define SIP_APFF_TRANSFER       0x0001      /* Implement /Transfer/. */
+#define SIP_APFF_TRANSFER_BACK  0x0002      /* Implement /TransferBack/. */
+#define SIP_APFF_TRANSFER_THIS  0x0003      /* Implement /TransferThis/. */
+#define SIP_APFF_ALLOW_NONE     0x0010      /* Allow None as a value. */
+#define SIP_APFF_CONSTRAINED    0x0020      /* Limit to the specific type. */
+#define SIP_APFF_IS_ARRAY       0x0040      /* The value is an array. */
+#define SIP_APFF_GET_WRAPPER    0x0080      /* Return the wrapper object. */
+
+
+/*
+ * The immutable specification of a single argument format of an overload
+ * argument parser.
+ */
+typedef struct {
+    /* The name if the argument can be specified as a keyword argument. */
+    const char *kw_name;
+
+    /* The index of the format's first parameter. */
+    Py_ssize_t param_base;
+
+    /* The type ID of the argument. */
+    sipTypeID type_id;
+
+    /* The SIP_APFF_* flags. */
+    uint16_t flags;
+} sipArgParserFormatSpec;
+
+
+/*
+ * The immutable specification of an overload argument parser.
+ */
+typedef struct {
+    /*
+     * The optional type hint.  This is only used by C++ modules because of C's
+     * limited support for constant expressions.
+     */
+    const char *type_hint;
+
+    /* The array of argument formats. */
+    const sipArgParserFormatSpec *const formats;
+
+    /* The number of argument formats. */
+    Py_ssize_t nr_formats;
+
+    /* The number of required arguments. */
+    Py_ssize_t nr_required;
+
+    /* The type of the overload. */
+    sipOverloadType overload_type;
+} sipArgParserSpec;
+
+
+/*
+ * The storage for a pointer and all integer values (as used as enum base
+ * types).
+ */
+typedef union {
+    void *ptr_t;
+    bool bool_t;
+    char byte_t;
+    signed char sbyte_t;
+    unsigned char ubyte_t;
+    short short_t;
+    unsigned short ushort_t;
+    int int_t;
+    unsigned uint_t;
+    long long_t;
+    unsigned long ulong_t;
+    long long longlong_t;
+    unsigned long long ulonglong_t;
+} sipTypedValue;
+
+
+/*
+ * The immutable specification of a wrapped named enum member.
+ */
+typedef struct _sipEnumMemberSpec {
+    /* The member name. */
+    const char *name;
+
+    /* The member value. */
+    sipTypedValue value;
+} sipEnumMemberSpec;
+
+
+/*
+ * The immutable specification of a piece of documentation (ie. a type hint
+ * and/or a user supplied docstring).
+ */
+typedef struct {
+    /* The automatically generated type hint. */
+    const char *type_hint;
+
+    /*
+     * The optional docstring.  The first character is 'd' to indicate the
+     * signature is to be discarded, 'a' to indicate it is to be appended and
+     * 'p' to indicate it is to be preprended.
+     */
+    const char *docstring;
+} sipDocSpec;
+
+
+/*
+ * The immutable specification of a wrapped variable.
+ */
+#define SIP_WV_RO           0x01    /* The value is read only. */
+#define SIP_WV_LITERAL      0x02    /* The value is literal. */
+
+typedef void *(*sipVariableAddrGetFunc)(void *);
+
+typedef PyObject *(*sipVariableGetCodeFunc)(sipModuleState *, void *,
+        PyObject *);
+typedef int (*sipVariableSetCodeFunc)(sipModuleState *, void *, PyObject *,
+        PyObject *);
+
+typedef struct {
+    /* The type of the variable's value. */
+    sipTypeID type_id;
+
+    /* The variable flags. */
+    uint8_t flags;
+
+    /* The optional key. */
+    int key;
+
+    /*
+     * The value of the variable.  If it is an enum member then this is the
+     * fixed value.  If it is unbound then it is the address of the variable.
+     * If the variable is bound then it is the address of a getter.
+     */
+    sipTypedValue value;
+
+    /* The optional %GetCode wrapper. */
+    sipVariableGetCodeFunc get_code;
+
+    /* The optional %SetCode wrapper. */
+    sipVariableSetCodeFunc set_code;
+} sipVariableSpec;
+
+
+/*
+ * The immutable specification of a type initialiser extender.
+ */
+typedef struct {
+    /* The type ID of the type being extended. */
+    sipTypeID extending_type_id;
+
+    /* The optional documentation. */
+    const sipDocSpec *docs;
+
+    /* The extender function. */
+    sipInitFunc extender;
+} sipInitExtenderSpec;
+
+
+/*
+ * The immutable specification of a sub-class convertor.
+ */
+typedef struct _sipSubClassConvertorSpec {
+    /* The base type ID. */
+    sipTypeID base_id;
+
+    /* The convertor. */
+    sipSubClassConvertFunc convertor;
+} sipSubClassConvertorSpec;
+
+
+/*
+ * The helper structure describing a Python C function.
+ */
+typedef struct {
+    /* The C function. */
+    PyMethodDef *cf_function;
+
+    /* The optional bound object. */
+    PyObject *cf_self;
+} sipCFunctionDef;
+
+
+/*
+ * The helper structure describing a Python method.
+ */
+typedef struct {
+    /* The function that implements the method. */
+    PyObject *pm_function;
+
+    /* The bound object. */
+    PyObject *pm_self;
+} sipMethodDef;
+
+
+/*
+ * The helper structure describing a Python date.
+ */
+typedef struct {
+    /* The year. */
+    int pd_year;
+
+    /* The month (1-12). */
+    int pd_month;
+
+    /* The day (1-31). */
+    int pd_day;
+} sipDateDef;
+
+
+/*
+ * The helper structure describing a Python time.
+ */
+typedef struct {
+    /* The hour (0-23). */
+    int pt_hour;
+
+    /* The minute (0-59). */
+    int pt_minute;
+
+    /* The second (0-59). */
+    int pt_second;
+
+    /* The microsecond (0-999999). */
+    int pt_microsecond;
+} sipTimeDef;
+
+
+/*
+ * The different error states of handwritten code.
+ */
+typedef enum {
+    sipErrorNone,       /* There is no error. */
+    sipErrorFail,       /* The error is a failure. */
+    sipErrorContinue    /* It may not apply if a later operation succeeds. */
+} sipErrorState;
+
+
+/*
+ * The immutable specification of a typedef.
+ */
+typedef struct _sipTypedefSpec {
+    /* The typedef name. */
+    const char *name;
+
+    /* The typedef value. */
+    const char *type_name;
+} sipTypedefSpec;
+
+
+/*
+ * The immutable specification of a wrapped callable.
+ */
+typedef struct {
+    /* The C implementation. */
+    sipCallableImplFunc callable_impl;
+
+    /* The optional documentation. */
+    const sipDocSpec *docs;
+} sipCallableSpec;
+
+
+/*
+ * The immutable specification of a property.
+ */
+typedef struct _sipPropertySpec {
+    /* The optional docstring. */
+    const char *docstring;
+
+    /* The getter. */
+    const sipAttrSpec *getter;
+
+    /* The setter. */
+    const sipAttrSpec *setter;
+} sipPropertySpec;
+
+
+/*
+ * The immutable specification of an attribute.
+ */
+struct _sipAttrSpec {
+    /*
+     * The name of the attribute.  The first character determines the type of
+     * the attribute.  Not all types are valid in all contexts.
+     */
+    const char *name;
+
+    /* The type-specific specification of the attribute. */
+    union {
+        const sipCallableSpec *callable;
+        const sipPropertySpec *property;
+        sipTypeNr type_nr;
+        const sipVariableSpec *variable;
+    } spec;
+};
+
+
+/*
+ * The immutable specification of a group of attributes.
+ */
+typedef struct {
+    /* The number of attributes. */
+    Py_ssize_t nr_attrs;
+
+    /* The table of attributes in order of the attribute name. */
+    const sipAttrSpec *const attrs;
+} sipAttrGroupSpec;
+
+
+/*
+ * The immutable specification of a type, either a C++ class (or C struct), a
+ * C++ namespace, a mapped type or a named (scoped or unscoped) enum.
+ */
+struct _sipTypeSpec {
+    /* The C/C++ name of the type. */
+    const char *cpp_name;
+
+    /*
+     * The value of the type's 'tp_name' slot.  Note that the Python docs are
+     * wrong and this should consist of the fully qualified module name and the
+     * basename of the type.
+     */
+    const char *tp_name;
+
+    /*
+     * The enclosing scope.  This will may not be a local ID if the scope is
+     * a namespace originally defined in another module.
+     */
+    sipTypeID scope_id;
+
+    /* Type flags. */
+    uint16_t flags;
+};
+
+
+/*
+ * The immutable specification of a C++ class (or C struct) or a C++ namespace.
+ */
+struct _sipClassTypeSpec {
+    /* The base type information. */
+    sipTypeSpec base;
+
+    /* The optional docstring. */
+    const char *docstring;
+
+    /* The optional constructor documentation. */
+    const sipDocSpec *docs;
+
+    /*
+     * The meta-type name, NULL to use the meta-type of the first super-type
+     * (normally 'wrappertype').
+     */
+    const char *metatype;
+
+    /*
+     * The super-type name, NULL to use 'wrapper', "" to use 'simplewrapper'.
+     */
+    const char *supertype;
+
+    /* The super-types. */
+    const sipTypeID *supers;
+
+    /* The callables, instance variables and property attributes. */
+    const sipAttrGroupSpec *attrs;
+
+    /* The static variable attributes. */
+    const sipAttrGroupSpec *attrs_static_variables;
+
+    /* The type attributes. */
+    const sipAttrGroupSpec *attrs_types;
+
+    /* The initialisation function. */
+    sipInitFunc init;
+
+    /* The tp_init slot implementation. */
+    initproc init_slot;
+
+    /* The traverse function. */
+    sipTraverseFunc traverse;
+
+    /* The clear function. */
+    sipClearFunc clear;
+
+    /* The get buffer function. */
+    sipGetBufferFunc getbuffer;
+
+    /* The release buffer function. */
+    sipReleaseBufferFunc releasebuffer;
+
+    /* The optional deallocation function. */
+    sipDeallocFunc dealloc;
+
+    /* The optional assignment function. */
+    sipAssignFunc assign;
+
+    /* The optional array allocation function. */
+    sipArrayFunc array;
+
+    /* The optional copy function. */
+    sipCopyFunc copy;
+
+    /* The release function, 0 if a C struct. */
+    sipReleaseFunc release;
+
+    /* The cast function, 0 if a C struct. */
+    sipCastFunc cast;
+
+    /* The optional convert to function. */
+    sipConvertToFunc cto;
+
+    /* The optional convert from function. */
+    sipConvertFromFunc cfrom;
+
+    /* The pickle function. */
+    sipPickleFunc pickle;
+
+    /* The finalisation function. */
+    sipFinalFunc final;
+
+    /* The optional array delete function. */
+    sipArrayDeleteFunc array_delete;
+
+    /* The sizeof the class. */
+    size_t sizeof_class;
+};
+
+
+/*
+ * The immutable specification of a mapped type.
+ */
+typedef struct _sipMappedTypeSpec {
+    /* The base type information. */
+    sipTypeSpec base;
+
+    /* The callable attributes. */
+    const sipAttrGroupSpec *attrs;
+
+    /* The type attributes. */
+    const sipAttrGroupSpec *attrs_types;
+
+    /* The optional assignment function. */
+    sipAssignFunc assign;
+
+    /* The optional array allocation function. */
+    sipArrayFunc array;
+
+    /* The optional copy function. */
+    sipCopyFunc copy;
+
+    /* The optional release function. */
+    sipReleaseUSFunc release;
+
+    /* The optional convert to function. */
+    sipConvertToFunc cto;
+
+    /* The optional convert from function. */
+    sipConvertFromFunc cfrom;
+} sipMappedTypeSpec;
+
+
+/*
+ * The immutable specification of a named enum.
+ */
+struct _sipEnumTypeSpec {
+    /* The base type information. */
+    sipTypeSpec base;
+
+    /* The C/C++ base type. */
+    sipTypeID cpp_base_type;
+
+    /* The table of members. */
+    const sipEnumMemberSpec *members;
+
+#if defined(SIP_CONFIGURATION_PyEnums)
+    /* The Python base type. */
+    int py_base_type;
+#endif
+
+    /* The slot attributes. */
+    const sipAttrGroupSpec *attrs;
+};
+
+
+/*
+ * The immutable specification of an exception.
+ */
+struct _sipExceptionTypeSpec {
+    /* The base type information. */
+    sipTypeSpec base;
+
+    /* The base type ID. */
+    sipTypeID base_type_id;
+};
+
+
+/*
+ * The immutable specification of a type extender.
+ */
+typedef struct _sipExtenderSpec {
+    /* The type ID of the type being extended. */
+    sipTypeID extending_type_id;
+
+    /* The attributes. */
+    const sipAttrGroupSpec *attrs;
+} sipExtenderSpec;
+
+
+/*
+ * The immutable specification of a virtual error handler.
+ */
+typedef struct {
+    /* The name of the handler. */
+    const char *name;
+
+    /* The handler function. */
+    sipVirtErrorHandlerFunc handler;
+} sipVirtErrorHandlerSpec;
+
+
+/*
+ * The immutable specification of a license to be added to a dictionary.
+ */
+typedef struct {
+    /* The type of license. */
+    const char *type;
+
+    /* The licensee. */
+    const char *licensee;
+
+    /* The timestamp. */
+    const char *timestamp;
+
+    /* The signature. */
+    const char *signature;
+} sipLicenseSpec;
+
+
+/*
+ * The immutable specification of a wrapped module.
+ */
+struct _sipModuleSpec {
+    /* The SIP ABI major version number. */
+    unsigned abi_major;
+
+    /* The SIP ABI minor version number. */
+    unsigned abi_minor;
+
+    /* The required sip module configuration. */
+    unsigned sip_configuration;
+
+    /* The number of specifications of imported modules. */
+    sipModuleNr nr_import_specs;
+
+    /* The table of specifications of imported modules. */
+    const sipImportedModuleSpec *const import_specs;
+
+    /* The number of wrapped type specifications. */
+    sipTypeNr nr_type_specs;
+
+    /* The table of wrapped type specifications. */
+    const sipTypeSpec *const *type_specs;
+
+    /* The number of typedefs. */
+    int nr_typedefs;
+
+    /* The table of typedefs. */
+    const sipTypedefSpec *const typedefs;
+
+    /* The table of virtual error handlers. */
+    const sipVirtErrorHandlerSpec *const virt_error_handlers;
+
+    /* The sub-class convertors. */
+    const sipSubClassConvertorSpec *const convertors;
+
+    /* The attributes except for static variables and types. */
+    const sipAttrGroupSpec *attrs;
+
+    /* The static variable attributes. */
+    const sipAttrGroupSpec *attrs_static_variables;
+
+    /* The type attributes. */
+    const sipAttrGroupSpec *attrs_types;
+
+    /* The license. */
+    const sipLicenseSpec *license;
+
+    /* The table of initialiser extenders. */
+    const sipInitExtenderSpec *const init_extenders;
+
+    /* The table of type extenders. */
+    const sipExtenderSpec *const extenders;
+
+    /* The exception handler. */
+    sipExceptionHandler exception_handler;
+};
+
+
+/*
+ * The immutable specification of a module to be imported.
+ */
+struct _sipImportedModuleSpec {
+    /* The name of the module. */
+    const char *name;
+
+    /* The number of types to import. */
+    sipTypeNr nr_types;
+
+    /* The array of names of types to import. */
+    const char *const *type_names;
+};
+
+
+/*
+ * The immutable ABI exported by the SIP module, ie. pointers to all the data
+ * and functions that can be used by generated code.  Note that the offset of
+ * each field doesn't change if the module configuration options do change.
+ */
+struct _sipABISpec {
+    size_t module_state_size;   /* The sizeof the wrapped module state */
+
+    /*
+     * The following are part of the public ABI.
+     */
+    void (*api_bad_catcher_result)(PyObject *method);
+    void (*api_bad_length_for_slice)(Py_ssize_t seqlen, Py_ssize_t slicelen);
+    PyObject *(*api_build_result)(sipModuleState *ms, int *is_err_p,
+            const char *fmt, ...);
+    PyObject *(*api_call_method)(sipModuleState *ms, int *is_err_p,
+            PyObject *method, const char *fmt, ...);
+    Py_ssize_t (*api_convert_from_sequence_index)(Py_ssize_t idx,
+            Py_ssize_t len);
+    int (*api_can_convert_to_type)(sipModuleState *ms, PyObject *pyObj,
+            sipTypeID type_id, int flags);
+    void *(*api_convert_to_type)(sipModuleState *ms, PyObject *pyObj,
+            sipTypeID type_id, PyObject *transferObj, int flags, int *statep,
+            int *iserrp);
+    void *(*api_convert_to_type_us)(sipModuleState *ms, PyObject *pyObj,
+            sipTypeID type_id, PyObject *transferObj, int flags, int *statep,
+            void **user_statep, int *iserrp);
+    void *(*api_force_convert_to_type)(sipModuleState *ms, PyObject *pyObj,
+            sipTypeID type_id, PyObject *transferObj, int flags, int *statep,
+            int *iserrp);
+    void *(*api_force_convert_to_type_us)(sipModuleState *ms, PyObject *pyObj,
+            sipTypeID type_id, PyObject *transferObj, int flags, int *statep,
+            void **user_statep, int *iserrp);
+    void (*api_release_type)(sipModuleState *ms, void *cpp, sipTypeID type_id,
+            int state);
+    void (*api_release_type_us)(sipModuleState *ms, void *cpp,
+            sipTypeID type_id, int state, void *user_state);
+    PyObject *(*api_convert_from_type)(sipModuleState *ms, void *cpp,
+            sipTypeID type_id, PyObject *transferObj);
+    PyObject *(*api_convert_from_new_type)(sipModuleState *ms, void *cpp,
+            sipTypeID type_id, PyObject *transferObj);
+    PyObject *(*api_convert_from_enum)(sipModuleState *ms, void *addr,
+            sipTypeID type_id);
+    int (*api_get_state)(PyObject *transferObj);
+    void (*api_free)(void *mem);
+    PyObject *(*api_get_py_object_ref)(sipModuleState *ms, void *cppPtr,
+            sipTypeID type_id);
+    PyTypeObject *(*api_get_py_type_ref)(sipModuleState *ms,
+            sipTypeID type_id);
+    PyTypeObject *(*api_get_simple_wrapper_type)(sipModuleState *ms);
+    PyTypeObject *(*api_get_void_ptr_type)(sipModuleState *ms);
+    PyTypeObject *(*api_get_wrapper_type)(sipModuleState *ms);
+    PyTypeObject *(*api_get_wrapper_type_type)(sipModuleState *ms);
+    void *(*api_malloc)(size_t nbytes);
+    void (*api_trace)(sipModuleState *ms, unsigned mask, const char *fmt, ...);
+    void (*api_transfer_back)(sipModuleState *ms, PyObject *self);
+    void (*api_transfer_to)(sipModuleState *ms, PyObject *self,
+            PyObject *owner);
+    unsigned long (*api_long_as_unsigned_long)(PyObject *o);
+    PyObject *(*api_convert_from_void_ptr)(sipModuleState *ms, void *val);
+    PyObject *(*api_convert_from_const_void_ptr)(sipModuleState *ms,
+            const void *val);
+    PyObject *(*api_convert_from_void_ptr_and_size)(sipModuleState *ms,
+            void *val, Py_ssize_t size);
+    PyObject *(*api_convert_from_const_void_ptr_and_size)(sipModuleState *ms,
+            const void *val, Py_ssize_t size);
+    void *(*api_convert_to_void_ptr)(PyObject *obj);
+    void (*api_export_symbols)(sipModuleState *ms,
+            const sipSymbolSpec *const symbols);
+    void *(*api_import_symbol)(sipModuleState *ms, const char *name);
+    sipTypeID (*api_find_type)(sipModuleState *ms, const char *type);
+    int (*api_register_py_type)(sipModuleState *ms, PyTypeObject *type);
+    sipTypeID (*api_type_scope)(sipModuleState *ms, sipTypeID type_id);
+    const char *(*api_resolve_typedef)(sipModuleState *ms, const char *name);
+    sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
+    void *(*api_get_address)(PyObject *winst);
+    int (*api_enable_autoconversion)(sipModuleState *ms, PyTypeObject *py_type,
+            int enable);
+    PyObject *(*api_convert_from_new_py_type)(sipModuleState *ms, void *cpp,
+            PyTypeObject *py_type, PyObject *owner, PyObject **self_p,
+            const char *fmt, ...);
+    PyObject *(*api_convert_to_typed_array)(sipModuleState *ms, void *data,
+            sipTypeID type_id, const char *format, size_t stride,
+            Py_ssize_t len, int flags);
+    PyObject *(*api_convert_to_array)(sipModuleState *ms, void *data,
+            const char *format, Py_ssize_t len, int flags);
+    PyInterpreterView *(*api_get_interpreter_view)(sipModuleState *ms);
+    void (*api_set_type_user_object)(PyTypeObject *wtype, PyObject *data);
+    PyObject *(*api_get_type_user_object)(PyTypeObject *wtype);
+    int (*api_get_method)(PyObject *, sipMethodDef *);
+    PyObject *(*api_from_method)(const sipMethodDef *);
+    int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
+    int (*api_get_date)(PyObject *, sipDateDef *);
+    PyObject *(*api_from_date)(const sipDateDef *);
+    int (*api_get_date_time)(PyObject *, sipDateDef *, sipTimeDef *);
+    PyObject *(*api_from_date_time)(const sipDateDef *, const sipTimeDef *);
+    int (*api_get_time)(PyObject *, sipTimeDef *);
+    PyObject *(*api_from_time)(const sipTimeDef *);
+    int (*api_is_user_type)(sipModuleState *ms, PyTypeObject *wtype);
+    PyObject *(*api_unicode_new)(Py_ssize_t, unsigned, int *, void **);
+    void (*api_unicode_write)(int, void *, int, unsigned);
+    void *(*api_unicode_data)(PyObject *, int *, Py_ssize_t *);
+    PyObject *(*api_get_user_object)(PyObject *winst);
+    void (*api_set_user_object)(PyObject *winst, PyObject *user);
+    void (*api_instance_destroyed)(sipModuleState *ms, PyObject **self_p);
+    int (*api_is_owned_by_python)(PyObject *winst);
+    int (*api_enable_gc)(int enable);
+    void (*api_object_dump)(PyObject *obj);
+    int (*api_register_event_handlers)(sipModuleState *ms,
+            const sipEventHandlerSpec *const handlers);
+    int (*api_convert_to_enum)(sipModuleState *ms, PyObject *obj, void *addr,
+            sipTypeID type_id);
+    bool (*api_convert_to_bool)(PyObject *obj);
+    char (*api_long_as_char)(PyObject *o);
+    signed char (*api_long_as_signed_char)(PyObject *o);
+    unsigned char (*api_long_as_unsigned_char)(PyObject *o);
+    short (*api_long_as_short)(PyObject *o);
+    unsigned short (*api_long_as_unsigned_short)(PyObject *o);
+    int (*api_long_as_int)(PyObject *o);
+    unsigned int (*api_long_as_unsigned_int)(PyObject *o);
+    long (*api_long_as_long)(PyObject *o);
+    long long (*api_long_as_long_long)(PyObject *o);
+    unsigned long long (*api_long_as_unsigned_long_long)(PyObject *o);
+    int (*api_convert_from_slice_object)(PyObject *slice, Py_ssize_t length,
+            Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
+            Py_ssize_t *slicelength);
+    size_t (*api_long_as_size_t)(PyObject *o);
+    void (*api_visit_wrappers)(sipModuleState *ms,
+            sipWrapperVisitorFunc visitor, void *closure);
+    int (*api_is_enum_flag)(sipModuleState *ms, PyObject *o);
+    PyObject *(*api_py_type_dict_ref)(PyTypeObject *wtype);
+    PyFrameObject *(*api_get_frame_ref)(int);
+
+    /*
+     * The following are not part of the public API.
+     */
+    bool (*api_parse_args)(sipModuleState *ms, PyObject **p_state_p,
+            PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
+            const sipArgParserSpec *ap_spec, void **params, PyObject **self_p,
+            sipTypeID self_type_id, void **self_cpp_p);
+    bool (*api_parse_args_c)(sipModuleState *ms, PyObject **p_state_p,
+            PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
+            const sipArgParserSpec *ap_spec, void **params, PyObject **self_p,
+            sipTypeID self_type_id, void **self_cpp_p, const char *type_hint);
+    bool (*api_parse_ctor_args)(sipModuleState *ms, PyObject **p_state_p,
+            PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
+            const sipArgParserSpec *ap_spec, void **params, PyObject *self,
+            PyObject **unused_p);
+    void (*api_abstract_method)(const char *classname, const char *method);
+    void *(*api_get_cpp_ptr)(sipModuleState *ms, PyObject *w_inst,
+            sipTypeID type_id);
+    PyObject *(*api_is_py_method)(sipModuleState *ms,
+            PyThreadStateToken **tst_p, char *pymc, PyObject **self_p,
+            const char *cname, const char *mname);
+    bool (*api_is_target_type)(sipModuleState *ms, sipTypeID type_id,
+            const sipClassTypeSpec *target_cts);
+    void *(*api_cast_to_target_type)(sipModuleState *ms, sipTypeID type_id,
+            void *cpp, const sipClassTypeSpec *target_cts);
+    void (*api_call_hook)(const char *hookname);
+    void (*api_raise_unknown_exception)(PyObject **p_state_p);
+    void (*api_raise_type_exception)(sipModuleState *ms, sipTypeID type_id,
+            void *ptr);
+    void (*api_set_parser_error)(PyObject **p_state_p);
+    int (*api_deprecated)(const char *classname, const char *method,
+            const char *message);
+    int (*api_keep_reference)(sipModuleState *ms, PyObject *w_inst, int key,
+            PyObject *obj);
+    void (*api_add_exception)(sipErrorState es, PyObject **p_state_p,
+            const char *type_hint);
+    int (*api_parse_result)(sipModuleState *ms, PyThreadStateToken *tst,
+            const char *error_handler, PyObject *py_self, PyObject *method,
+            PyObject *res, const char *fmt, ...);
+    void (*api_call_error_handler)(sipModuleState *ms,
+            const char *error_handler, PyObject *py_self,
+            PyThreadStateToken *tst);
+    void (*api_call_procedure_method)(sipModuleState *ms,
+            PyThreadStateToken *tst, const char *error_handler,
+            PyObject *py_self, PyObject *method, const char *fmt, ...);
+    int (*api_init_slot_impl)(PyObject *self, PyObject *args, PyObject *kwds,
+            void *module_token, sipTypeID type_id);
+    int (*api_is_derived_class)(PyObject *winst);
+    sipExceptionHandler (*api_next_exception_handler)(sipModuleState *ms,
+            PyObject **handler_mod_p, sipModuleState **handler_ms_p,
+            Py_ssize_t *state_p);
+    bool (*api_self_is_arg)(sipModuleState *ms, PyObject *self,
+            sipTypeID type_id);
+    int (*api_module_clear)(PyObject *mod);
+    int (*api_module_exec)(PyObject *mod, const sipModuleSpec *m_spec);
+    void (*api_module_free)(void *mod_ptr);
+    int (*api_module_traverse)(PyObject *mod, visitproc visit, void *arg);
+};
+
+
+/*
+ * These are flags that can be passed to sipCanConvertToType(),
+ * sipConvertToType() and sipForceConvertToType().
+ */
+#define SIP_NOT_NONE        0x01    /* Disallow None. */
+#define SIP_NO_CONVERTORS   0x02    /* Disable any type convertors. */
+
+
+/*
+ * These are flags that can be passed to sipConvertToArray().
+ */
+#define SIP_READ_ONLY       0x01    /* The array is read-only. */
+#define SIP_OWNS_MEMORY     0x02    /* The array owns its memory. */
+
+
+/*
+ * These are the state flags returned by %ConvertToTypeCode.  Note that the
+ * values share the same "flagspace" as the contents of flags.
+ */
+#define SIP_TEMPORARY       0x0001  /* A temporary instance. */
+#define SIP_DERIVED_CLASS   0x0002  /* The instance is derived. */
+#define SIP_USER            0x0004  /* For use by the user. */
+#define SIP_RESERVED        0x0008  /* Reserved for future use by this ABI version. */
+
+
+/*
+ * A type ID is a 32 bit value.  The value (unless it is an absolute type ID)
+ * is made up of a module number and a type number within the module.  A type
+ * ID is interpreted in the context of the module in which it is used (the
+ * contextual module), which may be different to the module in which it is
+ * defined (the defining module).  For example a class A.K (ie. class K defined
+ * in module A) with have different type IDs when referenced from module A and
+ * module B.  However the symbolic name of these different type IDs will be the
+ * same.  Absolute type IDs are created dynamically by sipFindType() and their
+ * values do not need a module context to be interpreted.
+ *
+ * The most significant 3 bits of the value specify the general type, either a
+ * type that has an immutable type specification (eg. a class) or a POD type.
+ *
+ * The next 2 bits are currently unused.
+ *
+ * The next 3 bits are flags common to all type IDs.
+ *
+ * If the type is a POD type then the remaining 24 bits specify the particular
+ * type (although only 10 bits are currently used).
+ *
+ * For other types the next 8 bits specify the contextual module number.  Using
+ * a lookup table in the context module the defining module's Python object can
+ * be found.  The final 16 bits specify the contextual type number of the type
+ * specification.  Using another lookup table in the context module it is
+ * converted to the defining type number.  Together the defining module and
+ * defining type number identify the actual type specification and any
+ * corresponding Python type object.
+ *
+ * The values of certain fields are designed so that 0 is an invalid type ID.
+ */
+
+/* The general type part of a type ID. */
+#define SIP_TYPE_ID_TYPE_MASK           0xe0000000
+#define SIP_TYPE_ID_TYPE_POD            0x00000000      /* This must be 0. */
+#define SIP_TYPE_ID_TYPE_CLASS          0x20000000
+#define SIP_TYPE_ID_TYPE_MAPPED         0x40000000
+#define SIP_TYPE_ID_TYPE_ENUM           0x60000000
+#define SIP_TYPE_ID_TYPE_EXCEPTION      0x80000000
+
+/* The flags part of a type ID. */
+#define SIP_TYPE_ID_SENTINEL            0x01000000
+#define SIP_TYPE_ID_ABSOLUTE            0x02000000
+#define SIP_TYPE_ID_EXTERNAL            0x04000000
+
+/* The unused parts of a type ID. */
+#define SIP_TYPE_ID_UNUSED_1            0x08000000
+#define SIP_TYPE_ID_UNUSED_2            0x01000000
+
+/* The number of the local module. */
+#define SIP_TYPE_ID_LOCAL_MODULE        0x00ff0000
+
+
+/* The invalid type ID.  It must be 0. */
+#define sipType_Invalid         0
+
+/* The type IDs of POD types.  These must start from 1. */
+#define sipType_byte            0x000001
+#define sipType_sbyte           0x000002
+#define sipType_ubyte           0x000003
+#define sipType_short           0x000004
+#define sipType_ushort          0x000005
+#define sipType_int             0x000006
+#define sipType_uint            0x000007
+#define sipType_long            0x000008
+#define sipType_ulong           0x000009
+#define sipType_longlong        0x00000a
+#define sipType_ulonglong       0x00000b
+#define sipType_Py_hash_t       0x00000c
+#define sipType_Py_ssize_t      0x00000d
+#define sipType_size_t          0x00000e
+#define sipType_float           0x00000f
+#define sipType_double          0x000010
+#define sipType_char            0x000011
+#define sipType_char_ascii      0x000111
+#define sipType_char_latin1     0x000211
+#define sipType_char_utf8       0x000311
+#define sipType_schar           0x000012
+#define sipType_uchar           0x000013
+#define sipType_wchar           0x000014
+#define sipType_str             0x000015
+#define sipType_str_ascii       0x000115
+#define sipType_str_latin1      0x000215
+#define sipType_str_utf8        0x000315
+#define sipType_sstr            0x000016
+#define sipType_ustr            0x000017
+#define sipType_wstr            0x000018
+#define sipType_bool            0x000019
+#define sipType_voidptr         0x00001a
+#define sipType_voidptr_const   0x00001b
+#define sipType_pyobject        0x00001c
+#define sipType_pybuffer        0x00001d
+#define sipType_pycallable      0x00001e
+#define sipType_pycapsule       0x00001f
+#define sipType_pydict          0x000020
+#define sipType_pyenum          0x000021
+#define sipType_pylist          0x000022
+#define sipType_pyslice         0x000023
+#define sipType_pytuple         0x000024
+#define sipType_pytype          0x000025
+#define sipType_ellipsis        0x000026
+
+/* The type IDs of standard Python exceptions (also POD types). */
+#define sipType_BaseException           0x000800
+#define sipType_BaseExceptionGroup      0x000801
+#define sipType_Exception               0x000802
+#define sipType_ArithmeticError         0x000803
+#define sipType_AssertionError          0x000804
+#define sipType_AttributeError          0x000805
+#define sipType_BlockingIOError         0x000806
+#define sipType_BrokenPipeError         0x000807
+#define sipType_BufferError             0x000808
+#define sipType_ChildProcessError       0x000809
+#define sipType_ConnectionAbortedError  0x00080a
+#define sipType_ConnectionError         0x00080b
+#define sipType_ConnectionRefusedError  0x00080c
+#define sipType_ConnectionResetError    0x00080d
+#define sipType_EOFError                0x00080e
+#define sipType_FileExistsError         0x00080f
+#define sipType_FileNotFoundError       0x000810
+#define sipType_FloatingPointError      0x000811
+#define sipType_GeneratorExit           0x000812
+#define sipType_ImportCycleError        0x000813
+#define sipType_ImportError             0x000814
+#define sipType_IndentationError        0x000815
+#define sipType_IndexError              0x000816
+#define sipType_InterruptedError        0x000817
+#define sipType_IsADirectoryError       0x000818
+#define sipType_KeyError                0x000819
+#define sipType_KeyboardInterrupt       0x00081a
+#define sipType_LookupError             0x00081b
+#define sipType_MemoryError             0x00081c
+#define sipType_ModuleNotFoundError     0x00081d
+#define sipType_NameError               0x00081e
+#define sipType_NotADirectoryError      0x00081f
+#define sipType_NotImplementedError     0x000820
+#define sipType_OSError                 0x000821
+#define sipType_OverflowError           0x000822
+#define sipType_PermissionError         0x000823
+#define sipType_ProcessLookupError      0x000824
+#define sipType_PythonFinalizationError 0x000825
+#define sipType_RecursionError          0x000826
+#define sipType_ReferenceError          0x000827
+#define sipType_RuntimeError            0x000828
+#define sipType_StopAsyncIteration      0x000829
+#define sipType_StopIteration           0x00082a
+#define sipType_SyntaxError             0x00082b
+#define sipType_SystemError             0x00082c
+#define sipType_SystemExit              0x00082d
+#define sipType_TabError                0x00082e
+#define sipType_TimeoutError            0x00082f
+#define sipType_TypeError               0x000830
+#define sipType_UnboundLocalError       0x000831
+#define sipType_UnicodeDecodeError      0x000832
+#define sipType_UnicodeEncodeError      0x000833
+#define sipType_UnicodeError            0x000834
+#define sipType_UnicodeTranslateError   0x000835
+#define sipType_ValueError              0x000836
+#define sipType_ZeroDivisionError       0x000837
+
+/* The type IDs of standard Python warnings (also POD types). */
+#define sipType_Warning                     0x000900
+#define sipType_BytesWarning                0x000901
+#define sipType_DeprecationWarning          0x000902
+#define sipType_EncodingWarning             0x000903
+#define sipType_FutureWarning               0x000904
+#define sipType_ImportWarning               0x000905
+#define sipType_PendingDeprecationWarning   0x000906
+#define sipType_ResourceWarning             0x000907
+#define sipType_RuntimeWarning              0x000908
+#define sipType_SyntaxWarning               0x000909
+#define sipType_UnicodeWarning              0x00090a
+#define sipType_UserWarning                 0x00090b
+
+
+/*
+ * Macros to access the parts of a type ID.  These are not part of the API but
+ * are included here to keep them with the public macros below.
+ */
+#define sipTypeIDTypeNr(id)         ((sipTypeNr)(id))
+#define sipTypeIDModuleNr(id)       ((sipModuleNr)((id) >> 16))
+#define sipTypeIDIsSentinel(id)     ((id) & SIP_TYPE_ID_SENTINEL)
+#define sipTypeIDIsAbsolute(id)     ((id) & SIP_TYPE_ID_ABSOLUTE)
+#define sipTypeIDIsExternal(id)     ((id) & SIP_TYPE_ID_EXTERNAL)
+#define sipTypeIDIsPOD(id)          (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_POD)
+#define sipTypeIDIsLocalModule(id)  (((id) & SIP_TYPE_ID_LOCAL_MODULE) == SIP_TYPE_ID_LOCAL_MODULE)
+
+/*
+ * The following are part of the public API.
+ */
+#define sipTypeIsClass(id)      (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_CLASS)
+#define sipTypeIsEnum(id)       (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_ENUM)
+#define sipTypeIsMapped(id)     (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_MAPPED)
+#if defined(SIP_CONFIGURATION_CustomEnums)
+#define sipTypeIsScopedEnum(id) (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_SCOPED_ENUM)
+#endif
+
+/* There is no reason why this couldn't be part of the public API. */
+#define sipTypeIsException(id)  (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_EXCEPTION)
+
+
+/*
+ * The following relate to a wrapped type specification's flags.
+ */
+#define SIP_TYPE_TYPE_MASK  0x0007  /* The type type mask. */
+#define SIP_TYPE_CLASS      0x0000  /* If the type is a C++ class. */
+#define SIP_TYPE_NAMESPACE  0x0001  /* If the type is a C++ namespace. */
+#define SIP_TYPE_MAPPED     0x0002  /* If the type is a mapped type. */
+#define SIP_TYPE_ENUM       0x0003  /* If the type is an enum. */
+#if defined(SIP_CONFIGURATION_CustomEnums)
+#define SIP_TYPE_SCOPED_ENUM    0x0004  /* If the type is a scoped enum. */
+#endif
+#define SIP_TYPE_EXTERNAL   0x0005  /* If the type is external. */
+#define SIP_TYPE_EXCEPTION  0x0006  /* If the type is an exception. */
+#define SIP_TYPE_ABSTRACT   0x0008  /* If the type is abstract. */
+#define SIP_TYPE_SCC        0x0010  /* If the type is subject to sub-class convertors. */
+#define SIP_TYPE_ALLOW_NONE 0x0020  /* If the type can handle None. */
+#define SIP_TYPE_SUPER_INIT 0x0040  /* If the instance's super init should be called. */
+#define SIP_TYPE_USER_STATE 0x0080  /* If the convertors need user state. */
+
+
+#if defined(SIP_CONFIGURATION_PyEnums)
+/* The Python base types of enums. */
+#define SIP_ENUM_ENUM       0       /* The base type is Enum. */
+#define SIP_ENUM_FLAG       1       /* The base type is Flag. */
+#define SIP_ENUM_INT_ENUM   2       /* The base type is IntEnum. */
+#define SIP_ENUM_INT_FLAG   3       /* The base type is IntFlag. */
+#define SIP_ENUM_UINT_ENUM  4       /* The base type is IntEnum with unsigned members. */
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

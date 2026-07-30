@@ -1,8 +1,9 @@
 // Define the SIP wrapper to the core library.
 
-%Module(name=examples.core, use_limited_api=True)
+%Module(name=examples.core, use_limited_api=True, gil_use="NotUsed",
+        multi_interpreter_support="Supported")
 
-%MinimumABIVersion "13.1"
+%MinimumABIVersion "14"
 %DefaultEncoding "ASCII"
 
 %Platforms {Linux macOS Windows}

@@ -84,9 +84,7 @@ def fmt_argument_as_cpp_type(spec, arg, name=None, scope=None,
             s += 'short'
 
         elif arg.type is ArgumentType.UINT:
-            # Qt4 moc uses "uint" in signal signatures.  We do all the time and
-            # hope it is always defined.
-            s += 'uint'
+            s += 'unsigned'
 
         elif arg.type in (ArgumentType.INT, ArgumentType.CINT):
             s += 'int'

@@ -178,6 +178,8 @@ def _create_patches(sip_module, sip_module_configuration, module_source_dir, *,
         patches['@_SIP_MODULE_LEGACY@'] = '1' if legacy else '0'
 
     elif abi_major >= 14:
+        patches['@_SIP_LEGACY_MODULE_ENTRY@'] = 'PyInit_' + sip_module_name
+
         for opt_name, opt_value in SipModuleConfiguration.__members__.items():
             patch_name = f'@_SIP_{opt_name}_STATE@'
             patch_value = '#define' if opt_value in sip_module_configuration else '#undef'
