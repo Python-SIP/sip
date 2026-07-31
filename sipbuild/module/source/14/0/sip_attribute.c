@@ -17,7 +17,7 @@
 #include "sip_callable.h"
 #include "sip_iterators.h"
 #include "sip_method_descriptor.h"
-#include "sip_module.h"
+#include "sip_sip_module.h"
 #include "sip_variable_descriptor.h"
 #include "sip_variable.h"
 #include "sip_wrapper_type.h"
@@ -73,7 +73,7 @@ PyObject *sip_dir_of_module(PyObject *mod, PyObject *attr_dict)
 /*
  * Return the __dir__ of a wrapper type.
  */
-PyObject *sip_dir_of_wt(sipWrapperTypeImpl *wt, PyObject *attr_dict)
+PyObject *sip_dir_of_wt(sipWrapperType *wt, PyObject *attr_dict)
 {
     /* Add the class dicts of any MRO types. */
     PyObject *mro = ((PyTypeObject *)wt)->tp_mro;

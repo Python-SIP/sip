@@ -23,7 +23,7 @@ extern "C" {
 
 PyObject *sip_get_callable_docstring(sipModuleState *ms,
         const sipAttrSpec *attr_spec, const sipTypeSpec *extending_ts);
-PyObject *sip_get_class_docstring(sipWrapperTypeImpl *wt);
+PyObject *sip_get_class_docstring(sipWrapperType *wt);
 
 #ifdef __cplusplus
 }

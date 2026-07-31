@@ -3,7 +3,7 @@
 /*
  * This file defines the API for the wrapped module support.
  *
- * Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+ * Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
  */
 
 
@@ -57,9 +57,9 @@ typedef union {
 
 
 /*
- * A wrapped module's state.
+ * The implementation of a wrapped module's state.
  */
-struct _sipModuleState {
+struct sipModuleStateImpl {
     /* The array of event handlers. */
     const sipEventHandlerSpec *event_handlers;
 

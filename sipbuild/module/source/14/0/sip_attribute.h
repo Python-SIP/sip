@@ -13,7 +13,6 @@
 #include <Python.h>
 
 #include "sip.h"
-#include "sip_decls.h"
 
 
 #ifdef __cplusplus
@@ -36,7 +35,7 @@ PyObject *sip_get_attribute_for_spec(sipModuleState *ms, PyObject *self,
 const sipAttrSpec *sip_get_attribute_spec(const char *name,
         const sipAttrGroupSpec *attrs);
 PyObject *sip_dir_of_module(PyObject *mod, PyObject *attr_dict);
-PyObject *sip_dir_of_wt(sipWrapperTypeImpl *wt, PyObject *attr_dict);
+PyObject *sip_dir_of_wt(sipWrapperType *wt, PyObject *attr_dict);
 PyObject *sip_mod_con_getattro(sipModuleState *ms, PyObject *self,
         PyObject *name, PyObject *attr_dict,
         const sipAttrGroupSpec *const attrs_static_variables,

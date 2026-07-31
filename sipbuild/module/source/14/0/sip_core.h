@@ -62,7 +62,7 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
 int sip_api_deprecated(const char *classname, const char *method,
         const char *message);
 void sip_api_free(void *mem);
-void *sip_api_get_address(PyObject *w_inst);
+void *sip_api_get_address(sipSimpleWrapper *sw);
 void *sip_api_get_cpp_ptr(sipModuleState *ms, PyObject *w_inst,
         sipTypeID type_id);
 int sip_api_keep_reference(sipModuleState *ms, PyObject *w_inst, int key,
@@ -75,7 +75,7 @@ void *sip_api_malloc(size_t nbytes);
  */
 int sip_add_attrs_to_type(sipModuleState *ms, PyTypeObject *py_type,
         const sipAttrGroupSpec *attrs, const sipTypeSpec *ts);
-void sip_add_to_parent(sipWrapperImpl *self, sipWrapperImpl *owner);
+void sip_add_to_parent(sipWrapper *self, sipWrapper *owner);
 int sip_append_py_object_to_list(sipSipModuleState *sms, PyObject **listp,
         PyObject *object);
 void *sip_cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
@@ -101,12 +101,12 @@ PyObject *sip_get_type_detail(sipModuleState *ms, sipTypeID type_id,
 PyObject *sip_get_type_name(const sipTypeSpec *ts);
 const sipTypeSpec *sip_get_type_spec(sipModuleState *ms, sipTypeID type_id,
         PyObject **def_mod_p);
-const sipTypeSpec *sip_get_type_spec_from_wt(sipWrapperTypeImpl *wt);
+const sipTypeSpec *sip_get_type_spec_from_wt(sipWrapperType *wt);
 int sip_is_subtype(sipModuleState *ms, PyTypeObject *py_type,
         sipTypeID type_id);
-void sip_isolate_wrapper(sipModuleState *ms, sipSimpleWrapperImpl *sw);
+void sip_isolate_wrapper(sipModuleState *ms, sipSimpleWrapper *sw);
 void sip_raise_no_convert_from(const sipTypeSpec *td);
-void sip_remove_from_parent(sipWrapperImpl *self);
+void sip_remove_from_parent(sipWrapper *self);
 int sip_set_qualname(sipModuleState *ms, const sipTypeSpec *ts,
         PyObject *py_type);
 void sip_transfer_back(sipSipModuleState *sms, PyObject *self);

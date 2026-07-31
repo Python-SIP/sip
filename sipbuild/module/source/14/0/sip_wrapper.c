@@ -11,7 +11,7 @@
 
 #include "sip_wrapper.h"
 
-#include "sip_module.h"
+#include "sip_sip_module.h"
 
 
 /*
@@ -21,7 +21,7 @@
  */
 static PySlot Wrapper_slots[] = {
     PySlot_STATIC_DATA(Py_tp_name, _SIP_TYPE_NAME_PREFIX ".wrapper"),
-    PySlot_SIZE(Py_tp_basicsize, sizeof (sipWrapperImpl)),
+    PySlot_SIZE(Py_tp_basicsize, sizeof (sipWrapper)),
     PySlot_UINT64(Py_tp_flags, Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE),
     PySlot_END
 };

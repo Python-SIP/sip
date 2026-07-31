@@ -400,7 +400,7 @@ API Reference
         the Python object.
 
 
-.. c:function:: PyObject *sipConvertFromNewPyType(void *cpp, PyTypeObject *py_type, PyObject *owner, PyObject **self_p, const char *format, ...)
+.. c:function:: PyObject *sipConvertFromNewPyType(void *cpp, PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **self_p, const char *format, ...)
 
     This converts a new C structure or a C++ class instance to an instance of a
     corresponding Python type (as opposed to the corresponding generated Python
@@ -792,8 +792,8 @@ API Reference
 
         This event is triggered whenever a Python wrapper object is being
         garbage collected.  The handler is passed a pointer to the opaque
-        module state, the type's type identifier and a ``PyObject *`` which is
-        the object being garbage collected.
+        module state, the type's type identifier and a pointer to the
+        :c:type:`sipSimpleWrapper *` being garbage collected.
 
     .. c:enumerator:: sipEventFinalisingAddress
 
@@ -920,7 +920,7 @@ API Reference
         the Python time object.
 
 
-.. c:function:: void *sipGetAddress(PyObject *obj)
+.. c:function:: void *sipGetAddress(sipSimpleWrapper *obj)
 
     This returns the address of the C structure or C++ class instance wrapped
     by a Python object.
@@ -1082,7 +1082,7 @@ API Reference
         there was an error.
 
 
-.. c:function:: PyObject *sipGetTypeUserObject(PyTypeObject *type)
+.. c:function:: PyObject *sipGetTypeUserObject(sipWrapperType *type)
 
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, contains an optional reference to a Python object
@@ -1096,7 +1096,7 @@ API Reference
         a new reference to the type-specific user object.
 
 
-.. c:function:: PyObject *sipGetUserObject(PyObject *obj)
+.. c:function:: PyObject *sipGetUserObject(sipSimpleWrapper *obj)
 
     Each wrapped instance contains an optional reference to a Python object
     that can be used for any purpose by handwritten code and will automatically
@@ -1151,7 +1151,7 @@ API Reference
         if there is no such symbol.
 
 
-.. c:function:: void sipInstanceDestroyed(PyObject **obj_p)
+.. c:function:: void sipInstanceDestroyed(sipSimpleWrapper **obj_p)
 
     This should be called by handwritten code if it is able to detect that a
     wrapped C++ instance has been destroyed from C++.  It should not be called
@@ -1173,7 +1173,7 @@ API Reference
         a non-zero value if the object is a :py:class:`enum.Flag` sub-class.
 
 
-.. c:function:: int sipIsOwnedByPython(PyObject *obj)
+.. c:function:: int sipIsOwnedByPython(sipSimpleWrapper *obj)
 
     This determines if a wrapped object is currently owned by Python.
 
@@ -1183,7 +1183,7 @@ API Reference
         a non-zero value if the object is currently owned by Python.
 
 
-.. c:function:: int sipIsUserType(PyTypeObject *type)
+.. c:function:: int sipIsUserType(const sipWrapperType *type)
 
     This checks if a type corresponds to a wrapped C/C++ type or a user
     sub-class of such a type.
@@ -1191,8 +1191,7 @@ API Reference
     :param type:
         the type object.
     :return:
-        ``1`` if the object is a wrapped type, ``0`` if not and ``-1`` if there
-        was an error.
+        a non-zero value if the type is a user defined type.
 
 
 .. c:function:: char sipLong_AsChar(PyObject *obj)
@@ -1628,7 +1627,7 @@ API Reference
         be returned.
 
 
-.. c:function:: void sipSetTypeUserObject(PyTypeObject *type, PyObject *user)
+.. c:function:: void sipSetTypeUserObject(sipWrapperType *type, PyObject *user)
 
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, can contain a reference to a single Python object
@@ -1641,7 +1640,7 @@ API Reference
         the type-specific user object.
 
 
-.. c:function:: void sipSetUserObject(PyObject *obj, PyObject *user)
+.. c:function:: void sipSetUserObject(sipSimpleWrapper *obj, PyObject *user)
 
     Each wrapped object can contain a reference to a single Python object that
     can be used for any purpose by handwritten code and will automatically be
@@ -1655,8 +1654,9 @@ API Reference
 
 .. c:type:: sipSimpleWrapper
 
-    This is provided as an aid to porting handwritten code to API v14 and is
-    defined as :c:type:`PyObject`.
+    This is an opaque C structure that implements a Python wrapped instance
+    whose type is :class:`sip.simplewrapper`.  It is an extension of the
+    :c:type:`PyObject` structure and so may be safely cast to it.
 
 
 .. c:type:: sipSymbolSpec
@@ -1862,7 +1862,7 @@ API Reference
 
     A visitor has the following signature.
 
-    void visitor(PyObject \*obj, void \*closure)
+    void visitor(sipSimpleWrapper \*obj, void \*closure)
 
         *obj* is the wrapped object being visited.
 
@@ -1871,14 +1871,18 @@ API Reference
 
 .. c:type:: sipWrapper
 
-    This is provided as an aid to porting handwritten code to API v14 and is
-    defined as :c:type:`PyObject`.
+    This is an opaque C structure that implements a Python wrapped instance
+    whose type is :class:`sip.wrapper`.  It is an extension of the
+    :c:type:`sipSimpleWrapper` and :c:type:`PyObject` structures and so may be
+    safely cast to both.
 
 
 .. c:type:: sipWrapperType
 
-    This is provided as an aid to porting handwritten code to API v14 and is
-    defined as :c:type:`PyTypeObject`.
+    This is an opaque C structure that implements a SIP generated type object.
+    It is an extension of the :c:type:`PyTypeObject` structure (which is itself
+    an extension of the :c:type:`PyObject` structure) and so may be safely cast
+    to :c:type:`PyTypeObject` (and :c:type:`PyObject`).
 
 
 Version History

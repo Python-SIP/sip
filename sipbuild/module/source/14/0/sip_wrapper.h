@@ -25,21 +25,21 @@ extern "C" {
  * The type of a C/C++ wrapper object that supports parent/child relationships.
  * A parent holds a strong reference to each of its children.
  */
-struct _sipWrapperImpl {
+struct sipWrapperImpl {
     /* The super-type. */
-    sipSimpleWrapperImpl super;
+    sipSimpleWrapper super;
 
     /* First child object. */
-    struct _sipWrapperImpl *first_child;
+    sipWrapper *first_child;
 
     /* Next sibling. */
-    struct _sipWrapperImpl *sibling_next;
+    sipWrapper *sibling_next;
 
     /* Previous sibling. */
-    struct _sipWrapperImpl *sibling_prev;
+    sipWrapper *sibling_prev;
 
     /* Owning object. */
-    struct _sipWrapperImpl *parent;
+    sipWrapper *parent;
 };
 
 

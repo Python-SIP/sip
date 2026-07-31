@@ -7,8 +7,8 @@
  */
 
 
-#ifndef _SIP_MODULE_H
-#define _SIP_MODULE_H
+#ifndef _SIP_SIP_MODULE_H
+#define _SIP_SIP_MODULE_H
 
 #include <Python.h>
 
@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 /* The sip module's state. */
-struct _sipSipModuleState {
+struct sipSipModuleStateImpl {
     /* The sip.array type object. */
     PyTypeObject *array_type;
 

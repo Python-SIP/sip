@@ -46,12 +46,9 @@ API Changes from v13 and v12
 
 This section summarises the differences between the v14 API and older versions.
 
-- All calls that used to take or return a pointer to a :c:type:`sipWrapperType`
-  now take or return a pointer to a :c:type:`PyTypeObject`.
-
-- All calls that used to take or return a pointer to a :c:type:`sipWrapper` or
-  :c:type:`sipSimpleWrapper` now take or return a pointer to a
-  :c:type:`PyObject`.
+- The :c:type:`sipSimpleWrapper`, :c:type:`sipWrapper` and
+  :c:type:`sipWrapperType` C types are now always opaque, even if the limited C
+  API is not used.
 
 - :c:func:`sipGetBufferInfo`, :c:func:`sipReleaseBufferInfo` and
   :c:type:`sipBufferInfoDef` are no longer supported as the corresponding
@@ -88,9 +85,6 @@ This section summarises the differences between the v14 API and older versions.
 - :c:func:`sipInstanceDestroyed` now takes a pointer to a ``PyObject *``
   (rather than just a ``PyObject *``) which will be set to ``NULL`` when the
   call returns.
-
-- :c:func:`sipIsUserType` now returns ``-1`` (and raises a Python exception) if
-  there was an error.
 
 - :c:func:`sipParseResult` has additional arguments that are provided by
   :directive:`%VirtualCatcherCode`.  The ``S`` format character is no longer

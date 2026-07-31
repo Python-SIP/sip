@@ -20,9 +20,9 @@
 #include "sip_core.h"
 #include "sip_enum.h"
 #include "sip_int_convertors.h"
-#include "sip_module.h"
 #include "sip_object_map.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
 #include "sip_string_convertors.h"
 #include "sip_voidptr.h"
 #include "sip_wrapped_module.h"
@@ -90,7 +90,7 @@ static int convert_subclass_pass(sipSipModuleState *sms, PyObject **def_mod_p,
         PyTypeObject **py_type_p, const sipTypeSpec **ts_p, void **cpp_p);
 static PyObject *convert_to_sequence(sipModuleState *ms, void *array,
         Py_ssize_t nr_elem, sipTypeID type_id);
-static PyObject *deref_mixin(PyObject *w_inst);
+static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *sw);
 static const char *detail_from_failure(PyObject *failure_obj,
         PyObject **detail_p);
 static void failure_dtor(PyObject *capsule);
@@ -109,7 +109,7 @@ static void parse_pass_2(sipModuleState *ms, PyObject *self, PyObject *arg,
         const sipArgParserFormatSpec *fmt_spec, void **fmt_params,
         sipParseFailure *failure);
 static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
-        PyObject *py_self, const char *fmt, va_list va);
+        sipSimpleWrapper *py_self, const char *fmt, va_list va);
 static bool parse_vc_kwd_args(sipModuleState *ms, PyObject **p_state_p,
         PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
         const sipArgParserSpec *ap_spec, void **params, PyObject **unused_p,
@@ -270,7 +270,7 @@ PyObject *sip_api_build_result(sipModuleState *ms, int *is_err_p,
  * thread that raised the error.
  */
 void sip_api_call_error_handler(sipModuleState *ms, const char *error_handler,
-        PyObject *w_inst, PyThreadStateToken *tst)
+        sipSimpleWrapper *sw, PyThreadStateToken *tst)
 {
     sipModuleState *handler_ms;
     sipVirtErrorHandlerFunc handler;
@@ -319,7 +319,7 @@ void sip_api_call_error_handler(sipModuleState *ms, const char *error_handler,
 
     if (handler != NULL)
     {
-        handler(handler_ms, deref_mixin(w_inst), tst);
+        handler(handler_ms, deref_mixin(sw), tst);
     }
     else
     {
@@ -379,8 +379,8 @@ PyObject *sip_api_call_method(sipModuleState *ms, int *is_err_p,
  * value and handle the result.
  */
 void sip_api_call_procedure_method(sipModuleState *ms,
-        PyThreadStateToken *tst, const char *error_handler, PyObject *py_self,
-        PyObject *method, const char *fmt, ...)
+        PyThreadStateToken *tst, const char *error_handler,
+        sipSimpleWrapper *py_self, PyObject *method, const char *fmt, ...)
 {
     va_list va;
 
@@ -412,7 +412,7 @@ void sip_api_call_procedure_method(sipModuleState *ms,
  * Convert a new C/C++ instance to a Python instance of a specific Python type.
  */
 PyObject *sip_api_convert_from_new_py_type(sipModuleState *ms, void *cpp,
-        PyTypeObject *py_type, PyObject *owner, PyObject **self_p,
+        PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **self_p,
         const char *fmt, ...)
 {
     PyObject *args, *res;
@@ -422,12 +422,17 @@ PyObject *sip_api_convert_from_new_py_type(sipModuleState *ms, void *cpp,
 
     if ((args = PyTuple_New(strlen(fmt))) != NULL && build_object(ms, args, fmt, va) != NULL)
     {
-        res = sip_wrap_instance(ms, cpp, py_type, args, owner,
+        /*
+         * The type of 'owner' should be 'PyObject *' to be consistent with the
+         * type of transfer objects.  We stick with the bad design to support
+         * legacy code.
+         */
+        res = sip_wrap_instance(ms, cpp, py_type, args, (PyObject *)owner,
                 (self_p != NULL ? SIP_DERIVED_CLASS : 0));
 
         /* Initialise the rest of an instance of a derived class. */
         if (self_p != NULL)
-            *self_p = res;
+            *self_p = (sipSimpleWrapper *)res;
     }
     else
     {
@@ -570,7 +575,7 @@ void sip_no_callable(PyObject *p_state, const char *scope, const char *name)
  * state.
  */
 int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
-        const char *error_handler, PyObject *w_inst, PyObject *method,
+        const char *error_handler, sipSimpleWrapper *sw, PyObject *method,
         PyObject *res, const char *fmt, ...)
 {
     int rc;
@@ -580,7 +585,7 @@ int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
         va_list va;
 
         va_start(va, fmt);
-        rc = parse_result(ms, method, res, deref_mixin(w_inst), fmt, va);
+        rc = parse_result(ms, method, res, deref_mixin(sw), fmt, va);
         va_end(va);
 
         Py_DECREF(res);
@@ -593,7 +598,7 @@ int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
     Py_DECREF(method);
 
     if (rc < 0)
-        sip_api_call_error_handler(ms, error_handler, w_inst, tst);
+        sip_api_call_error_handler(ms, error_handler, sw, tst);
 
     PyThreadState_Release(tst);
 
@@ -725,7 +730,7 @@ PyObject *sip_api_convert_from_type(sipModuleState *ms, void *cpp,
 
             /* Use the module state for the updated Python type. */
             ms = sip_get_module_state(
-                    ((sipWrapperTypeImpl *)py_type)->defining_module);
+                    ((sipWrapperType *)py_type)->defining_module);
         }
     }
 
@@ -805,7 +810,8 @@ void *sip_api_force_convert_to_type_us(sipModuleState *ms, PyObject *pyObj,
  * API can be called.
  */
 PyObject *sip_api_is_py_method(sipModuleState *ms, PyThreadStateToken **tst_p,
-        char *pymc, PyObject **self_p, const char *cname, const char *mname)
+        char *pymc, sipSimpleWrapper **self_p, const char *cname,
+        const char *mname)
 {
     sipSipModuleState *sms = ms->sip_module_state;
 
@@ -821,7 +827,7 @@ PyObject *sip_api_is_py_method(sipModuleState *ms, PyThreadStateToken **tst_p,
         return NULL;
 
     /* Only read this when we the thread state is attached. */
-    PyObject *self = *self_p;
+    sipSimpleWrapper *self = *self_p;
 
     /*
      * It's possible that the Python object has been deleted but the underlying
@@ -859,13 +865,11 @@ PyObject *sip_api_is_py_method(sipModuleState *ms, PyThreadStateToken **tst_p,
      * C function before a reimplementation defined in a mixin (ie. later in
      * the MRO).
      */
-    sipSimpleWrapperImpl *sw = (sipSimpleWrapperImpl *)self;
-
-    if (sw->dict != NULL)
+    if (self->dict != NULL)
     {
         /* Check the instance dictionary in case it has been monkey patched. */
         PyObject *reimp;
-        if (PyDict_GetItemRef(sw->dict, mname_obj, &reimp) < 0)
+        if (PyDict_GetItemRef(self->dict, mname_obj, &reimp) < 0)
         {
             Py_DECREF(mname_obj);
             goto release;
@@ -935,18 +939,20 @@ PyObject *sip_api_is_py_method(sipModuleState *ms, PyThreadStateToken **tst_p,
             if (PyMethod_GET_SELF(reimp) == NULL)
             {
                 Py_SETREF(reimp,
-                        PyMethod_New(PyMethod_GET_FUNCTION(reimp), self));
+                        PyMethod_New(PyMethod_GET_FUNCTION(reimp),
+                        (PyObject *)self));
             }
         }
         else if (PyFunction_Check(reimp))
         {
-            Py_SETREF(reimp, PyMethod_New(reimp, self));
+            Py_SETREF(reimp, PyMethod_New(reimp, (PyObject *)self));
         }
         else if (Py_TYPE(reimp)->tp_descr_get)
         {
             /* It is a descriptor, so assume it will do the right thing. */
             Py_SETREF(reimp,
-                    Py_TYPE(reimp)->tp_descr_get(reimp, self, (PyObject *)cls));
+                    Py_TYPE(reimp)->tp_descr_get(reimp, (PyObject *)self,
+                            (PyObject *)cls));
         }
     }
     else
@@ -1262,8 +1268,7 @@ static PyObject *build_object(sipModuleState *ms, PyObject *obj,
             break;
 
         case 'S':
-            el = va_arg(va, PyObject *);
-            Py_INCREF(el);
+            el = Py_NewRef(va_arg(va, PyObject *));
             break;
 
         case 'V':
@@ -1277,14 +1282,9 @@ static PyObject *build_object(sipModuleState *ms, PyObject *obj,
                 void *p = va_arg(va, void *);
 
                 if (p == NULL)
-                {
-                    el = Py_None;
-                    Py_INCREF(el);
-                }
+                    el = Py_NewRef(Py_None);
                 else
-                {
                     el = PyCapsule_New(p, name, NULL);
-                }
             }
 
             break;
@@ -1827,11 +1827,9 @@ void *sip_api_convert_to_type_us(sipModuleState *ms, PyObject *pyObj,
 /*
  * Return the main instance for an object if it is a mixin.
  */
-static PyObject *deref_mixin(PyObject *w_inst)
+static sipSimpleWrapper *deref_mixin(sipSimpleWrapper *sw)
 {
-    sipSimpleWrapperImpl *sw = (sipSimpleWrapperImpl *)w_inst;
-
-    return sw->mixin_main != NULL ? sw->mixin_main : w_inst;
+    return sw->mixin_main != NULL ? sw->mixin_main : sw;
 }
 
 
@@ -3124,7 +3122,7 @@ static void parse_pass_2(sipModuleState *ms, PyObject *self, PyObject *arg,
  * Do the main work of parsing a result object based on a format string.
  */
 static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
-        PyObject *py_self, const char *fmt, va_list va)
+        sipSimpleWrapper *py_self, const char *fmt, va_list va)
 {
     /* We rely on PyErr_Occurred(). */
     PyErr_Clear();
@@ -3233,7 +3231,7 @@ static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
 
                     wchar_t *wcp = sip_string_as_wchar_array(&keep, &asize);
 
-                    if (PyErr_Occurred() || sip_api_keep_reference(ms, py_self, key, keep) < 0)
+                    if (PyErr_Occurred() || sip_api_keep_reference(ms, (PyObject *)py_self, key, keep) < 0)
                     {
                         invalid = TRUE;
                     }
@@ -3555,7 +3553,7 @@ static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
                                 "sipParseResult(): invalid sub-format character to 'A'");
                     }
 
-                    if (PyErr_Occurred() || sip_api_keep_reference(ms, py_self, key, keep) < 0)
+                    if (PyErr_Occurred() || sip_api_keep_reference(ms, (PyObject *)py_self, key, keep) < 0)
                         invalid = TRUE;
                     else
                         *p = cp;
@@ -3570,7 +3568,7 @@ static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
 
                     const char *cp = sip_bytes_as_string(arg);
 
-                    if (PyErr_Occurred() || sip_api_keep_reference(ms, py_self, key, arg) < 0)
+                    if (PyErr_Occurred() || sip_api_keep_reference(ms, (PyObject *)py_self, key, arg) < 0)
                         invalid = TRUE;
                     else
                         *p = cp;
@@ -3587,7 +3585,7 @@ static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
 
                     wchar_t *wcp = sip_string_as_wstring(&keep);
 
-                    if (PyErr_Occurred() || sip_api_keep_reference(ms, py_self, key, keep) < 0)
+                    if (PyErr_Occurred() || sip_api_keep_reference(ms, (PyObject *)py_self, key, keep) < 0)
                         invalid = TRUE;
                     else
                         *p = wcp;

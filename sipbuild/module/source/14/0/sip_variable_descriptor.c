@@ -11,9 +11,9 @@
 
 #include "sip_variable_descriptor.h"
 
-#include "sip_module.h"
-#include "sip_variable.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
+#include "sip_variable.h"
 #include "sip_wrapper_type.h"
 
 
@@ -95,7 +95,7 @@ PyObject *sipVariableDescr_New(sipSipModuleState *sms,
 static PyObject *VariableDescr_descr_get(VariableDescr *self, PyObject *obj,
         PyObject *type)
 {
-    PyObject *defining_mod = ((sipWrapperTypeImpl *)self->defining_type)->defining_module;
+    PyObject *defining_mod = ((sipWrapperType *)self->defining_type)->defining_module;
     sipModuleState *ms = sip_get_module_state(defining_mod);
     sipSipModuleState *sms = ms->sip_module_state;
 
@@ -119,7 +119,7 @@ static PyObject *VariableDescr_descr_get(VariableDescr *self, PyObject *obj,
 static int VariableDescr_descr_set(VariableDescr *self, PyObject *obj,
         PyObject *value)
 {
-    PyObject *defining_mod = ((sipWrapperTypeImpl *)self->defining_type)->defining_module;
+    PyObject *defining_mod = ((sipWrapperType *)self->defining_type)->defining_module;
     sipModuleState *ms = sip_get_module_state(defining_mod);
     sipSipModuleState *sms = ms->sip_module_state;
 

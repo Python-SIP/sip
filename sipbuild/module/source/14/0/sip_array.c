@@ -17,8 +17,8 @@
 #include "sip.h"
 #include "sip_core.h"
 #include "sip_int_convertors.h"
-#include "sip_module.h"
 #include "sip_parsers.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 #include "sip_wrapper_type.h"
 
@@ -44,7 +44,7 @@ typedef union {
 typedef struct {
     PyObject_HEAD
     void *data;
-    sipWrapperTypeImpl *wt;
+    sipWrapperType *wt;
     sipTypeID type_id;
     const char *format;
     size_t stride;
@@ -98,7 +98,7 @@ static void bad_key(PyObject *key);
 static int check_index(Array *array, Py_ssize_t idx);
 static int check_writable(Array *array);
 static PyObject *create_array(PyTypeObject *array_type, void *data,
-        sipWrapperTypeImpl *wt, sipTypeID type_id, const char *format,
+        sipWrapperType *wt, sipTypeID type_id, const char *format,
         size_t stride, Py_ssize_t len, int flags, PyObject *owner);
 static void *get_element_addr(Array *array, Py_ssize_t idx);
 static void *get_slice(Array *array, PyObject *value, Py_ssize_t len);
@@ -448,7 +448,7 @@ static PyObject *Array_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
     static char *const kwlist[] = {"", "", NULL};
 
     sipSipModuleState *sms = sip_get_sip_module_state_from_type(cls);
-    sipWrapperTypeImpl *wt;
+    sipWrapperType *wt;
     Py_ssize_t length;
 
     if (!PyArg_ParseTupleAndKeywords(args, kw, "O!n:array", kwlist, sms->wrapper_type_type, (PyObject **)&wt, &length))
@@ -779,7 +779,7 @@ static const char *get_type_name(Array *array)
  * Create an array.
  */
 static PyObject *create_array(PyTypeObject *array_type, void *data,
-        sipWrapperTypeImpl *wt, sipTypeID type_id, const char *format,
+        sipWrapperType *wt, sipTypeID type_id, const char *format,
         size_t stride, Py_ssize_t len, int flags, PyObject *owner)
 {
     Array *array = (Array *)PyType_GenericAlloc(array_type, 0);
@@ -790,7 +790,7 @@ static PyObject *create_array(PyTypeObject *array_type, void *data,
         owner = (PyObject *)array;
 
     array->data = data;
-    array->wt = (sipWrapperTypeImpl *)Py_XNewRef(wt);
+    array->wt = (sipWrapperType *)Py_XNewRef(wt);
     array->type_id = type_id;
     array->format = format;
     array->stride = stride;
@@ -881,7 +881,7 @@ PyObject *sip_api_convert_to_typed_array(sipModuleState *ms, void *data,
         Py_RETURN_NONE;
 
     PyObject *obj = create_array(ms->sip_module_state->array_type, data,
-            (sipWrapperTypeImpl *)py_type, type_id, format, stride, len, flags,
+            (sipWrapperType *)py_type, type_id, format, stride, len, flags,
             NULL);
 
     Py_DECREF(def_mod);
@@ -893,7 +893,7 @@ PyObject *sip_api_convert_to_typed_array(sipModuleState *ms, void *data,
 /*
  * Wrap an arbitrary block of data to an array.
  */
-PyObject *sip_array_from_bytes(struct _sipSipModuleState *sms, void *data,
+PyObject *sip_array_from_bytes(sipSipModuleState *sms, void *data,
         Py_ssize_t size, int rw)
 {
     return create_array(sms->array_type, data, NULL, sipType_Invalid, "B",

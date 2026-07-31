@@ -12,8 +12,8 @@
 
 #include <Python.h>
 
+#include "sip.h"
 #include "sip_core.h"
-#include "sip_decls.h"
 
 
 #ifdef __cplusplus
@@ -26,7 +26,7 @@ extern "C" {
 typedef struct
 {
     void *key;                      /* The C/C++ address. */
-    sipSimpleWrapperImpl *first;    /* The first object at this address. */
+    sipSimpleWrapper *first;        /* The first object at this address. */
 } sipHashEntry;
 
 
@@ -44,12 +44,12 @@ typedef struct
 } sipObjectMap;
 
 
-void sip_om_add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj);
+void sip_om_add_object(sipModuleState *ms, sipSimpleWrapper *obj);
 void sip_om_finalise(sipObjectMap *om);
 PyObject *sip_om_find_object(sipObjectMap *om, void *key,
         PyTypeObject *w_type);
 int sip_om_init(sipObjectMap *om);
-int sip_om_remove_object(sipModuleState *ms, sipSimpleWrapperImpl *obj);
+int sip_om_remove_object(sipModuleState *ms, sipSimpleWrapper *obj);
 void sip_om_visit_wrappers(sipObjectMap *om, sipWrapperVisitorFunc visitor,
         void *closure);
 

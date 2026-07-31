@@ -569,7 +569,7 @@ static const sipTypeSpec sipTypeSpec_{module_name}_{klass_name} = {{
 
         if overload.is_const:
             const_cast_char = 'const_cast<char *>('
-            const_cast_po = 'const_cast<PyObject **>('
+            const_cast_po = 'const_cast<sipSimpleWrapper **>('
             const_cast_tail = ')'
         else:
             const_cast_char = ''
@@ -960,7 +960,7 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipGetState                     sipABI_{module_name}->api_get_state
 #define sipGetTypeUserObject            sipABI_{module_name}->api_get_type_user_object
 #define sipGetUserObject                sipABI_{module_name}->api_get_user_object
-#define sipIsUserType(...)              sipABI_{module_name}->api_is_user_type(sipMS, __VA_ARGS__)
+#define sipIsUserType(...)              sipABI_{module_name}->api_is_user_type
 #define sipGetSimpleWrapperType(...)    sipABI_{module_name}->api_get_simple_wrapper_type(sipMS, __VA_ARGS__)
 #define sipGetVoidPtrType(...)          sipABI_{module_name}->api_get_void_ptr_type(sipMS, __VA_ARGS__)
 #define sipGetWrapperType(...)          sipABI_{module_name}->api_get_wrapper_type(sipMS, __VA_ARGS__)
@@ -1447,7 +1447,7 @@ static const sipTypeSpec *const sipTypeSpecs_{module_name}[] = {{
         sf.write(
 f'''
 
-static void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipModuleState *sipMS, PyObject *{self_name}, PyThreadStateToken *{state_name})
+static void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipModuleState *sipMS, sipSimpleWrapper *{self_name}, PyThreadStateToken *{state_name})
 {{
 ''')
 
@@ -1460,7 +1460,7 @@ static void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipMo
         """ Generate the code that declares a wrapper reference. """
 
         sf.write('    sipModuleState *sipMS;\n')
-        sf.write('    PyObject *sipPySelf;\n')
+        sf.write('    sipSimpleWrapper *sipPySelf;\n')
 
     @staticmethod
     def cached_name_ref(cached_name, as_nr=False):
@@ -1606,21 +1606,7 @@ static void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipMo
         """ Generate the code that sets the value of a wrapper reference. """
 
         sf.write('            sipCpp->sipMS = sipMS;\n')
-        sf.write('            sipCpp->sipPySelf = sipSelf;\n\n')
-
-    @staticmethod
-    def get_wrapper_type():
-        """ Return the type of the C representation of a wrapped object. """
-
-        return 'PyObject *'
-
-    @staticmethod
-    def get_wrapper_type_cast():
-        """ Return the cast from a PyObject* of the C representation of a
-        wrapped object.
-        """
-
-        return ''
+        sf.write('            sipCpp->sipPySelf = (sipSimpleWrapper *)sipSelf;\n\n')
 
     def py_enums_supported(self):
         """ Return True if Python enums are supported. """

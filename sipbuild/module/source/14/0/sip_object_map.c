@@ -16,8 +16,8 @@
 #include "sip_object_map.h"
 
 #include "sip_core.h"
-#include "sip_module.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 #include "sip_wrapper_type.h"
 
@@ -37,15 +37,14 @@ static const uintptr_t hash_primes[] = {
 
 
 /* Forward declarations. */
-static void add_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
-        void *addr, const sipTypeSpec *ts);
-static void add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj,
-        void *addr);
+static void add_aliases(sipModuleState *ms, sipSimpleWrapper *obj, void *addr,
+        const sipTypeSpec *ts);
+static void add_object(sipModuleState *ms, sipSimpleWrapper *obj, void *addr);
 static sipHashEntry *find_hash_entry(sipObjectMap *om, void *key);
 static sipHashEntry *new_hash_table(uintptr_t size);
-static void remove_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
+static void remove_aliases(sipModuleState *ms, sipSimpleWrapper *obj,
         void *addr, const sipTypeSpec *ts);
-static int remove_object(sipModuleState *ms, sipSimpleWrapperImpl *obj,
+static int remove_object(sipModuleState *ms, sipSimpleWrapper *obj,
         void *addr);
 static void reorganise_map(sipObjectMap *om);
 
@@ -120,7 +119,7 @@ static sipHashEntry *find_hash_entry(sipObjectMap *om, void *key)
 PyObject *sip_om_find_object(sipObjectMap *om, void *key, PyTypeObject *w_type)
 {
     sipHashEntry *he = find_hash_entry(om, key);
-    sipSimpleWrapperImpl *sw = he->first;
+    sipSimpleWrapper *sw = he->first;
 
     /* Go through each wrapped object at this address. */
     while (sw != NULL)
@@ -138,7 +137,7 @@ PyObject *sip_om_find_object(sipObjectMap *om, void *key, PyTypeObject *w_type)
             goto next_object;
 
         /* Ignore it if the C/C++ address is no longer valid. */
-        if (sip_api_get_address(unaliased) == NULL)
+        if (sip_api_get_address((sipSimpleWrapper *)unaliased) == NULL)
             goto next_object;
 
         /*
@@ -160,7 +159,7 @@ next_object:
  * Add a C/C++ address and the corresponding wrapped Python object to the map.
  * The main mutex must be locked.
  */
-void sip_om_add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj)
+void sip_om_add_object(sipModuleState *ms, sipSimpleWrapper *obj)
 {
     /* Add the object. */
     add_object(ms, obj, obj->data);
@@ -168,15 +167,15 @@ void sip_om_add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj)
     /* Add any aliases. */
     add_aliases(ms, obj, obj->data,
             sip_get_type_spec_from_wt(
-                    (sipWrapperTypeImpl *)Py_TYPE((PyObject *)obj)));
+                    (sipWrapperType *)Py_TYPE((PyObject *)obj)));
 }
 
 
 /*
  * Add an alias for any address that is different when cast to a super-type.
  */
-static void add_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
-        void *addr, const sipTypeSpec *ts)
+static void add_aliases(sipModuleState *ms, sipSimpleWrapper *obj, void *addr,
+        const sipTypeSpec *ts)
 {
     const sipClassTypeSpec *cts = (const sipClassTypeSpec *)ts;
     const sipTypeID *supers = cts->supers;
@@ -199,7 +198,7 @@ static void add_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
          * We only check for aliases for subsequent super-classes because the
          * first one can never need one.
          */
-        sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)Py_TYPE((PyObject *)obj);
+        sipWrapperType *wt = (sipWrapperType *)Py_TYPE((PyObject *)obj);
         sipCastFunc cast = ((const sipClassTypeSpec *)sip_get_type_spec_from_wt(
                 wt))->cast;
 
@@ -219,8 +218,8 @@ static void add_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
 
             if (sup_addr != addr)
             {
-                sipSimpleWrapperImpl *alias = sip_api_malloc(
-                        sizeof (sipSimpleWrapperImpl));
+                sipSimpleWrapper *alias = sip_api_malloc(
+                        sizeof (sipSimpleWrapper));
 
                 /* Note that we silently ignore errors. */
                 if (alias != NULL)
@@ -250,8 +249,7 @@ static void add_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
 /*
  * Add a wrapper (which may be an alias) to the map.
  */
-static void add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj,
-        void *addr)
+static void add_object(sipModuleState *ms, sipSimpleWrapper *obj, void *addr)
 {
     sipSipModuleState *sms = ms->sip_module_state;
     sipHashEntry *he = find_hash_entry(&sms->object_map, addr);
@@ -282,13 +280,13 @@ static void add_object(sipModuleState *ms, sipSimpleWrapperImpl *obj,
          */
         if (!(obj->flags & SIP_SHARE_MAP))
         {
-            sipSimpleWrapperImpl *sw = he->first;
+            sipSimpleWrapper *sw = he->first;
 
             he->first = NULL;
 
             while (sw != NULL)
             {
-                sipSimpleWrapperImpl *next = sw->next;
+                sipSimpleWrapper *next = sw->next;
 
                 if (sipIsAlias(sw))
                     sip_api_free(sw);
@@ -384,12 +382,12 @@ static void reorganise_map(sipObjectMap *om)
  * Remove a C/C++ object from the table.  Return 0 if it was removed
  * successfully.  The main mutex must be locked.
  */
-int sip_om_remove_object(sipModuleState *ms, sipSimpleWrapperImpl *obj)
+int sip_om_remove_object(sipModuleState *ms, sipSimpleWrapper *obj)
 {
     /* Remove any aliases. */
     remove_aliases(ms, obj, obj->data,
             sip_get_type_spec_from_wt(
-                    (sipWrapperTypeImpl *)Py_TYPE((PyObject *)obj)));
+                    (sipWrapperType *)Py_TYPE((PyObject *)obj)));
 
     /* Remove the object. */
     return remove_object(ms, obj, obj->data);
@@ -399,7 +397,7 @@ int sip_om_remove_object(sipModuleState *ms, sipSimpleWrapperImpl *obj)
 /*
  * Remove an alias for any address that is different when cast to a super-type.
  */
-static void remove_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
+static void remove_aliases(sipModuleState *ms, sipSimpleWrapper *obj,
         void *addr, const sipTypeSpec *ts)
 {
     const sipClassTypeSpec *cts = (const sipClassTypeSpec *)ts;
@@ -423,7 +421,7 @@ static void remove_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
          * We only check for aliases for subsequent super-classes because the
          * first one can never need one.
          */
-        sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)Py_TYPE((PyObject *)obj);
+        sipWrapperType *wt = (sipWrapperType *)Py_TYPE((PyObject *)obj);
         sipCastFunc cast = ((const sipClassTypeSpec *)sip_get_type_spec_from_wt(
                 wt))->cast;
 
@@ -454,17 +452,16 @@ static void remove_aliases(sipModuleState *ms, sipSimpleWrapperImpl *obj,
 /*
  * Remove a wrapper from the map.
  */
-static int remove_object(sipModuleState *ms, sipSimpleWrapperImpl *obj,
-        void *addr)
+static int remove_object(sipModuleState *ms, sipSimpleWrapper *obj, void *addr)
 {
     sipSipModuleState *sms = ms->sip_module_state;
     sipHashEntry *he = find_hash_entry(&sms->object_map, addr);
-    sipSimpleWrapperImpl **sw_p;
+    sipSimpleWrapper **sw_p;
 
     for (sw_p = &he->first; *sw_p != NULL; sw_p = &(*sw_p)->next)
     {
-        sipSimpleWrapperImpl *sw = *sw_p;
-        sipSimpleWrapperImpl *next = sw->next;
+        sipSimpleWrapper *sw = *sw_p;
+        sipSimpleWrapper *next = sw->next;
         int do_remove;
 
         if (sipIsAlias(sw))
@@ -521,10 +518,10 @@ void sip_om_visit_wrappers(sipObjectMap *om, sipWrapperVisitorFunc visitor,
     {
         if (he->key != NULL)
         {
-            sipSimpleWrapperImpl *sw;
+            sipSimpleWrapper *sw;
 
             for (sw = he->first; sw != NULL; sw = sw->next)
-                visitor((PyObject *)sw, closure);
+                visitor(sw, closure);
         }
     }
 }

@@ -36,6 +36,22 @@ extern "C" {
 #endif
 
 /*
+ * Declarations of public opaque structures.
+ */
+struct sipModuleStateImpl;
+typedef struct sipModuleStateImpl sipModuleState;
+
+struct sipSimpleWrapperImpl;
+typedef struct sipSimpleWrapperImpl sipSimpleWrapper;
+
+struct sipWrapperImpl;
+typedef struct sipWrapperImpl sipWrapper;
+
+struct sipWrapperTypeImpl;
+typedef struct sipWrapperTypeImpl sipWrapperType;
+
+
+/*
  * Forward declarations of structures.
  */
 struct _sipABISpec;
@@ -58,9 +74,6 @@ typedef struct _sipImportedModuleSpec sipImportedModuleSpec;
 
 struct _sipModuleSpec;
 typedef struct _sipModuleSpec sipModuleSpec;
-
-struct _sipModuleState;
-typedef struct _sipModuleState sipModuleState;
 
 struct _sipTypeSpec;
 typedef struct _sipTypeSpec sipTypeSpec;
@@ -148,12 +161,9 @@ extern "C" {
 
 
 /*
- * Compatibility stuff to make porting from legacy APIs easier.  Note that some
- * of these are still used by the ABI v14 code generator.
+ * Compatibility stuff to make porting from legacy APIs easier.  Note these are
+ * still used by the ABI v14 code generator.
  */
-typedef PyObject sipSimpleWrapper;
-typedef PyObject sipWrapper;
-typedef PyTypeObject sipWrapperType;
 typedef PyThreadStateToken *sip_gilstate_t;
 #define SIP_RELEASE_GIL(gs) PyThreadState_Release(gs);
 
@@ -196,7 +206,7 @@ typedef PyObject *(*sipConvertFromFunc)(sipModuleState *, void *, PyObject *);
 typedef int (*sipConvertToFunc)(sipModuleState *, PyObject *, void **, int *,
         PyObject *, void **);
 typedef void *(*sipCopyFunc)(const void *, Py_ssize_t);
-typedef void (*sipDeallocFunc)(PyObject *);
+typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
 typedef void *(*sipInitFunc)(sipModuleState *, PyObject **, PyObject *,
         PyObject *const *, Py_ssize_t, PyObject *, PyObject **, PyObject **);
 typedef int (*sipFinalFunc)(PyObject *, void *, PyObject *, PyObject **);
@@ -206,11 +216,11 @@ typedef void (*sipReleaseUSFunc)(void *, int, void *);
 typedef sipTypeID (*sipSubClassConvertFunc)(void **);
 typedef int (*sipTraverseFunc)(void *, visitproc, void *);
 typedef void *(*sipVariableAddrGetterFunc)(void *);
-typedef void (*sipVirtErrorHandlerFunc)(sipModuleState *, PyObject *,
+typedef void (*sipVirtErrorHandlerFunc)(sipModuleState *, sipSimpleWrapper *,
         PyThreadStateToken *);
 typedef int (*sipVirtHandlerFunc)(PyThreadStateToken *, const char *,
         PyObject *, PyObject *, ...);
-typedef void (*sipWrapperVisitorFunc)(PyObject *, void *);
+typedef void (*sipWrapperVisitorFunc)(sipSimpleWrapper *, void *);
 typedef int (*sipGetBufferFunc)(PyObject *, void *, Py_buffer *, int);
 typedef void (*sipReleaseBufferFunc)(PyObject *, void *, Py_buffer *);
 
@@ -233,7 +243,7 @@ typedef enum
  */
 typedef void (*sipCollectingModuleEventHandler)();
 typedef void (*sipCollectingWrapperEventHandler)(sipModuleState *sipMS,
-        sipTypeID sipType, PyObject *winst);
+        sipTypeID sipType, sipSimpleWrapper *sw);
 typedef void *(*sipFinalisingAddressEventHandler)(sipModuleState *sipMS,
         sipTypeID sipType, void *sipCpp);
 typedef int (*sipFinalisingTypeEventHandler)(sipModuleState *sipMS,
@@ -980,20 +990,20 @@ struct _sipABISpec {
     sipTypeID (*api_type_scope)(sipModuleState *ms, sipTypeID type_id);
     const char *(*api_resolve_typedef)(sipModuleState *ms, const char *name);
     sipErrorState (*api_bad_callable_arg)(int arg_nr, PyObject *arg);
-    void *(*api_get_address)(PyObject *winst);
+    void *(*api_get_address)(sipSimpleWrapper *sw);
     int (*api_enable_autoconversion)(sipModuleState *ms, PyTypeObject *py_type,
             int enable);
     PyObject *(*api_convert_from_new_py_type)(sipModuleState *ms, void *cpp,
-            PyTypeObject *py_type, PyObject *owner, PyObject **self_p,
-            const char *fmt, ...);
+            PyTypeObject *py_type, sipWrapper *owner,
+            sipSimpleWrapper **self_p, const char *fmt, ...);
     PyObject *(*api_convert_to_typed_array)(sipModuleState *ms, void *data,
             sipTypeID type_id, const char *format, size_t stride,
             Py_ssize_t len, int flags);
     PyObject *(*api_convert_to_array)(sipModuleState *ms, void *data,
             const char *format, Py_ssize_t len, int flags);
     PyInterpreterView *(*api_get_interpreter_view)(sipModuleState *ms);
-    void (*api_set_type_user_object)(PyTypeObject *wtype, PyObject *data);
-    PyObject *(*api_get_type_user_object)(PyTypeObject *wtype);
+    void (*api_set_type_user_object)(sipWrapperType *wt, PyObject *data);
+    PyObject *(*api_get_type_user_object)(sipWrapperType *wt);
     int (*api_get_method)(PyObject *, sipMethodDef *);
     PyObject *(*api_from_method)(const sipMethodDef *);
     int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
@@ -1003,14 +1013,15 @@ struct _sipABISpec {
     PyObject *(*api_from_date_time)(const sipDateDef *, const sipTimeDef *);
     int (*api_get_time)(PyObject *, sipTimeDef *);
     PyObject *(*api_from_time)(const sipTimeDef *);
-    int (*api_is_user_type)(sipModuleState *ms, PyTypeObject *wtype);
+    int (*api_is_user_type)(sipWrapperType *wt);
     PyObject *(*api_unicode_new)(Py_ssize_t, unsigned, int *, void **);
     void (*api_unicode_write)(int, void *, int, unsigned);
     void *(*api_unicode_data)(PyObject *, int *, Py_ssize_t *);
-    PyObject *(*api_get_user_object)(PyObject *winst);
-    void (*api_set_user_object)(PyObject *winst, PyObject *user);
-    void (*api_instance_destroyed)(sipModuleState *ms, PyObject **self_p);
-    int (*api_is_owned_by_python)(PyObject *winst);
+    PyObject *(*api_get_user_object)(sipSimpleWrapper *sw);
+    void (*api_set_user_object)(sipSimpleWrapper *sw, PyObject *user);
+    void (*api_instance_destroyed)(sipModuleState *ms,
+            sipSimpleWrapper **self_p);
+    int (*api_is_owned_by_python)(sipSimpleWrapper *sw);
     int (*api_enable_gc)(int enable);
     void (*api_object_dump)(PyObject *obj);
     int (*api_register_event_handlers)(sipModuleState *ms,
@@ -1057,7 +1068,7 @@ struct _sipABISpec {
     void *(*api_get_cpp_ptr)(sipModuleState *ms, PyObject *w_inst,
             sipTypeID type_id);
     PyObject *(*api_is_py_method)(sipModuleState *ms,
-            PyThreadStateToken **tst_p, char *pymc, PyObject **self_p,
+            PyThreadStateToken **tst_p, char *pymc, sipSimpleWrapper **self_p,
             const char *cname, const char *mname);
     bool (*api_is_target_type)(sipModuleState *ms, sipTypeID type_id,
             const sipClassTypeSpec *target_cts);
@@ -1075,17 +1086,17 @@ struct _sipABISpec {
     void (*api_add_exception)(sipErrorState es, PyObject **p_state_p,
             const char *type_hint);
     int (*api_parse_result)(sipModuleState *ms, PyThreadStateToken *tst,
-            const char *error_handler, PyObject *py_self, PyObject *method,
-            PyObject *res, const char *fmt, ...);
+            const char *error_handler, sipSimpleWrapper *py_self,
+            PyObject *method, PyObject *res, const char *fmt, ...);
     void (*api_call_error_handler)(sipModuleState *ms,
-            const char *error_handler, PyObject *py_self,
+            const char *error_handler, sipSimpleWrapper *py_self,
             PyThreadStateToken *tst);
     void (*api_call_procedure_method)(sipModuleState *ms,
             PyThreadStateToken *tst, const char *error_handler,
-            PyObject *py_self, PyObject *method, const char *fmt, ...);
+            sipSimpleWrapper *py_self, PyObject *method, const char *fmt, ...);
     int (*api_init_slot_impl)(PyObject *self, PyObject *args, PyObject *kwds,
             void *module_token, sipTypeID type_id);
-    int (*api_is_derived_class)(PyObject *winst);
+    int (*api_is_derived_class)(sipSimpleWrapper *sw);
     sipExceptionHandler (*api_next_exception_handler)(sipModuleState *ms,
             PyObject **handler_mod_p, sipModuleState **handler_ms_p,
             Py_ssize_t *state_p);

@@ -15,7 +15,7 @@
 #include "sip_voidptr.h"
 
 #include "sip_array.h"
-#include "sip_module.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 
 

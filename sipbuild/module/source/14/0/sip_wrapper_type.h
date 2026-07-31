@@ -25,7 +25,7 @@ extern "C" {
 /*
  * The meta-type of a wrapper type.
  */
-struct _sipWrapperTypeImpl {
+struct sipWrapperTypeImpl {
     /*
      * The super-metatype.  This must be first in the structure so that it can
      * be cast to a PyTypeObject *.

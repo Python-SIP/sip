@@ -382,17 +382,15 @@ extern sipExportedModuleDef sipModuleAPI_{module_name};
         _imported_module_api(backend, sf, imported_module)
 
     if pyqt5_supported(spec) or pyqt6_supported(spec):
-        wrapper_type = backend.get_wrapper_type()
-
         sf.write(
 f'''
-typedef const QMetaObject *(*sip_qt_metaobject_func)({wrapper_type}, sipTypeDef *);
+typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, sipTypeDef *);
 extern sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
 
-typedef int (*sip_qt_metacall_func)({wrapper_type}, sipTypeDef *, QMetaObject::Call, int, void **);
+typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, sipTypeDef *, QMetaObject::Call, int, void **);
 extern sip_qt_metacall_func sip_{module_name}_qt_metacall;
 
-typedef bool (*sip_qt_metacast_func)({wrapper_type}, const sipTypeDef *, const char *, void **);
+typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);
 extern sip_qt_metacast_func sip_{module_name}_qt_metacast;
 ''')
 
@@ -1762,12 +1760,10 @@ f'''    return new {scope_s}(reinterpret_cast<const {scope_s} *>(sipSrc)[sipSrcI
     if need_dealloc(spec, bindings, klass):
         sf.write('\n\n')
 
-        wrapper_type = backend.get_wrapper_type()
-
         if not spec.c_bindings:
-            sf.write(f'extern "C" {{static void dealloc_{as_word}({wrapper_type});}}\n')
+            sf.write(f'extern "C" {{static void dealloc_{as_word}(sipSimpleWrapper *);}}\n')
 
-        sf.write(f'static void dealloc_{as_word}({wrapper_type}sipSelf)\n{{\n')
+        sf.write(f'static void dealloc_{as_word}(sipSimpleWrapper *sipSelf)\n{{\n')
 
         if bindings.tracing:
             sf.write(f'    sipTrace(SIP_TRACE_DEALLOCS, "dealloc_{as_word}()\\n");\n\n')
@@ -2041,7 +2037,7 @@ def _virtual_handler_call(backend, sf, klass, virtual_overload, result):
     result_type = fmt_argument_as_cpp_type(spec, overload.cpp_signature.result,
             scope=klass.iface_file)
 
-    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, {backend.get_error_handler_ref_type()}, {backend.get_wrapper_type()}, PyObject *')
+    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, {backend.get_error_handler_ref_type()}, sipSimpleWrapper *, PyObject *')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_declaration(spec,
@@ -2448,7 +2444,7 @@ def _virtual_handler(backend, sf, handler):
 
     sf.write(
 f'''
-{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, {backend.get_error_handler_ref_type()} sipErrorHandler, {backend.get_wrapper_type()}sipPySelf, PyObject *sipMethod''')
+{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, {backend.get_error_handler_ref_type()} sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod''')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_definition(spec,

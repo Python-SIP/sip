@@ -14,8 +14,8 @@
 #include "sip_attribute.h"
 #include "sip_callable.h"
 #include "sip_docstrings.h"
-#include "sip_module.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
 #include "sip_wrapper_type.h"
 
 

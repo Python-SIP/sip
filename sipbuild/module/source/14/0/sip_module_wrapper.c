@@ -13,7 +13,7 @@
 
 #include "sip_attribute.h"
 #include "sip_core.h"
-#include "sip_module.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 
 

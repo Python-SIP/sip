@@ -15,8 +15,8 @@
 #include "sip_callable.h"
 #include "sip_core.h"
 #include "sip_enum.h"
-#include "sip_module.h"
-#include "sip_module_methods.h"
+#include "sip_sip_module.h"
+#include "sip_sip_module_methods.h"
 
 
 /* Forward references. */

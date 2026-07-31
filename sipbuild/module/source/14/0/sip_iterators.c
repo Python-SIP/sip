@@ -14,8 +14,8 @@
 #include "sip_iterators.h"
 
 #include "sip_attribute.h"
-#include "sip_module.h"
 #include "sip_parsers.h"
+#include "sip_sip_module.h"
 
 
 /*

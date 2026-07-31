@@ -14,23 +14,22 @@
 #include "sip_attribute.h"
 #include "sip_core.h"
 #include "sip_docstrings.h"
-#include "sip_module.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 
 
 /* Forward declarations of slot functions. */
-static int WrapperType_clear(sipWrapperTypeImpl *self);
-static void WrapperType_dealloc(sipWrapperTypeImpl *self);
-static PyObject *WrapperType_dir(sipWrapperTypeImpl *self, PyObject *args);
-static PyObject *WrapperType_getattro(sipWrapperTypeImpl *self,
-        PyObject *name);
-static PyObject *WrapperType_get_doc(sipWrapperTypeImpl *self, void *closure);
-static int WrapperType_init(sipWrapperTypeImpl *self, PyObject *args,
+static int WrapperType_clear(sipWrapperType *self);
+static void WrapperType_dealloc(sipWrapperType *self);
+static PyObject *WrapperType_dir(sipWrapperType *self, PyObject *args);
+static PyObject *WrapperType_getattro(sipWrapperType *self, PyObject *name);
+static PyObject *WrapperType_get_doc(sipWrapperType *self, void *closure);
+static int WrapperType_init(sipWrapperType *self, PyObject *args,
         PyObject *kwds);
-static int WrapperType_setattro(sipWrapperTypeImpl *self, PyObject *name,
+static int WrapperType_setattro(sipWrapperType *self, PyObject *name,
         PyObject *value);
-static int WrapperType_traverse(sipWrapperTypeImpl *self, visitproc visit,
+static int WrapperType_traverse(sipWrapperType *self, visitproc visit,
         void *arg);
 
 
@@ -49,7 +48,7 @@ static PyMethodDef WrapperType_methods[] = {
 
 static PySlot WrapperType_slots[] = {
     PySlot_STATIC_DATA(Py_tp_name, _SIP_TYPE_NAME_PREFIX ".wrappertype"),
-    PySlot_SIZE(Py_tp_basicsize, sizeof (sipWrapperTypeImpl)),
+    PySlot_SIZE(Py_tp_basicsize, sizeof (sipWrapperType)),
     PySlot_UINT64(Py_tp_flags,
             Py_TPFLAGS_DEFAULT |
             Py_TPFLAGS_BASETYPE |
@@ -71,7 +70,7 @@ static PySlot WrapperType_slots[] = {
 /*
  * The metatype clear slot.
  */
-static int WrapperType_clear(sipWrapperTypeImpl *self)
+static int WrapperType_clear(sipWrapperType *self)
 {
     Py_CLEAR(self->defining_module);
     Py_CLEAR(self->user_data);
@@ -83,7 +82,7 @@ static int WrapperType_clear(sipWrapperTypeImpl *self)
 /*
  * The metatype dealloc slot.
  */
-static void WrapperType_dealloc(sipWrapperTypeImpl *self)
+static void WrapperType_dealloc(sipWrapperType *self)
 {
     PyObject_GC_UnTrack((PyObject *)self);
 
@@ -98,7 +97,7 @@ static void WrapperType_dealloc(sipWrapperTypeImpl *self)
 /*
  * The metatype __dir__() implementation.
  */
-static PyObject *WrapperType_dir(sipWrapperTypeImpl *self,
+static PyObject *WrapperType_dir(sipWrapperType *self,
         PyObject *Py_UNUSED(args))
 {
     PyObject *attr_dict = PyDict_New();
@@ -116,7 +115,7 @@ static PyObject *WrapperType_dir(sipWrapperTypeImpl *self,
 /*
  * The metatype getattro slot.
  */
-static PyObject *WrapperType_getattro(sipWrapperTypeImpl *self, PyObject *name)
+static PyObject *WrapperType_getattro(sipWrapperType *self, PyObject *name)
 {
     /* Python itself may make calls along the MRO. */
     if (self->defining_module == NULL)
@@ -146,7 +145,7 @@ static PyObject *WrapperType_getattro(sipWrapperTypeImpl *self, PyObject *name)
 /*
  * The metatype __doc__ getter.
  */
-static PyObject *WrapperType_get_doc(sipWrapperTypeImpl *self,
+static PyObject *WrapperType_get_doc(sipWrapperType *self,
         void *Py_UNUSED(closure))
 {
     return sip_get_class_docstring(self);
@@ -158,7 +157,7 @@ static PyObject *WrapperType_get_doc(sipWrapperTypeImpl *self,
  * (because they are created using PyType_FromMetaclass()) but is called for
  * Python sub-classes.
  */
-static int WrapperType_init(sipWrapperTypeImpl *self, PyObject *args,
+static int WrapperType_init(sipWrapperType *self, PyObject *args,
         PyObject *kwds)
 {
     /* Call the standard super-metatype init. */
@@ -183,9 +182,9 @@ static int WrapperType_init(sipWrapperTypeImpl *self, PyObject *args,
 
     /* Inherit from the base class. */
     self->defining_module = Py_XNewRef(
-            ((sipWrapperTypeImpl *)base)->defining_module);
-    self->is_wrapper = ((sipWrapperTypeImpl *)base)->is_wrapper;
-    self->type_id = ((sipWrapperTypeImpl *)base)->type_id;
+            ((sipWrapperType *)base)->defining_module);
+    self->is_wrapper = ((sipWrapperType *)base)->is_wrapper;
+    self->type_id = ((sipWrapperType *)base)->type_id;
 
     /* Disallow sub-classing directly from simplewrapper or wrapper. */
     if (self->defining_module == NULL)
@@ -205,7 +204,7 @@ static int WrapperType_init(sipWrapperTypeImpl *self, PyObject *args,
 /*
  * The metatype setattro slot.
  */
-static int WrapperType_setattro(sipWrapperTypeImpl *self, PyObject *name,
+static int WrapperType_setattro(sipWrapperType *self, PyObject *name,
         PyObject *value)
 {
     /* Python itself may make calls along the MRO. */
@@ -229,7 +228,7 @@ static int WrapperType_setattro(sipWrapperTypeImpl *self, PyObject *name,
 /*
  * The metatype traverse slot.
  */
-static int WrapperType_traverse(sipWrapperTypeImpl *self, visitproc visit,
+static int WrapperType_traverse(sipWrapperType *self, visitproc visit,
         void *arg)
 {
     Py_VISIT(Py_TYPE(self));

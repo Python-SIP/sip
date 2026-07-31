@@ -17,9 +17,9 @@
 #include "sip_core.h"
 #include "sip_enum.h"
 #include "sip_int_convertors.h"
-#include "sip_module.h"
 #include "sip_parsers.h"
 #include "sip_simple_wrapper.h"
+#include "sip_sip_module.h"
 #include "sip_string_convertors.h"
 #include "sip_voidptr.h"
 
@@ -801,7 +801,7 @@ static int get_extra_reference(sipModuleState *ms, PyObject *instance, int key,
 {
     /* Get the relevant extra references dict if there is one. */
     PyObject *extra_refs = (instance != NULL ?
-            ((sipSimpleWrapperImpl *)instance)->extra_refs :
+            ((sipSimpleWrapper *)instance)->extra_refs :
             ms->extra_refs);
 
     if (extra_refs == NULL)

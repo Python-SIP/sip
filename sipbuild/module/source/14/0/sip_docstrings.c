@@ -80,7 +80,7 @@ release:
 /*
  * Return the docstring for a class.
  */
-PyObject *sip_get_class_docstring(sipWrapperTypeImpl *wt)
+PyObject *sip_get_class_docstring(sipWrapperType *wt)
 {
     const sipTypeSpec *ts = sip_get_type_spec_from_wt(wt);
 

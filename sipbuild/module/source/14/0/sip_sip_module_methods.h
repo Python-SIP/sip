@@ -7,8 +7,8 @@
  */
 
 
-#ifndef _SIP_MODULE_METHODS_H
-#define _SIP_MODULE_METHODS_H
+#ifndef _SIP_SIP_MODULE_METHODS_H
+#define _SIP_SIP_MODULE_METHODS_H
 
 #include <Python.h>
 

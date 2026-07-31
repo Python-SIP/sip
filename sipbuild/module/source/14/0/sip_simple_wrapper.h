@@ -44,7 +44,7 @@ extern "C" {
 /*
  * The type of a simple C/C++ wrapper object.
  */
-struct _sipSimpleWrapperImpl {
+struct sipSimpleWrapperImpl {
     PyObject_HEAD
 
     /* The data, ie. a pointer to the C/C++ object. */
@@ -60,13 +60,13 @@ struct _sipSimpleWrapperImpl {
     unsigned flags;
 
     /* The main instance if this is a mixin. */
-    PyObject *mixin_main;
+    sipSimpleWrapper *mixin_main;
 
     /* The optional list of mixin instances. */
     PyObject *mixins;
 
     /* Next object at this address. */
-    struct _sipSimpleWrapperImpl *next;
+    sipSimpleWrapper *next;
 
     /* For the user to use. */
     PyObject *user;

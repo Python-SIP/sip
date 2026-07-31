@@ -2026,24 +2026,10 @@ void sipVEH_{self.spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWra
         return _get_type_ref(wrapped_object)
 
     @staticmethod
-    def get_wrapper_type():
-        """ Return the type of the C representation of a wrapped object. """
-
-        return 'sipSimpleWrapper *'
-
-    @staticmethod
     def get_wrapper_ref_init():
         """ Return the initialisation of a wrapper reference. """
 
         return 'sipPySelf(SIP_NULLPTR)'
-
-    @staticmethod
-    def get_wrapper_type_cast():
-        """ Return the cast from a PyObject* of the C representation of a
-        wrapped object.
-        """
-
-        return '(sipSimpleWrapper *)'
 
     @staticmethod
     def need_deprecated_error_flag(code):

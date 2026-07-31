@@ -16,9 +16,9 @@
 #include "sip_attribute.h"
 #include "sip_core.h"
 #include "sip_iterators.h"
-#include "sip_module.h"
 #include "sip_object_map.h"
 #include "sip_parsers.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
 #include "sip_wrapper.h"
 #include "sip_wrapper_type.h"
@@ -27,9 +27,8 @@
 /*
  * The type's getters and setters.
  */
-static PyObject *SimpleWrapper_get_dict(sipSimpleWrapperImpl *self,
-        void *closure);
-static int SimpleWrapper_set_dict(sipSimpleWrapperImpl *self, PyObject *value,
+static PyObject *SimpleWrapper_get_dict(sipSimpleWrapper *self, void *closure);
+static int SimpleWrapper_set_dict(sipSimpleWrapper *self, PyObject *value,
         void *closure);
 
 static PyGetSetDef SimpleWrapper_getset[] = {
@@ -42,7 +41,7 @@ static PyGetSetDef SimpleWrapper_getset[] = {
  * The type's members.
  */
 static PyMemberDef SimpleWrapper_members[] = {
-    {"__dictoffset__", Py_T_PYSSIZET, offsetof(sipSimpleWrapperImpl, dict), Py_READONLY},
+    {"__dictoffset__", Py_T_PYSSIZET, offsetof(sipSimpleWrapper, dict), Py_READONLY},
     {0}
 };
 
@@ -50,7 +49,7 @@ static PyMemberDef SimpleWrapper_members[] = {
 /*
  * The type's methods.
  */
-static PyObject *SimpleWrapper_dir(sipSimpleWrapperImpl *self, PyObject *args);
+static PyObject *SimpleWrapper_dir(sipSimpleWrapper *self, PyObject *args);
 
 static PyMethodDef SimpleWrapper_methods[] = {
     {"__dir__", (PyCFunction)SimpleWrapper_dir, METH_NOARGS, NULL},
@@ -71,7 +70,7 @@ static int SimpleWrapper_traverse(PyObject *self, visitproc visit, void *arg);
  */
 static PySlot SimpleWrapper_slots[] = {
     PySlot_STATIC_DATA(Py_tp_name, _SIP_TYPE_NAME_PREFIX ".simplewrapper"),
-    PySlot_SIZE(Py_tp_basicsize, sizeof (sipSimpleWrapperImpl)),
+    PySlot_SIZE(Py_tp_basicsize, sizeof (sipSimpleWrapper)),
     PySlot_UINT64(Py_tp_flags,
             Py_TPFLAGS_DEFAULT |
             Py_TPFLAGS_BASETYPE |
@@ -124,8 +123,8 @@ static void vectorcall_dispose(PyObject **small_argv, PyObject **argv,
  */
 static int SimpleWrapper_clear(PyObject *self)
 {
-    sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)Py_TYPE(self);
-    sipSimpleWrapperImpl *sw = (sipSimpleWrapperImpl *)self;
+    sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
+    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
     int vret = 0;
 
     /*
@@ -148,7 +147,7 @@ static int SimpleWrapper_clear(PyObject *self)
     /* Handle any children if the type supports the concept. */
     if (wt->is_wrapper)
     {
-        sipWrapperImpl *w = (sipWrapperImpl *)self;
+        sipWrapper *w = (sipWrapper *)self;
 
         /* Avoid a compiler warning when the GIL is enabled. */
 #if defined(Py_GIL_DISABLED)
@@ -179,7 +178,8 @@ static void SimpleWrapper_dealloc(PyObject *self)
      * Remove the object from the map and call the C/C++ dtor if we own the
      * instance.
      */
-    sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)Py_TYPE(self);
+    sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
+    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
     sipModuleState *ms = sip_get_module_state(wt->defining_module);
 
     /* Invoke any event handlers. */
@@ -208,7 +208,7 @@ static void SimpleWrapper_dealloc(PyObject *self)
                 {
                     sipCollectingWrapperEventHandler handler = (sipCollectingWrapperEventHandler)ehs->handler;
 
-                    handler(ehs_ms, ehs->type_id, self);
+                    handler(ehs_ms, ehs->type_id, sw);
                 }
 
                 ehs++;
@@ -229,13 +229,13 @@ static void SimpleWrapper_dealloc(PyObject *self)
      * object is created.
      */
     Py_BEGIN_CRITICAL_SECTION_MUTEX(&ms->sip_module_state->mutex);
-    sip_om_remove_object(ms, (sipSimpleWrapperImpl *)self);
+    sip_om_remove_object(ms, sw);
     Py_END_CRITICAL_SECTION();
 
     sipDeallocFunc dealloc = ((const sipClassTypeSpec *)sip_get_type_spec_from_wt(wt))->dealloc;
 
     if (dealloc != NULL)
-        dealloc(self);
+        dealloc(sw);
 
     /*
      * Now that the C++ object no longer exists (as far as we are concerned) we
@@ -243,7 +243,7 @@ static void SimpleWrapper_dealloc(PyObject *self)
      */
     SimpleWrapper_clear(self);
 
-    PyTypeObject *py_type = Py_TYPE(self);
+    PyTypeObject *py_type = (PyTypeObject *)wt;
     py_type->tp_free(self);
     Py_DECREF(py_type);
 }
@@ -256,8 +256,7 @@ int SimpleWrapper_getbuffer(PyObject *self, Py_buffer *buf, int flags)
 {
     const sipClassTypeSpec *cts = get_class_type_spec_from_self(self);
 
-    return cts->getbuffer(self, ((sipSimpleWrapperImpl *)self)->data, buf,
-            flags);
+    return cts->getbuffer(self, ((sipSimpleWrapper *)self)->data, buf, flags);
 }
 
 
@@ -277,7 +276,7 @@ static PyObject *SimpleWrapper_new(PyTypeObject *cls,
         return NULL;
     }
 
-    sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)cls;
+    sipWrapperType *wt = (sipWrapperType *)cls;
     const sipTypeSpec *ts = sip_get_type_spec_from_wt(wt);
 
     /* See if it is a mapped type. */
@@ -335,7 +334,7 @@ void SimpleWrapper_releasebuffer(PyObject *self, Py_buffer *buf)
 {
     const sipClassTypeSpec *cts = get_class_type_spec_from_self(self);
 
-    cts->releasebuffer(self, ((sipSimpleWrapperImpl *)self)->data, buf);
+    cts->releasebuffer(self, ((sipSimpleWrapper *)self)->data, buf);
 }
 
 
@@ -345,8 +344,8 @@ void SimpleWrapper_releasebuffer(PyObject *self, Py_buffer *buf)
 static int SimpleWrapper_traverse(PyObject *self, visitproc visit,
         void *arg)
 {
-    sipWrapperTypeImpl *wt = (sipWrapperTypeImpl *)Py_TYPE(self);
-    sipSimpleWrapperImpl *sw = (sipSimpleWrapperImpl *)self;
+    sipWrapperType *wt = (sipWrapperType *)Py_TYPE(self);
+    sipSimpleWrapper *sw = (sipSimpleWrapper *)self;
 
     Py_VISIT(Py_TYPE(self));
 
@@ -389,7 +388,7 @@ static int SimpleWrapper_traverse(PyObject *self, visitproc visit,
     {
         /* Note that we don't lock the main mutex. */
 
-        sipWrapperImpl *w = ((sipWrapperImpl *)sw)->first_child;
+        sipWrapper *w = ((sipWrapper *)sw)->first_child;
 
         while (w != NULL)
         {
@@ -400,7 +399,7 @@ static int SimpleWrapper_traverse(PyObject *self, visitproc visit,
              * means that plugins implemented in Python have a chance of
              * working.
              */
-            if (w != (sipWrapperImpl *)sw)
+            if (w != (sipWrapper *)sw)
             {
                 int vret = visit((PyObject *)w, arg);
 
@@ -419,7 +418,7 @@ static int SimpleWrapper_traverse(PyObject *self, visitproc visit,
 /*
  * The __dict__ getter.
  */
-static PyObject *SimpleWrapper_get_dict(sipSimpleWrapperImpl *self,
+static PyObject *SimpleWrapper_get_dict(sipSimpleWrapper *self,
         void *Py_UNUSED(closure))
 {
     /* Create the dictionary if needed. */
@@ -433,7 +432,7 @@ static PyObject *SimpleWrapper_get_dict(sipSimpleWrapperImpl *self,
 /*
  * The __dict__ setter.
  */
-static int SimpleWrapper_set_dict(sipSimpleWrapperImpl *self, PyObject *value,
+static int SimpleWrapper_set_dict(sipSimpleWrapper *self, PyObject *value,
         void *Py_UNUSED(closure))
 {
     /* Check that any new value really is a dictionary. */
@@ -454,7 +453,7 @@ static int SimpleWrapper_set_dict(sipSimpleWrapperImpl *self, PyObject *value,
 /*
  * The __dir__() implementation.
  */
-static PyObject *SimpleWrapper_dir(sipSimpleWrapperImpl *self,
+static PyObject *SimpleWrapper_dir(sipSimpleWrapper *self,
         PyObject *Py_UNUSED(args))
 {
     /* Get the instance attributes. */
@@ -463,9 +462,7 @@ static PyObject *SimpleWrapper_dir(sipSimpleWrapperImpl *self,
     if (attr_dict == NULL)
         return NULL;
 
-    PyObject *dir = sip_dir_of_wt((sipWrapperTypeImpl *)Py_TYPE(self),
-            attr_dict);
-
+    PyObject *dir = sip_dir_of_wt((sipWrapperType *)Py_TYPE(self), attr_dict);
     Py_DECREF(attr_dict);
 
     return dir;
@@ -521,15 +518,15 @@ int sip_api_init_slot_impl(PyObject *self, PyObject *args, PyObject *kwargs,
             goto gc_def_mod;
 
         /* Add the mixin instance to the main object. */
-        ((sipSimpleWrapperImpl *)inst)->mixin_main = Py_NewRef(self);
+        ((sipSimpleWrapper *)inst)->mixin_main = (sipSimpleWrapper *)Py_NewRef(self);
 
-        if (((sipSimpleWrapperImpl *)self)->mixins == NULL)
-            if ((((sipSimpleWrapperImpl *)self)->mixins = PyList_New(0)) == NULL)
+        if (((sipSimpleWrapper *)self)->mixins == NULL)
+            if ((((sipSimpleWrapper *)self)->mixins = PyList_New(0)) == NULL)
                 goto gc_inst;
 
-        assert(PyList_Size(((sipSimpleWrapperImpl *)self)->mixins) == mixin_i);
+        assert(PyList_Size(((sipSimpleWrapper *)self)->mixins) == mixin_i);
 
-        if (PyList_Append(((sipSimpleWrapperImpl *)self)->mixins, inst) < 0)
+        if (PyList_Append(((sipSimpleWrapper *)self)->mixins, inst) < 0)
             goto gc_inst;
     }
     else
@@ -540,7 +537,7 @@ int sip_api_init_slot_impl(PyObject *self, PyObject *args, PyObject *kwargs,
          * type that has an __init__ implementation that calls it's super-type
          * __init__.  If so we just ignore the call.
          */
-        if (((sipSimpleWrapperImpl *)self)->data != NULL)
+        if (((sipSimpleWrapper *)self)->data != NULL)
         {
             Py_DECREF(py_type);
             return 0;
@@ -606,20 +603,20 @@ int sip_api_init_slot_impl(PyObject *self, PyObject *args, PyObject *kwargs,
     }
 
     /* Complete the basic initialisation. */
-    ((sipSimpleWrapperImpl *)inst)->data = cpp;
-    ((sipSimpleWrapperImpl *)inst)->flags = flags | SIP_CREATED;
+    ((sipSimpleWrapper *)inst)->data = cpp;
+    ((sipSimpleWrapper *)inst)->flags = flags | SIP_CREATED;
     Py_DECREF(inst);
 
     if (mixin_i < 0)
     {
         if (owner == NULL)
         {
-            ((sipSimpleWrapperImpl *)self)->flags |= SIP_PY_OWNED;
+            ((sipSimpleWrapper *)self)->flags |= SIP_PY_OWNED;
         }
         else if ((PyObject *)owner == Py_None)
         {
             /* This is the hack that means that C++ owns the new instance. */
-            ((sipSimpleWrapperImpl *)self)->flags |= SIP_CPP_HAS_REF;
+            ((sipSimpleWrapper *)self)->flags |= SIP_CPP_HAS_REF;
             Py_INCREF(self);
             owner = NULL;
         }
@@ -627,25 +624,24 @@ int sip_api_init_slot_impl(PyObject *self, PyObject *args, PyObject *kwargs,
         Py_BEGIN_CRITICAL_SECTION_MUTEX(&sms->mutex);
 
         /* Handle any owner if the type supports the concept. */
-        if (((sipWrapperTypeImpl *)self_type)->is_wrapper)
+        if (((sipWrapperType *)self_type)->is_wrapper)
         {
             /*
              * The application may be doing something very unadvisable (like
              * calling __init__() for a second time), so make sure we don't
              * already have a parent.
              */
-            sip_remove_from_parent((sipWrapperImpl *)self);
+            sip_remove_from_parent((sipWrapper *)self);
 
             if (owner != NULL)
             {
                 assert(PyObject_TypeCheck(owner, sms->wrapper_type));
 
-                sip_add_to_parent((sipWrapperImpl *)self,
-                        (sipWrapperImpl *)owner);
+                sip_add_to_parent((sipWrapper *)self, (sipWrapper *)owner);
             }
         }
 
-        sip_om_add_object(ms, (sipSimpleWrapperImpl *)self);
+        sip_om_add_object(ms, (sipSimpleWrapper *)self);
 
         Py_END_CRITICAL_SECTION();
 
@@ -762,7 +758,7 @@ Py_ssize_t sip_get_mixin_index(sipSipModuleState *sms, PyObject *py_type,
             if (base_type == defining_type)
                 return mixin_i;
 
-            if (PyType_IsSubtype((PyTypeObject *)base_type, sms->simple_wrapper_type) && !((sipWrapperTypeImpl *)base_type)->user_type)
+            if (PyType_IsSubtype((PyTypeObject *)base_type, sms->simple_wrapper_type) && !((sipWrapperType *)base_type)->user_type)
                 mixin_i++;
 
             base_i++;
@@ -778,10 +774,10 @@ Py_ssize_t sip_get_mixin_index(sipSipModuleState *sms, PyObject *py_type,
  */
 PyObject *sip_get_mixin_instance(PyObject *main_object, Py_ssize_t mixin_i)
 {
-    assert(((sipSimpleWrapperImpl *)main_object)->mixins != NULL &&
-            mixin_i < PyList_Size(((sipSimpleWrapperImpl *)main_object)->mixins));
+    assert(((sipSimpleWrapper *)main_object)->mixins != NULL &&
+            mixin_i < PyList_Size(((sipSimpleWrapper *)main_object)->mixins));
 
-    return PyList_GET_ITEM(((sipSimpleWrapperImpl *)main_object)->mixins, mixin_i);
+    return PyList_GET_ITEM(((sipSimpleWrapper *)main_object)->mixins, mixin_i);
 }
 
 
@@ -827,17 +823,17 @@ PyObject *sip_wrap_instance(sipModuleState *ms, void *cpp,
     if (self == NULL)
         return NULL;
 
-    ((sipSimpleWrapperImpl *)self)->data = cpp;
-    ((sipSimpleWrapperImpl *)self)->flags = flags | SIP_CREATED;
+    ((sipSimpleWrapper *)self)->data = cpp;
+    ((sipSimpleWrapper *)self)->flags = flags | SIP_CREATED;
 
     Py_BEGIN_CRITICAL_SECTION_MUTEX(&sms->mutex);
 
-    sip_om_add_object(ms, ((sipSimpleWrapperImpl *)self));
+    sip_om_add_object(ms, ((sipSimpleWrapper *)self));
 
-    if (owner != NULL && ((sipWrapperTypeImpl *)py_type)->is_wrapper)
+    if (owner != NULL && ((sipWrapperType *)py_type)->is_wrapper)
     {
         assert(PyObject_TypeCheck(owner, sms->wrapper_type));
-        sip_add_to_parent((sipWrapperImpl *)self, (sipWrapperImpl *)owner);
+        sip_add_to_parent((sipWrapper *)self, (sipWrapper *)owner);
     }
 
     Py_END_CRITICAL_SECTION();
@@ -968,7 +964,7 @@ static sipFinalFunc find_finalisation(sipModuleState *ms,
 static const sipClassTypeSpec *get_class_type_spec_from_self(PyObject *self)
 {
     return (const sipClassTypeSpec *)sip_get_type_spec_from_wt(
-            (sipWrapperTypeImpl *)Py_TYPE(self));
+            (sipWrapperType *)Py_TYPE(self));
 }
 
 

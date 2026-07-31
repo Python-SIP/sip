@@ -13,7 +13,6 @@
 #include <Python.h>
 
 #include "sip.h"
-#include "sip_decls.h"
 
 
 #ifdef __cplusplus
@@ -27,16 +26,16 @@ void sip_api_bad_catcher_result(PyObject *method);
 PyObject *sip_api_build_result(sipModuleState *ms, int *is_err_p,
         const char *fmt, ...);
 void sip_api_call_error_handler(sipModuleState *ms, const char *error_handler,
-        PyObject *w_inst, PyThreadStateToken *tst);
+        sipSimpleWrapper *sw, PyThreadStateToken *tst);
 PyObject *sip_api_call_method(sipModuleState *ms, int *is_err_p,
         PyObject *method, const char *fmt, ...);
 void sip_api_call_procedure_method(sipModuleState *ms,
-        PyThreadStateToken *tst, const char *error_handler, PyObject *py_self,
-        PyObject *method, const char *fmt, ...);
+        PyThreadStateToken *tst, const char *error_handler,
+        sipSimpleWrapper *py_self, PyObject *method, const char *fmt, ...);
 int sip_api_can_convert_to_type(sipModuleState *ms, PyObject *pyObj,
         sipTypeID type_id, int flags);
 PyObject *sip_api_convert_from_new_py_type(sipModuleState *ms, void *cpp,
-        PyTypeObject *py_type, PyObject *owner, PyObject **self_p,
+        PyTypeObject *py_type, sipWrapper *owner, sipSimpleWrapper **self_p,
         const char *fmt, ...);
 PyObject *sip_api_convert_from_new_type(sipModuleState *ms, void *cpp,
         sipTypeID type_id, PyObject *transferObj);
@@ -57,7 +56,8 @@ void *sip_api_force_convert_to_type_us(sipModuleState *ms, PyObject *pyObj,
 PyObject *sip_api_get_py_object_ref(sipModuleState *ms, void *cppPtr,
         sipTypeID type_id);
 PyObject *sip_api_is_py_method(sipModuleState *ms, PyThreadStateToken **tst_p,
-        char *pymc, PyObject **self_p, const char *cname, const char *mname);
+        char *pymc, sipSimpleWrapper **self_p, const char *cname,
+        const char *mname);
 bool sip_api_parse_args(sipModuleState *ms, PyObject **p_state_p,
         PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
         const sipArgParserSpec *ap_spec, void **params, PyObject **self_p,
@@ -71,7 +71,7 @@ bool sip_api_parse_ctor_args(sipModuleState *ms, PyObject **p_state_p,
         const sipArgParserSpec *ap_spec, void **params, PyObject *self,
         PyObject **unused_p);
 int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
-        const char *error_handler, PyObject *w_inst, PyObject *method,
+        const char *error_handler, sipSimpleWrapper *sw, PyObject *method,
         PyObject *res, const char *fmt, ...);
 void sip_api_release_type(sipModuleState *ms, void *cpp, sipTypeID type_id,
         int state);

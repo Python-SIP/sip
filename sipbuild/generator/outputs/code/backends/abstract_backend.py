@@ -479,20 +479,6 @@ class AbstractBackend(ABC):
 
         ...
 
-    @abstractmethod
-    def get_wrapper_type(self):
-        """ Return the type of the C representation of a wrapped object. """
-
-        ...
-
-    @abstractmethod
-    def get_wrapper_type_cast(self):
-        """ Return the cast from a PyObject* of the C representation of a
-        wrapped object.
-        """
-
-        ...
-
     def need_deprecated_error_flag(self, code):
         """ Return True if the deprecated error flag is needed by some
         handwritten code.
