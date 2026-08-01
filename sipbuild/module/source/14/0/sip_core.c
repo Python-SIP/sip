@@ -188,6 +188,8 @@ const sipABISpec sip_abi = {
 #endif
     sip_api_py_type_dict_ref,
     sip_api_get_frame_ref,
+    sip_api_get_module_user_state,
+    sip_api_set_module_user_state,
     /*
      * The following are not part of the public ABI.
      */

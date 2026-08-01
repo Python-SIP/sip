@@ -374,6 +374,8 @@ const sipABISpec *sipABI_{module_name};
         else:
             sf.write(f'    sipABI_{module_name} = &sip_abi;\n\n')
 
+        sf.write_code(module.preinitialisation_code)
+
         sf.write(f'    return sipModuleSlots_{module_name};\n}}\n')
 
         return enums_state
@@ -823,11 +825,11 @@ static char sipModuleName_{module_name}[] = "{module.fq_py_name}";
         if module.docstring is not None and bindings.docstrings:
             sf.write(f'static char sipModuleDocstring_{module_name}[] = "{get_docstring_text(module.docstring)}";\n');
 
-        lang = '' if spec.c_bindings else '"C" '
+        prefix = '' if spec.c_bindings else 'extern "C" '
 
         sf.write(
 f'''
-extern {lang}PySlot sipModuleSlots_{module_name}[] = {{
+{prefix}PySlot sipModuleSlots_{module_name}[] = {{
     PySlot_STATIC_DATA(Py_mod_name, sipModuleName_{module_name}),
     PySlot_SIZE(Py_mod_state_size, {state_size}),
     PySlot_STATIC_DATA(Py_mod_abi, &sip_abi_info),
@@ -955,6 +957,7 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipFree                         sipABI_{module_name}->api_free
 #define sipGetAddress                   sipABI_{module_name}->api_get_address
 #define sipGetInterpreterView()         sipABI_{module_name}->api_get_interpreter_view(sipMS)
+#define sipGetModuleUserState()         sipABI_{module_name}->api_get_module_user_state(sipMS)
 #define sipGetPyObjectRef(...)          sipABI_{module_name}->api_get_py_object_ref(sipMS, __VA_ARGS__)
 #define sipGetPyTypeRef(...)            sipABI_{module_name}->api_get_py_type_ref(sipMS, __VA_ARGS__)
 #define sipGetState                     sipABI_{module_name}->api_get_state
@@ -987,6 +990,7 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipReleaseType(...)             sipABI_{module_name}->api_release_type(sipMS, __VA_ARGS__)
 #define sipReleaseTypeUS(...)           sipABI_{module_name}->api_release_type_us(sipMS, __VA_ARGS__)
 #define sipResolveTypedef(...)          sipABI_{module_name}->api_resolve_typedef(sipMS, __VA_ARGS__)
+#define sipSetModuleUserState(...)      sipABI_{module_name}->api_set_module_user_state(sipMS, __VA_ARGS__)
 #define sipSetTypeUserObject            sipABI_{module_name}->api_set_type_user_object
 #define sipSetUserObject                sipABI_{module_name}->api_set_user_object
 #define sipTransferBack(...)            sipABI_{module_name}->api_transfer_back(sipMS, __VA_ARGS__)
@@ -1695,21 +1699,35 @@ static int module_exec(PyObject *sipModule)
 {
 ''')
 
-        sf.write_code(module.preinitialisation_code)
-
         if spec.sip_module:
             sip_init_func_ref = 'sipModuleExec'
         else:
             sip_init_func_ref = 'sip_api_module_exec';
 
-        sf.write_code(module.initialisation_code)
+        if module.initialisation_code or module.postinitialisation_code:
+            sf.write(
+'''    sipModuleState *sipMS = (sipModuleState *)PyModule_GetState(sipModule);
+    if (sipMS == NULL)
+        return -1;
+
+''')
+
+        if module.initialisation_code:
+            sf.write_code(module.initialisation_code)
+
+            sf.write(
+'''
+    if (PyErr_Occurred())
+        return -1;
+
+''')
 
         sf.write(
 f'''    if ({sip_init_func_ref}(sipModule, &sipModule_{module_name}) < 0)
         return -1;
 ''')
 
-        if module.postinitialisation_code is not None:
+        if module.postinitialisation_code:
             if is_used_in_code(module.postinitialisation_code, 'sipModuleDict'):
                 sf.write(
 '''

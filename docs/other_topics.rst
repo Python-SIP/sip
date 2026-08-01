@@ -40,6 +40,9 @@ referencing an enum member.
 When using ABI v13 SIP uses the :mod:`enum` module to wrap all C/C++ named
 enums.
 
+When using ABI v14 the behaviour can be configured using the
+:directive:`%SipModuleConfiguration` directive.
+
 
 .. _ref-object-ownership:
 
@@ -71,7 +74,7 @@ avoid crashes (where both Python and C++ call the destructor) and memory leaks
 This applies equally to C structures where the structure is returned to the
 heap using the :c:func:`free` function.
 
-See also :c:func:`sipTransferTo()` and :c:func:`sipTransferBack()`.
+See also :c:func:`sipTransferTo` and :c:func:`sipTransferBack`.
 
 
 .. _ref-types-metatypes:
@@ -111,30 +114,13 @@ by importing modules.
 
 If you want to use your own meta-type or super-type then they must be
 sub-classed from one of the SIP provided types.  Your types must be registered
-using :c:func:`sipRegisterPyType()`.  This is normally done in code specified
+using :c:func:`sipRegisterPyType`.  This is normally done in code specified
 using the :directive:`%InitialisationCode` directive.
 
 .. note::
 
     It is not possible to define new super-types or meta-types if the limited
-    Python API is enabled.
-
-
-.. _ref-lazy-type-attributes:
-
-Lazy Type Attributes
---------------------
-
-Instead of populating a wrapped type's dictionary with its attributes (or
-descriptors for those attributes) SIP only creates objects for those attributes
-when they are actually needed.  This is done to reduce the memory footprint and
-start up time when used to wrap large libraries with hundreds of classes and
-tens of thousands of attributes.
-
-SIP allows you to extend the handling of lazy attributes to your own attribute
-types by allowing you to register an attribute getter handler (using
-:c:func:`sipRegisterAttributeGetter()`).  This will be called just before a
-type's dictionary is accessed for the first time.
+    Python API is enabled and ABIs v12 or v13 are targeted.
 
 
 Support for Python's Buffer Interface

@@ -1279,9 +1279,12 @@ For example::
 
 This directive is used to specify handwritten code that is embedded in-line
 in the generated module initialisation code after the SIP module has been
-imported but before the module itself has been initialised.
+imported but before the module itself has been initialised.  In the case of ABI
+v14 (that implements multi-phase initialisation) this is at the start of the
+module's exec function.
 
-It is typically used to call :c:func:`sipRegisterPyType()`.
+It is typically used to call :c:func:`sipSetModuleUserState` and
+:c:func:`sipRegisterPyType`.
 
 For example::
 
@@ -2029,7 +2032,7 @@ For example::
     %End
 
 This directive is used to specify handwritten code that is embedded in-line
-at the very start of the generated module initialisation code.
+at the very start of the generated module initialisation function.
 
 For example::
 

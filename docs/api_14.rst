@@ -258,13 +258,13 @@ API Reference
         Convert a C structure, C++ class or mapped type instance to a Python
         object.  If the instance has already been wrapped then the result is a
         new reference to the existing object.  Ownership of the instance is
-        determined by the ``PyObject *`` argument.  If it is ``NULL`` and the
-        instance has already been wrapped then the ownership is unchanged.  If
-        it is ``NULL`` and the instance is newly wrapped then ownership will be
-        with C/C++.  If it is ``Py_None`` then ownership is transferred to
+        determined by the :c:type:`PyObject` argument.  If it is ``NULL`` and
+        the instance has already been wrapped then the ownership is unchanged.
+        If it is ``NULL`` and the instance is newly wrapped then ownership will
+        be with C/C++.  If it is ``Py_None`` then ownership is transferred to
         Python via a call to :c:func:`sipTransferBack`.  Otherwise ownership
         is transferred to C/C++ and the instance associated with the
-        ``PyObject *`` argument via a call to :c:func:`sipTransferTo`.  The
+        :c:type:`PyObject` argument via a call to :c:func:`sipTransferTo`.  The
         Python class is influenced by any applicable
         :directive:`%ConvertToSubClassCode` code.
 
@@ -286,11 +286,11 @@ API Reference
     ``N`` (wrapped instance) [*type* \*, :c:type:`sipTypeID`, PyObject \*]
         Convert a new C structure, C++ class or mapped type instance to a
         Python object.  Ownership of the instance is determined by the
-        ``PyObject *`` argument.  If it is ``NULL`` and the instance has
+        :c:type:`PyObject` argument.  If it is ``NULL`` and the instance has
         already been wrapped then the ownership is unchanged.  If it is
         ``NULL`` or ``Py_None`` then ownership will be with Python.  Otherwise
         ownership will be with C/C++ and the instance associated with the
-        ``PyObject *`` argument.  The Python class is influenced by any
+        :c:type:`PyObject` argument.  The Python class is influenced by any
         applicable :directive:`%ConvertToSubClassCode` code.
 
     ``R`` (object) [PyObject \*]
@@ -757,6 +757,24 @@ API Reference
         later on.  ``-1`` is returned if there was an error.
 
 
+.. c:enum:: sipErrorState
+
+    This enum defines the different error states when parsing function
+    signatures.
+
+    .. c:enumerator:: sipErrorNone
+
+        There is no error.
+
+    .. c:enumerator:: sipErrorFail
+
+        There was an error and signature parsing should stop.
+
+    .. c:enumerator:: sipErrorContinue
+
+        There was an error but signature parsing should continue.
+
+
 .. c:type:: sipEventHandlerSpec
 
     An array of this C structure is used with
@@ -780,8 +798,8 @@ API Reference
 
 .. c:enum:: sipEventType
 
-    This is the enum that defines the different event types.  Event handlers
-    may be registered using :c:func:`sipRegisterEventHandlers`.
+    This enum defines the different event types.  Event handlers may be
+    registered using :c:func:`sipRegisterEventHandlers`.
 
     .. c:enumerator:: sipEventCollectingModule
 
@@ -793,7 +811,7 @@ API Reference
         This event is triggered whenever a Python wrapper object is being
         garbage collected.  The handler is passed a pointer to the opaque
         module state, the type's type identifier and a pointer to the
-        :c:type:`sipSimpleWrapper *` being garbage collected.
+        :c:type:`sipSimpleWrapper` being garbage collected.
 
     .. c:enumerator:: sipEventFinalisingAddress
 
@@ -810,9 +828,9 @@ API Reference
         This event is triggered when a new wrapped type has been created to
         allow additional changes to be made to the type.  The handler is passed
         a pointer to the opaque module state, the type's type identifier and a
-        ``PyTypeObject *`` which is the new type object.  The handler should
-        raise a Python exception and return ``-1`` if there was an error,
-        otherwise ``0`` should be returned.
+        pointer to a :c:type:`PyTypeObject` which is the new type object.  The
+        handler should raise a Python exception and return ``-1`` if there was
+        an error, otherwise ``0`` should be returned.
 
     .. c:enumerator:: sipEventNone
 
@@ -928,7 +946,7 @@ API Reference
     :param obj:
         the Python object.
     :return:
-        the address of the C/C++ instance
+        the address of the C/C++ instance.
 
 
 .. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
@@ -984,13 +1002,13 @@ API Reference
     execution stack.
 
     .. note::
-        On PyPy this will always return NULL.
+        On PyPy this will always return ``NULL``.
 
     :param depth:
-        the depth of frame to retrieve where 0 is the current frame, 1 is the
-        previous frame etc.
+        the depth of frame to retrieve where ``0`` is the current frame, ``1``
+        is the previous frame etc.
     :return:
-        the opaque frame or NULL if there wasn't one at the given depth.
+        the opaque frame or ``NULL`` if there wasn't one at the given depth.
 
 
 .. c:function:: PyInterpreterView *sipGetInterpreterView()
@@ -1015,6 +1033,15 @@ API Reference
         component parts are returned in this structure.
     :return:
         a non-zero value if the object is a Python method object.
+
+
+.. c:function:: void *sipGetModuleUserState()
+
+    This returns the address of the user supplied module state structure set
+    by :c:func:`sipSetModuleUserState`.
+
+    :return:
+        the address of the state structure.
 
 
 .. c:function:: PyObject *sipGetPyObjectRef(void *cppptr, sipTypeID type_id)
@@ -1045,9 +1072,10 @@ API Reference
 
 .. c:function:: PyTypeObject *sipGetSimpleWrapperType()
 
-    This returns the type of the ``PyObject`` structure used to wrap **simple**
-    types (i.e. those that do not support parent/child relationships).  It is
-    exposed to Python code as :class:`sip.simplewrapper`.
+    This returns the type of the :c:type:`PyObject` structure used to wrap
+    **simple** types (i.e. those that do not support parent/child
+    relationships).  It is exposed to Python code as
+    :class:`sip.simplewrapper`.
 
     :return:
         a borrowed reference to the type object.
@@ -1111,8 +1139,8 @@ API Reference
 
 .. c:function:: PyTypeObject *sipGetVoidPtrType()
 
-    This returns the type of the ``PyObject`` structure that is used to wrap a
-    ``void *``.  It is exposed to Python code as :class:`sip.voidptr`.
+    This returns the type of the :c:type:`PyObject` structure that is used to
+    wrap a ``void *``.  It is exposed to Python code as :class:`sip.voidptr`.
 
     :return:
         a borrowed reference to the type object.
@@ -1120,8 +1148,8 @@ API Reference
 
 .. c:function:: PyTypeObject *sipGetWrapperType()
 
-    This returns the type of the ``PyObject`` structure used to wrap types.  It
-    is exposed to Python code as :class:`sip.wrapper`.
+    This returns the type of the :c:type:`PyObject` structure used to wrap
+    types.  It is exposed to Python code as :class:`sip.wrapper`.
 
     :return:
         a borrowed reference to the type object.
@@ -1129,8 +1157,8 @@ API Reference
 
 .. c:function:: PyTypeObject *sipGetWrapperTypeType()
 
-    This returns the metatype of the ``PyObject`` structure used to wrap types
-    (both simple and non-simple).  It is exposed to Python code as
+    This returns the metatype of the :c:type:`PyObject` structure used to wrap
+    types (both simple and non-simple).  It is exposed to Python code as
     :class:`sip.wrappertype`.
 
     :return:
@@ -1625,6 +1653,38 @@ API Reference
     :return:
         the value of the typedef. If there was no such typedef then *name* will
         be returned.
+
+
+.. c:function:: void sipSetModuleUserState(void *user_state, sipModuleUserStateClearFunc clear, sipModuleUserStateFreeFunc free, sipModuleUserStateTraverseFunc traverse)
+
+    This sets the address of the user supplied module state structure.  It can
+    be obtained by calling :c:func:`sipGetModuleUserState`.  It also sets a
+    number of functions that are called to manage the lifecycle of the
+    structure.
+
+    This structure is defined and used by bindings authors to avoid using
+    static variables in their handwritten code so that multiple interpreters
+    can be supported.  This function is normally called from
+    :directive:`%InitialisationCode`.
+
+    :param user_state:
+        the address of the state structure.
+    :param clear:
+        the optional function that is called by the module's clear slot.  It is
+        passed a pointer to the opaque module state and the address of the
+        state structure.  It should return an ``int`` that is normally ``0`` or
+        ``-1`` to indicate an error.
+    :param free:
+        the optional function that is called by the module's free slot.  It is
+        passed a pointer to the opaque module state and the address of the
+        state structure.
+    :param traverse:
+        the optional function that is called by the module's traverse slot.  It
+        is passed a pointer to the opaque module state, the address of the
+        state structure and the ``visitproc`` and ``arg`` arguments that were
+        passed to the module's traverse slot.  It should return an ``int`` that
+        is normally ``0`` or the result returned by any calls to ``visitproc``.
+        This function must only call the *DuringGC* Python functions.
 
 
 .. c:function:: void sipSetTypeUserObject(sipWrapperType *type, PyObject *user)

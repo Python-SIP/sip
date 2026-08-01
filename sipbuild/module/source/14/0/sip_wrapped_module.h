@@ -92,14 +92,31 @@ struct sipModuleStateImpl {
     /* The array of type implementations accessed using the type ID. */
     sipTypeImpl *type_impls;
 
+    /* The user-supplied additional state. */
+    void *user_state;
+
+    /* The user-supplied state clear function. */
+    sipModuleUserStateClearFunc user_state_clear;
+
+    /* The user-supplied state free function. */
+    sipModuleUserStateFreeFunc user_state_free;
+
+    /* The user-supplied state traverse function. */
+    sipModuleUserStateTraverseFunc user_state_traverse;
+
     /* A borrowed reference to the wrapped module. */
     PyObject *wrapped_module;
 };
 
 
+void *sip_api_get_module_user_state(sipModuleState *ms);
 int sip_api_module_clear(PyObject *mod);
 void sip_api_module_free(void *mod_ptr);
 int sip_api_module_traverse(PyObject *mod, visitproc visit, void *arg);
+void sip_api_set_module_user_state(sipModuleState *ms, void *user_state,
+        sipModuleUserStateClearFunc user_state_clear,
+        sipModuleUserStateFreeFunc user_state_free,
+        sipModuleUserStateTraverseFunc user_state_traverse);
 
 sipModuleState *sip_get_module_state(PyObject *mod);
 

@@ -210,6 +210,10 @@ typedef void (*sipDeallocFunc)(sipSimpleWrapper *);
 typedef void *(*sipInitFunc)(sipModuleState *, PyObject **, PyObject *,
         PyObject *const *, Py_ssize_t, PyObject *, PyObject **, PyObject **);
 typedef int (*sipFinalFunc)(PyObject *, void *, PyObject *, PyObject **);
+typedef int (*sipModuleUserStateClearFunc)(sipModuleState *, void *);
+typedef void (*sipModuleUserStateFreeFunc)(sipModuleState *, void *);
+typedef int (*sipModuleUserStateTraverseFunc)(sipModuleState *, void *,
+        visitproc, void *);
 typedef PyObject *(*sipPickleFunc)(void *);
 typedef void (*sipReleaseFunc)(void *, int);
 typedef void (*sipReleaseUSFunc)(void *, int, void *);
@@ -1048,6 +1052,11 @@ struct _sipABISpec {
     int (*api_is_enum_flag)(sipModuleState *ms, PyObject *o);
     PyObject *(*api_py_type_dict_ref)(PyTypeObject *wtype);
     PyFrameObject *(*api_get_frame_ref)(int);
+    void *(*api_get_module_user_state)(sipModuleState *ms);
+    void (*api_set_module_user_state)(sipModuleState *ms, void *user_state,
+        sipModuleUserStateClearFunc user_state_clear,
+        sipModuleUserStateFreeFunc user_state_free,
+        sipModuleUserStateTraverseFunc user_state_traverse);
 
     /*
      * The following are not part of the public API.

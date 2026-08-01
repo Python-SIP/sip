@@ -61,6 +61,10 @@ void sip_api_module_free(void *mod_ptr)
     /* Clear all the Python references. */
     module_clear(ms);
 
+    /* Free any user state. */
+    if (ms->user_state_free != NULL)
+        ms->user_state_free(ms, ms->user_state);
+
     /* Free the additional memory related to type implementations. */
     if (ms->type_impls != NULL)
         PyMem_Free(ms->type_impls);
@@ -255,6 +259,10 @@ int sip_api_module_traverse(PyObject *mod, visitproc visit, void *arg)
     sip_sip_module_traverse(ms->sip_module_state, visit, arg);
 #endif
 
+    /* Visit any user state. */
+    if (ms->user_state_traverse != NULL)
+        ms->user_state_traverse(ms, ms->user_state, visit, arg);
+
     return 0;
 }
 
@@ -271,6 +279,30 @@ sipModuleState *sip_get_module_state(PyObject *mod)
         Py_FatalError("wrapped module has no state");
 
     return ms;
+}
+
+
+/*
+ * Return the additional module state supplied by the user.
+ */
+void *sip_api_get_module_user_state(sipModuleState *ms)
+{
+    return ms->user_state;
+}
+
+
+/*
+ * Set the additional module state from the user.
+ */
+void sip_api_set_module_user_state(sipModuleState *ms, void *user_state,
+        sipModuleUserStateClearFunc user_state_clear,
+        sipModuleUserStateFreeFunc user_state_free,
+        sipModuleUserStateTraverseFunc user_state_traverse)
+{
+    ms->user_state = user_state;
+    ms->user_state_clear = user_state_clear;
+    ms->user_state_free = user_state_free;
+    ms->user_state_traverse = user_state_traverse;
 }
 
 
@@ -391,6 +423,10 @@ static int import_module(const sipImportedModuleSpec *ims,
 /* Clear a wrapped module's Python references. */
 static void module_clear(sipModuleState *ms)
 {
+    /* Clear any user state. */
+    if (ms->user_state_clear != NULL)
+        ms->user_state_clear(ms, ms->user_state);
+
     const sipModuleSpec *m_spec = ms->module_spec;
 
     /* Clear the wrapped types. */

@@ -767,24 +767,40 @@ API Reference
         later on.  ``-1`` is returned if there was an error.
 
 
+.. c:enum:: sipErrorState
+
+    This enum defines the different error states when parsing function
+    signatures.
+
+    .. c:enumerator:: sipErrorNone
+
+        There is no error.
+
+    .. c:enumerator:: sipErrorFail
+
+        There was an error and signature parsing should stop.
+
+    .. c:enumerator:: sipErrorContinue
+
+        There was an error but signature parsing should continue.
+
+
 .. c:enum:: sipEventType
 
-    This is the enum that defines the different event types.
+    This enum defines the different event types.
 
+    .. c:enumerator:: sipEventWrappedInstance
 
-.. c:enumerator:: sipEventWrappedInstance
+        This event is triggered whenever a C/C++ instance that is created by
+        C/C++ (and not by Python) is wrapped.  The handler is passed a
+        ``void *`` which is the address of the C/C++ instance.
 
-    This event is triggered whenever a C/C++ instance that is created by C/C++
-    (and not by Python) is wrapped.  The handler is passed a ``void *`` which
-    is the address of the C/C++ instance.
+    .. c:enumerator:: sipEventCollectingWrapper
 
-
-.. c:enumerator:: sipEventCollectingWrapper
-
-    This event is triggered whenever a Python wrapper object is being garbage
-    collected.  The handler is passed a pointer to the
-    :c:type:`sipSimpleWrapper` object that is the Python wrapper object being
-    garbage collected.
+        This event is triggered whenever a Python wrapper object is being
+        garbage collected.  The handler is passed a pointer to the
+        :c:type:`sipSimpleWrapper` object that is the Python wrapper object
+        being garbage collected.
 
 
 .. c:function:: int sipExportSymbol(const char *name, void *sym)
@@ -1538,8 +1554,6 @@ API Reference
         *dict* is the dictionary to be populated.
 
         0 is returned if there was no error, otherwise -1 is returned.
-
-    See the section :ref:`ref-lazy-type-attributes` for more details.
 
 
 .. c:function:: int sipRegisterEventHandler(sipEventType type, const sipTypeDef *td, void *handler)
