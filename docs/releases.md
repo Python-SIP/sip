@@ -1,5 +1,107 @@
 # Release Notes
 
+## v6.16.0
+
+### ABI Versions
+
+The current ABI versions are now v12.19.0 and v13.12.0 and v14.0.0.
+
+### ABI v14
+
+ABI v14 has been added as an experimental ABI.  Bindings that target this
+ABI can support multiple interpreters and free-threading.  Python v3.15 or
+later is required.
+
+### Typing improvements
+
+- `__buffer__()` and `__release_buffer__()` are now generated as part of a
+  class definition in a `.pyi` file where appropriate.
+
+### `sipbuild` Module
+
+`get_limited_abi_version()` was added to the `Project` class to give a
+project complete control over the version of the Python ABI to be targeted.
+
+### Support for PEP 803
+
+Support was added for the stable ABI in free-thread builds (PEP 803).  The
+`Py_TARGET_ABI3T` C preprocessor macro is defined and the `abi3.abi3t`
+composite wheel tag is used when appropriate.
+
+### Improved pickle support
+
+The format used to pickle wrapped types has been changed to be more robust
+and faster.  Pickles using the legacy format can still be read but the new
+format will be used if they are rewritten.  All ABI versions can read the
+new format.
+
+### `/Factory/` not supported for non-pointers
+
+The `/Factory/` annotation is not intended to be used for callables that
+return non-pointers.  This is now enforced and will result in a build-time
+error.
+
+### Improved support for `/Movable/`
+
+The `/Movable/` mapped type annotation is properly supported when an
+instance is returned by a Python reimplemention of a virtual.
+
+It is now a build error when it is known that a mapped type needs to be
+copied and there is no assignment operator available.
+
+Some mapped type annotations imply the setting of other mapped type
+annotations.  These are now documented.
+
+Resolves [#110](https://github.com/Python-SIP/sip/issues/110)
+
+### Bug fixes
+
+- It is now possible to override a setting in `pyproject.toml` from the
+  command line
+- Explicitly clean up temporary build directories to avoid a resource
+  warning.
+- It is now an error to specify `DisallowNone` for string types.
+- Fixed bugs in ABI v12 and v13 that could cause crashes when memory is
+  short.
+- The /Capsule/ typedef annotation now behaves as documented.
+- Virtual error handlers are now handled correctly.
+- Ensure that the `--help` and `--version` command line options work when
+  the `pyproject.toml` file is missing.
+  Resolves [#109](https://github.com/Python-SIP/sip/issues/109)
+- Ensure than the `--help` and `--version` command line options always
+  work.  Resolves [#107](https://github.com/Python-SIP/sip/issues/107)
+- A regression in v6.15.0 in the PEP 604 support for using the `|` operator
+  instead of `Optional` in pointers to ordinary types was fixed.  Resolves
+  [#108](https://github.com/Python-SIP/sip/issues/108)
+- The type hints generated for output arguments is now correct.
+- A number of other type hint fixes to make them more accurate.
+- Generated type stub files no longer depend on import loader side effects.
+
+### Testing
+
+- Added tests for generating a C module.
+- Added tests for the state of the GIL support.
+- Added tests for for wrapped variables.
+- Added tests for `%GetCode` and `%SetCode`.
+- Added tests for exceptions.
+- Added tests for sub-class convertor code.
+- Added tests for errors in constructors and methods.
+- Added tests for the `/Supertype/` class annotation.
+- Added tests for attributes that are class instances.
+- Added tests for pickling wrapped types.
+- Added tests for pickling custom enum values.
+- Added tests for the buffer protocol support.
+- Added tests for abstract classes.
+- Added tests for argument parsing.
+- Added tests for `__dir__()` support.
+- Added tests for slots.
+
+### Documentation
+
+- Remove warnings when building the documentation.
+- Updated the documentation theme.
+
+
 ## v6.15.3
 
 ### Bug fixes

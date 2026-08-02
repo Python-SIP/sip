@@ -6,7 +6,7 @@
 from datetime import date
 
 
-needs_sphinx = '9.0'
+needs_sphinx = '9.1'
 
 
 # -- Project information -----------------------------------------------------
@@ -16,7 +16,7 @@ project = 'sip'
 copyright = '{0} Phil Thompson <phil@riverbankcomputing.com>'.format(
         date.today().year)
 author = 'Phil Thompson'
-version = 'v6.15.3'
+version = 'v6.16.0'
 
 
 # -- General configuration ---------------------------------------------------
