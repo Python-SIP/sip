@@ -24,6 +24,11 @@ class Configurable:
             options = self.get_options()
 
         for option in options:
+            # If it has already been set explicitly by a 'Project' sub-class in
+            # project.py then the user cannot change it.
+            if getattr(self, option.name) is not None:
+                continue
+
             # If there is no help then the user can never specify it.
             if option.help is None:
                 continue
