@@ -7,7 +7,7 @@ the version of Python for which `pytest` is installed.
 
 ## Running Unit Tests
 
-To run the complete suite of tests for the latest ABI version, run:
+To run the complete suite of tests for the default ABI version, run:
 
     pytest
 

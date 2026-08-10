@@ -4,6 +4,10 @@
 %Module(name=py_properties_module, gil_use="NotUsed",
         multi_interpreter_support="PerInterpreterGILSupported")
 
+%MinimumABIVersion "12.0"
+%MinimumABIVersion "13.0"
+%MinimumABIVersion "14.0"
+
 
 %ModuleHeaderCode
 class AnObject

@@ -38,9 +38,7 @@ class ParserManager:
     with state and utility functions.
     """
 
-    def __init__(self, hex_version, encoding, target_abi, tags,
-            disabled_features, protected_is_public, include_dirs, sip_module,
-            is_strict):
+    def __init__(self, hex_version, bindings, include_dirs, is_strict):
         """ Initialise the manager. """
 
         # Create the lexer.
@@ -59,13 +57,12 @@ class ParserManager:
         self.class_templates = []
 
         # Public state.
-        self.tags = tags
-
-        self.spec = Specification(target_abi, is_strict, sip_module)
+        self.spec = Specification(bindings, is_strict)
 
         # The module is initially unnamed.
         self.modules = [self.spec.module]
 
+        self.abi_is_finalised = False
         self.c_bindings = None
         self.code_block = None
         self.module_state = None
@@ -77,10 +74,7 @@ class ParserManager:
 
         # Private state.
         self._hex_version = hex_version
-        self._encoding = encoding
-        self._disabled_features = disabled_features
-        self._protected_is_public = protected_is_public
-        self._include_dirs = include_dirs
+        self._include_dirs = include_dirs or []
         self._template_arg_classes = []
 
         self._scope_stack = []
@@ -375,7 +369,7 @@ class ParserManager:
         scope = self.scope
 
         if scope is not None:
-            if self.scope_access_specifier is AccessSpecifier.PROTECTED and not self._protected_is_public:
+            if self.scope_access_specifier is AccessSpecifier.PROTECTED and not self.spec.bindings.protected_is_public:
                 scope.is_protected = True
 
                 if iface_file_type is IfaceFileType.CLASS:
@@ -477,7 +471,7 @@ class ParserManager:
         # Handle the access specifier.
         access_specifier = self.scope_access_specifier
 
-        if access_specifier is AccessSpecifier.PROTECTED and self._protected_is_public:
+        if access_specifier is AccessSpecifier.PROTECTED and self.spec.bindings.protected_is_public:
             access_specifier = AccessSpecifier.PUBLIC
 
         # Handle the signatures allowing it to be used like a function
@@ -593,6 +587,9 @@ class ParserManager:
             annotations, members):
         """ Create a new enum and add it to the current scope. """
 
+        bindings = self.spec.bindings
+        abi_major = bindings.project.abi_version[0]
+
         if self.scope_access_specifier is AccessSpecifier.PRIVATE:
             self.parser_error(p, symbol, "class enums cannot be private")
 
@@ -604,9 +601,9 @@ class ParserManager:
         base_type = EnumBaseType.ENUM
 
         if base_type_s is not None:
-            # The minor version of the target ABI may not be known yet (and we
-            # don't need it) so just test the major version.
-            if self.target_major_abi < 13:
+            self._finalise_abi_version()
+
+            if abi_major < 13:
                 self.parser_error(p, symbol,
                         "/BaseType/ is only supported for ABI v13.0 and later")
 
@@ -647,7 +644,7 @@ class ParserManager:
                 scope=self.scope)
 
         if self.scope_access_specifier is AccessSpecifier.PROTECTED:
-            if not self._protected_is_public:
+            if not bindings.protected_is_public:
                 w_enum.is_protected = True
                 self.scope.needs_shadow = True
 
@@ -661,9 +658,9 @@ class ParserManager:
         if cpp_name is None:
             members_visible = True
         elif not is_scoped:
-            if self.target_major_abi == 12:
+            if abi_major <= 12:
                 members_visible = True
-            elif self.target_major_abi >= 14 and SipModuleConfiguration.CustomEnums in self.spec.sip_module_configuration:
+            elif abi_major >= 14 and SipModuleConfiguration.CustomEnums in self.spec.sip_module_configuration:
                 members_visible = True
 
         # Create the members.
@@ -687,6 +684,9 @@ class ParserManager:
             method_code=None, virtual_catcher_code=None,
             virtual_call_code=None):
         """ Create and return an Overload and add it to the current scope. """
+
+        bindings = self.spec.bindings
+        abi_major = bindings.project.abi_version[0]
 
         # Get the Python name.
         py_name = self.get_py_name(cpp_name, annotations)
@@ -718,7 +718,7 @@ class ParserManager:
 
         overload.pyqt_method_specifier = self.scope_pyqt_method_specifier
 
-        if overload.access_specifier is AccessSpecifier.PROTECTED and self._protected_is_public:
+        if overload.access_specifier is AccessSpecifier.PROTECTED and bindings.protected_is_public:
             overload.access_specifier = AccessSpecifier.PUBLIC
             overload.access_is_really_protected = True
 
@@ -744,7 +744,7 @@ class ParserManager:
         # See if the function is a non-lazy method.  These are methods that
         # Python expects to see defined in the type before any instance of the
         # type is created.
-        if self.scope is not None and self.target_major_abi < 14:
+        if self.scope is not None and abi_major <= 13:
             NONLAZY_METHOD_NAMES = (
                 '__getattribute__',
                 '__getattr__',
@@ -771,7 +771,7 @@ class ParserManager:
         overload.deprecated = annotations.get('Deprecated')
         overload.transfer = self.get_transfer(p, symbol, annotations)
 
-        if self.target_major_abi < 14:
+        if abi_major <= 13:
             overload.new_thread = annotations.get('NewThread', False)
 
         if overload.access_specifier is not AccessSpecifier.PRIVATE:
@@ -1197,6 +1197,9 @@ class ParserManager:
             inverted=False):
         """ Evaluate a feature or platform qualifier. """
 
+        spec = self.spec
+        bindings = spec.bindings
+
         if name is None:
             name = p[symbol]
 
@@ -1205,13 +1208,13 @@ class ParserManager:
             return False
 
         if qual.type is QualifierType.FEATURE:
-            value = qual.name not in self._disabled_features
+            value = qual.name not in bindings.disabled_features
         elif qual.type is QualifierType.PLATFORM:
             # The platform is always ignored in non-strict mode.
-            if not self.spec.is_strict:
+            if not spec.is_strict:
                 return True
 
-            value = qual.name in self.tags
+            value = qual.name in bindings.tags
         else:
             self.parser_error(p, symbol,
                     "'{0}' is a %Timeline qualifier which can only be used in a range".format(name))
@@ -1273,10 +1276,8 @@ class ParserManager:
 
         # Handle the pseudo-timelines.
         if timeline == self._SIP_ABI_TIMELINE:
-            if self.spec.target_abi is None:
-                return False
-
-            abi_major = self.spec.target_abi[0]
+            self._finalise_abi_version()
+            abi_major = self.spec.bindings.project.abi_version[0]
 
             if lower_qual is not None and abi_major < lower_qual.order:
                 return False
@@ -1296,8 +1297,10 @@ class ParserManager:
             return True
 
         # See if there is a selected qualifier within range.
+        tags = self.spec.bindings.tags
+
         for qual in module.qualifiers:
-            if qual.type is QualifierType.TIME and qual.timeline == timeline and qual.name in self.tags:
+            if qual.type is QualifierType.TIME and qual.timeline == timeline and qual.name in tags:
                 if lower_qual is not None and qual.order < lower_qual.order:
                     return False
                 if upper_qual is not None and qual.order >= upper_qual.order:
@@ -1444,9 +1447,9 @@ class ParserManager:
                 SourceLocation(self._sip_file, line=t.lineno,
                         column=self._get_column_from_lexpos(t.lexpos)))
 
-    def parse(self, sip_file):
-        """ Parse a .sip file and return a 3-tuple of a Specification object, a
-        list of Module objects and a list of the .sip files that specify the
+    def parse(self):
+        """ Parse the .sip file and return a 3-tuple of a Specification object,
+        a list of Module objects and a list of the .sip files that specify the
         module to be generated.  A UserException is raised if there was an
         error.
         """
@@ -1455,8 +1458,8 @@ class ParserManager:
         # specified by the user is only done so that generated '#line'
         # directives match those from older versions of SIP.
 
-        raw_sip_file = sip_file
-        sip_file = os.path.abspath(sip_file)
+        raw_sip_file = self.spec.bindings.sip_file
+        sip_file = os.path.abspath(raw_sip_file)
 
         self.module_state = ModuleState(self.spec.module, sip_file)
 
@@ -1497,8 +1500,8 @@ class ParserManager:
         for klass in self._template_arg_classes:
             self.spec.classes.remove(klass)
 
-        # Finalise the target ABI version.
-        self._finalise_target_abi()
+        # Finalise the ABI version.
+        self._finalise_abi_version()
 
         return self.spec, self.modules, self._sip_files
 
@@ -1685,14 +1688,6 @@ class ParserManager:
 
         return value
 
-    @property
-    def target_major_abi(self):
-        """ The major version of the currently specified target ABI. """
-
-        target_abi = self.spec.target_abi
-
-        return DEFAULT_ABI_MAJOR if target_abi is None else target_abi[0]
-
     def validate_function(self, p, symbol, overload):
         """ Validate a completed function. """
 
@@ -1760,7 +1755,9 @@ class ParserManager:
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
 
-        if self.target_major_abi >= 13:
+        self._finalise_abi_version()
+
+        if self.spec.bindings.project.abi_version[0] >= 13:
             convert_to_us = mapped_type.convert_to_type_code is not None and 'sipUserState' in mapped_type.convert_to_type_code.text
 
             release_us = mapped_type.release_code is not None and 'sipUserState' in mapped_type.release_code.text
@@ -1916,38 +1913,66 @@ class ParserManager:
 
         return None
 
-    def _finalise_target_abi(self):
-        """ Finalise the target ABI. """
+    def _finalise_abi_version(self):
+        """ Finalise the ABI version. """
 
-        target_abi = self.spec.target_abi
+        # Check if it has already been done.
+        if self.abi_is_finalised:
+            return
 
-        if target_abi is None:
-            deprecated("Not specifying %MinimumABIVersion")
+        self.abi_is_finalised = True
 
-            major_version = DEFAULT_ABI_MAJOR
-            minor_version = None
+        spec = self.spec
+        project = spec.bindings.project
+
+        major, minor = project.abi_version
+        minimums = spec.minimum_abi_versions
+
+        if major == 0:
+            # The major version is prior to v14.
+            if minimums:
+                # We default to the major number of the first minimum version
+                # that was specified.
+                major = minimums[0][0]
+            else:
+                # We have no minimum version information from which to derive a
+                # major version so use the default.
+                major = DEFAULT_ABI_MAJOR
         else:
-            major_version, minor_version = target_abi
+            # Check that this major version is supported and that any minor
+            # version meets the minimum requirements.
+            for min_major, min_minor in minimums:
+                if min_major == major:
+                    # The major number is supported.
+                    if minor is not None and min_minor is not None and minor < min_minor:
+                        # We have specified a minor number which is too old.
+                        raise UserException(f"ABI v{major.minor} is being targeted but the {spec.module.fq_py_name.name} module requires v{min_major}.{min_minor}")
 
-        if minor_version is None:
-            minor_version = get_latest_version(major_version)
+                    break
+            else:
+                # The major number isn't supported.
+                raise UserException(f"ABI v{major} is being targeted but the {spec.module.fq_py_name.name} module doesn't support it")
+
+        # If we don't have a specific minor version use the latest.
+        if minor is None:
+            minor = get_latest_version(major)
 
         # These ABI versions are deprecated because we have deprecated any
         # arguments to 'throw()' which these versions rely on.
-        if major_version == 12 and minor_version < 9:
-            self._deprecated_target_abi(major_version, minor_version, '12.9')
+        if major == 12 and minor < 9:
+            self._deprecated_target_abi(major, minor, '12.9')
 
-        if major_version == 13 and minor_version < 1:
-            self._deprecated_target_abi(major_version, minor_version, '13.1')
+        if major == 13 and minor < 1:
+            self._deprecated_target_abi(major, minor, '13.1')
 
-        if major_version >= 14:
+        if major >= 14:
             # ABI v14 and later don't use plugins.
-            self.spec.plugins = []
+            spec.plugins = []
         else:
             # ABIs prior to v14 always use the GIL.
             self.gil_use = GILUse.USED
 
-        self.spec.target_abi = (major_version, minor_version)
+        project.abi_version = (major, minor)
 
     @staticmethod
     def _deprecated_target_abi(major_version, minor_version, instead):
@@ -2150,6 +2175,9 @@ class ParserManager:
         a .sip file and make it current.
         """
 
+        spec = self.spec
+        bindings = spec.bindings
+
         importing_from = self.module_state.module
 
         module = Module()
@@ -2159,16 +2187,19 @@ class ParserManager:
         self.module_state = ModuleState(module, sip_file)
 
         # Get the configuration of the new module.
-        mod_tags, mod_disabled = get_bindings_configuration(self.spec,
-                sip_file, self._include_dirs)
+        mod_tags, mod_disabled = get_bindings_configuration(spec, sip_file,
+                self._include_dirs)
+
+        tags = bindings.tags
+        disabled_features = bindings.disabled_features
 
         for tag in mod_tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
+            if tag not in tags:
+                tags.append(tag)
 
         for feature in mod_disabled:
-            if feature not in self._disabled_features:
-                self._disabled_features.append(feature)
+            if feature not in disabled_features:
+                disabled_features.append(feature)
 
         # Add the new import.
         importing_from.imports.append(module)
@@ -2177,14 +2208,13 @@ class ParserManager:
         """ Return the contents of the current .sip file. """
 
         try:
-            with open(sip_file, encoding=self._encoding) as f:
+            with open(sip_file, encoding='UTF-8') as f:
                 self._input = f.read()
         except FileNotFoundError:
-            raise UserException("unable to read '{0}'".format(sip_file))
+            raise UserException(f"unable to read '{sip_file}'")
         except UnicodeDecodeError as e:
             raise UserException(
-                    "'{0}' doesn't appear to use the '{1}' encoding".format(
-                            sip_file, self._encoding),
+                    f"'{sip_file}' doesn't appear to use the 'UTF-8' encoding",
                     detail=str(e))
 
         self.raw_sip_file = raw_sip_file

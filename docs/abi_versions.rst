@@ -8,14 +8,54 @@ ABI Versions
     developed and refined and its full version number will remain at v14.0.0
     during this process.
 
-SIP implements a set of ABIs which have slightly different behaviours and are
-used by the generated extension modules of package projects to allow them to
-interact.  A bindings author must choose which ABI version they are going to
-target.  Extension modules that are part of the same package must target the
-same ABI version.
+SIP implements a set of ABIs which have differing behaviours and are used by
+the generated extension modules of package projects to allow them to interact.
+A bindings author must choose which ABI version they are going to target.
+Extension modules that are part of the same package must target the same ABI
+version.
 
 Each ABI has a corresponding :ref:`C API <ref-c-api>` that is used by bindings
 authors in handwritten code.
+
+
+.. _ref-abi-to-target:
+
+Specifying the ABI to Target
+----------------------------
+
+The ABI version to target can be specified explicitly or, in some cases, can be
+infered.
+
+A project may specify the :directive:`%MinimumABIVersion` directive once for
+each ABI version the project supports.  If the project supports multiple ABI
+versions then the directive **must** be specified for **each** one.  The
+default ABI is that specified by the first use of
+:directive:`%MinimumABIVersion`.
+
+The :ref:`abi-version <ref-pyproject-abi-version>` key of the
+`tool.sip.project` section of the `pyproject.toml` file can be used to specify
+the major version, thereby overriding the order of multiple
+:directive:`%MinimumABIVersion` directives.  (It may also specify the minor
+version but this is usually omitted so that the latest minor version is used.)
+The value may be overridden by the corresponding ``--abi-version`` command line
+options of the build tools.
+
+If neither :directive:`%MinimumABIVersion` noor :ref:`abi-version
+<ref-pyproject-abi-version>` are specified then a default ABI is used.  For SIP
+v6 this is ABI v13.
+
+Unless a minor ABI version number is specified the latest available minor
+version of the major version will be used.
+
+.. note::
+    The best practice is to use the :directive:`%MinimumABIVersion` directive
+    for each supported major version to specify the corresponding full minimum
+    version number (using ``.0`` if any minor version will do) placing the
+    default ABI version first.
+
+    The :ref:`abi-version <ref-pyproject-abi-version>` key should not be used
+    except via the ``--abi-version`` command line option when overriding the
+    default ABI.
 
 
 ABI v14 Features

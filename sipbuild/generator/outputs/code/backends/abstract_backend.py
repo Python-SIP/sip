@@ -9,31 +9,26 @@ from abc import ABC, abstractmethod
 class AbstractBackend(ABC):
     """ The abstract base class for backend code generators. """
 
-    def __init__(self, spec):
-        """ Initialise the backend. """
-
-        self.spec = spec
-
     @staticmethod
-    def factory(spec):
+    def factory(project):
         """ Return an appropriate backend for the target ABI. """
 
-        if spec.target_abi >= (14, 0):
+        if project.abi_version[0] >= 14:
             from .v14 import v14Backend as backend
         else:
             from .v12v13 import v12v13Backend as backend
 
-        return backend(spec)
+        return backend()
 
     @abstractmethod
-    def g_arg_parser(self, sf, scope, py_signature, signature_nr, ctor=None,
-        is_method=False, overload=None):
+    def g_arg_parser(self, sf, spec, scope, py_signature, signature_nr,
+            ctor=None, is_method=False, overload=None):
         """ Generate an argument parser call. """
 
         ...
 
     @abstractmethod
-    def g_cast_function(self, sf, klass):
+    def g_cast_function(self, sf, spec, klass):
         """ Generate the function that casts a C++ pointer to a target type.
         """
 
@@ -46,13 +41,13 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_class_api(self, sf, klass):
+    def g_class_api(self, sf, spec, klass):
         """ Generate the API details for a class. """
 
         ...
 
     @abstractmethod
-    def g_class_spec_extern_decl(self, sf, klass):
+    def g_class_spec_extern_decl(self, sf, spec, klass):
         """ Generate the extern declaration of a class specification. """
 
         ...
@@ -72,7 +67,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_create_wrapped_module(self, sf, bindings,
+    def g_create_wrapped_module(self, sf, spec,
         name_cache_closure,
         has_external,
         enums_closure,
@@ -94,7 +89,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_enums_specifications(self, sf, scope=None):
+    def g_enums_specifications(self, sf, spec, scope=None):
         """ Generate the specifications for the wrapped enums in a scope and
         return an ABI-specific object which will be passed back to the backend
         at some point.
@@ -102,26 +97,26 @@ class AbstractBackend(ABC):
 
         ...
 
-    def g_exceptions_specifications(self, sf):
+    def g_exceptions_specifications(self, sf, spec):
         """ Generate the specifications for any exceptions. """
 
         # This default implementation does nothing.
         pass
 
     @abstractmethod
-    def g_exceptions_decls(self, sf):
+    def g_exceptions_decls(self, sf, spec):
         """ Generate the declarations of all exceptions. """
 
         ...
 
-    def g_exceptions_defn(self, sf):
+    def g_exceptions_defn(self, sf, spec):
         """ Generate the definition of the exceptions data structure. """
 
         # This default implementation does nothing.
         pass
 
     @abstractmethod
-    def g_externals(self, sf):
+    def g_externals(self, sf, spec):
         """ Generate the external types.  Return an ABI-specific object which
         will be passed back to the backend at some point.
         """
@@ -129,7 +124,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_get_py_reimpl(self, sf, klass, overload, virt_nr):
+    def g_get_py_reimpl(self, sf, spec, klass, overload, virt_nr):
         """ Generate the code to get the Python reimplementation of a C++
         virtual.
         """
@@ -137,44 +132,36 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_import_tables(self, sf):
+    def g_import_tables(self, sf, spec):
         """ Generated the tables related to imported modules. """
 
         ...
 
     @abstractmethod
-    def g_imported_module_decls(self, sf, imported_module):
+    def g_imported_module_decls(self, sf, spec, imported_module):
         """ Generate any declarations related to an imported module. """
 
         ...
 
     @abstractmethod
-    def g_init_extenders_table(self, sf):
+    def g_init_extenders_table(self, sf, spec):
         """ Generate the init extenders table. """
 
         ...
 
     @abstractmethod
-    def g_mapped_type_api(self, sf, mapped_type):
+    def g_mapped_type_api(self, sf, spec, mapped_type):
         """ Generate the API details for a mapped type. """
 
         ...
 
     @abstractmethod
-    def g_mapped_type_definition(self, sf, bindings, mapped_type):
+    def g_mapped_type_definition(self, sf, spec, mapped_type):
         """ Generate the type structure that contains all the information
         needed by a mapped type.
         """
 
         ...
-
-    def g_mapped_type_int_instances(self, sf, mapped_type):
-        """ Generate the code to add a set of ints to a mapped type.  Return
-        True if there was at least one.
-        """
-
-        # This default implementation does nothing.
-        return False
 
     @abstractmethod
     def g_method_error_handler_end(sf, overload):
@@ -188,19 +175,24 @@ class AbstractBackend(ABC):
 
         ...
 
-    def g_mixin_support(self, sf, klass):
+    def g_mixin_support(self, sf, spec, klass):
         """ Generate the support for mixins. """
 
         # This default implementation does nothing.
         pass
 
     @abstractmethod
-    def g_module_definition(self, sf, bindings, has_module_functions=False):
+    def g_module_definition(self, sf, spec, has_module_functions=False):
         """ Generate the module definition structure. """
 
         ...
 
-    def g_name_cache(self, sf):
+    @abstractmethod
+    def g_module_init_start(self, sf, spec):
+        """ Generate the start of the Python module initialisation function.
+        """
+
+    def g_name_cache(self, sf, spec):
         """ Generate the name cache definition and return an ABI-specific
         object which will be passed back to the backend at some point.
         """
@@ -217,7 +209,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_other_members(self, sf, bindings, scope, members):
+    def g_other_members(self, sf, spec, scope, members):
         """ Generate other (backend-specific) members for a scope. """
 
         ...
@@ -229,7 +221,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_py_method_start(self, sf, bindings, scope, member, original_scope,
+    def g_py_method_start(self, sf, spec, scope, member, original_scope,
             need_args, need_self):
         """ Generate the start of a method implementation and return an
         ABI-specific object which will be passed to g_py_method_end().
@@ -244,19 +236,19 @@ class AbstractBackend(ABC):
         pass
 
     @abstractmethod
-    def g_sip_api(self, sf, module_name, module_closure):
+    def g_sip_api(self, sf, spec, module_closure):
         """ Generate the SIP API as seen by generated code. """
 
         ...
 
     @abstractmethod
-    def g_slot_extender_impl(self, sf, bindings, member, klass=None):
+    def g_slot_extender_impl(self, sf, spec, member, klass=None):
         """ Generate the implementation of a slot extender. """
 
         ...
 
     @abstractmethod
-    def g_slot_extenders_table(self, sf):
+    def g_slot_extenders_table(self, sf, spec):
         """ Generate the table of slot implementations. """
 
         ...
@@ -268,15 +260,14 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_static_function_start(self, sf, bindings, scope_py, member,
-            overloads):
+    def g_static_function_start(self, sf, spec, scope_py, member, overloads):
         """ Generate the start of a static function implementation and return
         an ABI-specific object which will be passed to g_static_function_end().
         """
 
         ...
 
-    def g_static_function_support_vars(self, sf, scope):
+    def g_static_function_support_vars(self, sf, spec, scope):
         """ Generate the variables needed by a static function implementation.
         """
 
@@ -284,7 +275,7 @@ class AbstractBackend(ABC):
         pass
 
     @abstractmethod
-    def g_static_variables_table(self, sf, scope=None):
+    def g_static_variables_table(self, sf, spec, scope=None):
         """ Generate the tables of static variables for a scope and return a
         set of strings corresponding to the tables actually generated.
         """
@@ -292,19 +283,19 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_subclass_convertor(self, sf, klass):
+    def g_subclass_convertor(self, sf, spec, klass):
         """ Generate a sub-class convertor. """
 
         ...
 
     @abstractmethod
-    def g_subclass_convertors_table(self, sf):
+    def g_subclass_convertors_table(self, sf, spec):
         """ Generate the table of sub-class convertors. """
 
         ...
 
     @abstractmethod
-    def g_type_definition(self, sf, bindings, klass, py_debug):
+    def g_type_definition(self, sf, spec, klass):
         """ Generate the type structure that contains all the information
         needed by the meta-type.  A sub-set of this is used to extend
         namespaces.
@@ -313,20 +304,28 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def g_type_init(self, sf, bindings, klass, need_self, need_owner):
+    def g_type_init(self, sf, spec, klass, need_self, need_owner):
         """ Generate the code that initialises a type. """
 
         ...
 
     @abstractmethod
-    def g_types_table(self, sf, enums_state):
+    def g_types_table(self, sf, spec, enums_state):
         """ Generate the types table for a module. """
 
         ...
 
     @abstractmethod
-    def g_virt_error_handler_decls(self, sf):
+    def g_virt_error_handler_decls(self, sf, spec):
         """ Generate the declarations of any locally defined virtual error
+        handlers.
+        """
+
+        ...
+
+    @abstractmethod
+    def g_virt_error_handler_impl(self, sf, spec, virtual_error_handler):
+        """ Generate the implementations of any locally defined virtual error
         handlers.
         """
 
@@ -344,38 +343,44 @@ class AbstractBackend(ABC):
 
         ...
 
-    def abi_has_deprecated_message(self):
+    def abi_has_deprecated_message(self, spec):
         """ Return True if the ABI implements sipDeprecated() with a message.
         """
 
         return True
 
-    def abi_has_next_exception_handler(self):
+    def abi_has_next_exception_handler(self, spec):
         """ Return True if the ABI implements sipNextExceptionHandler(). """
 
         return True
 
-    def abi_has_working_char_conversion(self):
+    def abi_has_working_char_conversion(self, spec):
         """ Return True if the ABI has working char to/from a Python integer
         converters (ie. char is not assumed to be signed).
         """
 
         return True
 
-    def abi_supports_array(self):
+    def abi_supports_array(self, spec):
         """ Return True if the ABI supports sip.array. """
 
         return True
 
     @abstractmethod
-    def cached_name_ref(self, cached_name, as_nr=False):
-        """ Return a reference to a cached name. """
+    def abi_supports_custom_enums(self, spec):
+        """ Return True if the ABI supports custom enums. """
 
         ...
 
     @abstractmethod
-    def custom_enums_supported(self):
-        """ Return True if custom enums are supported. """
+    def abi_supports_py_enums(self, spec):
+        """ Return True if the ABI supports Python enums. """
+
+        ...
+
+    @abstractmethod
+    def cached_name_ref(self, cached_name, as_nr=False):
+        """ Return a reference to a cached name. """
 
         ...
 
@@ -386,25 +391,25 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_enum_to_py_conversion(self, enum, value_name):
+    def get_enum_to_py_conversion(self, spec, enum, value_name):
         """ Return the code to convert a C/C++ enum to a Python object. """
 
         ...
 
     @abstractmethod
-    def get_enum_ref_value(self, enum):
+    def get_enum_ref_value(self, spec, enum):
         """ Return the value of an enum's reference. """
 
         ...
 
     @abstractmethod
-    def get_error_handler_ref(self, error_handler):
+    def get_error_handler_ref(self, spec, error_handler):
         """ Return a reference to an error handler. """
 
         ...
 
     @abstractmethod
-    def get_error_handler_ref_type():
+    def get_error_handler_ref_type(self):
         """ Return the type of a reference to an error handler. """
 
         ...
@@ -426,15 +431,6 @@ class AbstractBackend(ABC):
         return ''
 
     @abstractmethod
-    def get_py_method_args(self, *, is_impl, self_is_type, need_self=False,
-            need_args=True):
-        """ Return the part of a Python method signature that are ABI
-        dependent.
-        """
-
-        ...
-
-    @abstractmethod
     def get_raise_unknown_exception(self):
         """ Return the call to raise an exception about an unknown exception.
         """
@@ -448,7 +444,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_sipself_test(self, klass):
+    def get_sipself_test(self, spec, klass):
         """ Return the code that checks if 'sipSelf' was bound or passed as an
         argument.
         """
@@ -485,9 +481,3 @@ class AbstractBackend(ABC):
         """
 
         return False
-
-    @abstractmethod
-    def py_enums_supported(self):
-        """ Return True if Python enums are supported. """
-
-        ...

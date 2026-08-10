@@ -210,7 +210,7 @@ class BuildableBindings(BuildableModule):
 
         with open(config_path, 'w') as cf:
             sip_version_str = SIP_VERSION_STR if self.project.version_info else ''
-            abi_major, abi_minor = self.project.target_abi
+            abi_major, abi_minor = self.project.abi_version
             tags = ', '.join(['"{}"'.format(t) for t in bindings.tags])
             disabled = ', '.join(
                     ['"{}"'.format(f) for f in bindings.disabled_features])
@@ -223,5 +223,5 @@ module-tags = [{tags}]
 module-disabled-features = [{disabled}]
 ''')
 
-            if self.project.target_abi >= (14, 0):
+            if self.project.abi_version[0] >= 14:
                 cf.write(f'sip-module-configuration = {self.sip_module_configuration}\n')

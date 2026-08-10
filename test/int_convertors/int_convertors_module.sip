@@ -4,6 +4,10 @@
 %Module(name=int_convertors_module, gil_use="NotUsed",
         multi_interpreter_support="PerInterpreterGILSupported")
 
+%MinimumABIVersion "12.0"
+%MinimumABIVersion "13.0"
+%MinimumABIVersion "14.0"
+
 
 %PostInitialisationCode
 #if SIP_API_MAJOR_NR == 12

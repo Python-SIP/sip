@@ -1735,22 +1735,23 @@ then the pattern should instead be::
 
 .. version-added:: 6.10
 
-This directive is used to specify the exact major version number and the
-minimum minor version number of the ABI required to build the project.  It
-normally reflects the calls made to the public API from handwritten code, ie.
-if the code makes a call to a function that was added to a particular ABI
-version then that version should be specified as the minimum required.
+This directive is used to specify the minimum minor version number of an ABI
+required to build the project.  See :ref:`ref-abi-to-target`.
 
-If the directive is also specified in an imported module (see
-:directive:`%Import`), then SIP will check that the versions do not conflict.
+It normally reflects the calls made to the public corresponding API from
+handwritten code, ie. if the code makes a call to a function that was added to
+a particular ABI version then that version should be specified as the minimum
+required.
 
-If the major version is omitted (and not provide by an imported module) then
-the default ABI will be used.  The default may change in the future and so this
-directive should always be used in this module or an imported one.
+If the project supports multiple ABI versions then the directive **must** be
+called for **each** major version.
 
 If the minor version is omitted then the latest minor version of the major
 version will be used.  However it is recommended that a minor number is always
 specified, even if it is ``0``.
+
+If the directive is also specified in an imported module (see
+:directive:`%Import`), then SIP will check that the versions do not conflict.
 
 For example::
 

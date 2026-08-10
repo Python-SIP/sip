@@ -1011,28 +1011,19 @@ def p_minimum_abi_version(p):
     if pm.skipping:
         return
 
+    # Check this doesn't appear after it is needed.
+    if pm.abi_is_finalised:
+        pm.parser_error(p, 1, "The directive is ignored - move it closer to the %Module directive")
+
     symbol = 2 if len(p) == 3 else 6
 
     try:
-        min_major_version, min_minor_version = parse_abi_version(p[symbol])
+        min_version = parse_abi_version(p[symbol])
     except UserException as e:
         pm.parser_error(p, symbol, e.text)
         return
 
-    if pm.spec.target_abi is None:
-        pm.spec.target_abi = (min_major_version, min_minor_version)
-    else:
-        major_version, minor_version = pm.spec.target_abi
-
-        if major_version != min_major_version:
-            pm.parser_error(p, symbol,
-                    f"v{min_major_version} is specified but v{major_version} is being targeted")
-        elif min_minor_version is not None:
-            if minor_version is None:
-                pm.spec.target_abi = (min_major_version, min_minor_version)
-            elif min_minor_version is not None and minor_version < min_minor_version:
-                pm.parser_error(p, symbol,
-                        f"v{min_major_version}.{min_minor_version} is the minimum ABI version but v{major_version}.{minor_version} is being targeted")
+    pm.spec.minimum_abi_versions.append(min_version)
 
 
 # %ModuleHeaderCode ###########################################################
@@ -1269,9 +1260,10 @@ def p_platforms(p):
     # Remember which platforms were selected.  Note that qualifiers are never
     # skipped.
     selected = []
+    tags = pm.spec.bindings.tags
 
     for qual_name in p[3]:
-        if qual_name in pm.tags:
+        if qual_name in tags:
             selected.append(qual_name)
 
         pm.add_qualifier(p, 1, qual_name, QualifierType.PLATFORM)
@@ -1460,9 +1452,10 @@ def p_timeline(p):
     # Remember which tags were selected.  Note that qualifiers are never
     # skipped.
     selected = []
+    tags = pm.spec.bindings.tags
 
     for order, qual_name in enumerate(p[3]):
-        if qual_name in pm.tags:
+        if qual_name in tags:
             selected.append(qual_name)
 
         pm.add_qualifier(p, 1, qual_name, QualifierType.TIME, order=order,
@@ -1890,7 +1883,7 @@ def p_class_head(p):
 
     pm.check_annotations(p, 3, "class", _CLASS_ANNOTATIONS)
 
-    if pm.target_major_abi >= 14 and 'DelayDtor' in p[3]:
+    if pm.spec.bindings.project.abi_version[0] >= 14 and 'DelayDtor' in p[3]:
         pm.parser_error(p, 3,
                 "DelayDtor is not supported by ABI v14 and later")
 

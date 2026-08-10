@@ -13,11 +13,6 @@ section are the standard options.  Any of these options could be removed, or
 new options added, by build system extensions defined in project-specific
 :file:`project.py` files.
 
-.. note::
-    The descriptions of the `--abi-version` option in the following sections
-    states that the default is the latest version.  This will be ABI v13 until
-    v14 is no longer considered to be experimental.
-
 
 :program:`sip-build`
 --------------------
@@ -57,9 +52,7 @@ The full set of command line options is:
 .. option:: --abi-version M[.N]
 
     The version number of the ABI of the :mod:`sip` module to target is
-    ``M.N``.  By default the latest major version is used.  If the minor
-    version is not specified then the latest minor version of the major version
-    is used.
+    ``M.N``.  See :ref:`ref-abi-to-target`.
 
 .. option:: --api-dir DIR
 
@@ -281,9 +274,7 @@ The full set of command line options is:
 .. option:: --abi-version M[.N]
 
     The version number of the ABI of the :mod:`sip` module to target is
-    ``M.N``.  By default the latest major version is used.  If the minor
-    version is not specified then the latest minor version of the major version
-    is used.
+    ``M.N``.  See :ref:`ref-abi-to-target`.
 
 .. option:: --api-dir DIR
 
@@ -488,9 +479,7 @@ The full set of command line options is:
 .. option:: --abi-version M[.N]
 
     The version number of the ABI of the :mod:`sip` module to target is
-    ``M.N``.  By default the latest major version is used.  If the minor
-    version is not specified then the latest minor version of the major version
-    is used.
+    ``M.N``.  See :ref:`ref-abi-to-target`.
 
 .. option:: --deprecations-are-errors
 
@@ -541,9 +530,7 @@ The full set of command line options is:
 .. option:: --abi-version M[.N]
 
     The version number of the ABI of the :mod:`sip` module to target is
-    ``M.N``.  By default the latest major version is used.  If the minor
-    version is not specified then the latest minor version of the major version
-    is used.
+    ``M.N``.  See :ref:`ref-abi-to-target`.
 
 .. option:: --api-dir DIR
 

@@ -53,10 +53,10 @@ is implemented in C (as opposed to C++).  *gil_use* specifies that any
 handwritten code does not use the GIL.  *multi_interpreter_support* specifies
 that the extension module can be used with multiple interpreters.
 
-The next line of interest is the :directive:`MinimumABIVersion` directive.
-This specifies the ABI version being targeted.  This example is so simple that
-it will work with any ABI version (but *gil_use* and
-*multi_interpreter_support* will be ignored by ABI versions prior to v14).
+The next lines of interest are the :directive:`%MinimumABIVersion` directives.
+These specify the ABI versions that are supported and their minimum versions.
+The example is unusual in that it supports all ABI versions.  See
+:ref:`ref-abi-to-target`.
 
 Next is the declaration of the :c:func:`fib_n` function to be wrapped.
 
@@ -130,7 +130,9 @@ The :file:`.sip` file would look more like that shown below.
     %Module(name=fib, language="C", gil_use="NotUsed",
             multi_interpreter_support="Supported")
 
-    %MinimumABIVersion "14"
+    %MinimumABIVersion "12.0"
+    %MinimumABIVersion "13.0"
+    %MinimumABIVersion "14.0"
 
     %ModuleCode
     #include <fib.h>

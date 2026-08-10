@@ -3,7 +3,10 @@
 %Module(name=examples.core, use_limited_api=True, gil_use="NotUsed",
         multi_interpreter_support="Supported")
 
-%MinimumABIVersion "14"
+%MinimumABIVersion "12.0"
+%MinimumABIVersion "13.0"
+%MinimumABIVersion "14.0"
+
 %DefaultEncoding "ASCII"
 
 %Platforms {Linux macOS Windows}

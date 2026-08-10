@@ -11,26 +11,23 @@ from ...specification import IfaceFileType
 
 from ..formatters import fmt_copying
 
-from .backends import AbstractBackend
 from .snippets import (g_composite_module_code, g_iface_file_code,
         g_module_code, g_module_header_file)
 
 
-def output_code(spec, bindings, project, buildable):
+def output_code(spec, buildable):
     """ Output the C/C++ code and add it to the given buildable. """
 
-    module = spec.module
-    py_debug = project.py_debug
-    backend = AbstractBackend.factory(spec)
-
     if spec.is_composite:
+        module = spec.module
+
         source_name = os.path.join(buildable.build_dir,
                 'sip' + module.py_name + 'cmodule.c')
 
-        with CompilationUnit(source_name, "Composite module code.", module, project, buildable, sip_api_file=False) as sf:
-            g_composite_module_code(backend, sf, bindings, py_debug)
+        with CompilationUnit(source_name, "Composite module code.", module, spec.bindings.project, buildable, sip_api_file=False) as sf:
+            g_composite_module_code(sf, spec)
     else:
-        _module_code(backend, bindings, project, py_debug, buildable)
+        _module_code(spec, buildable)
 
 
 def _empty_iface_file(spec, iface_file):
@@ -54,13 +51,14 @@ def _make_part_name(buildable, module_name, part_nr, source_suffix):
             f'sip{module_name}part{part_nr}{source_suffix}')
 
 
-def _module_code(backend, bindings, project, py_debug, buildable):
+def _module_code(spec, buildable):
     """ Generate the C/C++ code for a module. """
 
-    spec = backend.spec
     module = spec.module
     module_name = module.py_name
+    bindings = spec.bindings
     parts = bindings.concatenate
+    project = bindings.project
 
     source_suffix = bindings.source_suffix
     if source_suffix is None:
@@ -86,7 +84,7 @@ def _module_code(backend, bindings, project, py_debug, buildable):
     sf = CompilationUnit(source_name, "Module code.", module, project,
             buildable)
 
-    closure = g_module_code(backend, sf, bindings, project, py_debug, buildable)
+    closure = g_module_code(sf, spec, buildable)
 
     # Generate the interface source files.
     for iface_file in spec.iface_files:
@@ -140,8 +138,8 @@ def _module_code(backend, bindings, project, py_debug, buildable):
                 else:
                     iface_sf = use_sf
 
-                g_iface_file_code(backend, iface_sf, bindings, project,
-                        buildable, py_debug, iface_file, need_postinc)
+                g_iface_file_code(iface_sf, spec, buildable, iface_file,
+                        need_postinc)
 
                 if use_sf is None:
                     iface_sf.close()
@@ -151,7 +149,7 @@ def _module_code(backend, bindings, project, py_debug, buildable):
     header_name = os.path.join(buildable.build_dir, f'sipAPI{module_name}.h')
 
     with SourceFile(header_name, "Internal module API header file.", module, project, buildable.headers) as sf:
-        g_module_header_file(backend, sf, bindings, py_debug, closure)
+        g_module_header_file(sf, spec, closure)
 
 
 class SourceFile:

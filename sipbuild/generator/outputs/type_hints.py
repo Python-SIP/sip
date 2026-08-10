@@ -586,7 +586,9 @@ def format_voidptr(spec, as_xml):
     hint, XML or a docstring.
     """
 
-    voidptr = spec.sip_module + ('.' if spec.sip_module else '') + 'voidptr'
+    sip_module = spec.bindings.project.sip_module
+
+    voidptr = sip_module + ('.' if sip_module else '') + 'voidptr'
 
     if as_xml:
         return f':py:class:`~{voidptr}`'

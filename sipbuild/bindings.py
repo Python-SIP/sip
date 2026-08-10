@@ -138,28 +138,14 @@ class Bindings(Configurable):
 
         project = self.project
 
-        # The old parser had no concept of the encoding of a .sip file.  For
-        # the moment we say that files should be UTF-8.  If that proves to be a
-        # problem then a project-specific encoding should be able to be
-        # specified in pyproject.toml which would apply to all .sip files that
-        # make up the project.
-        encoding = 'UTF-8'
-
-        # Parse the input file.
-        spec, modules, sip_files = parse(self.sip_file, SIP_VERSION, encoding,
-                project.target_abi, self.tags, self.disabled_features,
-                self.protected_is_public, self._sip_include_dirs,
-                project.sip_module)
-
-        # Update the target ABI for the project.
-        if project.target_abi is None or project.target_abi[1] is None or project.target_abi < spec.target_abi:
-            project.target_abi = spec.target_abi
+        # Parse the input file.  This will finalise the target ABI version.
+        spec, modules, sip_files = parse(SIP_VERSION, self,
+                self._sip_include_dirs)
 
         # Resolve the types.
         resolve(spec, modules)
 
         module = spec.module
-
         uses_limited_api = module.use_limited_api or spec.is_composite
         gil_disabled = module.gil_use is GILUse.NOT_USED or spec.is_composite
 
@@ -180,9 +166,9 @@ class Bindings(Configurable):
 
         # Each ABI version has a different minimum C++ standard.
         if not spec.c_bindings:
-            if project.target_abi[0] >= 14:
+            if project.abi_version[0] >= 14:
                 buildable.cpp_standard = 'c++20'
-            elif project.target_abi[0] == 13:
+            elif project.abi_version[0] == 13:
                 buildable.cpp_standard = 'c++11'
 
         # Generate any API file.
@@ -205,7 +191,7 @@ class Bindings(Configurable):
             pyi_path = os.path.join(buildable.build_dir,
                     buildable.target + '.pyi')
 
-            output_pyi(spec, project, pyi_path)
+            output_pyi(spec, pyi_path)
 
             installable = Installable('pyi',
                     target_subdir=buildable.get_install_subdir())
@@ -213,7 +199,7 @@ class Bindings(Configurable):
             buildable.installables.append(installable)
 
         # Generate the bindings.
-        output_code(spec, self, project, buildable)
+        output_code(spec, buildable)
 
         buildable.headers.extend(self.headers)
 

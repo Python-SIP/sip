@@ -257,12 +257,12 @@ def get_use_in_code(code, s, spec=None):
     return s if is_used_in_code(code, s) else ''
 
 
-def get_user_state_suffix(spec, type):
+def get_user_state_suffix(project, type):
     """ Return the suffix for functions that have a variant that supports a
     user state.
     """
 
-    return 'US' if spec.target_abi >= (13, 0) and type_needs_user_state(type) else ''
+    return 'US' if project.abi_version[0] >= 13 and type_needs_user_state(type) else ''
 
 
 def get_void_ptr_cast(type):
@@ -330,7 +330,7 @@ _PY_REF_TYPES = (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING,
     ArgumentType.UTF8_STRING, ArgumentType.USTRING, ArgumentType.SSTRING,
     ArgumentType.STRING)
 
-def keep_py_reference(spec, arg):
+def keep_py_reference(project, arg):
     """ Return True if the argument has a type that requires an extra reference
     to the originating object to be kept.
     """
@@ -343,7 +343,7 @@ def keep_py_reference(spec, arg):
 
     # wchar_t strings/arrays don't leak in ABI v14 and later.  Note that
     # this solution could be adopted for earlier ABIs.
-    return spec.target_abi >= (14, 0) and arg.type is ArgumentType.WSTRING
+    return project.abi_version[0] >= 14 and arg.type is ArgumentType.WSTRING
 
 
 def module_classes(spec):
@@ -356,7 +356,7 @@ def module_classes(spec):
             yield klass
 
 
-def need_dealloc(spec, bindings, klass):
+def need_dealloc(spec, klass):
     """ Return True if a dealloc function is needed for a class. """
 
     if klass.iface_file.type is IfaceFileType.NAMESPACE:
@@ -364,7 +364,7 @@ def need_dealloc(spec, bindings, klass):
 
     # Each of these conditions cause some code to be generated.
 
-    if bindings.tracing:
+    if spec.bindings.tracing:
         return True
 
     if spec.c_bindings:

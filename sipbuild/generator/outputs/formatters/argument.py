@@ -484,6 +484,6 @@ def _sip_module_name(spec):
     in the module.
     """
 
-    sip_module = spec.sip_module
+    sip_module = spec.bindings.project.sip_module
 
     return sip_module + '.' if sip_module else ''

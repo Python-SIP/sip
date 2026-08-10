@@ -1289,15 +1289,11 @@ class SourceLocation:
 class Specification:
     """ Encapsulate a parsed .sip file. """
 
-    # The version of the ABI being targeted.
-    target_abi: tuple|None
+    # The corresponding bindings.
+    bindings: '..bindings.Bindings'
 
     # Set if the specification is strict.
     is_strict: bool
-
-    # The fully qualified name of the sip module.  If it is None then there is
-    # no shared sip module.
-    sip_module: str|None
 
     # The required configuration of the sip module.
     sip_module_configuration: SipModuleConfiguration = field(
@@ -1335,6 +1331,9 @@ class Specification:
 
     # The mapped types.
     mapped_types: IndexedMappedTypeList = field(default_factory=IndexedMappedTypeList)
+
+    # The list of minimum ABI versions.
+    minimum_abi_versions: list[tuple[int, int|None]] = field(default_factory=list)
 
     # The module for which code is to be generated.
     module: Module = field(default_factory=Module)

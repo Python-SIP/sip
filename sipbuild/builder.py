@@ -85,10 +85,10 @@ class Builder(AbstractBuilder):
 
         # If we don't know the target ABI at this point then default to the
         # latest version.
-        if project.target_abi is None:
+        if project.abi_version[0] == 0:
             major_version = DEFAULT_ABI_MAJOR
             minor_version = get_latest_version(major_version)
-            project.target_abi = (major_version, minor_version)
+            project.abi_version = (major_version, minor_version)
 
         # Create the PKG-INFO file.  This is assumed to be identical to the
         # .dist-info/METADATA file.

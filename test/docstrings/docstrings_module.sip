@@ -11,6 +11,10 @@ Module
 %End
 };
 
+%MinimumABIVersion "12.0"
+%MinimumABIVersion "13.0"
+%MinimumABIVersion "14.0"
+
 
 %ModuleCode
 void overloaded() {}

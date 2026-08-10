@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 # The major number of the default target ABI.  Remember to update the
-# documentation.
+# documentation.  Whenever this is changed the major version of SIP must be
+# incremented.
 DEFAULT_ABI_MAJOR = 13
 
 # The minimum required version of setuptools.  This is the earliest version

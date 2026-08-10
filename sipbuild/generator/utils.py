@@ -297,7 +297,7 @@ def py_as_int(type):
     return type.type in _PY_INT or type.type in _PY_LONG or type.type in _PY_ULONG
 
 
-def same_argument_type(spec, arg1, arg2, strict=True):
+def same_argument_type(project, arg1, arg2, strict=True):
     """ Compare two argument types and return True if they are the same.
     'strict' means as C++ would see it, rather than Python.
     """
@@ -319,7 +319,7 @@ def same_argument_type(spec, arg1, arg2, strict=True):
     if arg1.type in _PY_CONSTRAINED and arg2.type in _PY_CONSTRAINED:
         return arg1.type is arg2.type
 
-    if spec.target_abi >= (13, 0):
+    if project.abi_version[0] >= 13:
         # Anonymous enums are ints.
         if arg1.type in _PY_INT and arg2.type is ArgumentType.ENUM and arg2.definition.fq_cpp_name is None:
             return True
@@ -438,7 +438,7 @@ def same_base_type(type1, type2):
     return True
 
 
-def same_signature(spec, sig1, sig2, strict=True):
+def same_signature(project, sig1, sig2, strict=True):
     """ Compare two signatures and return True if they are the same. """
 
     if strict:
@@ -472,7 +472,7 @@ def same_signature(spec, sig1, sig2, strict=True):
         if not strict and sig1.args[a].default_value is not None:
             break
 
-        if not same_argument_type(spec, sig1.args[a], sig2.args[a], strict=strict):
+        if not same_argument_type(project, sig1.args[a], sig2.args[a], strict=strict):
             return False
 
     # Must be the same if we've got this far.

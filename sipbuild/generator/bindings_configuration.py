@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import os
@@ -40,16 +40,17 @@ def get_bindings_configuration(spec, sip_file, sip_include_dirs):
                 "'sip-abi-version' must be specified as a string")
 
     cfg_abi_major = int(cfg_abi_version.split('.')[0])
+    abi_major = spec.bindings.project.abi_version[0]
 
-    if spec.target_abi is None:
+    if abi_major == 0:
         # Infer the target ABI major version if we don't yet know it.
-        spec.target_abi = (cfg_abi_major, None)
+        abi_major = cfg_abi_major
+        spec.bindings.project.abi_version = (abi_major, None)
     else:
-        major_version = spec.target_abi[0]
-        if cfg_abi_major != major_version:
+        if cfg_abi_major != abi_major:
             raise UserFileException(toml_file,
                 f"'{bindings_name}' was built against ABI v{cfg_abi_major} "
-                f"but this module is being built against ABI v{major_version}")
+                f"but this module is being built against ABI v{abi_major}")
 
     # Check the sip module configurations are compatible.
     if cfg_abi_major >= 14:

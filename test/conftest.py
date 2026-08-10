@@ -25,7 +25,7 @@ def pytest_addoption(parser):
 
     parser.addoption("--sip-abi-version",
             help="Specify the sip module ABI version", type=int,
-            choices=ABI_VERSIONS, default=ABI_VERSIONS[-1])
+            choices=ABI_VERSIONS, default=13)
 
 
 @pytest.fixture

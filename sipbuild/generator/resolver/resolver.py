@@ -6,8 +6,7 @@
 
 from copy import copy
 
-from ...sip_module_configuration import (apply_module_defaults,
-        SipModuleConfiguration)
+from ...sip_module_configuration import apply_module_defaults
 
 from ..error_log import ErrorLog
 from ..instantiations import instantiate_type_hints
@@ -154,12 +153,14 @@ def resolve(spec, modules):
         _check_properties(klass, error_log)
 
     # Number the exceptions as they will be seen by the main module.
+    abi_version = spec.bindings.project.abi_version
+
     for exception in spec.exceptions:
         exception_mod = exception.iface_file.module
 
         # Include the %TypeHeaderCode for exceptions defined in the main
         # module.
-        if spec.target_abi >= (13, 1) or (spec.target_abi >= (12, 9) and spec.target_abi < (13, 0)):
+        if abi_version >= (13, 1) or (abi_version >= (12, 9) and abi_version < (13, 0)):
             if exception_mod is spec.module:
                 append_iface_file(spec.module.used, exception.iface_file)
 
@@ -251,6 +252,8 @@ def _add_complementary_slots(spec, klass):
 def _add_complementary_slot(spec, klass, member, compl, compl_name):
     """ Add a complementary slot if it is missing. """
 
+    project = spec.bindings.project
+
     member2 = None
 
     for overload in klass.overloads:
@@ -259,7 +262,7 @@ def _add_complementary_slot(spec, klass, member, compl, compl_name):
 
         # Try and find an existing complementary slot.
         for overload2 in klass.overloads:
-            if overload2.common.py_slot is compl and same_signature(spec, overload.py_signature, overload2.py_signature):
+            if overload2.common.py_slot is compl and same_signature(project, overload.py_signature, overload2.py_signature):
                 break
         else:
             # There is no explicit complementary slot so create a new member if
@@ -389,6 +392,8 @@ def _move_class_casts(spec, klass, error_log):
     extender.
     """
 
+    project = spec.bindings.project
+
     for cast in klass.casts:
         dst_klass = cast.definition
 
@@ -411,7 +416,7 @@ def _move_class_casts(spec, klass, error_log):
 
         # Check it hasn't already been defined.
         for dst_ctor in dst_klass.ctors:
-            if same_signature(spec, dst_ctor.py_signature, ctor.py_signature, strict=False):
+            if same_signature(project, dst_ctor.py_signature, ctor.py_signature, strict=False):
                 error_log.log(
                         " operator '{0}::{0}({1})' already defined".format(
                                 dst_klass.iface_file.fq_cpp_name,
@@ -423,6 +428,7 @@ def _move_class_casts(spec, klass, error_log):
 def _move_global_slot(spec, global_slot, error_log):
     """ If possible, move a global slot to its correct class. """
 
+    abi_major = spec.bindings.project.abi_version[0]
     remove_member = True
 
     for overload in tuple(spec.module.overloads):
@@ -489,7 +495,7 @@ def _move_global_slot(spec, global_slot, error_log):
                         overload)
             continue
 
-        if spec.target_abi >= (14, 0):
+        if abi_major >= 14:
             _move_slot_v14(spec, error_log, global_slot, overload, arg_module,
                     arg_members, arg_overloads, arg_enum, is_second)
         else:
@@ -645,7 +651,9 @@ def _move_slot_v12v13(spec, error_log, global_slot, overload, arg_module,
         # (ie. 'E.M == E.M' works as expected).  However if there is another
         # equality operator defined then it will fail so we have to explicitly
         # inject the comparison.
-        if SipModuleConfiguration.CustomEnums in spec.sip_module_configuration and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
+        supports_custom_enums = spec.bindings.project.backend.abi_supports_custom_enums(spec)
+
+        if supports_custom_enums and arg0.type is ArgumentType.ENUM and arg_member.py_slot is PySlot.EQ and not is_second:
             inject_equality_slot = True
 
     # Move the overload to the end of the destination list.
@@ -890,6 +898,8 @@ def _resolve_mapped_types(spec, mod, error_log, final_checks):
 def _resolve_ctors(spec, klass, error_log):
     """ Resolve the data types for a class's ctors. """
 
+    project = spec.bindings.project
+
     for ctor in klass.ctors:
         _resolve_ctor_types(spec, klass, ctor, error_log)
 
@@ -904,7 +914,7 @@ def _resolve_ctors(spec, klass, error_log):
                 if previous_ctor.method_code is not None:
                     continue
 
-                sig_state = _same_python_signature(spec,
+                sig_state = _same_python_signature(project,
                         previous_ctor.py_signature, ctor.py_signature)
 
                 if sig_state is None:
@@ -989,6 +999,8 @@ def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
         scope=None):
     """ Resolve the data types for a scope's overloads. """
 
+    project = spec.bindings.project
+
     for overload in overloads:
         _resolve_func_types(spec, overload.common.module, scope, overload,
                 error_log, final_checks)
@@ -1007,7 +1019,7 @@ def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
                 if previous_overload.method_code is not None:
                     continue
 
-                sig_state = _same_python_signature(spec,
+                sig_state = _same_python_signature(project,
                         previous_overload.py_signature, overload.py_signature)
 
                 if sig_state is None:
@@ -1057,6 +1069,8 @@ _ENUM_BASE_TYPES_V14 = (
 def _resolve_enums(spec, error_log):
     """ Resolve the base types for all the enums. """
 
+    abi_major = spec.bindings.project.abi_version[0]
+
     for enum in spec.enums:
         base_type = enum.enum_base_type
 
@@ -1075,7 +1089,7 @@ def _resolve_enums(spec, error_log):
             bad_base_type = True
         elif base_type.type in _ENUM_BASE_TYPES:
             bad_base_type = False
-        elif spec.target_abi >= (14, 0) and base_type.type in _ENUM_BASE_TYPES_V14:
+        elif abi_major >= 14 and base_type.type in _ENUM_BASE_TYPES_V14:
             bad_base_type = False
         else:
             bad_base_type = True
@@ -1135,6 +1149,8 @@ def _get_visible_py_members(spec, klass):
 def _get_virtuals(spec, klass, error_log):
     """ Get all the virtuals for a particular class. """
 
+    project = spec.bindings.project
+
     # Copy the collected virtuals of each super-class updating from what we
     # find in this class.
     for superklass in klass.superclasses:
@@ -1151,7 +1167,7 @@ def _get_virtuals(spec, klass, error_log):
                     break
 
                 # See if it re-implements rather than hides.
-                if _same_cpp_overload(spec, virtual_overload.overload, overload):
+                if _same_cpp_overload(project, virtual_overload.overload, overload):
                     # What if is is private?
                     overload.is_virtual = True
                     overload.is_virtual_reimplementation = True
@@ -1266,9 +1282,11 @@ def _get_virtual_error_handler(spec, overload, klass, error_log):
 def _get_virtual_handler(spec, overload, klass, error_log):
     """ Get the virtual handler for an overload. """
 
+    project = spec.bindings.project
+
     # See if there is an existing handler that is suitable.
     for handler in spec.virtual_handlers:
-        if _check_virtual_handler(spec, overload, handler):
+        if _check_virtual_handler(project, overload, handler):
             return handler
 
     # Create a new one.
@@ -1289,7 +1307,7 @@ def _get_virtual_handler(spec, overload, klass, error_log):
     return handler
 
 
-def _check_virtual_handler(spec, overload, virtual_handler):
+def _check_virtual_handler(project, overload, virtual_handler):
     """ Return True if a virtual handler is appropriate for an overload. """
 
     if overload.virtual_catcher_code is not virtual_handler.virtual_catcher_code:
@@ -1301,7 +1319,7 @@ def _check_virtual_handler(spec, overload, virtual_handler):
     if overload.abort_on_exception is not virtual_handler.abort_on_exception:
         return False
 
-    if not same_argument_type(spec, overload.py_signature.result, virtual_handler.py_signature.result):
+    if not same_argument_type(project, overload.py_signature.result, virtual_handler.py_signature.result):
         return False
 
     if overload.py_signature.result.allow_none is not virtual_handler.py_signature.result.allow_none:
@@ -1310,7 +1328,7 @@ def _check_virtual_handler(spec, overload, virtual_handler):
     if overload.py_signature.result.disallow_none is not virtual_handler.py_signature.result.disallow_none:
         return False
 
-    if not same_signature(spec, overload.py_signature, virtual_handler.py_signature):
+    if not same_signature(project, overload.py_signature, virtual_handler.py_signature):
         return False
 
     # Take into account the argument directions in the Python signatures.
@@ -1324,10 +1342,10 @@ def _check_virtual_handler(spec, overload, virtual_handler):
     if overload.py_signature is overload.cpp_signature and virtual_handler.py_signature is virtual_handler.cpp_signature:
         return True
 
-    if not same_argument_type(spec, overload.cpp_signature.result, virtual_handler.cpp_signature.result):
+    if not same_argument_type(project, overload.cpp_signature.result, virtual_handler.cpp_signature.result):
         return False
 
-    return same_signature(spec, overload.cpp_signature,
+    return same_signature(project, overload.cpp_signature,
             virtual_handler.cpp_signature)
 
 
@@ -1382,6 +1400,8 @@ def _resolve_ctor_types(spec, scope, ctor, error_log):
 def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
     """ Resolve the types of a function. """
 
+    abi_major = spec.bindings.project.abi_version[0]
+
     # Handle any exceptions.
     _set_needed_exceptions(spec, mod, overload.throw_args)
 
@@ -1407,7 +1427,7 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
 
     # These slots must return Py_ssize_t.
     if is_ssize_return_slot(overload.common.py_slot):
-        if spec.target_abi >= (13, 0):
+        if abi_major >= 13:
             required_types = (ArgumentType.SSIZE, )
         else:
             required_types = (ArgumentType.SSIZE, ArgumentType.INT)
@@ -1430,7 +1450,7 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
 
     # These slots must return Py_hash_t.
     if is_hash_return_slot(overload.common.py_slot):
-        if spec.target_abi >= (13, 0):
+        if abi_major >= 13:
             required_type = ArgumentType.HASH
             required_type_name = 'Py_hash_t'
         else:
@@ -1570,7 +1590,9 @@ _STRING_TYPES = (ArgumentType.ASCII_STRING, ArgumentType.LATIN1_STRING,
 def _resolve_variable_type(spec, variable, error_log):
     """ Resolve the type of a variable. """
 
-    if spec.target_abi < (14, 0) and variable.scope is None:
+    abi_major = spec.bindings.project.abi_version[0]
+
+    if abi_major <= 13 and variable.scope is None:
         if variable.get_code is not None or variable.set_code is not None:
             error_log.log("%GetCode or %SetCode cannot be specified for global variables")
 
@@ -1613,7 +1635,7 @@ def _resolve_variable_type(spec, variable, error_log):
         error_log.log(f"'{variable.fq_cpp_name}' has an unsupported type and/or annotation - provide %GetCode{set_s}")
  
     if variable.access_code is not None:
-        if spec.target_abi >= (14, 0):
+        if abi_major >= 14:
             error_log.log(f"'{variable.fq_cpp_name}' has %AccessCode which is not supported by ABI v14 and later, use %GetCode instead")
         elif variable_type.type is not ArgumentType.CLASS:
             error_log.log(f"'{variable.fq_cpp_name}' has %AccessCode but isn't a class instance")
@@ -1624,7 +1646,7 @@ def _resolve_variable_type(spec, variable, error_log):
         _iface_file_is_used(variable.module.used, variable_type)
 
     # Scoped variables need a handler unless they have %AccessCode.
-    if spec.target_abi < (14, 0) and variable.access_code is None:
+    if abi_major <= 13 and variable.access_code is None:
         if variable.scope is not None and not variable.scope.is_hidden_namespace:
             variable.needs_handler = True
             variable.scope.has_variable_handlers = True
@@ -1670,7 +1692,7 @@ def _supported_type(spec, klass, overload, arg, error_log, outputs=False):
             return True
 
         elif len(arg.derefs) == 1:
-            if spec.target_abi < (14, 0) and arg.disallow_none:
+            if spec.bindings.project.abi_version[0] <= 13 and arg.disallow_none:
                 return False
 
             if outputs:
@@ -1755,18 +1777,18 @@ def _default_output(arg):
             arg.is_out = True
 
 
-def _same_cpp_overload(spec, overload1, overload2):
+def _same_cpp_overload(project, overload1, overload2):
     """ Compare two overloads and return True if they are the same. """
 
     # They must both be const, or both not.
     if overload1.is_const is not overload2.is_const:
         return False
 
-    return same_signature(spec, overload1.cpp_signature,
+    return same_signature(project, overload1.cpp_signature,
             overload2.cpp_signature)
 
 
-def _same_python_signature(spec, signature1, signature2):
+def _same_python_signature(project, signature1, signature2):
     """ See if two Python signatures are the same as far as Python is
     concerned.  Return None if any argument's type is unknown.
     """
@@ -1786,7 +1808,7 @@ def _same_python_signature(spec, signature1, signature2):
         if a1 < 0 or a2 < 0:
             break
 
-        if not same_argument_type(spec, arg1, arg2, strict=False):
+        if not same_argument_type(project, arg1, arg2, strict=False):
             return False
 
     return a1 < 0 and a2 < 0
@@ -1975,6 +1997,8 @@ def _resolve_instantiated_class_template(spec, type):
     if type.type is not ArgumentType.TEMPLATE:
         return
 
+    project = spec.bindings.project
+
     template = type.definition
     template_signature = template.types
 
@@ -1982,7 +2006,7 @@ def _resolve_instantiated_class_template(spec, type):
         _resolve_instantiated_class_template(spec, arg)
 
     for klass in spec.classes:
-        if klass.template is not None and klass.template.cpp_name == template.cpp_name and same_signature(spec, klass.template.types, template_signature):
+        if klass.template is not None and klass.template.cpp_name == template.cpp_name and same_signature(project, klass.template.types, template_signature):
             type.type = ArgumentType.CLASS
             type.definition = klass
             break
@@ -2220,7 +2244,9 @@ def _iface_files_are_used_by_overload(spec, used, overload, need_types=False):
                 need_types=need_types)
 
     # Don't bother with %TypeHeaderCode from %Exception for later ABI versions.
-    if spec.target_abi >= (13, 1) or (spec.target_abi >= (12, 9) and spec.target_abi < (13, 0)):
+    abi_version = spec.bindings.project.abi_version
+
+    if abi_version >= (13, 1) or (abi_version >= (12, 9) and abi_version < (13, 0)):
         return
 
     throw_args = overload.throw_args
@@ -2285,6 +2311,8 @@ def _create_sorted_numbered_types(spec, mod, error_log):
     this will be every type needed by the main module.
     """
 
+    abi_major = spec.bindings.project.abi_version[0]
+
     # Collect the needed types.
     for klass in spec.classes:
         if klass.iface_file.module is not mod:
@@ -2294,7 +2322,7 @@ def _create_sorted_numbered_types(spec, mod, error_log):
             if klass.is_hidden_namespace:
                 continue
 
-            if spec.target_abi >= (14, 0) and is_namespace_extender(klass):
+            if abi_major >= 14 and is_namespace_extender(klass):
                 continue
 
             mod.needed_types.append(Argument(ArgumentType.CLASS,
@@ -2320,7 +2348,7 @@ def _create_sorted_numbered_types(spec, mod, error_log):
                     definition=enum, name=enum.cached_fq_cpp_name))
 
     # ABI v14 includes exceptions in the list of needed types.
-    if spec.target_abi >= (14, 0):
+    if abi_major >= 14:
         for exception in spec.exceptions:
             if _exception_needed(spec, exception):
                 mod.needed_types.append(Argument(ArgumentType.EXCEPTION,

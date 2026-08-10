@@ -20,6 +20,7 @@ from .bindings import Bindings
 from .buildable import BuildableFromSources
 from .configurable import Configurable, Option
 from .exceptions import UserException
+from .generator import AbstractBackend
 from .module import get_source_version_range, parse_abi_version
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
@@ -156,20 +157,15 @@ class Project(AbstractProject, Configurable):
         # The current directory should contain the .toml file.
         self.root_dir = os.getcwd()
         self.arguments = None
+        self.backend = None
         self.bindings = collections.OrderedDict()
         self.bindings_factories = []
         self.builder = None
         self.buildables = []
         self.installables = []
 
-        # The provisional target ABI is that specified by abi-version in
-        # pyproject.toml (or on the command line).  Note that, for historical
-        # reasons, we may not have the source of the older minor versions in
-        # which case we will build against the oldest we do have.
-        self.target_abi = None
         self._build_abi = None
         self._limited_abi_version = None
-
         self._metadata_overrides = None
         self._temp_build_dir = None
 
@@ -292,7 +288,7 @@ class Project(AbstractProject, Configurable):
         """
 
         if self._build_abi is None:
-            major_version, minor_version = self.target_abi
+            major_version, minor_version = self.abi_version
             oldest_source, _ = get_source_version_range(major_version)
             self._build_abi = (major_version, max(minor_version, oldest_source))
 
@@ -435,7 +431,7 @@ class Project(AbstractProject, Configurable):
             if rd.split()[0] == sip_project_name:
                 return []
 
-        abi_major, abi_minor = self.target_abi
+        abi_major, abi_minor = self.abi_version
         next_abi_major = abi_major + 1
 
         return [f'{sip_project_name} (>={abi_major}.{abi_minor}, <{next_abi_major})']
@@ -755,9 +751,17 @@ class Project(AbstractProject, Configurable):
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
 
-        # Get the provisional ABI version to target.
+        # Get the provisional ABI version to target.  If it is not specified
+        # then the major number will be 0 which is interpreted as being any ABI
+        # prior to v14 (ie. v12 or v13).  The parser will finalise the actual
+        # target ABI.
         if self.abi_version:
-            self.target_abi = parse_abi_version(self.abi_version)
+            self.abi_version = parse_abi_version(self.abi_version)
+        else:
+            self.abi_version = (0, None)
+
+        # We know enough about the ABI to create an appropriate backend.
+        self.backend = AbstractBackend.factory(self)
 
         # Checks for standalone projects.
         if tool in Option.BUILD_TOOLS and not self.sip_module:
@@ -973,7 +977,7 @@ class Project(AbstractProject, Configurable):
             micro = min_req_version.micro
 
             # ABI v14 requires Python v3.15 as a minimum.
-            if self.target_abi >= (14, 0) and minor < 15:
+            if self.abi_version[0] >= 14 and minor < 15:
                 minor = 15
                 micro = 0
         except Exception as e:
