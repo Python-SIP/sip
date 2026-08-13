@@ -4406,10 +4406,15 @@ def _get_binary_slot_call(project, spec, scope, overload, operator,
         if overload.common.namespace_iface_file is not None:
             slot_call += overload.common.namespace_iface_file.fq_cpp_name.as_cpp + '::'
 
-        if dereferenced:
-            slot_call += f'operator{operator}((*sipCpp), '
+        sip_cpp = '(*sipCpp)' if dereferenced else 'sipCpp'
+
+        # C++20 handles '!=' differently so we can't invoke the operator
+        # explicitly.  It's possible that there are more similar cases but this
+        # will do for now.
+        if operator == '!=':
+            slot_call += f'({sip_cpp} != '
         else:
-            slot_call += f'operator{operator}(sipCpp, '
+            slot_call += f'operator{operator}({sip_cpp}, '
     else:
         dereference = '->' if dereferenced else '.'
 
