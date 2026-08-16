@@ -1,5 +1,28 @@
 # Release Notes
 
+## v6.16.1
+
+### Support for GCC v16
+
+The code generated for comparison operators was changed to satisfy GCC v16's
+implementation of C++20.
+
+### Support for multi-arch stable ABI filenames
+
+Python v3.15 adds support for architecture-specific tags in the names of
+extension modules that use the stable ABI.  SIP will generate these tags if
+they are supported.
+
+This also fixes a regression in SIP v6.16.0.  Resolves
+[#112](https://github.com/Python-SIP/sip/issues/112)
+
+### Bug fixes
+
+- Reverted a change in SIP v6.16.0 that allowed options specified as arguments
+  to a `sipbuild.Project` sub-class in a `project.py` file to be overridden on
+  the command line or in a `pyproject.toml` file.
+
+
 ## v6.16.0
 
 ### ABI Versions
