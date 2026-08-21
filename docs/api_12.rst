@@ -2067,7 +2067,7 @@ v12.19.0
 ........
 
 - Added support for Python v3.15.
-- The format use to pickle wrapped types has changed so that it is more robust
+- The format used to pickle wrapped types has changed so that it is more robust
   and faster.  The legacy format can still be read and will be converted to the
   new format when written.  Older versions of the sip module can already read
   the new format.
