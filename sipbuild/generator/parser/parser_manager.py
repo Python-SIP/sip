@@ -1938,6 +1938,10 @@ class ParserManager:
                 # We have no minimum version information from which to derive a
                 # major version so use the default.
                 major = DEFAULT_ABI_MAJOR
+        elif major <= 13 and not minimums:
+            # Allow older ABIs that don't specify %MinimumABIVersion.  This
+            # case can be removed in SIP v7.
+            pass
         else:
             # Check that this major version is supported and that any minor
             # version meets the minimum requirements.
