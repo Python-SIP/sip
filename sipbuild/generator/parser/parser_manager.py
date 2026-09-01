@@ -8,6 +8,9 @@ import os
 
 from ...exceptions import deprecated, UserException
 from ...module import get_latest_version
+from ...plugin import (AnnotationContext, AnnotationNoValue, Class,
+        MappedType as PluginMappedType, Overload as PluginOverload,
+        Specification)
 from ...py_versions import DEFAULT_ABI_MAJOR
 from ...sip_module_configuration import SipModuleConfiguration
 
@@ -20,16 +23,15 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CachedName, ClassKey, CodeBlock, Constructor,
         DocstringFormat, DocstringSignature, EnumBaseType, GILAction, GILUse,
         IfaceFile, IfaceFileType, KwArgs, MappedType, Member, Module, Overload,
-        PyQtMethodSpecifier, PySlot, Qualifier, QualifierType, Signature,
-        SourceLocation, Specification, Transfer, TypeHints, WrappedClass,
-        WrappedException, WrappedEnum, WrappedEnumMember)
+        PySlot, Qualifier, QualifierType, Signature, SourceLocation, Transfer,
+        TypeHints, WrappedClass, WrappedException, WrappedEnum,
+        WrappedEnumMember)
 from ..templates import encoded_template_name, same_template_signature
 from ..utils import (argument_as_str, cached_name, find_iface_file,
         normalised_scoped_name, same_base_type)
 
 from . import rules
 from . import tokens
-from .annotations import InvalidAnnotation, validate_annotation_value
 from .ply import lex, yacc
 
 
@@ -38,7 +40,7 @@ class ParserManager:
     with state and utility functions.
     """
 
-    def __init__(self, hex_version, bindings, include_dirs, is_strict):
+    def __init__(self, hex_version, spec, include_dirs):
         """ Initialise the manager. """
 
         # Create the lexer.
@@ -52,16 +54,8 @@ class ParserManager:
         # This is a hack to give p_error() access to the current parser object.
         rules.parser = self._parser
 
-        # The list of class templates.  Each element is a 2-tuple of the
-        # template arguments (as a Signature instance) and the class itself.
-        self.class_templates = []
-
         # Public state.
-        self.spec = Specification(bindings, is_strict)
-
-        # The module is initially unnamed.
-        self.modules = [self.spec.module]
-
+        self.spec = spec
         self.abi_is_finalised = False
         self.c_bindings = None
         self.code_block = None
@@ -71,6 +65,13 @@ class ParserManager:
         self.parsing_virtual = False
         self.raw_sip_file = None
         self.skip_stack = [False]
+
+        # The list of class templates.  Each element is a 2-tuple of the
+        # template arguments (as a Signature instance) and the class itself.
+        self.class_templates = []
+
+        # The module is initially unnamed.
+        self.modules = [spec.module]
 
         # Private state.
         self._hex_version = hex_version
@@ -85,6 +86,20 @@ class ParserManager:
         self._all_sip_files = []
         self._sip_file = None
         self._sip_files = []
+
+        # Get any plugin-supplied tokens.
+        self._user_access_specifiers = []
+        self._user_overload_prefixes = []
+
+        plugins = spec.bindings.project.plugins
+        if plugins:
+            plugin_spec = Specification(spec)
+
+            for plugin in spec.bindings.project.plugins:
+                self._user_access_specifiers.extend(
+                        plugin.sip_class_get_access_specifiers(plugin_spec))
+                self._user_overload_prefixes.extend(
+                        plugin.sip_overload_get_prefixes(plugin_spec))
 
     @property
     def attributes(self):
@@ -111,14 +126,20 @@ class ParserManager:
 
         klass = self.scope
 
+        # Give contextually accurate error messages.
+        if klass.class_key is None:
+            class_type = 'namespace'
+        else:
+            class_type = klass.class_key.name.lower()
+
         if has_body:
             if klass.scope is not None:
                 if klass.iface_file.fq_cpp_name.scope != klass.scope.iface_file.fq_cpp_name:
                     self.parser_error(p, symbol,
-                            "a scoped name cannot be specified in the definition of a class/struct/union")
+                            f"a scoped name cannot be specified in the definition of a {class_type}")
         elif len(klass.superclasses) != 0:
             self.parser_error(p, symbol,
-                    "the class/struct has super-classes but no definition");
+                    f"the {class_type} has super-classes but no definition");
         else:
             klass.is_opaque = True
 
@@ -127,47 +148,41 @@ class ParserManager:
                 annotations)
         klass.py_name = cached_name(self.spec, py_name)
 
-        klass.no_type_hint = annotations.get('NoTypeHint', False)
+        klass.no_type_hint = annotations.pop('NoTypeHint')
 
-        metatype = annotations.get('Metatype')
+        metatype = annotations.pop('Metatype')
         if metatype is not None:
             klass.metatype = cached_name(self.spec, metatype)
 
-        supertype = annotations.get('Supertype')
+        supertype = annotations.pop('Supertype')
         if supertype is not None:
             klass.supertype = cached_name(self.spec, supertype)
 
-        klass.export_derived = annotations.get('ExportDerived', False)
-        klass.export_derived_locally = annotations.get('ExportDerivedLocally',
-                False)
-        klass.mixin = annotations.get('Mixin', False)
+        klass.export_derived = annotations.pop('ExportDerived')
+        klass.export_derived_locally = annotations.pop('ExportDerivedLocally')
+        klass.mixin = annotations.pop('Mixin')
 
-        file_extension = annotations.get('FileExtension')
+        file_extension = annotations.pop('FileExtension')
         if file_extension is not None:
             klass.iface_file.file_extension = file_extension
 
-        pyqt_flags_enums = self._get_plugin_annotation(p, symbol, annotations,
-                'PyQtFlagsEnums', 'PyQt5')
-        if pyqt_flags_enums is not None:
-            klass.pyqt_flags_enums = pyqt_flags_enums
-            klass.pyqt_flags = 1
-
-        pyqt_flags = self._get_plugin_annotation(p, symbol, annotations,
-                'PyQtFlags', 'PyQt5')
-        if pyqt_flags is not None:
-            klass.pyqt_flags = pyqt_flags
-
-        klass.pyqt_no_qmetaobject = annotations.get('PyQtNoQMetaObject', False)
-        klass.pyqt_interface = annotations.get('PyQtInterface')
+        # All supported annotations must be popped even if they aren't used.
+        abstract = annotations.pop('Abstract')
+        allow_none = annotations.pop('AllowNone')
+        delay_dtor = annotations.pop('DelayDtor')
+        deprecated = annotations.pop('Deprecated')
+        external = annotations.pop('External')
+        no_default_ctors = annotations.pop('NoDefaultCtors')
 
         if klass.is_opaque:
-            klass.external = annotations.get('External', False)
+            klass.external = external
         else:
+            klass.deprecated = deprecated
+            klass.no_default_ctors = no_default_ctors
+
             # A default dtor is public.
             if klass.dtor is None:
                 klass.dtor = AccessSpecifier.PUBLIC
-
-            klass.no_default_ctors = annotations.get('NoDefaultCtors', False)
 
             # Provide a default ctor if required.
             if len(klass.ctors) == 0 and not klass.no_default_ctors:
@@ -197,17 +212,15 @@ class ParserManager:
                 else:
                     klass.default_ctor = last_resort
 
-            klass.deprecated = annotations.get('Deprecated')
-
-            if klass.convert_to_type_code is not None and annotations.get('AllowNone', False):
+            if klass.convert_to_type_code is not None and allow_none:
                 klass.handles_none = True
 
-            if annotations.get('Abstract', False):
+            if abstract:
                 klass.is_abstract = True
                 klass.is_incomplete = True
                 klass.can_create = False
 
-            klass.delay_dtor = annotations.get('DelayDtor', False)
+            klass.delay_dtor = delay_dtor
             if klass.delay_dtor:
                 self.module_state.module.has_delayed_dtors = True
 
@@ -253,14 +266,25 @@ class ParserManager:
         self.pop_scope()
 
         # Check the name in the current scope (ie. the class's parent scope).
-        self.check_attributes(p, symbol, py_name, "a class or namespace",
+        self.check_attributes(p, symbol, py_name, f"a {class_type}",
                 ignore=klass)
 
         # Check that external classes have only been declared at the global
         # scope.
         if klass.external and self.scope is not None:
             self.parser_error(p, symbol,
-                    "/External/ classes/structs/unions can only be declared in the global scope")
+                    f"an /External/ {class_type} can only be declared in the global scope")
+
+        annotations.run_plugins(self, klass, AnnotationContext.CLASS)
+
+        # Notify plugins that a class has been parsed.
+        plugins = self.spec.bindings.project.plugins
+        if plugins:
+            plugin_spec = Specification(self.spec, production=p, symbol=symbol)
+            plugin_klass = Class(klass, self.spec)
+
+            for plugin in plugins:
+                plugin.sip_class_parsed(plugin_spec, self.scope, plugin_klass)
 
         return klass
 
@@ -270,7 +294,7 @@ class ParserManager:
 
         klass = self.new_class(p, symbol, IfaceFileType.CLASS,
                 normalised_scoped_name(scoped_name, self.scope),
-                virtual_error_handler=annotations.get('VirtualErrorHandler'),
+                virtual_error_handler=annotations.pop('VirtualErrorHandler'),
                 type_hints=self.get_type_hints(p, symbol, annotations))
 
         klass.class_key = class_key
@@ -303,6 +327,10 @@ class ParserManager:
             else:
                 if '.' in value:
                     token_type = 'DOTTED_NAME'
+                elif value in self._user_access_specifiers:
+                    token_type = 'USER_ACCESS_SPECIFIER'
+                elif value in self._user_overload_prefixes:
+                    token_type = 'USER_OVERLOAD_PREFIX'
                 else:
                     token_type = 'NAME'
 
@@ -464,10 +492,6 @@ class ParserManager:
             self.parser_error(p, symbol,
                     "constructors with arguments in C modules must specify %MethodCode")
 
-        if self.scope_pyqt_method_specifier is not None:
-            self.parser_error(p, symbol,
-                    "constructors must be in the public, protected or private sections")
-
         # Handle the access specifier.
         access_specifier = self.scope_access_specifier
 
@@ -483,7 +507,7 @@ class ParserManager:
         # Configure the constructor.
         ctor = Constructor(access_specifier, py_signature)
 
-        if annotations.get("NoDerived", False):
+        if annotations.pop('NoDerived'):
             if cpp_signature is not None:
                 self.parser_error(p, symbol,
                         "/NoDerived/ may not be specified with an explicit C++ signature")
@@ -497,7 +521,7 @@ class ParserManager:
             self._check_ellipsis(p, symbol, cpp_signature)
             ctor.cpp_signature = cpp_signature
 
-        if annotations.get("Default", False):
+        if annotations.pop('Default'):
             if scope.default_ctor is None:
                 scope.default_ctor = ctor
             else:
@@ -506,7 +530,7 @@ class ParserManager:
 
         ctor.docstring = docstring
         ctor.gil_action = self._get_gil_action(p, symbol, annotations)
-        ctor.deprecated = annotations.get('Deprecated')
+        ctor.deprecated = self._get_deprecated(annotations)
 
         if access_specifier is not AccessSpecifier.PRIVATE:
             ctor.kw_args = self._get_kw_args(p, symbol, annotations,
@@ -517,17 +541,22 @@ class ParserManager:
                 scope.needs_shadow = True
 
         ctor.method_code = method_code
-        ctor.no_type_hint = annotations.get('NoTypeHint', False)
-        ctor.posthook = annotations.get('PostHook')
-        ctor.prehook = annotations.get('PreHook')
+        ctor.no_type_hint = annotations.pop('NoTypeHint')
+        ctor.posthook = annotations.pop('PostHook')
+        ctor.prehook = annotations.pop('PreHook')
         ctor.premethod_code = premethod_code
         ctor.throw_args = exceptions
 
-        if method_code is None and annotations.get('NoRaisesPyException') is None:
-            if self.module_state.all_raise_py_exception or annotations.get('RaisesPyException', False):
+        no_raises_py_exception = annotations.pop('NoRaisesPyException')
+        raises_py_exception = annotations.pop('RaisesPyException')
+
+        if method_code is None and not no_raises_py_exception:
+            if self.module_state.all_raise_py_exception or raises_py_exception:
                 ctor.raises_py_exception = True
 
         ctor.transfer = self.get_transfer(p, symbol, annotations)
+
+        annotations.run_plugins(self, ctor, AnnotationContext.CONSTRUCTOR)
 
         scope.ctors.append(ctor)
 
@@ -548,10 +577,6 @@ class ParserManager:
         if bool(self.c_bindings) and method_code is None:
             self.parser_error(p, symbol,
                     "destructors in C modules must specify %MethodCode")
-
-        if self.scope_pyqt_method_specifier is not None:
-            self.parser_error(p, symbol,
-                    "destructors must be in the public, protected or private sections")
 
         if self.parsing_virtual:
             if self.scope.class_key is ClassKey.UNION:
@@ -583,6 +608,8 @@ class ParserManager:
         if self.parsing_virtual or len(scope.dealloc_code) != 0:
             scope.needs_shadow = True
 
+        annotations.run_plugins(self, scope, AnnotationContext.DESTRUCTOR)
+
     def add_enum(self, p, symbol, cpp_name, is_scoped, enum_base_type,
             annotations, members):
         """ Create a new enum and add it to the current scope. """
@@ -597,7 +624,7 @@ class ParserManager:
             self.cpp_only(p, symbol, "scoped enums")
 
         # Determine the base type.
-        base_type_s = annotations.get('BaseType')
+        base_type_s = annotations.pop('BaseType')
         base_type = EnumBaseType.ENUM
 
         if base_type_s is not None:
@@ -648,8 +675,8 @@ class ParserManager:
                 w_enum.is_protected = True
                 self.scope.needs_shadow = True
 
-        w_enum.no_scope = annotations.get('NoScope', False)
-        w_enum.no_type_hint = annotations.get('NoTypeHint', False)
+        w_enum.no_scope = annotations.pop('NoScope')
+        w_enum.no_type_hint = annotations.pop('NoTypeHint')
 
         # Check the member name if it is going to be visible in the current
         # scope.
@@ -664,17 +691,23 @@ class ParserManager:
                 members_visible = True
 
         # Create the members.
-        for m_cpp_name, m_py_name, m_no_type_hint in members:
+        for m_cpp_name, m_py_name, m_annos in members:
             if members_visible:
                 self.check_attributes(p, symbol, m_py_name.name,
                         "an enum member")
 
-            w_enum.members.append(
-                    WrappedEnumMember(m_cpp_name, m_py_name, w_enum,
-                            no_type_hint=m_no_type_hint))
+            w_enum_member = WrappedEnumMember(m_cpp_name, m_py_name, w_enum,
+                    no_type_hint=m_annos.pop('NoTypeHint'))
+
+            m_annos.run_plugins(self, w_enum_member,
+                    AnnotationContext.ENUM_MEMBER)
+
+            w_enum.members.append(w_enum_member)
 
             if self.in_main_module:
                 m_py_name.used = True
+
+        annotations.run_plugins(self, w_enum, AnnotationContext.ENUM)
 
         self.spec.enums.insert(0, w_enum)
 
@@ -716,8 +749,6 @@ class ParserManager:
         else:
             self.scope.overloads.append(overload)
 
-        overload.pyqt_method_specifier = self.scope_pyqt_method_specifier
-
         if overload.access_specifier is AccessSpecifier.PROTECTED and bindings.protected_is_public:
             overload.access_specifier = AccessSpecifier.PUBLIC
             overload.access_is_really_protected = True
@@ -725,10 +756,6 @@ class ParserManager:
         if overload.access_specifier is AccessSpecifier.PROTECTED:
             self.scope.needs_shadow = True
             member.has_protected = True
-
-        if overload.access_specifier is AccessSpecifier.PUBLIC:
-            if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-                self.scope.needs_shadow = True
 
         overload.docstring = docstring
         overload.is_abstract = abstract
@@ -758,21 +785,24 @@ class ParserManager:
                 self.scope.has_nonlazy_method = True
 
         # Handle any annotations.
-        overload.abort_on_exception = annotations.get('AbortOnException',
-                False)
+        overload.abort_on_exception = annotations.pop('AbortOnException')
 
-        auto_gen = annotations.get('AutoGen')
+        auto_gen = annotations.pop('AutoGen')
         if auto_gen is not None:
-            overload.is_auto_generated = self.evaluate_feature_or_platform(p,
-                    symbol, name=auto_gen)
+            if auto_gen is AnnotationNoValue:
+                overload.is_auto_generated = True
+            else:
+                overload.is_auto_generated = self.evaluate_feature_or_platform(
+                        p, symbol, name=auto_gen)
 
         overload.gil_action = self._get_gil_action(p, symbol, annotations)
-        overload.factory = annotations.get('Factory', False)
-        overload.deprecated = annotations.get('Deprecated')
+        overload.factory = annotations.pop('Factory')
+        overload.deprecated = self._get_deprecated(annotations)
         overload.transfer = self.get_transfer(p, symbol, annotations)
 
+        new_thread = annotations.pop('NewThread')
         if abi_major <= 13:
-            overload.new_thread = annotations.get('NewThread', False)
+            overload.new_thread = new_thread
 
         if overload.access_specifier is not AccessSpecifier.PRIVATE:
             if member.py_slot is None or member.py_slot is PySlot.CALL:
@@ -785,7 +815,7 @@ class ParserManager:
                 # If the overload is protected and defined in an imported
                 # module then we need to make sure that any other overloads'
                 # keyword argument names are marked as used.
-                if overload.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL and overload.access_specifier is AccessSpecifier.PROTECTED and not self.in_main_module:
+                if abi_major <= 13 and overload.access_specifier is AccessSpecifier.PROTECTED and not self.in_main_module:
                     for kwod in self.scope.overloads:
                         if kwod.common is not member:
                             continue
@@ -800,26 +830,29 @@ class ParserManager:
                             if arg.name is not None:
                                 arg.name.used = True
 
-        overload.no_type_hint = annotations.get('NoTypeHint', False)
-        overload.posthook = annotations.get('PostHook')
-        overload.prehook = annotations.get('PreHook')
+        overload.no_type_hint = annotations.pop('NoTypeHint')
+        overload.posthook = annotations.pop('PostHook')
+        overload.prehook = annotations.pop('PreHook')
 
-        if method_code is None and annotations.get('NoRaisesPyException') is None:
-            if self.module_state.all_raise_py_exception or annotations.get('RaisesPyException', False):
+        no_raises_py_exception = annotations.pop('NoRaisesPyException')
+        raises_py_exception = annotations.pop('RaisesPyException')
+
+        if method_code is None and not no_raises_py_exception:
+            if self.module_state.all_raise_py_exception or raises_py_exception:
                 overload.raises_py_exception = True
 
-        overload.virtual_error_handler = annotations.get('VirtualErrorHandler')
-        overload.no_virtual_error_handler = annotations.get(
-                'NoVirtualErrorHandler', False)
+        overload.virtual_error_handler = annotations.pop('VirtualErrorHandler')
+        overload.no_virtual_error_handler = annotations.pop(
+                'NoVirtualErrorHandler')
 
-        if annotations.get('Numeric', False):
+        if annotations.pop('Numeric'):
             if member.is_sequence:
                 self.parser_error(p, symbol,
                         "an overload has already specified /Sequence/")
             else:
                 member.is_numeric = True
 
-        if annotations.get('Sequence', False):
+        if annotations.pop('Sequence'):
             if member.is_numeric:
                 self.parser_error(p, symbol,
                         "an overload has already specified /Numeric/")
@@ -832,7 +865,7 @@ class ParserManager:
         overload.method_code = method_code
 
         # Add some auto-generated slots if required.
-        if '__len__' in annotations:
+        if annotations.pop('__len__'):
             len_method_code = method_code
             if len_method_code is None:
                 len_method_code = CodeBlock("Auto-generated",
@@ -847,13 +880,15 @@ class ParserManager:
             self._add_auto_slot(p, symbol, annotations, '__len__',
                     len_py_signature, len_py_signature, len_method_code)
 
-        if '__matmul__' in annotations:
+        if annotations.pop('__matmul__'):
             self._add_auto_slot(p, symbol, annotations, '__matmul__',
                     py_signature, cpp_signature, method_code)
 
-        if '__imatmul__' in annotations:
+        if annotations.pop('__imatmul__'):
             self._add_auto_slot(p, symbol, annotations, '__imatmul__',
                     py_signature, cpp_signature, method_code)
+
+        annotations.run_plugins(self, overload, AnnotationContext.FUNCTION)
 
         return overload
 
@@ -899,9 +934,10 @@ class ParserManager:
         mapped_type.cpp_name = cached_name(self.spec,
                 argument_as_str(cpp_type))
 
+        py_name = annotations.pop('PyName')
+
         if cpp_name is not None:
-            mapped_type.py_name = cached_name(self.spec,
-                    annotations.get('PyName', cpp_name))
+            mapped_type.py_name = cached_name(self.spec, py_name or cpp_name)
 
         self.annotate_mapped_type(p, symbol, mapped_type, annotations)
         self.spec.mapped_types.insert(0, mapped_type)
@@ -958,13 +994,13 @@ class ParserManager:
     def annotate_mapped_type(self, p, symbol, mapped_type, annotations):
         """ Apply annotations to a mapped type. """
 
-        mapped_type.handles_none = annotations.get('AllowNone', False)
-        mapped_type.movable = annotations.get('Movable', False)
-        mapped_type.no_assignment_operator = annotations.get(
-                'NoAssignmentOperator', False)
-        mapped_type.no_copy_ctor = annotations.get('NoCopyCtor', False)
-        mapped_type.no_default_ctor = annotations.get('NoDefaultCtor', False)
-        mapped_type.no_release = annotations.get('NoRelease', False)
+        mapped_type.handles_none = annotations.pop('AllowNone')
+        mapped_type.movable = annotations.pop('Movable')
+        mapped_type.no_assignment_operator = annotations.pop(
+                'NoAssignmentOperator')
+        mapped_type.no_copy_ctor = annotations.pop('NoCopyCtor')
+        mapped_type.no_default_ctor = annotations.pop('NoDefaultCtor')
+        mapped_type.no_release = annotations.pop('NoRelease')
         mapped_type.type_hints = self.get_type_hints(p, symbol, annotations)
 
         if mapped_type.no_release:
@@ -976,25 +1012,20 @@ class ParserManager:
             mapped_type.no_assignment_operator = True
             mapped_type.no_copy_ctor = True
 
-        pyqt_flags = self._get_plugin_annotation(p, symbol, annotations,
-                'PyQtFlags', 'PyQt6')
-        if pyqt_flags is not None:
-            mapped_type.pyqt_flags = pyqt_flags
+        annotations.run_plugins(self, mapped_type,
+                AnnotationContext.MAPPED_TYPE)
 
     def apply_common_argument_annotations(self, p, symbol, arg, annotations):
         """ Apply the annotations common to callable arguments and return type.
         """
 
-        arg.allow_none = annotations.get('AllowNone', False)
-        arg.disallow_none = annotations.get('DisallowNone', False)
-        arg.no_copy = annotations.get('NoCopy', False)
+        arg.allow_none = annotations.pop('AllowNone')
+        arg.disallow_none = annotations.pop('DisallowNone')
+        arg.no_copy = annotations.pop('NoCopy')
 
-        # We need to use an exception because we have to distinguish between
-        # a missing annotation and one without a value specified.
-        try:
-            key = annotations['KeepReference']
-
-            if key is None:
+        key = annotations.pop('KeepReference')
+        if key is not None:
+            if key is AnnotationNoValue:
                 key = self.module_state.module.next_key
                 self.module_state.module.next_key -= 1
             elif key < 0:
@@ -1002,8 +1033,6 @@ class ParserManager:
                         "a /KeepReference/ key cannot be negative")
 
             arg.key = key
-        except KeyError:
-            pass
 
     def apply_type_annotations(self, p, symbol, type, annotations):
         """ Apply the annotations for an argument type. """
@@ -1012,7 +1041,7 @@ class ParserManager:
         type.type_hints = self.get_type_hints(p, symbol, annotations)
 
         # The PyInt annotation.
-        if annotations.get('PyInt') is not None:
+        if annotations.pop('PyInt'):
             if type.type is ArgumentType.STRING:
                 type.type = ArgumentType.BYTE
             elif type.type is ArgumentType.SSTRING:
@@ -1023,25 +1052,15 @@ class ParserManager:
         # The Encoding annotation.
         can_be_encoded = type.type is ArgumentType.STRING and type.array is ArrayArgument.NONE and not type.is_reference
 
+        encoding = annotations.pop('Encoding')
+
         if can_be_encoded:
-            encoding = annotations.get('Encoding')
             if encoding is None:
                 default_encoding = self.module_state.default_encoding
                 if default_encoding is not None:
                     type.type = default_encoding
             else:
                 type.type = self.convert_encoding(p, symbol, encoding)
-
-    def check_annotations(self, p, symbol, context, annotations):
-        """ Check that all the annotations provided as a dict of name/values
-        are valid in a given context.
-        """
-
-        for name in p[symbol]:
-            if name not in annotations:
-                self.parser_error(p, symbol,
-                        "{0} is not a valid {1} annotation".format(name,
-                                context))
 
     def check_attributes(self, p, symbol, py_name, description,
             is_function=False, ignore=None):
@@ -1324,10 +1343,9 @@ class ParserManager:
         """ Return a valid Python name given a C/C++ name. """
 
         # Use any name specified by annotation.
-        try:
-            return annotations['PyName']
-        except KeyError:
-            pass
+        py_name = annotations.pop('PyName')
+        if py_name is not None:
+            return py_name
 
         # Use the C/C++ name.
         py_name = cpp_name
@@ -1345,12 +1363,18 @@ class ParserManager:
 
         return py_name
 
+    def get_source_location(self, p, symbol):
+        """ Return a SourceLocation object for a symbol. """
+
+        return SourceLocation(self._sip_file, line=p.lineno(symbol),
+                column=self._get_column_from_lexpos(p.lexpos(symbol)))
+
     def get_transfer(self, p, symbol, annotations):
         """ Return the a Transfer value from a dict of annotations. """
 
-        has_transfer = annotations.get('Transfer', False)
-        has_transfer_back = annotations.get('TransferBack', False)
-        has_transfer_this = annotations.get('TransferThis', False)
+        has_transfer = annotations.pop('Transfer')
+        has_transfer_back = annotations.pop('TransferBack')
+        has_transfer_this = annotations.pop('TransferThis')
 
         transfer = None
 
@@ -1384,10 +1408,11 @@ class ParserManager:
         None if none were specified.
         """
 
-        th = annotations.get('TypeHint')
-        th_in = annotations.get('TypeHintIn')
-        th_out = annotations.get('TypeHintOut')
-        th_value = annotations.get('TypeHintValue')
+        th = annotations.pop('TypeHint')
+        th_in = annotations.pop('TypeHintIn')
+        th_out = annotations.pop('TypeHintOut')
+        th_value = annotations.pop('TypeHintValue')
+        no_type_hint = annotations.pop('NoTypeHint')
 
         if th_in is None:
             th_in = th
@@ -1407,7 +1432,7 @@ class ParserManager:
 
         if th_in is not None or th_out is not None or th_value is not None:
             # Check that type hints haven't been suppressed.
-            if annotations.get('NoTypeHint') is not None:
+            if no_type_hint:
                 self.parser_error(p, symbol,
                         "'NoTypeHint' cannot be specified with a type hint")
 
@@ -1448,10 +1473,9 @@ class ParserManager:
                         column=self._get_column_from_lexpos(t.lexpos)))
 
     def parse(self):
-        """ Parse the .sip file and return a 3-tuple of a Specification object,
-        a list of Module objects and a list of the .sip files that specify the
-        module to be generated.  A UserException is raised if there was an
-        error.
+        """ Parse the .sip file and return a 2-tuple of a list of Module
+        objects and a list of the .sip files that specify the module to be
+        generated.
         """
 
         # Note that the retention of the 'raw' filename, ie. that which was
@@ -1503,7 +1527,7 @@ class ParserManager:
         # Finalise the ABI version.
         self._finalise_abi_version()
 
-        return self.spec, self.modules, self._sip_files
+        return self.modules, self._sip_files
 
     def parser_error(self, p, symbol, text):
         """ Record an error caused by a symbol in a production. """
@@ -1657,36 +1681,10 @@ class ParserManager:
         self._scope_stack[-1].access_specifier = access_specifier
 
     @property
-    def scope_pyqt_method_specifier(self):
-        """ The current method specifier. """
-
-        return None if len(self._scope_stack) == 0 else self._scope_stack[-1].pyqt_method_specifier
-
-    @scope_pyqt_method_specifier.setter
-    def scope_pyqt_method_specifier(self, pyqt_method_specifier):
-        """ Set the current method specifier. """
-
-        self._scope_stack[-1].pyqt_method_specifier = pyqt_method_specifier
-
-    @property
     def skipping(self):
         """ True if symbols are currently being skipped. """
 
         return self.skip_stack[-1]
-
-    def validate_annotation(self, p, symbol, value):
-        """ Validate an annotation and its value and return a valid version of
-        the value.
-        """
-
-        try:
-            value = validate_annotation_value(self, p, symbol, p[symbol],
-                    value)
-        except InvalidAnnotation as e:
-            self.parser_error(p, symbol, str(e))
-            value = e.use
-
-        return value
 
     def validate_function(self, p, symbol, overload):
         """ Validate a completed function. """
@@ -1711,9 +1709,6 @@ class ParserManager:
 
         if overload.is_static:
             cpp_only("static struct/union data members")
-
-            if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-                error("signals cannot be static")
 
         if overload.throw_args is not None:
             cpp_only("exceptions")
@@ -1751,6 +1746,17 @@ class ParserManager:
 
         if overload.common.no_arg_parser and overload.method_code is None:
             error("%MethodCode must be specified when /NoArgParser/ is specified")
+
+        # Notify plugins that an overload has been parsed.
+        plugins = self.spec.bindings.project.plugins
+        if plugins:
+            plugin_spec = Specification(self.spec, production=p, symbol=symbol)
+            plugin_scope = self._get_plugin_scope()
+            plugin_overload = PluginOverload(overload, self.scope, self.spec)
+
+            for plugin in plugins:
+                plugin.sip_overload_parsed(plugin_spec, plugin_scope,
+                        plugin_overload)
 
     def validate_mapped_type(self, p, symbol, mapped_type):
         """ Validate a completed mapped type. """
@@ -1969,11 +1975,8 @@ class ParserManager:
         if major == 13 and minor < 1:
             self._deprecated_target_abi(major, minor, '13.1')
 
-        if major >= 14:
-            # ABI v14 and later don't use plugins.
-            spec.plugins = []
-        else:
-            # ABIs prior to v14 always use the GIL.
+        if major <= 13:
+            # Legacy ABIs always use the GIL.
             self.gil_use = GILUse.USED
 
         project.abi_version = (major, minor)
@@ -2032,7 +2035,7 @@ class ParserManager:
                 is_function=True)
 
         # Create a new member if necessary.
-        no_arg_parser = annotations.get('NoArgParser', False)
+        no_arg_parser = annotations.pop('NoArgParser')
 
         if self.scope is None:
             members = self.module_state.module.global_functions
@@ -2094,11 +2097,22 @@ class ParserManager:
 
         return lexpos - line_start + 1
 
+    @staticmethod
+    def _get_deprecated(annotations):
+        """ Return the value of a /Deprecated/ annotation. """
+
+        deprecation = annotations.pop('Deprecated')
+
+        if deprecation is AnnotationNoValue:
+            deprecation = ''
+
+        return deprecation
+
     def _get_gil_action(self, p, symbol, annotations):
         """ Return an appropriate GILAction according to the annotations. """
 
-        hold = annotations.get('HoldGIL', False)
-        release = annotations.get('ReleaseGIL', False)
+        hold = annotations.pop('HoldGIL')
+        release = annotations.pop('ReleaseGIL')
 
         if hold:
             if release:
@@ -2115,7 +2129,7 @@ class ParserManager:
     def _get_kw_args(self, p, symbol, annotations, signature, need_name=False):
         """ Return the keyword argument support. """
 
-        kw_args = annotations.get('KeywordArgs')
+        kw_args = annotations.pop('KeywordArgs')
         if kw_args is not None:
             kw_args = self.convert_kw_args(p, symbol, kw_args)
         else:
@@ -2144,22 +2158,18 @@ class ParserManager:
 
         return kw_args
 
-    def _get_plugin_annotation(self, p, symbol, annotations, name, plugin):
-        """ Return an annotation that is only supported by a plugin. """
+    def _get_plugin_scope(self):
+        """ Return the approprate plugin class for the current scope. """
 
-        anno = annotations.get(name)
+        scope = self.scope
 
-        if anno is not None and plugin not in self.spec.plugins:
-            self.parser_error(p, symbol,
-                    "/{0}/ is only supported for {1}".format(name, plugin))
+        if isinstance(scope, WrappedClass):
+            return Class(scope, self.spec)
 
-        return anno
+        if isinstance(scope, MappedType):
+            return PluginMappedType(scope, self.spec)
 
-    def get_source_location(self, p, symbol):
-        """ Return a SourceLocation object for a symbol. """
-
-        return SourceLocation(self._sip_file, line=p.lineno(symbol),
-                column=self._get_column_from_lexpos(p.lexpos(symbol)))
+        return None
 
     def _handle_eom(self):
         """ Check that the current module is complete. """

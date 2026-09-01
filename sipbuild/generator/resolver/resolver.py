@@ -6,6 +6,8 @@
 
 from copy import copy
 
+from ...plugin import (Class, MappedType as PluginMappedType,
+        Overload as PluginOverload, Specification)
 from ...sip_module_configuration import apply_module_defaults
 
 from ..error_log import ErrorLog
@@ -16,9 +18,9 @@ from ..python_slots import (is_hash_return_slot, is_int_return_slot,
 from ..scoped_name import ScopedName
 from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, CachedName, ClassKey, Constructor, EnumBaseType,
-        IfaceFileType, IndexedClassList, MappedType, Member,
-        PyQtMethodSpecifier, PySlot, Signature, Transfer, ValueType,
-        VirtualHandler, VirtualOverload, VisibleMember, WrappedClass)
+        IfaceFileType, IndexedClassList, MappedType, Member, PySlot, Signature,
+        Transfer, ValueType, VirtualHandler, VirtualOverload, VisibleMember,
+        WrappedClass)
 from ..templates import (encoded_template_name, same_template_signature,
         template_code, template_code_blocks, template_expansions)
 from ..utils import (append_iface_file, argument_as_str, cached_name,
@@ -33,6 +35,9 @@ def resolve(spec, modules):
 
     error_log = ErrorLog()
     final_checks = []
+
+    # Create a plugin specification now if it will be needed.
+    plugin_spec = Specification(spec, error_log=error_log) if spec.bindings.project.plugins else None
 
     # Build the list of all imports for each module.
     for mod in modules:
@@ -68,11 +73,6 @@ def resolve(spec, modules):
                     "class '{0}' has not been defined".format(
                             klass.iface_file.fq_cpp_name))
 
-        # Mark any QObject class.  This flag will ripple through all derived
-        # classes when we set the hierarchy.
-        if klass.iface_file.fq_cpp_name.base_name == 'QObject':
-            klass.is_qobject = True
-
     # The class list has the main module's classes at the front and the ones
     # from the module at the most nested %Import at the end.  Set the MRO for
     # each class and re-order the list of classes so that no class appears
@@ -85,7 +85,7 @@ def resolve(spec, modules):
         if klass.iface_file.module is None:
             continue
 
-        _set_mro(spec, klass, error_log)
+        _set_mro(spec, klass, error_log, plugin_spec)
 
     # Resolve the various types in the modules.
     _resolve_module(spec, spec.module, error_log, final_checks)
@@ -168,12 +168,6 @@ def resolve(spec, modules):
             exception.exception_nr = exception_mod.nr_exceptions
             exception_mod.nr_exceptions += 1
 
-    # For PyQt6 mark all enum interface files as being used.
-    if 'PyQt6' in spec.plugins:
-        for enum in spec.enums:
-            if enum.module is spec.module:
-                _enum_iface_file_is_used(enum, spec.module)
-
     # Finalise the sip module configuration.
     spec.sip_module_configuration = apply_module_defaults(
             spec.sip_module_configuration)
@@ -181,6 +175,11 @@ def resolve(spec, modules):
     # Perform any final checks.
     for check in final_checks:
         check()
+
+    # Invoke any plugins.
+    if plugin_spec is not None:
+        for plugin in spec.bindings.project.plugins:
+            plugin.sip_specification_resolved(plugin_spec)
 
     # Raise an exception for any errors.
     error_log.as_exception()
@@ -205,7 +204,7 @@ def _resolve_module(spec, mod, error_log, final_checks, seen=None):
     _resolve_typedefs(spec, mod, error_log)
     _resolve_enums(spec, error_log)
     _resolve_variables(spec, mod, error_log)
-    _resolve_scope_overloads(spec, mod.overloads, error_log, final_checks)
+    _resolve_overloads(spec, mod.overloads, error_log, final_checks)
 
     # Resolve class ctors, functions and casts.
     for klass in spec.classes:
@@ -215,8 +214,8 @@ def _resolve_module(spec, mod, error_log, final_checks, seen=None):
             # Handle any dtor exceptions.
             _set_needed_exceptions(spec, mod, klass.dtor_throw_args)
 
-            _resolve_scope_overloads(spec, klass.overloads, error_log,
-                    final_checks, scope=klass)
+            _resolve_overloads(spec, klass.overloads, error_log, final_checks,
+                    scope=klass)
             _transform_casts(spec, klass, error_log)
 
     # Resolve mapped types based on templates.
@@ -740,7 +739,7 @@ def _add_auto_overload(spec, auto_klass, auto_overload):
                 break
 
 
-def _set_mro(spec, klass, error_log, seen=None):
+def _set_mro(spec, klass, error_log, plugin_spec, seen=None):
     """ Set the MRO for a class and add it to the list of classes so that it is
     after any classes it depends on.
     """
@@ -756,7 +755,7 @@ def _set_mro(spec, klass, error_log, seen=None):
 
     # Handle any enclosing scope.
     if klass.scope is not None:
-        _set_mro(spec, klass.scope, error_log, seen=seen)
+        _set_mro(spec, klass.scope, error_log, plugin_spec, seen=seen)
 
         if klass.scope.deprecated and not klass.deprecated:
             klass.deprecated = klass.scope.deprecated
@@ -786,7 +785,7 @@ def _set_mro(spec, klass, error_log, seen=None):
                                 superklass.iface_file.fq_cpp_name))
 
             # Make sure the super-class's hierarchy has been done. */
-            _set_mro(spec, superklass, error_log, seen=seen)
+            _set_mro(spec, superklass, error_log, plugin_spec, seen=seen)
 
             # Append the super-class's MRO.
             for superklass_mro in superklass.mro:
@@ -798,11 +797,6 @@ def _set_mro(spec, klass, error_log, seen=None):
 
                 if superklass_mro.deprecated and not klass.deprecated:
                     klass.deprecated = superklass_mro.deprecated
-
-                # If the super-class is a QObject sub-class then this one is as
-                # well.
-                if superklass_mro.is_qobject:
-                    klass.is_qobject = True
 
                 # If the super-class can't be assigned to then this one cannot
                 # either.
@@ -818,6 +812,15 @@ def _set_mro(spec, klass, error_log, seen=None):
                 # hierarchy.
                 if superklass_mro.subclass_base is not None:
                     klass.subclass_base = superklass_mro.subclass_base;
+
+            # Invoke any plugins.
+            if plugin_spec is not None:
+                plugin_klass = Class(klass, spec)
+                plugin_superklass = Class(superklass, spec)
+
+                for plugin in spec.bindings.project.plugins:
+                    plugin.sip_class_superclass_set(plugin_spec, plugin_klass,
+                            plugin_superklass)
 
         seen.remove(klass)
 
@@ -853,22 +856,10 @@ def _set_mro(spec, klass, error_log, seen=None):
         append_iface_file(klass.iface_file.module.used,
                 klass.subclass_base.iface_file)
 
-    # We can't have a shadow if the specification is incomplete, there is a
-    # private dtor, there are no non-private ctors or there are private
-    # abstract methods.
-    if klass.is_incomplete or klass.dtor is AccessSpecifier.PRIVATE or not klass.can_create:
-        klass.has_shadow = False
-    else:
-        # Note that we should be able to provide better support for abstract
-        # private methods than we do at the moment.
-        for overload in klass.overloads:
-            if overload.is_abstract and overload.access_specifier is AccessSpecifier.PRIVATE:
-                klass.has_shadow = False
-
-                # It also means we cannot create an instance from Python.
-                klass.can_create = False
-
-                break
+    # We can have a shadow if the specification is complete, there is no
+    # private dtor and there are non-private ctors.
+    if klass.needs_shadow and not klass.is_incomplete and klass.dtor is not AccessSpecifier.PRIVATE and klass.can_create:
+        klass.has_shadow = True
 
     # Add it to the new list of classes.
     spec.classes.append(klass)
@@ -891,8 +882,8 @@ def _resolve_mapped_types(spec, mod, error_log, final_checks):
             if mapped_type.type.type is ArgumentType.TEMPLATE:
                 _resolve_mapped_type_types(spec, mapped_type, error_log)
             else:
-                _resolve_scope_overloads(spec, mapped_type.overloads,
-                        error_log, final_checks, scope=mapped_type)
+                _resolve_overloads(spec, mapped_type.overloads, error_log,
+                        final_checks, scope=mapped_type)
 
 
 def _resolve_ctors(spec, klass, error_log):
@@ -995,11 +986,17 @@ def _add_default_copy_ctor(klass):
     klass.ctors.append(ctor)
 
 
-def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
-        scope=None):
+def _resolve_overloads(spec, overloads, error_log, final_checks, scope=None):
     """ Resolve the data types for a scope's overloads. """
 
     project = spec.bindings.project
+
+    # Create a plugin specification if we are going to invoke a plugin.
+    plugins = project.plugins
+
+    if plugins:
+        plugin_spec = Specification(spec, error_logger=_log_overload_error,
+                error_log=error_log)
 
     for overload in overloads:
         _resolve_func_types(spec, overload.common.module, scope, overload,
@@ -1038,6 +1035,23 @@ def _resolve_scope_overloads(spec, overloads, error_log, final_checks,
 
             if overload.is_abstract:
                 scope.is_abstract = True
+
+                # Note that we should be able to provide better support for
+                # abstract private methods than we do at the moment.
+                if overload.access_specifier is AccessSpecifier.PRIVATE:
+                    scope.has_shadow = False
+
+                    # It also means we cannot create an instance from Python.
+                    scope.can_create = False
+
+        # Allow plugins to finalise the overload.
+        if plugins:
+            plugin_scope = _get_plugin_scope(scope, spec)
+            plugin_overload = PluginOverload(overload, scope, spec)
+
+            for plugin in plugins:
+                plugin.sip_overload_resolved(plugin_spec, plugin_scope,
+                        plugin_overload)
 
 
 # The supported enum base types.  Note that we use the STRING types and the
@@ -1471,10 +1485,6 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
     nr_derefs = len(result.derefs)
 
     if result.type is not ArgumentType.VOID or nr_derefs != 0:
-        if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-            _log_overload_error(error_log, "is a signal and must return void",
-                    overload, scope=scope)
-
         _resolve_type(spec, mod, scope, result, error_log)
 
         # Results must be simple.
@@ -1505,26 +1515,17 @@ def _resolve_py_signature_types(spec, mod, scope, overload, error_log,
         if arg.type is ArgumentType.NONE:
             continue
 
-        # Note signal arguments are restricted in their types because we don't
-        # (yet) support handwritten code for them.
-        if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-            if not _supported_type(spec, scope, overload, arg, error_log):
-                _log_overload_error(error_log,
-                        "argument {0} has an unsupported type and/or annotation for a Python signature".format(
-                                arg_nr + 1),
-                        overload, scope=scope)
-
-        elif not _supported_type(spec, scope, overload, arg, error_log, outputs=True):
+        if not _supported_type(spec, scope, overload, arg, error_log, outputs=True):
             if overload.is_virtual:
                 _log_overload_error(error_log,
                         "argument {0} has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode, %VirtualCatcherCode and a C++ signature".format(
                                 arg_nr + 1),
                         overload, scope=scope)
-
-            _log_overload_error(error_log,
-                    "argument {0} has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
-                            arg_nr + 1),
-                    overload, scope=scope)
+            else:
+                _log_overload_error(error_log,
+                        "argument {0} has an unsupported type and/or annotation for a Python signature - provide a valid type, %MethodCode and a C++ signature".format(
+                                arg_nr + 1),
+                        overload, scope=scope)
 
         # Check that the argument support /Array/.
         if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and arg.array is ArrayArgument.ARRAY:
@@ -2044,7 +2045,6 @@ def _instantiate_mapped_type_template(spec, mod, mapped_type_template, type,
     mapped_type.no_copy_ctor = proto_mapped_type.no_copy_ctor
     mapped_type.no_default_ctor = proto_mapped_type.no_default_ctor
     mapped_type.no_release = proto_mapped_type.no_release
-    mapped_type.pyqt_flags = proto_mapped_type.pyqt_flags
 
     if proto_mapped_type.type_hints is not None:
         mapped_type.type_hints = instantiate_type_hints(spec,
@@ -2066,6 +2066,17 @@ def _instantiate_mapped_type_template(spec, mod, mapped_type_template, type,
     if proto_mapped_type.release_code is not None:
         mapped_type.release_code = template_code(spec, used,
                 proto_mapped_type.release_code, expansions)
+
+    # Invoke any plugins.
+    plugins = spec.bindings.project.plugins
+    if plugins:
+        plugin_spec = Specification(spec, error_log=error_log)
+        plugin_mapped_type = PluginMappedType(mapped_type, spec)
+        plugin_proto_mapped_type = PluginMappedType(proto_mapped_type, spec)
+
+        for plugin in plugins:
+            plugin.sip_instantiated_mapped_type_resolved(plugin_spec,
+                    plugin_mapped_type, plugin_proto_mapped_type, expansions)
 
     spec.mapped_types.insert(0, mapped_type)
 
@@ -2359,25 +2370,19 @@ def _create_sorted_numbered_types(spec, mod, error_log):
     mod.needed_types.sort(key=lambda t: t.name.name)
 
     for type_nr, needed_type in enumerate(mod.needed_types):
+        definition = needed_type.definition
+
         if needed_type.type is ArgumentType.CLASS:
-            needed_type.definition.iface_file.type_nr = type_nr
-
-            # If we find a class called QObject, assume it's Qt.
-            if needed_type.name.name == 'QObject':
-                if spec.pyqt_qobject is not None:
-                    error_log.log(
-                            "class 'QObject' has been defined more than once")
-
-                spec.pyqt_qobject = needed_type.definition
+            definition.iface_file.type_nr = type_nr
 
         elif needed_type.type is ArgumentType.MAPPED:
-            needed_type.definition.iface_file.type_nr = type_nr
+            definition.iface_file.type_nr = type_nr
 
         elif needed_type.type is ArgumentType.ENUM:
-            needed_type.definition.type_nr = type_nr
+            definition.type_nr = type_nr
 
         elif needed_type.type is ArgumentType.EXCEPTION:
-            needed_type.definition.iface_file.type_nr = type_nr
+            definition.iface_file.type_nr = type_nr
 
 
 def _exception_needed(spec, exception):
@@ -2406,6 +2411,18 @@ def _check_properties(klass, error_log):
             error_log.log(
                     "property '{0}.{1}' has no setter '{3}'".format(
                             klass.py_name.name, prop.name.name, prop.setter))
+
+
+def _get_plugin_scope(scope, spec):
+    """ Return the approprate plugin class for a scope. """
+
+    if isinstance(scope, WrappedClass):
+        return Class(scope, spec)
+
+    if isinstance(scope, MappedType):
+        return PluginMappedType(scope, spec)
+
+    return None
 
 
 def _log_overload_error(error_log, text, overload, scope=None):

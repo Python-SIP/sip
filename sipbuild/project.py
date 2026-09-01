@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 import collections
@@ -22,6 +22,7 @@ from .configurable import Configurable, Option
 from .exceptions import UserException
 from .generator import AbstractBackend
 from .module import get_source_version_range, parse_abi_version
+from .plugin.pyqt_plugin import PyQtPlugin
 from .py_versions import OLDEST_SUPPORTED_MINOR
 from .pyproject import PyProjectException, PyProjectOptionException
 
@@ -163,6 +164,7 @@ class Project(AbstractProject, Configurable):
         self.builder = None
         self.buildables = []
         self.installables = []
+        self.plugins = [PyQtPlugin()]
 
         self._build_abi = None
         self._limited_abi_version = None
@@ -499,6 +501,29 @@ class Project(AbstractProject, Configurable):
 
         self.builder.install()
         self._remove_build_dir()
+
+    def install_plugin(self, plugin):
+        """ Install a plugin. """
+
+        # Ignore the plugin if it is another instance of the legacy plugin.
+        # This can happen in the transition period when we are supporting old
+        # versions of PyQt (that know nothing of plugins) and newer versions
+        # (where the plugin is implemented in PyQt-builder v2).  The check can
+        # be removed in SIP v7.
+        if isinstance(plugin, PyQtPlugin):
+            return
+
+        # Check the key has been set.
+        if not plugin.sip_key:
+            raise UserException("The plugin does not have a key")
+
+        # Check the key is unique.
+        for plugin in self.plugins:
+            if plugin.sip_key == plugin.sip_key:
+                raise UserException(
+                        "A plugin with the key '{0}' has already been installed".format(plugin.sip_key))
+
+        self.plugins.append(plugin)
 
     @property
     def minimum_glibc_version(self):

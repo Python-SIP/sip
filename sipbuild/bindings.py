@@ -10,7 +10,7 @@ from .buildable import BuildableBindings
 from .configurable import Configurable, Option
 from .exceptions import UserException
 from .generator import parse, resolve
-from .generator.specification import GILUse
+from .generator.specification import GILUse, Specification
 from .generator.outputs import (output_api, output_code, output_extract,
         output_pyi)
 from .installable import Installable
@@ -138,9 +138,19 @@ class Bindings(Configurable):
 
         project = self.project
 
+        # Create an empty specification.
+        spec = Specification(self)
+
         # Parse the input file.  This will finalise the target ABI version.
-        spec, modules, sip_files = parse(SIP_VERSION, self,
-                self._sip_include_dirs)
+        modules, sip_files = parse(SIP_VERSION, spec, self._sip_include_dirs)
+
+        # If the PyQt plugin is installed but PyQt support wasn't required then
+        # remove the plugin.  This can all go in SIP v7.
+        if len(project.plugins) == 1:
+            plugin = project.plugins[0]
+
+            if plugin.sip_key == 'pyqt' and plugin.pyqt_major_version == 0:
+                del project.plugins[0]
 
         # Resolve the types.
         resolve(spec, modules)

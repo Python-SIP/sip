@@ -6,6 +6,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from .....plugin import Class, MappedType as PluginMappedType, Specification
 from .....sip_module_configuration import SipModuleConfiguration
 
 from ....python_slots import (is_extendable_slot, is_number_slot,
@@ -19,15 +20,14 @@ from ....utils import is_namespace_extender
 
 from ...formatters import fmt_argument_as_name, fmt_enum_as_cpp_type
 
-from ..snippets import (g_argument_variable, g_ctor_type_hint,
-        g_member_function, g_overload_type_hint, g_static_function,
-        g_type_init_body)
+from ..snippets import (g_argument_variable, g_member_function,
+        g_static_function, g_type_init_body)
 from ..utils import (callable_overloads, get_class_from_void,
-        get_docstring_text, get_enum_member, get_function_table,
-        get_mapped_type_flags, get_method_table, get_optional_ptr,
-        get_type_from_void, get_use_in_code, has_method_docstring, is_string,
-        is_used_in_code, module_classes, need_dealloc, py_scope,
-        scoped_class_name, variables_in_scope)
+        get_ctor_type_hint, get_docstring_text, get_enum_member,
+        get_function_table, get_mapped_type_flags, get_method_table,
+        get_optional_ptr, get_overload_type_hint, get_type_from_void,
+        get_use_in_code, is_string, is_used_in_code, module_classes,
+        need_dealloc, py_scope, scoped_class_name, variables_in_scope)
 
 from .abstract_backend import AbstractBackend
 
@@ -127,7 +127,7 @@ class v14Backend(AbstractBackend):
         """ Generate an argument parser call. """
 
         return _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor,
-                is_method, overload)
+                overload)
 
     @staticmethod
     def g_cast_function(sf, spec, klass):
@@ -704,6 +704,7 @@ extern const sipMappedTypeSpec sipTypeSpec_{module_name}_{mapped_type_name};
         """
 
         module = spec.module
+        project = spec.bindings.project
         module_name = module.py_name
         mapped_type_name = mapped_type.iface_file.fq_cpp_name.as_word
 
@@ -763,6 +764,15 @@ extern const sipMappedTypeSpec sipTypeSpec_{module_name}_{mapped_type_name};
         )
 
         _generate_struct(sf, struct)
+
+        # Invoke any plugins.
+        if project.plugins:
+            plugin_spec = Specification(spec)
+            plugin_mapped_type = PluginMappedType(mapped_type)
+
+            for plugin in project.plugins:
+                plugin.sip_mapped_type_generate_impl(sf, plugin_spec,
+                        plugin_mapped_type)
 
     @staticmethod
     def g_method_error_handler_end(sf, overload):
@@ -924,8 +934,8 @@ PyMODEXPORT_FUNC PyModExport_{module_name}({arg_type})
 
         callable_name = _get_callable_name(scope, member)
 
-        _g_type_hints_docstring(sf, spec, member, original_scope.overloads,
-                callable_name, is_method=True)
+        _g_type_hints_docstring(sf, spec, scope, member,
+                original_scope.overloads, callable_name)
 
         if not spec.c_bindings:
             sf.write(f'extern "C" {{static PyObject *callable_{callable_name}({_get_py_method_args(spec, is_impl=False)});}}\n')
@@ -1137,7 +1147,7 @@ extern {lang}PySlot sipModuleSlots_{module_name}[];
 
         callable_name = _get_callable_name(scope_py, member)
 
-        _g_type_hints_docstring(sf, spec, member, overloads,
+        _g_type_hints_docstring(sf, spec, scope_py, member, overloads,
                 callable_name)
 
         if not spec.c_bindings:
@@ -1209,6 +1219,7 @@ static sipSubClassConvertorSpec sipSubClassConvertors_{module.py_name}[] = {{
         """
 
         bindings = spec.bindings
+        project = bindings.project
 
         module = spec.module
         module_name = module.py_name
@@ -1294,7 +1305,7 @@ static sipSubClassConvertorSpec sipSubClassConvertors_{module.py_name}[] = {{
                                 selector=(scope_id is not None)),
                         StructField('flags',
                                 _get_class_flags(module, klass,
-                                        bindings.project.py_debug))
+                                        project.py_debug))
                     ),
                 ),
                 StructField('docstring',
@@ -1358,6 +1369,14 @@ static sipSubClassConvertorSpec sipSubClassConvertors_{module.py_name}[] = {{
 
         _generate_struct(sf, struct)
 
+        # Invoke any plugins.
+        if project.plugins:
+            plugin_spec = Specification(spec)
+            plugin_klass = Class(klass, spec)
+
+            for plugin in project.plugins:
+                plugin.sip_class_generate_impl(sf, plugin_spec, plugin_klass)
+
     @staticmethod
     def g_type_init(sf, spec, klass, need_self, need_owner):
         """ Generate the code that initialises a type. """
@@ -1376,8 +1395,7 @@ static sipSubClassConvertorSpec sipSubClassConvertors_{module.py_name}[] = {{
                     sf.write(f'static const sipDocSpec sipDocs_{klass_name}[] = {{\n')
                     need_decl = False
 
-                sf.write('    {"')
-                g_ctor_type_hint(sf, spec, klass, ctor)
+                sf.write('    {"' + get_ctor_type_hint(spec, klass, ctor))
 
                 if ctor.docstring is not None:
                     sf.write(f'", "{_get_typed_docstring_text(ctor.docstring)}"}},\n')
@@ -1568,6 +1586,11 @@ static void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipModuleS
 
         return 'sipModuleState *sipMS, '
 
+    def get_overload_docstring(self, spec, scope, overload):
+        """ Return an overload's docstring. """
+
+        return _get_typed_docstring_text(overload.docstring)
+
     @staticmethod
     def get_raise_unknown_exception():
         """ Return the call to raise an exception about an unknown exception.
@@ -1624,8 +1647,7 @@ static void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipModuleS
         sf.write('            sipCpp->sipPySelf = (sipSimpleWrapper *)sipSelf;\n\n')
 
 
-def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, is_method,
-        overload):
+def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, overload):
     """ Generate the argument variables for a callable. """
 
     # If the scope is a mapped type or a namespace, then ignore it.
@@ -2133,6 +2155,7 @@ static int module_clear(PyObject *mod)
 def _g_module_exec(sf, spec):
     """ Generate the module exec slot. """
 
+    project = spec.bindings.project
     module = spec.module
     module_name = module.py_name
 
@@ -2144,7 +2167,7 @@ static int module_exec(PyObject *sipModule)
 {
 ''')
 
-    if spec.bindings.project.sip_module:
+    if project.sip_module:
         sip_init_func_ref = 'sipModuleExec'
     else:
         sip_init_func_ref = 'sip_api_module_exec';
@@ -2166,6 +2189,13 @@ static int module_exec(PyObject *sipModule)
         return -1;
 
 ''')
+
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
+
+        for plugin in project.plugins:
+            plugin.sip_module_generate_initialisation_code(sf, plugin_spec)
 
     sf.write(
 f'''    if ({sip_init_func_ref}(sipModule, &sipModule_{module_name}) < 0)
@@ -2307,8 +2337,7 @@ def _g_py_method_table(sf, members, scope, attrs):
         sf.write('};\n')
 
 
-def _g_type_hints_docstring(sf, spec, member, overloads, callable_name,
-        is_method=False):
+def _g_type_hints_docstring(sf, spec, scope, member, overloads, callable_name):
     """ Generate any type hints and docstring. """
 
     if spec.bindings.docstrings and _has_documentation(member, overloads):
@@ -2316,11 +2345,11 @@ def _g_type_hints_docstring(sf, spec, member, overloads, callable_name,
 
         for overload in callable_overloads(member, overloads):
             if member.no_arg_parser:
-                sf.write('    {NULL, ')
+                type_hint = 'NULL'
             else:
-                sf.write('    {"')
-                g_overload_type_hint(sf, spec, overload, is_method=is_method)
-                sf.write('", ')
+                type_hint = '"' + get_overload_type_hint(spec, scope, overload) + '"'
+
+            sf.write(f'    {{{type_hint}, ')
 
             if overload.docstring is not None:
                 sf.write(f'"{_get_typed_docstring_text(overload.docstring)}"')

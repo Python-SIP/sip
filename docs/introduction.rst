@@ -45,6 +45,11 @@ SIP, and the extension modules it produces, have the following features:
   will build and install your extension modules and create sdist and wheel
   files that you can upload to PyPI
 
+- SIP itself is extendable using a :ref:`plugin API <ref-plugin-api>` that
+  gives access to the SIP internals and allows, for example, new
+  :ref:`directives <ref-directives>` and :ref:`annotations <ref-annotations>`
+  to be defined.
+
 - extension modules are fast to load and minimise memory consumption especially
   when only a small sub-set of a large library is being used
 

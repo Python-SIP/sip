@@ -4,6 +4,7 @@
 
 
 from ....exceptions import UserException
+from ....plugin import Class, Specification
 
 from ...python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_inplace_sequence_slot, is_int_arg_slot, is_int_return_slot,
@@ -18,16 +19,15 @@ from ...utils import py_as_int, same_signature
 from ..formatters import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_enum_as_cpp_type, fmt_scoped_py_name,
         fmt_signature_as_cpp_declaration, fmt_signature_as_cpp_definition,
-        fmt_signature_as_type_hint, fmt_value_list_as_cpp_expression)
+        fmt_value_list_as_cpp_expression)
 
 from .utils import (get_class_from_void, get_const_cast,
         get_convert_to_type_code, get_docstring_text, get_encoded_type,
         get_enum_class_scope, get_named_value_decl, get_normalised_cached_name,
         get_optional_ptr, get_type_from_void, get_use_in_code,
-        get_user_state_suffix, get_void_ptr_cast, has_method_docstring,
-        is_string, is_used_in_code, keep_py_reference, module_classes,
-        need_dealloc, need_error_flag, py_scope, pyqt5_supported,
-        pyqt6_supported, release_gil, scoped_class_name, skip_overload,
+        get_user_state_suffix, get_void_ptr_cast, is_string, is_used_in_code,
+        keep_py_reference, module_classes, need_dealloc, need_error_flag,
+        py_scope, release_gil, scoped_class_name, skip_overload,
         type_needs_user_state, variables_in_scope)
 
 
@@ -310,6 +310,13 @@ static sipLicenseDef module_license = {{
         if backend.abi_has_next_exception_handler(spec):
             _exception_handler(sf, spec)
 
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
+
+        for plugin in project.plugins:
+            plugin.sip_module_generate_code(sf, plugin_spec)
+
     # Generate the code to create the wrapped module
     return backend.g_create_wrapped_module(sf, spec,
         name_cache_state,
@@ -341,13 +348,6 @@ f'''#ifndef _{module_name}API_H
 
     _declare_limited_api(sf, project.py_debug, module=module)
     _include_sip_h(sf, module)
-
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        sf.write(
-'''
-#include <QMetaType>
-#include <QThread>
-''')
 
     # Define the qualifiers.
     qualifier_defines = []
@@ -384,18 +384,12 @@ extern sipExportedModuleDef sipModuleAPI_{module_name};
     for imported_module in module.all_imports:
         _imported_module_api(sf, spec, imported_module)
 
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        sf.write(
-f'''
-typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, sipTypeDef *);
-extern sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
 
-typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, sipTypeDef *, QMetaObject::Call, int, void **);
-extern sip_qt_metacall_func sip_{module_name}_qt_metacall;
-
-typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);
-extern sip_qt_metacast_func sip_{module_name}_qt_metacast;
-''')
+        for plugin in project.plugins:
+            plugin.sip_module_generate_header_code(sf, plugin_spec)
 
     # Handwritten code.
     sf.write_code(spec.exported_header_code)
@@ -792,15 +786,6 @@ def _class_api(sf, spec, klass):
         backend.g_class_spec_extern_decl(sf, spec, klass)
 
 
-def g_ctor_type_hint(sf, spec, klass, ctor):
-    """ Generate the type hint for a ctor. """
-
-    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
-    signature = fmt_signature_as_type_hint(spec, ctor.py_signature,
-            need_self=False, exclude_result=True)
-    sf.write(py_name + signature)
-
-
 def _ctor_call(sf, spec, klass, ctor, error_flag, old_error_flag):
     """ Generate a single constructor call. """
 
@@ -1087,15 +1072,6 @@ def _handling_exceptions(bindings, throw_args):
     # Handle any exceptions if there was no throw specifier, or a non-empty
     # throw specifier.
     return bindings.exceptions and (throw_args is None or throw_args.arguments is not None)
-
-
-def g_overload_type_hint(sf, spec, overload, is_method=True):
-    """ Generate the type hint for a single API overload. """
-
-    need_self = is_method and not overload.is_static
-    signature = fmt_signature_as_type_hint(spec, overload.py_signature,
-            need_self=need_self)
-    sf.write(overload.common.py_name.name + signature)
 
 
 def _try(sf, bindings, throw_args):
@@ -1477,18 +1453,15 @@ def _class_functions(sf, spec, klass):
     if klass.iface_file.type is not IfaceFileType.NAMESPACE and not spec.c_bindings:
         # Generate the release function without compiler warnings.
         need_state = False
-        need_ptr = need_cast_ptr = is_used_in_code(klass.dealloc_code,
-                'sipCpp')
+        need_ptr = is_used_in_code(klass.dealloc_code, 'sipCpp')
 
         public_dtor = klass.dtor is AccessSpecifier.PUBLIC
 
         if klass.can_create or public_dtor:
-            if (pyqt5_supported(spec) or pyqt6_supported(spec)) and klass.is_qobject and public_dtor:
-                need_ptr = need_cast_ptr = True
-            elif klass.has_shadow:
-                need_ptr = need_state = True
-            elif public_dtor:
-                need_ptr = True
+            need_ptr = True
+
+            if klass.has_shadow:
+                need_state = True
 
         sf.write('\n\n/* Call the instance\'s destructor. */\n')
 
@@ -1500,7 +1473,7 @@ def _class_functions(sf, spec, klass):
 
         sf.write(f'static void release_{as_word}(void *{sip_cpp_v}, int{sip_state})\n{{\n')
 
-        if need_cast_ptr:
+        if need_ptr:
             sf.write(f'    {get_class_from_void(spec, klass)};\n\n')
 
         if len(klass.dealloc_code) != 0:
@@ -1517,29 +1490,39 @@ def _class_functions(sf, spec, klass):
             if rel_gil:
                 sf.write('    Py_BEGIN_ALLOW_THREADS\n\n')
 
-            if (pyqt5_supported(spec) or pyqt6_supported(spec)) and klass.is_qobject and public_dtor:
-                # QObjects should only be deleted in the threads that they
-                # belong to.
-                sf.write(
-'''    if (QThread::currentThread() == sipCpp->thread())
-        delete sipCpp;
-    else
-        sipCpp->deleteLater();
-''')
-            elif klass.has_shadow:
-                sf.write(
+            # Allow a plugin to provide an implementation.
+            need_impl = True
+
+            if project.plugins:
+                plugin_spec = Specification(spec)
+                plugin_klass = Class(klass, spec)
+
+                for plugin in project.plugins:
+                    got_impl = plugin.sip_class_generate_release_code(sf,
+                            plugin_spec, plugin_klass)
+
+                    if got_impl:
+                        if need_impl:
+                            need_impl = False
+                        else:
+                            raise UserException(
+                                    "multiple plugins have implemented sip_class_generate_release_code()")
+
+            if need_impl:
+                if klass.has_shadow:
+                    sf.write(
 f'''    if (sipState & SIP_DERIVED_CLASS)
         delete reinterpret_cast<sip{as_word} *>(sipCppV);
 ''')
 
-                if public_dtor:
-                    sf.write(
+                    if public_dtor:
+                        sf.write(
 f'''    else
-        delete reinterpret_cast<{scoped_class_name(spec, klass)} *>(sipCppV);
+        delete sipCpp;
 ''')
-            elif public_dtor:
-                sf.write(
-f'''    delete reinterpret_cast<{scoped_class_name(spec, klass)} *>(sipCppV);
+                elif public_dtor:
+                    sf.write(
+f'''    delete sipCpp;
 ''')
 
             if rel_gil:
@@ -1872,53 +1855,21 @@ def _shadow_code(sf, spec, klass):
 
         sf.write('}\n')
 
-    # The meta methods if required.
-    if (pyqt5_supported(spec) or pyqt6_supported(spec)) and klass.is_qobject:
-        module_name = spec.module.py_name
-        type_ref = backend.get_type_ref(klass)
-
-        if not klass.pyqt_no_qmetaobject:
-            sf.write(
-f'''
-const QMetaObject *sip{klass_name}::metaObject() const
-{{
-    if (sipGetInterpreter())
-        return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : sip_{module_name}_qt_metaobject(sipPySelf, {type_ref});
-
-    return {klass_cpp_name}::metaObject();
-}}
-''')
-
-        sf.write(
-f'''
-int sip{klass_name}::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
-{{
-    _id = {klass_cpp_name}::qt_metacall(_c, _id, _a);
-
-    if (_id >= 0)
-    {{
-        SIP_BLOCK_THREADS
-        _id = sip_{module_name}_qt_metacall(sipPySelf, {type_ref}, _c, _id, _a);
-        SIP_UNBLOCK_THREADS
-    }}
-
-    return _id;
-}}
-
-void *sip{klass_name}::qt_metacast(const char *_clname)
-{{
-    void *sipCpp;
-
-    return (sip_{module_name}_qt_metacast(sipPySelf, {type_ref}, _clname, &sipCpp) ? sipCpp : {klass_cpp_name}::qt_metacast(_clname));
-}}
-''')
-
     # Generate the virtual catchers.
     for virt_nr, virtual_overload in enumerate(_unique_class_virtual_overloads(project, klass)):
         _virtual_catcher(sf, spec, klass, virtual_overload, virt_nr)
 
     # Generate the wrapper around each protected member function.
     _protected_definitions(sf, spec, klass)
+
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
+        plugin_klass = Class(klass, spec)
+
+        for plugin in project.plugins:
+            plugin.sip_class_generate_derived_class_impl(sf, plugin_spec,
+                    plugin_klass)
 
 
 def _protected_enums(sf, spec, klass):
@@ -2285,10 +2236,12 @@ def _call_default_ctor(spec, ctor):
     return '(' + ', '.join(args) + ')'
 
 
-def _protected_declarations(sf, project, spec, klass):
+def _protected_declarations(sf, spec, klass):
     """ Generate the declarations of the protected wrapper functions for a
     class.
     """
+
+    project = spec.bindings.project
 
     no_intro = True
 
@@ -3200,22 +3153,11 @@ f'''    class sip{protected_klass_base_name} : public {protected_klass_base_name
 
         sf.write(f'    {virtual_s}~sip{klass_name}(){throw_specifier};\n')
 
-    # The metacall methods if required.
-    if (pyqt5_supported(spec) or pyqt6_supported(spec)) and klass.is_qobject:
-        sf.write(
-'''
-    int qt_metacall(QMetaObject::Call, int, void **) SIP_OVERRIDE;
-    void *qt_metacast(const char *) SIP_OVERRIDE;
-''')
-
-        if not klass.pyqt_no_qmetaobject:
-            sf.write('    const QMetaObject *metaObject() const SIP_OVERRIDE;\n')
-
     # The exposure of protected enums.
     _protected_enums(sf, spec, klass)
 
     # The wrapper around each protected member function.
-    _protected_declarations(sf, project, spec, klass)
+    _protected_declarations(sf, spec, klass)
 
     # The catcher around each virtual function in the hierarchy.
     for virt_nr, virtual_overload in enumerate(_unique_class_virtual_overloads(project, klass)):
@@ -3247,6 +3189,15 @@ private:
     nr_virtual_overloads = _count_virtual_overloads(project, klass)
     if nr_virtual_overloads > 0:
         sf.write(f'\n    char sipPyMethods[{nr_virtual_overloads}];\n')
+
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
+        plugin_klass = Class(klass, spec)
+
+        for plugin in project.plugins:
+            plugin.sip_class_generate_derived_class_decl(sf, plugin_spec,
+                    plugin_klass)
 
     sf.write('};\n')
 
@@ -3337,8 +3288,8 @@ def g_member_function(sf, spec, scope, member, original_scope=None):
         original_scope = scope
 
     # Check that there is at least one overload that needs to be handled.  See
-    # if we can avoid naming the "self" argument (and suppress a compiler
-    # warning).  See if we need to remember if "self" was explicitly passed as
+    # if we can avoid naming the 'self' argument (and suppress a compiler
+    # warning).  See if we need to remember if 'self' was explicitly passed as
     # an argument.  See if we need to handle keyword arguments.
     need_method = need_self = need_args = need_selfarg = need_orig_self = False
 
@@ -3347,19 +3298,21 @@ def g_member_function(sf, spec, scope, member, original_scope=None):
         if overload.access_specifier is AccessSpecifier.PROTECTED and not scope.has_shadow:
             continue
 
-        if not skip_overload(overload, member, scope, original_scope):
-            need_method = True
+        if skip_overload(overload, member, scope, original_scope):
+            continue
 
-            if overload.access_specifier is not AccessSpecifier.PRIVATE:
-                need_args = True
+        need_method = True
 
-                if project.abi_version[0] >= 13 or not overload.is_static:
-                    need_self = True
+        if overload.access_specifier is not AccessSpecifier.PRIVATE:
+            need_args = True
 
-                    if overload.is_abstract:
-                        need_orig_self = True
-                    elif overload.is_virtual or overload.is_virtual_reimplementation or is_used_in_code(overload.method_code, 'sipSelfWasArg'):
-                        need_selfarg = True
+            if project.abi_version[0] >= 13 or not overload.is_static:
+                need_self = True
+
+                if overload.is_abstract:
+                    need_orig_self = True
+                elif overload.is_virtual or overload.is_virtual_reimplementation or is_used_in_code(overload.method_code, 'sipSelfWasArg'):
+                    need_selfarg = True
 
     # Handle the trivial case.
     if not need_method:
@@ -3421,14 +3374,14 @@ def g_member_function(sf, spec, scope, member, original_scope=None):
             break
 
         g_function_body(sf, spec, scope, overload, signature_nr,
-                is_method=True, original_scope=original_scope)
+                original_scope=original_scope)
         signature_nr += 1
 
     backend.g_py_method_end(sf, state, signature_nr)
 
 
 def g_function_body(sf, spec, scope, overload, signature_nr,
-        is_method=False, original_scope=None, dereferenced=True):
+        original_scope=None, dereferenced=True):
     """ Generate the function calls for a particular overload. """
 
     project = spec.bindings.project
@@ -3460,11 +3413,11 @@ def g_function_body(sf, spec, scope, overload, signature_nr,
             py_signature_adjusted = True
 
         backend.g_arg_parser(sf, spec, scope, py_signature, signature_nr,
-                is_method=is_method, overload=overload)
+                overload=overload)
 
     elif not is_int_arg_slot(py_slot) and not is_zero_arg_slot(py_slot):
         backend.g_arg_parser(sf, spec, scope, py_signature, signature_nr,
-                is_method=is_method, overload=overload)
+                overload=overload)
 
     _function_call(sf, spec, scope, overload, dereferenced, original_scope)
 
@@ -3892,7 +3845,7 @@ def _function_call(sf, spec, scope, overload, dereferenced, original_scope):
     if is_new_instance:
         result.is_const = False
 
-    result_decl = _get_result_decl(project, spec, scope, overload, result)
+    result_decl = _get_result_decl(spec, scope, overload, result)
     if result_decl is not None:
         sf.write('            ' + result_decl + ';\n')
         separating_newline = True
@@ -4040,9 +3993,7 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
                     overload.py_signature)
             sf.write(')')
         else:
-            sf.write(
-                    _get_slot_call(project, spec, scope, overload,
-                            dereferenced))
+            sf.write(_get_slot_call(spec, scope, overload, dereferenced))
 
         if needs_closing_paren:
             sf.write(')')
@@ -4168,7 +4119,7 @@ def _get_keep_reference_call(spec, arg, arg_nr, object_name):
     return f'sipKeepReference({object_name}, {arg.key}, {arg_name}{suffix})'
 
 
-def _get_result_decl(project, spec, scope, overload, result):
+def _get_result_decl(spec, scope, overload, result):
     """ Return the declaration of a variable to hold the result of a function
     call if one is needed.
     """
@@ -4177,7 +4128,7 @@ def _get_result_decl(project, spec, scope, overload, result):
     if result.type is ArgumentType.VOID and len(result.derefs) == 0:
         return None
 
-    if project.abi_version[0] <= 13:
+    if spec.bindings.project.abi_version[0] <= 13:
         if is_inplace_number_slot(overload.common.py_slot) or is_inplace_sequence_slot(overload.common.py_slot):
             return None
 
@@ -4190,7 +4141,7 @@ def _get_result_decl(project, spec, scope, overload, result):
     return result_decl + initial_value
 
 
-def _get_slot_call(project, spec, scope, overload, dereferenced):
+def _get_slot_call(spec, scope, overload, dereferenced):
     """ Return the call to a Python slot (except for PySlot.CALL which is
     handled separately).
     """
@@ -4198,7 +4149,7 @@ def _get_slot_call(project, spec, scope, overload, dereferenced):
     py_slot = overload.common.py_slot
 
     if py_slot is PySlot.GETITEM:
-        return f'(*sipCpp)[{_get_slot_arg(project, spec, overload, 0)}]'
+        return f'(*sipCpp)[{_get_slot_arg(spec, overload, 0)}]'
 
     if py_slot in (PySlot.INT, PySlot.FLOAT):
         cpp_type = fmt_argument_as_cpp_type(spec,
@@ -4206,109 +4157,95 @@ def _get_slot_call(project, spec, scope, overload, dereferenced):
         return cpp_type + '(*sipCpp)'
 
     if py_slot is PySlot.ADD:
-        return _get_number_slot_call(project, spec, overload, '+')
+        return _get_number_slot_call(spec, overload, '+')
 
     if py_slot is PySlot.CONCAT:
-        return _get_binary_slot_call(project, spec, scope, overload, '+',
+        return _get_binary_slot_call(spec, scope, overload, '+',
                 dereferenced)
 
     if py_slot is PySlot.SUB:
-        return _get_number_slot_call(project, spec, overload, '-')
+        return _get_number_slot_call(spec, overload, '-')
 
     if py_slot in (PySlot.MUL, PySlot.MATMUL):
-        return _get_number_slot_call(project, spec, overload, '*')
+        return _get_number_slot_call(spec, overload, '*')
 
     if py_slot is PySlot.REPEAT:
-        return _get_binary_slot_call(project, spec, scope, overload, '*',
+        return _get_binary_slot_call(spec, scope, overload, '*',
                 dereferenced)
 
     if py_slot is PySlot.TRUEDIV:
-        return _get_number_slot_call(project, spec, overload, '/')
+        return _get_number_slot_call(spec, overload, '/')
 
     if py_slot is PySlot.MOD:
-        return _get_number_slot_call(project, spec, overload, '%')
+        return _get_number_slot_call(spec, overload, '%')
 
     if py_slot is PySlot.AND:
-        return _get_number_slot_call(project, spec, overload, '&')
+        return _get_number_slot_call(spec, overload, '&')
 
     if py_slot is PySlot.OR:
-        return _get_number_slot_call(project, spec, overload, '|')
+        return _get_number_slot_call(spec, overload, '|')
 
     if py_slot is PySlot.XOR:
-        return _get_number_slot_call(project, spec, overload, '^')
+        return _get_number_slot_call(spec, overload, '^')
 
     if py_slot is PySlot.LSHIFT:
-        return _get_number_slot_call(project, spec, overload, '<<')
+        return _get_number_slot_call(spec, overload, '<<')
 
     if py_slot is PySlot.RSHIFT:
-        return _get_number_slot_call(project, spec, overload, '>>')
+        return _get_number_slot_call(spec, overload, '>>')
 
     if py_slot in (PySlot.IADD, PySlot.ICONCAT):
-        return _get_binary_slot_call(project, spec, scope, overload, '+=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '+=', dereferenced)
 
     if py_slot is PySlot.ISUB:
-        return _get_binary_slot_call(project, spec, scope, overload, '-=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '-=', dereferenced)
 
     if py_slot in (PySlot.IMUL, PySlot.IREPEAT, PySlot.IMATMUL):
-        return _get_binary_slot_call(project, spec, scope, overload, '*=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '*=', dereferenced)
 
     if py_slot is PySlot.ITRUEDIV:
-        return _get_binary_slot_call(project, spec, scope, overload, '/=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '/=', dereferenced)
 
     if py_slot is PySlot.IMOD:
-        return _get_binary_slot_call(project, spec, scope, overload, '%=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '%=', dereferenced)
 
     if py_slot is PySlot.IAND:
-        return _get_binary_slot_call(project, spec, scope, overload, '&=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '&=', dereferenced)
 
     if py_slot is PySlot.IOR:
-        return _get_binary_slot_call(project, spec, scope, overload, '|=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '|=', dereferenced)
 
     if py_slot is PySlot.IXOR:
-        return _get_binary_slot_call(project, spec, scope, overload, '^=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '^=', dereferenced)
 
     if py_slot is PySlot.ILSHIFT:
-        return _get_binary_slot_call(project, spec, scope, overload, '<<=',
+        return _get_binary_slot_call(spec, scope, overload, '<<=',
                 dereferenced)
 
     if py_slot is PySlot.IRSHIFT:
-        return _get_binary_slot_call(project, spec, scope, overload, '>>=',
+        return _get_binary_slot_call(spec, scope, overload, '>>=',
                 dereferenced)
 
     if py_slot is PySlot.INVERT:
         return '~(*sipCpp)'
 
     if py_slot is PySlot.LT:
-        return _get_binary_slot_call(project, spec, scope, overload, '<',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '<', dereferenced)
 
     if py_slot is PySlot.LE:
-        return _get_binary_slot_call(project, spec, scope, overload, '<=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '<=', dereferenced)
 
     if py_slot is PySlot.EQ:
-        return _get_binary_slot_call(project, spec, scope, overload, '==',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '==', dereferenced)
 
     if py_slot is PySlot.NE:
-        return _get_binary_slot_call(project, spec, scope, overload, '!=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '!=', dereferenced)
 
     if py_slot is PySlot.GT:
-        return _get_binary_slot_call(project, spec, scope, overload, '>',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '>', dereferenced)
 
     if py_slot is PySlot.GE:
-        return _get_binary_slot_call(project, spec, scope, overload, '>=',
-                dereferenced)
+        return _get_binary_slot_call(spec, scope, overload, '>=', dereferenced)
 
     if py_slot is PySlot.NEG:
         return '-(*sipCpp)'
@@ -4361,7 +4298,7 @@ def _cpp_function_call(sf, spec, scope, overload, original_scope):
     sf.write(')' * nr_parens)
 
 
-def _get_slot_arg(project, spec, overload, arg_nr):
+def _get_slot_arg(spec, overload, arg_nr):
     """ Return an argument to a slot call. """
 
     arg = overload.py_signature.args[arg_nr]
@@ -4371,7 +4308,7 @@ def _get_slot_arg(project, spec, overload, arg_nr):
     if arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
         if len(arg.derefs) == 0:
             prefix = '*'
-    elif _arg_is_v13_typed_enum(project, arg):
+    elif _arg_is_v13_typed_enum(spec.bindings.project, arg):
         prefix = 'static_cast<' + fmt_enum_as_cpp_type(arg.definition) + '>('
         suffix = ')'
 
@@ -4388,13 +4325,12 @@ _OPERATOR_COMPLEMENTS = {
     '>=': '<',
 }
 
-def _get_binary_slot_call(project, spec, scope, overload, operator,
-        dereferenced):
+def _get_binary_slot_call(spec, scope, overload, operator, dereferenced):
     """ Return the call to a binary (non-number) slot method. """
 
     slot_call = ''
 
-    if project.abi_version[0] >= 14 and isinstance(scope, WrappedEnum):
+    if spec.bindings.project.abi_version[0] >= 14 and isinstance(scope, WrappedEnum):
         dereferenced = False
 
     if overload.is_complementary:
@@ -4423,24 +4359,24 @@ def _get_binary_slot_call(project, spec, scope, overload, operator,
             cpp_name = scoped_class_name(spec, scope)
             slot_call += f'sipCpp{dereference}{cpp_name}::operator{operator}('
 
-    slot_call += _get_slot_arg(project, spec, overload, 0)
+    slot_call += _get_slot_arg(spec, overload, 0)
     slot_call += ')'
 
     return slot_call
 
 
-def _get_number_slot_call(project, spec, overload, operator):
+def _get_number_slot_call(spec, overload, operator):
     """ Return the call to a binary number slot method. """
 
-    if project.abi_version[0] >= 14:
+    if spec.bindings.project.abi_version[0] >= 14:
         arg0 = 'sipCpp' if overload.dont_deref_self else '*sipCpp'
-        arg1 = _get_slot_arg(project, spec, overload, 0)
+        arg1 = _get_slot_arg(spec, overload, 0)
 
         if overload.is_reflected:
             arg0, arg1 = arg1, arg0
     else:
-        arg0 = _get_slot_arg(project, spec, overload, 0)
-        arg1 = _get_slot_arg(project, spec, overload, 1)
+        arg0 = _get_slot_arg(spec, overload, 0)
+        arg1 = _get_slot_arg(spec, overload, 1)
 
     return f'({arg0} {operator} {arg1})'
 

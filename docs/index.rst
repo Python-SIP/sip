@@ -20,4 +20,5 @@ SIP Documentation
     porting
     pyproject_toml
     sipbuild_api
+    plugin_api
     releases

@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...exceptions import UserException
 from ...module import parse_abi_version
+from ...plugin import AnnotationContext, Class, Specification
 from ...sip_module_configuration import apply_module_option
 
 from ..scoped_name import ScopedName
@@ -12,13 +13,12 @@ from ..specification import (AccessSpecifier, Argument, ArgumentType,
         ArrayArgument, ClassKey, Docstring, DocstringFormat, Extract,
         FunctionCall, GILUse, IfaceFile, IfaceFileType, KwArgs, License,
         MappedType, MappedTypeTemplate, MultiInterpreterSupport, Overload,
-        Property, PyQtMethodSpecifier, QualifierType, Signature, Template,
-        ThrowArguments, Value, ValueType, VirtualErrorHandler, WrappedTypedef,
-        WrappedVariable)
+        Property, QualifierType, Signature, Template, ThrowArguments, Value,
+        ValueType, VirtualErrorHandler, WrappedTypedef, WrappedVariable)
 from ..templates import same_template_signature
 from ..utils import cached_name, normalised_scoped_name, search_typedefs
 
-from .annotations import DottedName
+from .annotations import Annotation, Annotations, DottedName
 from .tokens import tokens
 
 
@@ -82,7 +82,6 @@ def p_statement(p):
         | module_code
         | module_header_code
         | platforms
-        | plugin
         | preinit_code
         | postinit_code
         | sip_module_configuration
@@ -90,8 +89,9 @@ def p_statement(p):
         | type_hint_code
         | unit_code
         | unit_postinclude_code
+        | user_directive
         | virtual_error_handler"""
-
+        
 
 def p_namespace_statement(p):
     """namespace_statement : if_start
@@ -101,7 +101,7 @@ def p_namespace_statement(p):
         | class_template
         | enum_decl
         | exception
-        | function
+        | nonclass_function
         | namespace_decl
         | struct_decl
         | typedef_decl
@@ -870,23 +870,6 @@ def p_license_arg(p):
 
 # %MappedType #################################################################
 
-# The mapped type annotations.
-_MAPPED_TYPE_ANNOTATIONS = (
-    'AllowNone',
-    'Movable',
-    'NoAssignmentOperator',
-    'NoCopyCtor',
-    'NoDefaultCtor',
-    'NoRelease',
-    'PyName',
-    'PyQtFlags',
-    'TypeHint',
-    'TypeHintIn',
-    'TypeHintOut',
-    'TypeHintValue',
-)
-
-
 def p_mapped_type(p):
     "mapped_type : mapped_type_head '{' mapped_type_body '}' ';'"
 
@@ -923,8 +906,6 @@ def p_mapped_type_head(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 3, "mapped type", _MAPPED_TYPE_ANNOTATIONS)
-
     pm.add_mapped_type(p, 1, p[2], p[3])
 
 
@@ -941,7 +922,6 @@ def p_mapped_type_template_head(p):
         return
 
     pm.cpp_only(p, 1, "%MappedType templates")
-    pm.check_annotations(p, 4, "mapped type", _MAPPED_TYPE_ANNOTATIONS)
 
     if p[3].type is not ArgumentType.TEMPLATE:
         pm.parser_error(p, 3, "%MappedType template must map a template type")
@@ -988,7 +968,6 @@ def p_mapped_type_function(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 9, "function", _FUNCTION_ANNOTATIONS)
     pm.apply_type_annotations(p, 9, p[2], p[9])
 
     overload = pm.add_function(p, 1, p[3], p[2], p[5], p[9], const=p[7],
@@ -1275,19 +1254,6 @@ def p_platforms(p):
                         ','.join(["'" + s + "'" for s in selected])))
 
 
-# %Plugin #####################################################################
-
-def p_plugin(p):
-    "plugin : Plugin NAME"
-
-    pm = p.parser.pm
-
-    if pm.skipping:
-        return
-
-    pm.spec.plugins.append(p[2])
-
-
 # %PostInitialisationCode #####################################################
 
 def p_postinit_code(p):
@@ -1556,6 +1522,45 @@ def p_unit_postinclude_code(p):
     pm.module_state.module.unit_postinclude_code.append(p[2])
 
 
+# %USER_DIRECTIVE #############################################################
+
+def p_user_directive(p):
+    "user_directive : USER_DIRECTIVE user_directive_args"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    spec = pm.spec
+    plugin_spec = Specification(spec, production=p, symbol=1)
+    handled = False
+
+    for plugin in spec.bindings.project.plugins:
+        if plugin.sip_handle_directive(plugin_spec, p[1], p[2]):
+            handled = True
+
+    if not handled:
+        pm.parser_error(p, 1, "unknown directive '%{0}'".format(p[1]))
+
+
+def p_user_directive_args(p):
+    """user_directive_args : empty
+        | string_like_value
+        | user_directive_args ',' string_like_value"""
+
+    if len(p) == 4:
+        args = p[1]
+        args.append(p[3])
+    elif p[1] is None:
+        args = []
+    else:
+        args = [p[1]]
+
+    p[0] = args
+
+
+
 # %VirtualErrorHandler ########################################################
 
 def p_virtual_error_handler(p):
@@ -1803,34 +1808,6 @@ def p_opt_ref(p):
 
 # C++ classes and structs. ####################################################
 
-# The class annotations.
-_CLASS_ANNOTATIONS = (
-    'Abstract',
-    'AllowNone',
-    'DelayDtor',
-    'Deprecated',
-    'ExportDerived',
-    'ExportDerivedLocally',
-    'External',
-    'FileExtension',
-    'Metatype',
-    'Mixin',
-    'NoDefaultCtors',
-    'NoTypeHint',
-    'PyName',
-    'PyQtFlags',
-    'PyQtFlagsEnums',
-    'PyQtInterface',
-    'PyQtNoQMetaObject',
-    'Supertype',
-    'TypeHint',
-    'TypeHintIn',
-    'TypeHintOut',
-    'TypeHintValue',
-    'VirtualErrorHandler',
-)
-
-
 def p_class_template(p):
     "class_template : template_decl class_decl"
 
@@ -1881,8 +1858,6 @@ def p_class_head(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 3, "class", _CLASS_ANNOTATIONS)
-
     if pm.spec.bindings.project.abi_version[0] >= 14 and 'DelayDtor' in p[3]:
         pm.parser_error(p, 3,
                 "DelayDtor is not supported by ABI v14 and later")
@@ -1914,8 +1889,6 @@ def p_struct_head(p):
 
     if pm.skipping:
         return
-
-    pm.check_annotations(p, 3, "class", _CLASS_ANNOTATIONS)
 
     pm.define_class(p, 1, ClassKey.STRUCT, p[1], p[3], superclasses=p[2])
 
@@ -2050,14 +2023,11 @@ def p_class_line(p):
         | enum_decl
         | exception
         | typedef_decl
-        | method_variable
+        | method_or_variable
         | namespace_decl
         | struct_decl
         | union_decl
-        | public_specifier
-        | protected_specifier
-        | private_specifier
-        | signals_specifier
+        | access_specifier
         | convert_from_type_code
         | convert_to_subclass_code
         | convert_to_type_code
@@ -2090,23 +2060,6 @@ def p_deprecated_code_directives(p):
     pm.deprecated(p, 1)
 
 
-# The ctor annotations.
-_CTOR_ANNOTATIONS = (
-    'Default',
-    'Deprecated',
-    'HoldGIL',
-    'KeywordArgs',
-    'NoDerived',
-    'NoRaisesPyException',
-    'NoTypeHint',
-    'PostHook',
-    'PreHook',
-    'RaisesPyException',
-    'ReleaseGIL',
-    'Transfer',
-)
-
-
 def p_ctor(p):
     """ctor : explicit ctor_decl
         | ctor_decl"""
@@ -2128,8 +2081,6 @@ def p_ctor_decl(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 6, "constructor", _CTOR_ANNOTATIONS)
-
     pm.add_ctor(p, 1, p[3], p[6], exceptions=p[5], cpp_signature=p[7],
             docstring=p[9], premethod_code=p[10], method_code=p[11])
 
@@ -2144,13 +2095,6 @@ def p_opt_ctor_signature(p):
         p[0] = None
 
 
-# The dtor annotations.
-_DTOR_ANNOTATIONS = (
-    'HoldGIL',
-    'ReleaseGIL',
-)
-
-
 def p_dtor(p):
     "dtor : opt_virtual '~' NAME '(' ')' opt_exceptions opt_abstract opt_annos ';' premethod_code method_code virtual_catcher_code"
 
@@ -2159,8 +2103,6 @@ def p_dtor(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 8, "destructor", _DTOR_ANNOTATIONS)
-
     pm.add_dtor(p, 1, p[3], p[8], exceptions=p[6], abstract=p[7],
             premethod_code=p[10], method_code=p[11],
             virtual_catcher_code=p[12])
@@ -2168,128 +2110,138 @@ def p_dtor(p):
     pm.parsing_virtual = False
 
 
-def p_method_variable(p):
-    """method_variable : Q_SIGNAL simple_method_variable
-        | Q_SLOT simple_method_variable
-        | simple_method_variable"""
+def p_method_or_variable(p):
+    """method_or_variable : USER_OVERLOAD_PREFIX virtual function
+        | USER_OVERLOAD_PREFIX static function
+        | USER_OVERLOAD_PREFIX function
+        | virtual function
+        | static function
+        | static variable
+        | function
+        | variable"""
+
+    # Note that currently we only support user prefixes in classes but user
+    # plugins should not assume this.
 
     pm = p.parser.pm
 
-    if len(p) == 3:
-        item = p[2]
+    if pm.skipping:
+        return
 
-        if isinstance(item, Overload):
-            item.pyqt_method_specifier = PyQtMethodSpecifier.SIGNAL if p[1] == 'Q_SIGNAL' else PyQtMethodSpecifier.SLOT
+    user_prefix = None
+    item_qualifier = None
+
+    len_p = len(p)
+
+    if len_p == 4:
+        user_prefix = p[1]
+        item_qualifier = p[2]
+        item = p[3]
+    elif len_p == 3:
+        if p[1] in ('static', 'virtual'):
+            item_qualifier = p[1]
         else:
-            pm.parser_error(p, 1,
-                    "a PyQt method specifier can only be applied to member functions")
+            user_prefix = p[1]
+
+        item = p[2]
     else:
         item = p[1]
+
+    if user_prefix is not None:
+        spec = pm.spec
+        plugin_spec = Specification(spec, production=p, symbol=1)
+        handled = False
+
+        for plugin in spec.bindings.project.plugins:
+            if plugin.sip_handle_overload_prefix(plugin_spec, pm.scope, item, user_prefix):
+                handled = True
+
+        if not handled:
+            pm.parser_error(p, 1, f"unknown overload prefix '{user_prefix}'")
+
+    if item_qualifier == 'static':
+        item.is_static = True
+    elif item_qualifier == 'virtual' and not item.is_final:
+        item.is_virtual = True
+        pm.scope.needs_shadow = True
 
     if isinstance(item, Overload):
         pm.validate_function(p, 1, item)
 
 
-def p_simple_method_variable(p):
-    """simple_method_variable : virtual function
-        | static plain_method_variable
-        | plain_method_variable"""
+def p_access_specifier(p):
+    "access_specifier : primary_access_specifier opt_secondary_access_specifier ':'"
 
-    if len(p) == 3:
-        item = p[2]
+    pm = p.parser.pm
 
-        if item is not None:
-            if p[1] == 'static':
-                item.is_static = True
-            elif not item.is_final:
-                item.is_virtual = True
-                p.parser.pm.scope.needs_shadow = True
+    if pm.skipping:
+        return
+
+    # Invoke any plugins.
+    spec = pm.spec
+    plugins = spec.bindings.project.plugins
+
+    primary = p[1]
+    secondary = p[2]
+
+    if plugins:
+        plugin_spec = Specification(spec, production=p, symbol=1)
+        plugin_scope = Class(pm.scope, spec)
+
+        original_primary = primary
+        primary = None
+
+        for plugin in plugins:
+            new_primary = plugin.sip_handle_access_specifier(plugin_spec,
+                    plugin_scope, original_primary, secondary)
+
+            if new_primary is not None:
+                if primary is not None:
+                    pm.parser_error(p, 1,
+                            "multiple plugins handled the access specifier")
+                    return
+
+                primary = new_primary
+
+        if primary is None:
+            # No plugin handled the specifier.
+            primary = original_primary
+        else:
+            # A plugin consumed the secondary.
+            secondary = None
+
+    if secondary is not None:
+        pm.parser_error(p, 1,
+                f"unknown access specifier '{primary} {secondary}'")
+        return
+
+    if primary == 'public':
+        pm.scope_access_specifier = AccessSpecifier.PUBLIC
+    elif primary == 'protected':
+        pm.scope_access_specifier = AccessSpecifier.PROTECTED
+    elif primary == 'private':
+        pm.scope_access_specifier = AccessSpecifier.PRIVATE
     else:
-        item = p[1]
-
-    p[0] = item
+        pm.parser_error(p, 1, f"unknown access specifier '{primary}'")
 
 
-def p_plain_method_variable(p):
-    """plain_method_variable : function
-        | variable"""
+def p_primary_access_specifier(p):
+    """primary_access_specifier : USER_ACCESS_SPECIFIER
+        | public
+        | protected
+        | private"""
 
     p[0] = p[1]
 
 
-def p_public_specifier(p):
-    "public_specifier : public opt_slots ':'"
-
-    pm = p.parser.pm
-
-    if pm.skipping:
-        return
-
-    pm.scope_access_specifier = AccessSpecifier.PUBLIC
-    pm.scope_pyqt_method_specifier = p[2]
-
-
-def p_protected_specifier(p):
-    "protected_specifier : protected opt_slots ':'"
-
-    pm = p.parser.pm
-
-    if pm.skipping:
-        return
-
-    pm.scope_access_specifier = AccessSpecifier.PROTECTED
-    pm.scope_pyqt_method_specifier = p[2]
-
-
-def p_private_specifier(p):
-    "private_specifier : private opt_slots ':'"
-
-    pm = p.parser.pm
-
-    if pm.skipping:
-        return
-
-    pm.scope_access_specifier = AccessSpecifier.PRIVATE
-    pm.scope_pyqt_method_specifier = p[2]
-
-
-def p_signals_specifier(p):
-    """signals_specifier : signals ':'
-        | Q_SIGNALS ':'"""
-
-    pm = p.parser.pm
-
-    if pm.skipping:
-        return
-
-    pm.scope_access_specifier = AccessSpecifier.PUBLIC
-    pm.scope_pyqt_method_specifier = PyQtMethodSpecifier.SIGNAL
-
-
-def p_opt_slots(p):
-    """opt_slots : slots
-        | Q_SLOTS
+def p_opt_secondary_access_specifier(p):
+    """opt_secondary_access_specifier : USER_ACCESS_SPECIFIER
         | empty"""
 
-    p[0] = None if p[1] is None else PyQtMethodSpecifier.SLOT
+    p[0] = p[1]
 
 
 # C/C++ enums. ################################################################
-
-# The enum annotations.
-_ENUM_ANNOTATIONS = (
-    'BaseType',
-    'NoScope',
-    'NoTypeHint',
-    'PyName',
-)
-
-# The enum member annotations.
-_ENUM_MEMBER_ANNOTATIONS = (
-    'NoTypeHint',
-    'PyName',
-)
-
 
 def p_enum_decl(p):
     "enum_decl : enum opt_enum_key opt_name opt_enum_base opt_annos '{' opt_enum_body '}' ';'"
@@ -2298,8 +2250,6 @@ def p_enum_decl(p):
 
     if pm.skipping:
         return
-
-    pm.check_annotations(p, 5, "enum", _ENUM_ANNOTATIONS)
 
     pm.add_enum(p, 1, p[3], p[2], p[4], p[5], p[7])
 
@@ -2372,10 +2322,7 @@ def p_enum_line(p):
         return
 
     if len(p) == 5:
-        pm.check_annotations(p, 3, "enum member", _ENUM_MEMBER_ANNOTATIONS)
-
-        p[0] = (p[1], cached_name(pm.spec, pm.get_py_name(p[1], p[3])),
-                p[3].get('NoTypeHint', False))
+        p[0] = (p[1], cached_name(pm.spec, pm.get_py_name(p[1], p[3])), p[3])
     else:
         p[0] = None
 
@@ -2392,13 +2339,6 @@ def p_opt_comma(p):
 
 # C++ exceptions. #############################################################
 
-# The exception annotations.
-_EXCEPTION_ANNOTATIONS = (
-    'Default',
-    'PyName',
-)
-
-
 def p_exception(p):
     "exception : Exception scoped_name opt_base_exception opt_annos '{' exception_body '}' ';'"
 
@@ -2408,7 +2348,6 @@ def p_exception(p):
         return
 
     pm.cpp_only(p, 1, "%Exception")
-    pm.check_annotations(p, 4, "exception", _EXCEPTION_ANNOTATIONS)
 
     cpp_name = p[2]
     py_name = pm.get_py_name(cpp_name.base_name, p[4])
@@ -2439,12 +2378,14 @@ def p_exception(p):
     xd.defined_base_exception = defined_base
     xd.py_name = py_name
 
-    if p[4].get('Default'):
+    if p[4].pop('Default'):
         if module.default_exception is None:
             module.default_exception = xd
         else:
             pm.parser_error(p, 1,
                     "another %Exception has already been annotated with '/Default/'")
+
+    p[4].run_plugins(pm, xd, AnnotationContext.EXCEPTION)
 
 
 def p_opt_base_exception(p):
@@ -2497,42 +2438,17 @@ def p_exception_line(p):
 
 # C/C++ functions. ############################################################
 
-# The function annotations.
-_FUNCTION_ANNOTATIONS = (
-    '__len__',
-    '__imatmul__',
-    '__matmul__',
-    'AbortOnException',
-    'AllowNone',
-    'AutoGen',
-    'Deprecated',
-    'DisallowNone',
-    'Encoding',
-    'Factory',
-    'HoldGIL',
-    'KeywordArgs',
-    'KeepReference',
-    'NewThread',
-    'NoArgParser',
-    'NoCopy',
-    'NoRaisesPyException',
-    'NoTypeHint',
-    'NoVirtualErrorHandler',
-    'Numeric',
-    'PostHook',
-    'PreHook',
-    'PyInt',
-    'PyName',
-    'PyQtSignalHack',
-    'RaisesPyException',
-    'ReleaseGIL',
-    'Sequence',
-    'VirtualErrorHandler',
-    'Transfer',
-    'TransferBack',
-    'TransferThis',
-    'TypeHint',
-)
+def p_nonclass_function(p):
+    "nonclass_function : function"
+
+    pm = p.parser.pm
+
+    if pm.skipping:
+        return
+
+    pm.validate_function(p, 1, p[1])
+
+    p[0] = p[1]
 
 
 def p_function(p):
@@ -2552,7 +2468,6 @@ def p_function_decl(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 10, "function", _FUNCTION_ANNOTATIONS)
     pm.apply_type_annotations(p, 10, p[1], p[10])
 
     p[0] = pm.add_function(p, 1, p[2], p[1], p[4], p[10], const=p[6],
@@ -2584,7 +2499,6 @@ def p_operator_decl(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 11, "function", _FUNCTION_ANNOTATIONS)
     pm.apply_type_annotations(p, 11, p[1], p[11])
 
     scope = pm.scope
@@ -2636,7 +2550,6 @@ def p_operator_cast_decl(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 10, "function", _FUNCTION_ANNOTATIONS)
     pm.apply_type_annotations(p, 10, p[2], p[10])
 
     if pm.scope is None:
@@ -2712,38 +2625,10 @@ def p_arg_value(p):
     p[0].default_value = p[2]
 
 
-# The argument annotations.
-_ARGUMENT_ANNOTATIONS = (
-    'AllowNone',
-    'Array',
-    'ArraySize',
-    'Constrained',
-    'DisallowNone',
-    'Encoding',
-    'GetWrapper',
-    'In',
-    'KeepReference',
-    'NoCopy',
-    'Out',
-    'PyInt',
-    'ResultSize',
-    'ScopesStripped',
-    'Transfer',
-    'TransferBack',
-    'TransferThis',
-    'TypeHint',
-    'TypeHintIn',
-    'TypeHintOut',
-    'TypeHintValue',
-)
-
-
 def p_arg_type(p):
     "arg_type : cpp_type opt_name opt_annos"
 
     pm = p.parser.pm
-
-    pm.check_annotations(p, 3, "argument", _ARGUMENT_ANNOTATIONS)
 
     arg = p[1]
     annotations = p[3]
@@ -2753,8 +2638,8 @@ def p_arg_type(p):
 
     pm.apply_common_argument_annotations(p, 3, arg, annotations)
 
-    has_array = 'Array' in annotations
-    has_array_size = 'ArraySize' in annotations
+    has_array = annotations.pop('Array')
+    has_array_size = annotations.pop('ArraySize')
 
     if has_array:
         if has_array_size:
@@ -2767,7 +2652,7 @@ def p_arg_type(p):
 
     pm.apply_type_annotations(p, 3, arg, annotations)
 
-    if 'Constrained' in annotations:
+    if annotations.pop('Constrained'):
         arg.is_constrained = True
 
         if arg.type is ArgumentType.BOOL:
@@ -2779,20 +2664,14 @@ def p_arg_type(p):
         elif arg.type is ArgumentType.DOUBLE:
             arg.type = ArgumentType.CDOUBLE
 
-    arg.get_wrapper = annotations.get('GetWrapper', False)
-    arg.is_in = annotations.get('In', False)
-    arg.is_out = annotations.get('Out', False)
-    arg.result_size = annotations.get('ResultSize', False)
-
-    try:
-        arg.scopes_stripped = annotations['ScopesStripped']
-
-        if arg.scopes_stripped <= 0:
-            pm.parser_error(p, 3, "/ScopesStripped/ must be greater than 0")
-    except KeyError:
-        arg.scopes_stripped = 0
+    arg.get_wrapper = annotations.pop('GetWrapper')
+    arg.is_in = annotations.pop('In')
+    arg.is_out = annotations.pop('Out')
+    arg.result_size = annotations.pop('ResultSize')
 
     arg.transfer = pm.get_transfer(p, 3, annotations)
+
+    annotations.run_plugins(pm, arg, AnnotationContext.ARGUMENT)
 
     p[0] = arg
 
@@ -2882,6 +2761,14 @@ def p_scoped_name_value(p):
     "scoped_name_value : scoped_name"
 
     p[0] = Value(ValueType.SCOPED, p[1])
+
+
+def p_string_like_value(p):
+    """string_like_value : dotted_name
+        | STRING
+        | NUMBER"""
+
+    p[0] = p[1]
 
 
 def p_string_value(p):
@@ -3096,12 +2983,6 @@ def p_virtual_catcher_code(p):
 
 # C++ namespaces. #############################################################
 
-# The namespace annotations.
-_NAMESPACE_ANNOTATIONS = (
-    'PyQtNoQMetaObject',
-)
-
-
 def p_namespace_decl(p):
     "namespace_decl : namespace namespace_head opt_namespace_body ';'"
 
@@ -3126,12 +3007,11 @@ def p_namespace_head(p):
         return
 
     pm.cpp_only(p, 1, "namespaces")
-    pm.check_annotations(p, 2, "namespace", _NAMESPACE_ANNOTATIONS)
 
     namespace = pm.new_class(p, 1, IfaceFileType.NAMESPACE,
             normalised_scoped_name(p[1], pm.scope))
 
-    namespace.pyqt_no_qmetaobject = p[2].get('PyQtNoQMetaObject', False)
+    p[2].run_plugins(pm, namespace, AnnotationContext.CLASS)
 
     pm.push_scope(namespace)
 
@@ -3163,19 +3043,6 @@ def p_namespace_docstring(p):
 
 # C/C++ typedefs. #############################################################
 
-# The typedef annotations.
-_TYPEDEF_ANNOTATIONS = (
-    'Capsule',
-    'Encoding',
-    'NoTypeName',
-    'PyInt',
-    'PyName',
-    'TypeHint',
-    'TypeHintIn',
-    'TypeHintOut',
-)
-
-
 def p_typedef_decl(p):
     """typedef_decl : typedef cpp_type NAME opt_annos ';' opt_docstring
         | typedef cpp_type '(' '*' NAME ')' '(' cpp_types ')' opt_annos ';' opt_docstring"""
@@ -3200,10 +3067,9 @@ def p_typedef_decl(p):
     fq_cpp_name = normalised_scoped_name(ScopedName(cpp_name), pm.scope)
     annotations = p[annos_symbol]
 
-    pm.check_annotations(p, annos_symbol, "typedef", _TYPEDEF_ANNOTATIONS)
     pm.apply_type_annotations(p, annos_symbol, type, annotations)
 
-    no_type_name = annotations.get('NoTypeName', False)
+    no_type_name = annotations.pop('NoTypeName')
 
     # See if we are instantiating a class template.
     if type.type is ArgumentType.TEMPLATE:
@@ -3215,7 +3081,7 @@ def p_typedef_decl(p):
             return
 
     # Handle any 'Capsule' annotation.
-    if 'Capsule' in annotations:
+    if annotations.pop('Capsule'):
         # Make sure the type is 'void *'.
         if type.type is ArgumentType.VOID and len(type.derefs) == 1 and not type.is_const and not type.is_reference:
             type.type = ArgumentType.CAPSULE
@@ -3225,37 +3091,15 @@ def p_typedef_decl(p):
             pm.parser_error(p, annos_symbol,
                     "/Capsule/ can only be specified for a void* type")
 
-    pm.add_typedef(p, name_symbol,
-            WrappedTypedef(fq_cpp_name, pm.module_state.module, pm.scope, type,
-                    no_type_name=no_type_name))
+    typedef = WrappedTypedef(fq_cpp_name, pm.module_state.module, pm.scope,
+            type, no_type_name=no_type_name)
+
+    annotations.run_plugins(pm, typedef, AnnotationContext.TYPEDEF)
+
+    pm.add_typedef(p, name_symbol, typedef)
 
 
 # C/C++ unions. ###############################################################
-
-# The union annotations.
-_UNION_ANNOTATIONS = (
-    'AllowNone',
-    'DelayDtor',
-    'Deprecated',
-    'ExportDerivedLocally',
-    'External',
-    'FileExtension',
-    'Metatype',
-    'Mixin',
-    'NoDefaultCtors',
-    'NoTypeHint',
-    'PyName',
-    'PyQtFlags',
-    'PyQtFlagsEnums',
-    'PyQtInterface',
-    'PyQtNoQMetaObject',
-    'Supertype',
-    'TypeHint',
-    'TypeHintIn',
-    'TypeHintOut',
-    'TypeHintValue',
-)
-
 
 def p_union_decl(p):
     "union_decl : union union_head opt_class_definition ';'"
@@ -3276,8 +3120,6 @@ def p_union_head(p):
     if pm.skipping:
         return
 
-    pm.check_annotations(p, 2, "union", _UNION_ANNOTATIONS)
-
     pm.define_class(p, 1, ClassKey.UNION, p[1], p[2])
 
     # Return the annotations.
@@ -3286,17 +3128,6 @@ def p_union_head(p):
 
 
 # C/C++ variables. ############################################################
-
-# The variable annotations.
-_VARIABLE_ANNOTATIONS = (
-    'Encoding',
-    'NoSetter',
-    'NoTypeHint',
-    'PyInt',
-    'PyName',
-    'TypeHint',
-)
-
 
 def p_variable(p):
     "variable : cpp_type NAME opt_annos variable_body ';'"
@@ -3322,7 +3153,6 @@ def p_variable(p):
 
     annotations = p[annos_symbol]
 
-    pm.check_annotations(p, annos_symbol, "variable", _VARIABLE_ANNOTATIONS)
     pm.apply_type_annotations(p, annos_symbol, type, annotations)
 
     py_name = cached_name(pm.spec, pm.get_py_name(cpp_name, p[3]))
@@ -3335,12 +3165,14 @@ def p_variable(p):
     variable = WrappedVariable(fq_cpp_name, pm.module_state.module, py_name,
             pm.scope, type)
 
-    variable.no_setter = annotations.get('NoSetter', False)
-    variable.no_type_hint = annotations.get('NoTypeHint', False)
+    variable.no_setter = annotations.pop('NoSetter')
+    variable.no_type_hint = annotations.pop('NoTypeHint')
 
-    variable.access_code = body.get('%AccessCode')
-    variable.get_code = body.get('%GetCode')
-    variable.set_code = body.get('%SetCode')
+    variable.access_code = body.pop('%AccessCode', None)
+    variable.get_code = body.pop('%GetCode', None)
+    variable.set_code = body.pop('%SetCode', None)
+
+    annotations.run_plugins(pm, variable, AnnotationContext.VARIABLE)
 
     pm.validate_variable(p, 1, variable)
 
@@ -3382,7 +3214,7 @@ def p_opt_annos(p):
     """opt_annos : '/' annotations '/'
         | empty"""
 
-    p[0] = p[2] if len(p) == 4 else {}
+    p[0] = p[2] if len(p) == 4 else Annotations()
 
 
 def p_annotations(p):
@@ -3397,25 +3229,18 @@ def p_annotations(p):
 
 def p_annotation(p):
     """annotation : NAME
-        | NAME '=' annotation_value"""
+        | NAME '=' string_like_value"""
 
-    p[0] = {}
+    p[0] = Annotations()
 
-    if p.parser.pm.skipping:
+    pm = p.parser.pm
+
+    if pm.skipping:
         return
 
     value = None if len(p) == 2 else p[3]
-    value = p.parser.pm.validate_annotation(p, 1, value)
 
-    p[0][p[1]] = value
-
-
-def p_annotation_value(p):
-    """annotation_value : dotted_name
-        | STRING
-        | NUMBER"""
-
-    p[0] = p[1]
+    p[0][p[1]] = Annotation(production=p, symbol=1, value=value)
 
 
 # A (possibly) scoped name. ###################################################

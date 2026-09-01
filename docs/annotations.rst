@@ -246,13 +246,6 @@ Argument Annotations
     Python buffer protocol.
 
 
-.. argument-annotation:: ScopesStripped
-
-    This integer annotation is only used with Qt signal arguments.  Normally
-    the fully scoped type of the argument is used but this annotation specifies
-    that the given number of scopes should be removed.
-
-
 .. argument-annotation:: Transfer
 
     This boolean annotation is used to specify that ownership of the

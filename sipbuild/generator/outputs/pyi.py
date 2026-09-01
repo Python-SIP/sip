@@ -3,11 +3,13 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from ...exceptions import UserException
+from ...plugin import Overload as PluginOverload, Specification
 from ...version import SIP_VERSION_STR
 
 from ..python_slots import is_number_slot, reflected_slot
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        EnumBaseType, IfaceFileType, PyQtMethodSpecifier, PySlot, Signature)
+        EnumBaseType, IfaceFileType, PySlot, Signature)
 from ..utils import append_iface_file, find_method
 
 from .formatters import (fmt_argument_as_type_hint, fmt_class_as_type_hint,
@@ -281,7 +283,7 @@ def _class(pf, spec, klass, defined, indent=0):
     for member in klass.members:
         first = _separate(pf, first=first, indent=indent)
 
-        _callable(pf, spec, member, klass.overloads, defined,
+        _callable(pf, spec, member, klass.overloads, defined, scope=klass,
                 is_method=not klass.is_hidden_namespace, indent=indent)
 
     for prop in klass.properties:
@@ -337,7 +339,7 @@ def _mapped_type(pf, spec, mapped_type, defined):
         for member in mapped_type.members:
             first = _separate(pf, first=first, indent=1)
             _callable(pf, spec, member, member.overloads, defined,
-                    is_method=True, indent=1)
+                    scope=mapped_type, is_method=True, indent=1)
 
     # Keep track of what has been defined so that forward references are no
     # longer required.
@@ -447,12 +449,16 @@ def _variables(pf, spec, defined, scope=None, indent=0):
         pf.write(s)
 
 
-def _callable(pf, spec, member, overloads, defined, is_method=False, indent=0):
+def _callable(pf, spec, member, overloads, defined, scope=None,
+        is_method=False, indent=0):
     """ Output the type hints for a callable. """
 
     # Get the non-reflected and reflected overloads.
     nonreflected_overloads = []
     reflected_overloads = []
+
+    plugins = spec.bindings.project.plugins
+    plugin_spec = Specification(spec) if plugins else None
 
     for overload in overloads:
         if overload.access_specifier is AccessSpecifier.PRIVATE:
@@ -464,20 +470,34 @@ def _callable(pf, spec, member, overloads, defined, is_method=False, indent=0):
         if overload.no_type_hint:
             continue
 
-        # Signals can have the same name as ordinary methods however
-        # 'typing.overload' cannot be used with ClassVar.  We choose to
-        # generate a type hint for the signal rather than any method.
-        if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
-            scope = '' if spec.module.py_name == 'QtCore' else 'QtCore.'
+        # Invoke any plugins.
+        type_hint = None
+        ignore_others = False
 
-            s = _indent(indent)
-            s += f'{overload.common.py_name.name}: typing.ClassVar[{scope}pyqtSignal]\n'
-            pf.write(s)
+        if plugins:
+            plugin_overload = PluginOverload(overload, scope, spec)
 
-            return
+            for plugin in plugins:
+                plugin_type_hint, plugin_ignore_others = plugin.sip_overload_get_typing(
+                        plugin_spec, plugin_overload)
 
-        if is_number_slot(overload.common.py_slot) and overload.is_reflected:
+                if plugin_type_hint:
+                    if type_hint is None:
+                        type_hint = plugin_type_hint
+                        ignore_others = plugin_ignore_others
+                    else:
+                        raise UserException(
+                                "multiple plugins have returned values from sip_overload_get_typing()")
+
+        if type_hint:
+            pf.write(_indent(indent) + type_hint)
+
+            if ignore_others:
+                return
+
+        elif is_number_slot(overload.common.py_slot) and overload.is_reflected:
             reflected_overloads.append(overload)
+
         else:
             nonreflected_overloads.append(overload)
 

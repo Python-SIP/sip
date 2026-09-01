@@ -4,17 +4,17 @@
 
 
 from ...specification import (AccessSpecifier, ArgumentType, CodeBlock,
-        GILAction, IfaceFileType, MappedType, PyQtMethodSpecifier,
-        WrappedClass)
+        GILAction, IfaceFileType, MappedType, WrappedClass)
 
-from ..formatters import fmt_argument_as_cpp_type, fmt_class_as_scoped_name
+from ..formatters import (fmt_argument_as_cpp_type, fmt_class_as_scoped_name,
+        fmt_scoped_py_name, fmt_signature_as_type_hint)
 
 
 def callable_overloads(member, overloads):
     """ A generator of the non-private and non-signal overloads. """
 
     for overload in overloads:
-        if overload.common is member and overload.access_specifier is not AccessSpecifier.PRIVATE and overload.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
+        if overload.common is member and overload.access_specifier is not AccessSpecifier.PRIVATE and overload.is_callable:
             yield overload
 
 
@@ -48,6 +48,16 @@ def get_convert_to_type_code(type):
         return type.definition.convert_to_type_code
 
     return None
+
+
+def get_ctor_type_hint(spec, klass, ctor):
+    """ Generate the type hint for a ctor. """
+
+    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
+    signature = fmt_signature_as_type_hint(spec, ctor.py_signature,
+            need_self=False, exclude_result=True)
+
+    return py_name + signature
 
 
 def get_docstring_text(docstring):
@@ -156,9 +166,7 @@ def get_mapped_type_flags(mapped_type):
 
 
 def get_method_table(klass, ignore_slots=False):
-    """ Return a sorted list of relevant methods (either lazy or non-lazy) for
-    a class.
-    """
+    """ Return a sorted list of relevant methods for a class. """
 
     # Only provide an entry point if there is at least one overload that is
     # defined in this class and is a non-abstract function or slot.  We allow
@@ -180,8 +188,10 @@ def get_method_table(klass, ignore_slots=False):
             if overload.access_specifier is AccessSpecifier.PROTECTED and not klass.has_shadow:
                 continue
 
-            if not skip_overload(overload, visible_member.member, klass, visible_member.scope):
-                need_member = True
+            if skip_overload(overload, visible_member.member, klass, visible_member.scope):
+                continue
+
+            need_member = True
 
         if need_member:
             members.append(visible_member.member)
@@ -224,6 +234,16 @@ def get_normalised_cached_name(cached_name):
 
     # Handle C++ and Python scopes.
     return cached_name.name.replace(':', '_').replace('.', '_')
+
+
+def get_overload_type_hint(spec, scope, overload):
+    """ Generate the type hint for a single API overload. """
+
+    need_self = isinstance(scope, WrappedClass) and not overload.is_static
+    signature = fmt_signature_as_type_hint(spec, overload.py_signature,
+            need_self=need_self)
+
+    return overload.common.py_name.name + signature
 
 
 def get_optional_ptr(is_ptr, name):
@@ -275,26 +295,6 @@ def get_void_ptr_cast(type):
         return ''
 
     return '(const void *)' if type.is_const else '(void *)'
-
-
-def has_method_docstring(bindings, member, overloads):
-    """ Return True if a function/method has a docstring. """
-
-    auto_docstring = False
-
-    # Check for any explicit docstrings and remember if there were any that
-    # could be automatically generated.
-    for overload in callable_overloads(member, overloads):
-        if overload.docstring is not None:
-            return True
-
-        if bindings.docstrings:
-            auto_docstring = True
-
-    if member.no_arg_parser:
-        return False
-
-    return auto_docstring
 
 
 def is_string(type):
@@ -394,18 +394,6 @@ def py_scope(scope):
     return None if isinstance(scope, WrappedClass) and scope.is_hidden_namespace else scope
 
 
-def pyqt5_supported(spec):
-    """ Return True if the PyQt5 plugin was specified. """
-
-    return 'PyQt5' in spec.plugins
-
-
-def pyqt6_supported(spec):
-    """ Return True if the PyQt6 plugin was specified. """
-
-    return 'PyQt6' in spec.plugins
-
-
 def release_gil(gil_action, bindings):
     """ Return True if the GIL is to be released. """
 
@@ -442,8 +430,8 @@ def skip_overload(overload, member, klass, scope, want_local=True):
     if overload.common is not member:
         return True
 
-    # Skip if it's a signal.
-    if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
+    # Skip if it's not callable.
+    if not overload.is_callable:
         return True
 
     # Skip if it's a private abstract.

@@ -1126,7 +1126,10 @@ typedef struct _sipExportedModuleDef {
     /* The imported modules. */
     sipImportedModuleDef *em_imports;
 
-    /* The optional Qt support API. */
+    /*
+     * The optional Qt support API.  This will be an unused 'void *' in SIP
+     * v7.
+     */
     struct _sipQtAPI *em_qt_api;
 
     /* The number of types. */
@@ -1710,7 +1713,8 @@ const sipAPIDef *sip_init_library(PyObject *mod_dict);
 
 
 /*
- * The API implementing the optional Qt support.
+ * The API implementing the optional Qt support.  This will be removed in SIP
+ * v7.
  */
 typedef struct _sipQtAPI {
     sipTypeDef **qt_qobject;
@@ -1853,8 +1857,8 @@ typedef struct _sipQtAPI {
 
 
 /*
- * The following are PyQt4-specific extensions.  In SIP v5 they will be pushed
- * out to a plugin supplied by PyQt4.
+ * The following are PyQt4-specific extensions.  They will be removed in SIP
+ * v7.
  */
 
 /*
@@ -1907,8 +1911,8 @@ typedef struct _pyqt4ClassPluginDef {
 
 
 /*
- * The following are PyQt5-specific extensions.  In SIP v5 they will be pushed
- * out to a plugin supplied by PyQt5.
+ * The following are PyQt5-specific extensions.  They will be removed in SIP
+ * v7.
  */
 
 /*

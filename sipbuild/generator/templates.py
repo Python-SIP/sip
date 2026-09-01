@@ -105,7 +105,7 @@ def template_code_blocks(spec, used, proto_code_blocks, expansions):
 def template_expansions(template_names, instantiation_values,
         declared_names=None):
     """ Return a dict of expansions to be applied when instantiating mapped
-    type of class templates (including handwritten code).  The key is the
+    type or class templates (including handwritten code).  The key is the
     symbolic name of a template argument and the value is the replacement to be
     used in a particular instantiation.
     """

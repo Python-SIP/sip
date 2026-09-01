@@ -28,9 +28,6 @@ directives = {
     'DefaultSupertype', 'End', 'Exception', 'Feature', 'HideNamespace', 'If',
     'Import', 'Include', 'License', 'MappedType', 'MinimumABIVersion',
     'Module', 'Platforms', 'Property', 'SipModuleConfiguration', 'Timeline',
-
-    # Remove in SIP v7.
-    'Plugin',
 }
 
 
@@ -58,11 +55,10 @@ keywords = {
     'bool', '_Bool', 'char', 'class', 'const', 'double', 'enum', 'explicit',
     'false', 'final', 'float', 'int', 'long', 'namespace', 'noexcept', 'NULL',
     'operator', 'private', 'protected', 'public', 'Py_hash_t', 'Py_ssize_t',
-    'Q_SIGNAL', 'Q_SIGNALS', 'Q_SLOT', 'Q_SLOTS', 'short', 'signals', 'signed',
-    'SIP_PYBUFFER', 'SIP_PYCALLABLE', 'SIP_PYDICT', 'SIP_PYENUM', 'SIP_PYLIST',
-    'SIP_PYOBJECT', 'SIP_PYSLICE', 'SIP_PYTUPLE', 'SIP_PYTYPE', 'size_t',
-    'slots', 'static', 'struct', 'template', 'throw', 'true', 'typedef',
-    'union', 'unsigned', 'virtual', 'void', 'wchar_t',
+    'short', 'signed', 'SIP_PYBUFFER', 'SIP_PYCALLABLE', 'SIP_PYDICT',
+    'SIP_PYENUM', 'SIP_PYLIST', 'SIP_PYOBJECT', 'SIP_PYSLICE', 'SIP_PYTUPLE',
+    'SIP_PYTYPE', 'size_t', 'static', 'struct', 'template', 'throw', 'true',
+    'typedef', 'union', 'unsigned', 'virtual', 'void', 'wchar_t',
 
     # Remove in SIP v7.
     'SIP_SSIZE_T',
@@ -79,6 +75,12 @@ directive_keywords = {
 }
 
 
+# The plugin hooks.
+plugin_hooks = (
+    'USER_ACCESS_SPECIFIER', 'USER_DIRECTIVE', 'USER_OVERLOAD_PREFIX',
+)
+
+
 # The lexer tokens.
 tokens = [
     'CODE_BLOCK', 'DOTTED_NAME', 'ELLIPSIS', 'EOF', 'EOL', 'FILE_PATH',
@@ -89,6 +91,7 @@ tokens.extend(directives)
 tokens.extend(code_directives)
 tokens.extend(keywords)
 tokens.extend(directive_keywords)
+tokens.extend(plugin_hooks)
 
 
 # Handle EOF.
@@ -166,6 +169,9 @@ def t_DIRECTIVE(t):
         t.type = name
     elif name in directives:
         t.type = name
+    else:
+        t.type = 'USER_DIRECTIVE'
+        t.value = name
 
     return t
 

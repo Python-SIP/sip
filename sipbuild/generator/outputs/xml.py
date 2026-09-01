@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from xml.etree.ElementTree import Element, SubElement
 
+from ...exceptions import UserException
+
 from ..python_slots import is_number_slot, reflected_slot
 from ..scoped_name import ScopedName, STRIP_GLOBAL
 from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        IfaceFileType, KwArgs, PyQtMethodSpecifier, PySlot, Transfer)
+        IfaceFileType, KwArgs, PySlot, Transfer)
 
 from .formatters import (fmt_argument_as_py_default_value,
         fmt_argument_as_rest_ref, fmt_class_as_rest_ref, fmt_scoped_py_name,
@@ -29,20 +31,30 @@ def output_xml(spec, module_name):
     if module.py_name != module_name:
         return None
 
+    # XML output is only used as an intermediate format by the PyQt
+    # documentation system.  That system will be rewritten to use the plugin
+    # API directly and to replace this entire module.  In the meantime we
+    # require the PyQt plugin to be installed.
+    for pyqt_plugin in spec.bindings.project.plugins:
+        if pyqt_plugin.sip_key == 'pyqt':
+            break
+    else:
+        raise UserException("the PyQt plugin must be installed")
+
     root = Element('Module', version=_XML_VERSION_NR, name=module.py_name)
 
     for klass in spec.classes:
         if klass.iface_file.module is module and not klass.external:
-            _class(root, spec, module, klass)
+            _class(pyqt_plugin, root, spec, module, klass)
 
     for klass in module.proxies:
-        _class(root, spec, module, klass)
+        _class(pyqt_plugin, root, spec, module, klass)
 
     _enums(root, spec, module)
     _variables(root, spec, module)
 
     for member in module.global_functions:
-        _function(root, spec, member, module.overloads)
+        _function(pyqt_plugin, root, spec, member, module.overloads)
 
     return root
 
@@ -68,7 +80,7 @@ def _realname(scope, member=None):
     return fq_cpp_name
 
 
-def _class(parent, spec, module, klass):
+def _class(pyqt_plugin, parent, spec, module, klass):
     """ Output the XML for a class. """
 
     if klass.is_opaque:
@@ -92,12 +104,13 @@ def _class(parent, spec, module, klass):
         if klass.real_class is not None:
             attrib['extends'] = klass.real_class.iface_file.module.py_name
 
-        if klass.pyqt_flags_enums is not None:
-            attrib['flagsenums'] = ' '.join(klass.pyqt_flags_enums)
-
         if len(klass.superclasses) != 0:
             attrib['inherits'] = ' '.join(
                     [fmt_class_as_rest_ref(sc) for sc in klass.superclasses])
+
+        # Invoke any plugins.
+        for plugin in spec.bindings.project.plugins:
+            plugin.sip_xml_class_add_attributes(attrib, klass)
 
         parent_klass = SubElement(parent, 'Class', attrib,
                 name=fmt_scoped_py_name(klass.scope, klass.py_name.name),
@@ -111,7 +124,8 @@ def _class(parent, spec, module, klass):
     _variables(parent_klass, spec, module, klass)
 
     for member in klass.members:
-        _function(parent_klass, spec, member, klass.overloads, klass)
+        _function(pyqt_plugin, parent_klass, spec, member, klass.overloads,
+                klass)
 
 
 def _enums(parent, spec, module, scope=None):
@@ -180,12 +194,12 @@ def _ctor(parent, spec, scope, ctor):
             _argument(function_el, spec, arg, ctor.kw_args, out=True)
 
 
-def _function(parent, spec, member, overloads, scope=None):
+def _function(pyqt_plugin, parent, spec, member, overloads, scope=None):
     """ Output the XML for a function. """
 
     for overload in overloads:
         if overload.common is member and overload.access_specifier is not AccessSpecifier.PRIVATE:
-            if overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL:
+            if pyqt_plugin.is_signal(overload):
                 attrib = {}
 
                 if _has_cpp_signature(overload.cpp_signature):
@@ -236,15 +250,16 @@ def _overload(parent, spec, scope, overload, extends, is_static):
     if is_static:
         attrib['static'] = '1'
 
-    if overload.pyqt_method_specifier is PyQtMethodSpecifier.SLOT:
-        attrib['slot'] = '1'
-
     if overload.is_virtual:
         attrib['virtual'] = '1'
 
     if extends is not None:
         attrib['extends'] = fmt_scoped_py_name(extends.scope,
                 extends.py_name.name)
+
+    # Invoke any plugins.
+    for plugin in spec.bindings.project.plugins:
+        plugin.sip_xml_overload_add_attributes(attrib, overload)
 
     function_el = SubElement(parent, 'Function', attrib,
             name=fmt_scoped_py_name(scope, name),

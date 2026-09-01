@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from copy import copy
+
+from ..plugin import Class, Specification
 
 from .scoped_name import ScopedName
 from .specification import (Argument, ArgumentType, FunctionCall,
@@ -66,11 +68,6 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
     if proto_class.type_hints is not None:
         i_class.type_hints = instantiate_type_hints(pm.spec,
                 proto_class.type_hints, expansions)
-
-    # Handle any flagged enums.
-    if proto_class.pyqt_flags_enums is not None:
-        i_class.pyqt_flags_enums = [template_string(s, expansions)
-                for s in proto_class.pyqt_flags_enums]
 
     # Handle the super-classes.
     i_class.superclasses = []
@@ -137,6 +134,19 @@ def instantiate_class(p, symbol, fq_cpp_name, tmpl_names, proto_class,
             proto_class.type_code, expansions)
     i_class.type_hint_code = template_code(pm.spec, used,
             proto_class.type_hint_code, expansions)
+
+    # Invoke any plugins.
+    spec = pm.spec
+    plugins = spec.bindings.project.plugins
+
+    if plugins:
+        plugin_spec = Specification(spec, production=p, symbol=symbol)
+        plugin_i_class = Class(i_class, spec)
+        plugin_proto_class = Class(proto_class, spec)
+
+        for plugin in plugins:
+            plugin.sip_instantiated_class_resolved(plugin_spec, plugin_i_class,
+                    plugin_proto_class, expansions)
 
     pm.spec.classes.insert(0, i_class)
 

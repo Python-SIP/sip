@@ -22,7 +22,7 @@ class AbstractBackend(ABC):
 
     @abstractmethod
     def g_arg_parser(self, sf, spec, scope, py_signature, signature_nr,
-            ctor=None, is_method=False, overload=None):
+            ctor=None, overload=None):
         """ Generate an argument parser call. """
 
         ...
@@ -429,6 +429,11 @@ class AbstractBackend(ABC):
 
         # This default implementation returns nothing.
         return ''
+
+    def get_overload_docstring(self, spec, scope, overload):
+        """ Return an overload's docstring. """
+
+        ...
 
     @abstractmethod
     def get_raise_unknown_exception(self):

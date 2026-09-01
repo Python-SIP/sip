@@ -1,6 +1,110 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
+
+
+from collections import namedtuple
+
+from ...plugin import (AnnotationNoValue, AnnotationType,
+        Argument as PluginArgument, Class, Constructor as PluginConstructor,
+        Enum as PluginEnum, EnumMember, MappedType as PluginMappedType,
+        Overload as PluginOverload, Specification)
+
+from ..specification import (Argument, Constructor, MappedType, Overload,
+        WrappedClass, WrappedEnum, WrappedEnumMember)
+
+
+# An encapsulation of an annotation value and its context.
+Annotation = namedtuple('Annotation', ('production', 'symbol', 'value'))
+
+
+class Annotations(dict):
+    """ Encapsulate a collection of annotations. """
+
+    def pop(self, name):
+        """ A reimplementation of dict.pop() that validates the value. """
+
+        # Note that an unknown name is an internal error.
+        return self.validate(name, super().pop(name, None),
+                _ANNOTATION_TYPES[name])
+
+    def run_plugins(self, pm, item, annotation_context):
+        """ Invoke any plugins for any remaining annotations. """
+
+        # Handle the trivial case.
+        if not self:
+            return
+
+        spec = pm.spec
+        plugins = spec.bindings.project.plugins
+
+        if plugins:
+            plugin_spec = Specification(spec)
+
+            if isinstance(item, Argument):
+                # It should be safe to pass a 'None' scope as we are not
+                # generating code at this stage.
+                plugin_item = PluginArgument(item, None, spec)
+            elif isinstance(item, Constructor):
+                plugin_item = PluginConstructor(item)
+            elif isinstance(item, MappedType):
+                plugin_item = PluginMappedType(item, spec)
+            elif isinstance(item, Overload):
+                # It should be safe to pass a 'None' scope as we are not
+                # generating code at this stage.
+                plugin_item = PluginOverload(item, None, spec)
+            elif isinstance(item, WrappedClass):
+                plugin_item = Class(item, spec)
+            elif isinstance(item, WrappedEnum):
+                plugin_item = PluginEnum(item, spec)
+            elif isinstance(item, WrappedEnumMember):
+                plugin_item = EnumMember(item)
+
+            for plugin in plugins:
+                plugin.sip_handle_annotations(plugin_spec, plugin_item, self,
+                        annotation_context)
+
+        # Any remaining annotations are an error.
+        for name, anno in self.items():
+            _error(anno, name, "unknown annotation")
+
+    @staticmethod
+    def validate(name, anno, annotation_type):
+        """ Validate an annotation and return the validated value. """
+
+        match annotation_type:
+            case AnnotationType.BOOLEAN:
+                return _validate_boolean(name, anno)
+
+            case AnnotationType.DOTTED_NAME:
+                return _validate_name(name, anno, allow_dots=True)
+
+            case AnnotationType.DOTTED_NAME_OPTIONAL:
+                return _validate_name(name, anno, allow_dots=True,
+                        optional=True)
+
+            case AnnotationType.INTEGER:
+                return _validate_integer(name, anno)
+
+            case AnnotationType.INTEGER_OPTIONAL:
+                return _validate_integer(name, anno, optional=True)
+
+            case AnnotationType.NAME:
+                return _validate_name(name, anno)
+
+            case AnnotationType.NAME_OPTIONAL:
+                return _validate_name(name, anno, optional=True)
+
+            case AnnotationType.STRING:
+                return _validate_string(name, anno)
+
+            case AnnotationType.STRING_LIST:
+                return _validate_string_list(name, anno)
+
+            case AnnotationType.STRING_OPTIONAL:
+                return _validate_string(name, anno, optional=True)
+
+        _error(anno, name, f"unknown annotation type {annotation_type}")
 
 
 class DottedName(str):
@@ -12,128 +116,99 @@ class DottedName(str):
     pass
 
 
-class InvalidAnnotation(Exception):
-    """ An invalid annotation. """
+def _error(anno, name, message):
+    """ Handle an annotation error. """
 
-    def __init__(self, name, message, use):
-        """ Initialise the exception. """
+    p = anno.production
 
-        self._text = "{0} {1}".format(name, message)
-
-        # The value to use for the annotation.
-        self.use = use
-
-    def __str__(self):
-        """ Return the exception as a user friendly string. """
-
-        return self._text
+    p.parser.pm.parser_error(p, anno.symbol, f"'{name}' {message}")
 
 
-class RequiredAnnotation(InvalidAnnotation):
-    """ A required annotation. """
+def _required_error(anno, name):
+    """ Handle an error for a missing annotation. """
 
-    def __init__(name, use):
-        """ Initialise the exception. """
-
-        super().__init__(name, "requires a value", use=use)
+    _error(anno, name, "must have a value")
 
 
-def validate_annotation_value(pm, p, symbol, name, value):
-    """ Return a valid value for the annotation or raise an InvalidAnnotation
-    exception.
-    """
-
-    try:
-        validator = _ANNOTATION_TYPES[name]
-    except KeyError:
-        raise InvalidAnnotation(name, "is not a known annotation", use=None)
-
-    return validator(pm, p, symbol, name, value)
-
-
-def bind(validator, **proto_kw):
-    """ Return a function that when called with a validator function and
-    prototype keyword arguments will itself return a function that will create
-    an annotation-specific validator.
-    """
-
-    # This takes the prototype validator-specific keyword arguments and returns
-    # a function that will itself create a validator with annotation-specific
-    # arguments based on the prototypes.
-    def proto_validator(**bound_kw):
-        # Create the annotation specific keyword arguments by taking the
-        # prototypes and updating them with the ones bound to the specific
-        # annotation.
-        kw = proto_kw.copy()
-        kw.update(bound_kw)
-
-        # This takes the name and value of the annotation and calls the
-        # validator along with the annotation-specific keyword arguments.
-        def bound_validator(pm, p, symbol, name, value):
-            return validator(pm, p, symbol, name, value, **kw)
-
-        return bound_validator
-
-    return proto_validator
-
-
-def validate_boolean(pm, p, symbol, name, value):
+def _validate_boolean(name, anno):
     """ Return a valid boolean value. """
 
-    if value is None:
+    if anno is None:
+        return False
+
+    if anno.value is None:
         return True
 
-    raise InvalidAnnotation(name, "must not have a value", use=False)
+    _error(anno, name, "cannot have a value")
+    return False
 
-boolean = bind(validate_boolean)
 
-
-def validate_integer(pm, p, symbol, name, value, *, optional):
+def _validate_integer(name, anno, *, optional=False):
     """ Return a valid, possibly optional, integer. """
 
+    if anno is None:
+        return None
+
+    value = anno.value
+
     if value is None:
         if optional:
-            return None
+            return AnnotationNoValue
 
-        raise RequiredAnnotation(name, use=0)
+        _required_error(anno, name)
+        return 0
 
     if not isinstance(value, int):
-        raise InvalidAnnotation(name, "must be an integer", use=0)
+        _error(anno, name, "must be an integer")
+        return 0
 
     return value
 
-integer = bind(validate_integer, optional=False)
 
-
-def validate_name(pm, p, symbol, name, value, *, allow_dots, optional):
+def _validate_name(name, anno, *, allow_dots=False, optional=False):
     """ Return a valid, possibly optional, possibly dotted name. """
 
+    if anno is None:
+        return None
+
+    value = anno.value
+
     if value is None:
         if optional:
-            return ''
+            return AnnotationNoValue
 
-        raise RequiredAnnotation(name, use='')
+        _required_error(anno, name)
+        return ''
 
     if not isinstance(value, DottedName):
-        raise InvalidAnnotation(name, "must be an unquoted name", use='')
+        _error(anno, name, "must be an unquoted name")
+        return ''
 
     if '.' in value and not allow_dots:
-        raise InvalidAnnotation(name, "cannot contain '.'", use='')
+        _error(anno, name, "cannot contain '.'")
+        return ''
 
     return value
 
-name = bind(validate_name, allow_dots=False, optional=False)
 
-
-def validate_string(pm, p, symbol, name, value, optional):
+def _validate_string(name, anno, *, optional=False):
     """ Return a valid, possibly optional, string value. """
+
+    if anno is None:
+        return None
+
+    value = anno.value
 
     if value is None:
         if optional:
-            return ''
+            return AnnotationNoValue
+
+        _required_error(anno, name)
+        return ''
 
     if not isinstance(value, str):
-        raise InvalidAnnotation(name, "must be a quoted string", use='')
+        _error(anno, name, "must be a quoted string")
+        return ''
 
     # Handle any embedded selectors.
     fields = []
@@ -179,95 +254,92 @@ def validate_string(pm, p, symbol, name, value, optional):
         else:
             inverted = False
 
-        if pm.evaluate_feature_or_platform(p, symbol, selector, inverted):
+        if anno.pm.evaluate_feature_or_platform(anno.p, anno.symbol, selector, inverted):
             return field_value.strip()
 
     # No value was selected so ignore the annotation completely.
     return None
 
-string = bind(validate_string, optional=False)
 
-
-def validate_string_list(pm, p, symbol, name, value):
+def _validate_string_list(name, anno):
     """ Return a valid string list value. """
 
+    if anno is None:
+        return None
+
+    value = anno.value
+
     if not isinstance(value, str):
-        raise InvalidAnnotation(name, "must be a quoted string", use=[])
+        _error(anno, name, "must be a quoted string")
+        return []
 
     return value.split(' ')
-
-string_list = bind(validate_string_list)
 
 
 # The annotations and the type of their values.
 _ANNOTATION_TYPES = {
-    '__imatmul__':              boolean(),
-    '__len__':                  boolean(),
-    '__matmul__':               boolean(),
-    'AbortOnException':         boolean(),
-    'Abstract':                 boolean(),
-    'AllowNone':                boolean(),
-    'Array':                    boolean(),
-    'ArraySize':                boolean(),
-    'AutoGen':                  name(optional=True),
-    'BaseType':                 name(),
-    'Capsule':                  boolean(),
-    'Constrained':              boolean(),
-    'Deprecated':               string(optional=True),
-    'Default':                  boolean(),
-    'DelayDtor':                boolean(),
-    'DisallowNone':             boolean(),
-    'ExportDerived':            boolean(),
-    'ExportDerivedLocally':     boolean(),
-    'External':                 boolean(),
-    'Encoding':                 string(),
-    'Factory':                  boolean(),
-    'FileExtension':            string(),
-    'GetWrapper':               boolean(),
-    'HoldGIL':                  boolean(),
-    'In':                       boolean(),
-    'KeepReference':            integer(optional=True),
-    'KeywordArgs':              string(),
-    'Metatype':                 name(allow_dots=True),
-    'Mixin':                    boolean(),
-    'Movable':                  boolean(),
-    'NewThread':                boolean(),
-    'NoArgParser':              boolean(),
-    'NoAssignmentOperator':     boolean(),
-    'NoCopy':                   boolean(),
-    'NoCopyCtor':               boolean(),
-    'NoDefaultCtor':            boolean(),
-    'NoDefaultCtors':           boolean(),
-    'NoDerived':                boolean(),
-    'NoRaisesPyException':      boolean(),
-    'NoRelease':                boolean(),
-    'NoScope':                  boolean(),
-    'NoSetter':                 boolean(),
-    'NoTypeHint':               boolean(),
-    'NoTypeName':               boolean(),
-    'NoVirtualErrorHandler':    boolean(),
-    'Numeric':                  boolean(),
-    'Out':                      boolean(),
-    'PostHook':                 name(),
-    'PreHook':                  name(),
-    'PyInt':                    boolean(),
-    'PyName':                   name(),
-    'PyQtFlags':                integer(),
-    'PyQtFlagsEnums':           string_list(),
-    'PyQtInterface':            string(),
-    'PyQtNoQMetaObject':        boolean(),
-    'RaisesPyException':        boolean(),
-    'ReleaseGIL':               boolean(),
-    'ResultSize':               boolean(),
-    'ScopesStripped':           integer(),
-    'Sequence':                 boolean(),
-    'Supertype':                name(allow_dots=True),
-    'Transfer':                 boolean(),
-    'TransferBack':             boolean(),
-    'TransferThis':             boolean(),
-    'TypeHint':                 string(),
-    'TypeHintIn':               string(),
-    'TypeHintOut':              string(),
-    'TypeHintValue':            string(),
-    'VirtualErrorHandler':      name(),
+    '__imatmul__':              AnnotationType.BOOLEAN,
+    '__len__':                  AnnotationType.BOOLEAN,
+    '__matmul__':               AnnotationType.BOOLEAN,
+    'AbortOnException':         AnnotationType.BOOLEAN,
+    'Abstract':                 AnnotationType.BOOLEAN,
+    'AllowNone':                AnnotationType.BOOLEAN,
+    'Array':                    AnnotationType.BOOLEAN,
+    'ArraySize':                AnnotationType.BOOLEAN,
+    'AutoGen':                  AnnotationType.NAME_OPTIONAL,
+    'BaseType':                 AnnotationType.NAME,
+    'Capsule':                  AnnotationType.BOOLEAN,
+    'Constrained':              AnnotationType.BOOLEAN,
+    'Deprecated':               AnnotationType.STRING_OPTIONAL,
+    'Default':                  AnnotationType.BOOLEAN,
+    'DelayDtor':                AnnotationType.BOOLEAN,
+    'DisallowNone':             AnnotationType.BOOLEAN,
+    'ExportDerived':            AnnotationType.BOOLEAN,
+    'ExportDerivedLocally':     AnnotationType.BOOLEAN,
+    'External':                 AnnotationType.BOOLEAN,
+    'Encoding':                 AnnotationType.STRING,
+    'Factory':                  AnnotationType.BOOLEAN,
+    'FileExtension':            AnnotationType.STRING,
+    'GetWrapper':               AnnotationType.BOOLEAN,
+    'HoldGIL':                  AnnotationType.BOOLEAN,
+    'In':                       AnnotationType.BOOLEAN,
+    'KeepReference':            AnnotationType.INTEGER_OPTIONAL,
+    'KeywordArgs':              AnnotationType.STRING,
+    'Metatype':                 AnnotationType.DOTTED_NAME,
+    'Mixin':                    AnnotationType.BOOLEAN,
+    'Movable':                  AnnotationType.BOOLEAN,
+    'NewThread':                AnnotationType.BOOLEAN,
+    'NoArgParser':              AnnotationType.BOOLEAN,
+    'NoAssignmentOperator':     AnnotationType.BOOLEAN,
+    'NoCopy':                   AnnotationType.BOOLEAN,
+    'NoCopyCtor':               AnnotationType.BOOLEAN,
+    'NoDefaultCtor':            AnnotationType.BOOLEAN,
+    'NoDefaultCtors':           AnnotationType.BOOLEAN,
+    'NoDerived':                AnnotationType.BOOLEAN,
+    'NoRaisesPyException':      AnnotationType.BOOLEAN,
+    'NoRelease':                AnnotationType.BOOLEAN,
+    'NoScope':                  AnnotationType.BOOLEAN,
+    'NoSetter':                 AnnotationType.BOOLEAN,
+    'NoTypeHint':               AnnotationType.BOOLEAN,
+    'NoTypeName':               AnnotationType.BOOLEAN,
+    'NoVirtualErrorHandler':    AnnotationType.BOOLEAN,
+    'Numeric':                  AnnotationType.BOOLEAN,
+    'Out':                      AnnotationType.BOOLEAN,
+    'PostHook':                 AnnotationType.NAME,
+    'PreHook':                  AnnotationType.NAME,
+    'PyInt':                    AnnotationType.BOOLEAN,
+    'PyName':                   AnnotationType.NAME,
+    'RaisesPyException':        AnnotationType.BOOLEAN,
+    'ReleaseGIL':               AnnotationType.BOOLEAN,
+    'ResultSize':               AnnotationType.BOOLEAN,
+    'Sequence':                 AnnotationType.BOOLEAN,
+    'Supertype':                AnnotationType.DOTTED_NAME,
+    'Transfer':                 AnnotationType.BOOLEAN,
+    'TransferBack':             AnnotationType.BOOLEAN,
+    'TransferThis':             AnnotationType.BOOLEAN,
+    'TypeHint':                 AnnotationType.STRING,
+    'TypeHintIn':               AnnotationType.STRING,
+    'TypeHintOut':              AnnotationType.STRING,
+    'TypeHintValue':            AnnotationType.STRING,
+    'VirtualErrorHandler':      AnnotationType.NAME,
 }

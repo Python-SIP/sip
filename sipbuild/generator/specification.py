@@ -352,16 +352,6 @@ class MultiInterpreterSupport(Enum):
     SUPPORTED = auto()
 
 
-class PyQtMethodSpecifier(Enum):
-    """ The PyQt-specific method specifier. """
-
-    # A signal.
-    SIGNAL = auto()
-
-    # A slot.
-    SLOT = auto()
-
-
 class PySlot(Enum):
     """ The Python slots corresponding to entries in a type object. """
 
@@ -653,9 +643,6 @@ class Argument:
     # Set if /ResultSize/ was specified.
     result_size: bool = False
 
-    # The value of /ScopesStripped/.
-    scopes_stripped: int = 0
-
     # The source location.
     source_location: 'SourceLocation|None' = None
 
@@ -904,9 +891,6 @@ class MappedType:
     # The Python name.  It will be None for mapped type templates.
     py_name: CachedName|None = None
 
-    # The /PyQtFlags/.
-    pyqt_flags: int = 0
-
     # The %ReleaseCode.
     release_code: CodeBlock|None = None
 
@@ -1139,6 +1123,9 @@ class Overload:
     # Set if /AutoGen/ was specified and the associated feature was enabled.
     is_auto_generated: bool = False
 
+    # Set if the overload is callable.
+    is_callable: bool = True
+
     # Set if the overload is a complementary slot. (resolver)
     is_complementary: bool = False
 
@@ -1192,9 +1179,6 @@ class Overload:
 
     # The code specified by any %PreMethodCode directive.
     premethod_code: CodeBlock|None = None
-
-    # The PyQt method specifier.
-    pyqt_method_specifier: PyQtMethodSpecifier|None = None
 
     # Set if a Python exception is raised.
     raises_py_exception: bool = False
@@ -1292,13 +1276,6 @@ class Specification:
     # The corresponding bindings.
     bindings: '..bindings.Bindings'
 
-    # Set if the specification is strict.
-    is_strict: bool
-
-    # The required configuration of the sip module.
-    sip_module_configuration: SipModuleConfiguration = field(
-            default_factory=lambda: SipModuleConfiguration(0))
-
     # Set if the bindings are for C rather than C++.
     c_bindings: bool = False
 
@@ -1326,6 +1303,9 @@ class Specification:
     # Set if the specification is for a composite module.
     is_composite: bool = False
 
+    # Set if the specification is strict.
+    is_strict: bool = True
+
     # The mapped type templates.
     mapped_type_templates: list[MappedTypeTemplate] = field(default_factory=list)
 
@@ -1345,12 +1325,9 @@ class Specification:
     # The number of virtual handlers. (resolver)
     nr_virtual_handlers: int = 0
 
-    # The list of plugins.  Note that these are PyQt-specific and will be
-    # removed in SIP v7.
-    plugins: list[str] = field(default_factory=list)
-
-    # The QObject class.
-    pyqt_qobject: 'WrappedClass|None' = None
+    # The required configuration of the sip module.
+    sip_module_configuration: SipModuleConfiguration = field(
+            default_factory=lambda: SipModuleConfiguration(0))
 
     # The list of typedefs.
     typedefs: IndexedTypedefList = field(default_factory=IndexedTypedefList)
@@ -1612,9 +1589,6 @@ class WrappedClass:
     # Set if the class is defined in a protected section.
     is_protected: bool = False
 
-    # Set if the class is QObject or a sub-class. (resolver)
-    is_qobject: bool = False
-
     # The C++ name of any overload annotated with __len__.
     len_cpp_name: str|None = None
 
@@ -1658,18 +1632,6 @@ class WrappedClass:
 
     # The properties.
     properties: list[Property] = field(default_factory=list)
-
-    # The /PyQtFlags/.
-    pyqt_flags: int = 0
-
-    # The /PyQtFlagsEnums/.
-    pyqt_flags_enums: list[str]|None = None
-
-    # The /PyQtInterface/.
-    pyqt_interface: str|None = None
-
-    # Set if /PyQtNoQMetaObject/ was specified.
-    pyqt_no_qmetaobject: bool = False
 
     # The real class if this is a proxy or a namespace extender.
     real_class: 'WrappedClass|None' = None

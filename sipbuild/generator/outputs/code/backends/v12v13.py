@@ -3,30 +3,31 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from .....plugin import Class, MappedType as PluginMappedType, Specification
+
 from ....python_slots import (is_hash_return_slot, is_inplace_number_slot,
         is_int_arg_slot, is_int_return_slot, is_number_slot, is_multi_arg_slot,
         is_rich_compare_slot, is_ssize_return_slot, is_void_return_slot,
         is_zero_arg_slot)
 from ....scoped_name import STRIP_GLOBAL
 from ....specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        DocstringSignature, IfaceFileType, KwArgs, MappedType,
-        PyQtMethodSpecifier, PySlot, Transfer, WrappedClass, WrappedEnum)
+        DocstringSignature, IfaceFileType, KwArgs, MappedType, PySlot,
+        Transfer, WrappedClass, WrappedEnum)
 from ....utils import find_method
 
 from ...formatters import fmt_argument_as_cpp_type, fmt_argument_as_name
 
-from ..snippets import (g_argument_variable, g_call_args, g_ctor_type_hint,
-        g_delete_temporaries, g_function_body, g_overload_type_hint,
-        g_type_init_body, g_static_function)
+from ..snippets import (g_argument_variable, g_call_args, g_delete_temporaries,
+        g_function_body, g_type_init_body, g_static_function)
 from ..utils import (callable_overloads, get_class_from_void, get_const_cast,
-        get_docstring_text, get_encoded_type, get_enum_member,
-        get_function_table, get_mapped_type_flags, get_method_table,
-        get_named_value_decl, get_normalised_cached_name, get_optional_ptr,
-        get_use_in_code, get_user_state_suffix, get_void_ptr_cast,
-        has_method_docstring, is_string, is_used_in_code, keep_py_reference,
-        module_classes, need_dealloc, py_scope, pyqt5_supported,
-        pyqt6_supported, scoped_class_name, scoped_variable_name,
-        type_needs_user_state, variables_in_scope)
+        get_ctor_type_hint, get_docstring_text, get_encoded_type,
+        get_enum_member, get_function_table, get_mapped_type_flags,
+        get_method_table, get_named_value_decl, get_normalised_cached_name,
+        get_optional_ptr, get_overload_type_hint, get_use_in_code,
+        get_user_state_suffix, get_void_ptr_cast, is_string, is_used_in_code,
+        keep_py_reference, module_classes, need_dealloc, py_scope,
+        scoped_class_name, scoped_variable_name, type_needs_user_state,
+        variables_in_scope)
 
 from .abstract_backend import AbstractBackend
 
@@ -36,11 +37,10 @@ class v12v13Backend(AbstractBackend):
 
     @staticmethod
     def g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor=None,
-            is_method=False, overload=None):
+            overload=None):
         """ Generate an argument parser call. """
 
-        return _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor,
-                is_method, overload)
+        return _g_arg_parser(sf, spec, scope, py_signature, ctor, overload)
 
     @staticmethod
     def g_cast_function(sf, spec, klass):
@@ -175,28 +175,6 @@ f'''    if (targetType == {sc_type_ref})
 
         sf.write('\n\n')
 
-        # Generate any Qt support API.
-        if abi_version[0] < 13 and _legacy_qt_support(spec):
-            sf.write(
-f'''/* This defines the Qt support API. */
-
-static sipQtAPI qtAPI = {{
-    &sipExportedTypes_{module_name}[{spec.pyqt_qobject.iface_file.type_nr}],
-    sipQtCreateUniversalSignal,
-    sipQtFindUniversalSignal,
-    sipQtCreateUniversalSlot,
-    sipQtDestroyUniversalSlot,
-    sipQtFindSlot,
-    sipQtConnect,
-    sipQtDisconnect,
-    sipQtSameSignalSlotName,
-    sipQtFindSipslot,
-    sipQtEmitSignal,
-    sipQtConnectPySignal,
-    sipQtDisconnectPySignal
-}};
-''')
-
         imports_table = get_optional_ptr(len(module.all_imports) != 0,
                 'importsTable')
         exported_types = get_optional_ptr(len(module.needed_types) != 0,
@@ -217,8 +195,7 @@ sipExportedModuleDef sipModuleAPI_{module_name} = {{
 ''')
 
         if abi_version[0] < 13:
-            qt_api = get_optional_ptr(_legacy_qt_support(spec), '&qtAPI')
-            sf.write(f'    {qt_api},\n')
+            sf.write('    SIP_NULLPTR,\n')
 
         sf.write(
 f'''    {len(module.needed_types)},
@@ -313,7 +290,6 @@ f'''
 const sipAPIDef *sipAPI_{module_name};
 ''')
 
-        _g_pyqt_helper_defns(sf, spec)
         cls.g_module_init_start(sf, spec)
         has_module_functions = _g_module_functions_table(sf, spec, module)
         cls.g_module_definition(sf, spec,
@@ -718,11 +694,25 @@ f'''
         if cod_nrmethods > 0:
             needs_namespace = True
 
-        if pyqt6_supported(spec) and mapped_type.pyqt_flags != 0:
-            sf.write(f'\n\nstatic pyqt6MappedTypePluginDef plugin_{mapped_type_name} = {{{mapped_type.pyqt_flags}}};\n')
+        # Invoke any plugins.
+        td_plugin_data = None
 
-            td_plugin_data = '&plugin_' + mapped_type_name
-        else:
+        if project.plugins:
+            plugin_spec = Specification(spec)
+            plugin_mapped_type = PluginMappedType(mapped_type, spec)
+
+            for plugin in project.plugins:
+                data = plugin.sip_mapped_type_generate_impl(sf, plugin_spec,
+                        plugin_mapped_type)
+
+                if data:
+                    if td_plugin_data is None:
+                        td_plugin_data = '&' + data
+                    else:
+                        raise UserException(
+                                "multiple plugins have returned a value from sip_mapped_type_generate_impl()")
+
+        if td_plugin_data is None:
             td_plugin_data = 'SIP_NULLPTR'
 
         sf.write(
@@ -886,19 +876,6 @@ PyMODINIT_FUNC PyInit_{module_name}({arg_type})
 
         module = spec.module
 
-        # If there should be a Qt support API then generate stubs values for
-        # the optional parts.  These should be undefined in %ModuleCode if a
-        # C++ implementation is provided.
-        if spec.bindings.project.abi_version[0] < 13 and _legacy_qt_support(spec):
-            sf.write(
-'''
-#define sipQtCreateUniversalSignal          0
-#define sipQtFindUniversalSignal            0
-#define sipQtEmitSignal                     0
-#define sipQtConnectPySignal                0
-#define sipQtDisconnectPySignal             0
-''')
-
         # Make sure the module name is cached.
         module.fq_py_name.used = True
 
@@ -989,12 +966,11 @@ f'''
         member_py_name = member.py_name.name
 
         # Generate the docstrings.
-        if has_method_docstring(spec.bindings, member, original_scope.overloads):
+        if _has_method_docstring(spec.bindings, member, original_scope.overloads):
             sf.write(f'PyDoc_STRVAR(doc_{scope_name}_{member_py_name}, "')
 
-            has_auto_docstring = _g_method_docstring(sf, spec, member,
-                    original_scope.overloads,
-                    is_method=not scope.is_hidden_namespace)
+            has_auto_docstring = _g_method_docstring(sf, spec, scope, member,
+                    original_scope.overloads)
 
             sf.write('");\n\n')
         else:
@@ -1301,10 +1277,10 @@ f'''
             member_name = scope_py.iface_file.fq_cpp_name.as_word + '_' + member_name
 
         # Generate the docstrings.
-        if has_method_docstring(spec.bindings, member, overloads):
+        if _has_method_docstring(spec.bindings, member, overloads):
             sf.write(f'PyDoc_STRVAR(doc_{member_name}, "')
-            has_auto_docstring = _g_method_docstring(sf, spec, member,
-                    overloads)
+            has_auto_docstring = _g_method_docstring(sf, spec, scope_py,
+                    member, overloads)
             sf.write('");\n\n')
         else:
             has_auto_docstring = False
@@ -1625,12 +1601,26 @@ static sipPySlotDef slots_{klass_name}[] = {{
         # Generate the docstring.
         docstring_ref = _g_class_docstring(sf, spec, klass)
 
-        # Generate any plugin-specific data structures.
-        plugin_ref = 'SIP_NULLPTR'
+        # Invoke any plugins.
+        td_plugin_data = None
 
-        if pyqt5_supported(spec) or pyqt6_supported(spec):
-            if _g_pyqt_class_plugin(sf, spec, klass):
-                plugin_ref = '&plugin_' + klass_name
+        if project.plugins:
+            plugin_spec = Specification(spec)
+            plugin_klass = Class(klass, spec)
+
+            for plugin in project.plugins:
+                data = plugin.sip_class_generate_impl(sf, plugin_spec,
+                        plugin_klass)
+
+                if data:
+                    if td_plugin_data is None:
+                        td_plugin_data = '&' + data
+                    else:
+                        raise UserException(
+                                "multiple plugins have returned a value from sip_class_type_generate_impl()")
+
+        if td_plugin_data is None:
+            td_plugin_data = 'SIP_NULLPTR'
 
         # The type definition structure itself.
         base_fields = []
@@ -1646,7 +1636,7 @@ static sipPySlotDef slots_{klass_name}[] = {{
         base_fields.append(_get_cached_name_ref(klass.iface_file.cpp_name,
                 as_nr=True))
         base_fields.append('SIP_NULLPTR')
-        base_fields.append(plugin_ref)
+        base_fields.append(td_plugin_data)
 
         container_fields.append(
                 _get_cached_name_ref(klass.py_name, as_nr=True) if klass.real_class is None else '-1')
@@ -2005,6 +1995,24 @@ void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper 
         return 'sipVirtErrorHandlerFunc'
 
     @staticmethod
+    def get_overload_docstring(spec, scope, overload):
+        """ Return an overload's docstring. """
+
+        ds = ''
+
+        if overload.docstring.signature is DocstringSignature.PREPENDED:
+            ds += get_overload_type_hint(spec, scope, overload)
+            ds += '\\n"\n"'
+
+        ds += get_docstring_text(overload.docstring)
+
+        if overload.docstring.signature is DocstringSignature.APPENDED:
+            ds += '\\n"\n"'
+            ds += get_overload_type_hint(spec, scope, overload)
+
+        return ds
+
+    @staticmethod
     def get_raise_unknown_exception():
         """ Return the call to raise an exception about an unknown exception.
         """
@@ -2063,8 +2071,7 @@ void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper 
         return is_used_in_code(code, 'sipIsErr')
 
 
-def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, is_method,
-        overload):
+def _g_arg_parser(sf, spec, scope, py_signature, ctor, overload):
     """ Generate an argument parser call. """
 
     project = spec.bindings.project
@@ -2121,7 +2128,7 @@ def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, is_method,
 
     # Generate the call to the parser function.
     parser_function, args, single_arg = _arg_parser_arguments(sf, scope, ctor,
-            overload, py_signature, signature_nr)
+            overload, py_signature)
 
     # Generate the format string.
     format_s = '"'
@@ -2401,8 +2408,7 @@ def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, is_method,
     sf.write(f'        if ({parser_function}({args}))\n')
 
 
-def _arg_parser_arguments(sf, scope, ctor, overload, py_signature,
-        signature_nr):
+def _arg_parser_arguments(sf, scope, ctor, overload, py_signature):
     """ Generate any code required before an argument parser is invoked and
     return a 3-tuple of the name of the parser function, the parser arguments
     (prior to the format string) and a flag which is set if the signature is
@@ -2516,16 +2522,16 @@ def _g_class_docstring_text(sf, spec, klass):
 
             if ctor.docstring is not None:
                 if ctor.docstring.signature is DocstringSignature.PREPENDED:
-                    _g_ctor_auto_docstring(sf, spec, klass, ctor)
+                    sf.write(get_ctor_type_hint(spec, klass, ctor))
                     sf.write(NEWLINE)
 
                 sf.write(get_docstring_text(ctor.docstring))
 
                 if ctor.docstring.signature is DocstringSignature.APPENDED:
                     sf.write(NEWLINE)
-                    _g_ctor_auto_docstring(sf, spec, klass, ctor)
+                    sf.write(get_ctor_type_hint(spec, klass, ctor))
             elif all_auto or any_implied:
-                _g_ctor_auto_docstring(sf, spec, klass, ctor)
+                sf.write(get_ctor_type_hint(spec, klass, ctor))
 
             is_first = False
 
@@ -2563,13 +2569,6 @@ f'''    {cpp_name} sipCpp = static_cast<{cpp_name}>(sipConvertToEnum(sipSelf, {t
 
     if (PyErr_Occurred())
 ''')
-
-
-def _g_ctor_auto_docstring(sf, spec, klass, ctor):
-    """ Generate the automatic docstring for a ctor. """
-
-    if spec.bindings.docstrings:
-        g_ctor_type_hint(sf, spec, klass, ctor)
 
 
 def _g_enums_defs(sf, spec, needed_enums):
@@ -2899,21 +2898,10 @@ def _g_keyword_list(sf, ctor, overload, py_signature):
     return 'sipKwdList' if is_ka_list else 'SIP_NULLPTR'
 
 
-def _g_method_auto_docstring(sf, spec, overload, is_method):
-    """ Generate the automatic docstring for a function/method. """
-
-    if spec.bindings.docstrings:
-        g_overload_type_hint(sf, spec, overload, is_method=is_method)
-
-
-def _g_method_docstring(sf, spec, member, overloads, is_method=False):
+def _g_method_docstring(sf, spec, scope, member, overloads):
     """ Generate the docstring for all overloads of a function/method.  Return
     True if the docstring was entirely automatically generated.
     """
-
-    NEWLINE = '\\n"\n"'
-
-    auto_docstring = True
 
     # See if all the docstrings are automatically generated.
     all_auto = True
@@ -2926,47 +2914,41 @@ def _g_method_docstring(sf, spec, member, overloads, is_method=False):
             if overload.docstring.signature is not DocstringSignature.DISCARDED:
                 any_implied = True
 
+                # No need to check any further.
+                break
+
     # Generate the docstring.
-    is_first = True
+    ds = ''
 
     for overload in callable_overloads(member, overloads):
-        if not is_first:
-            sf.write(NEWLINE)
+        if ds:
+            ds += '\\n"\n"'
 
             # Insert a blank line if any explicit docstring wants to include a
             # signature.  This maintains compatibility with previous versions.
             if any_implied:
-                sf.write(NEWLINE)
+                ds += '\\n"\n"'
 
         if overload.docstring is not None:
-            if overload.docstring.signature is DocstringSignature.PREPENDED:
-                _g_method_auto_docstring(sf, spec, overload, is_method)
-                sf.write(NEWLINE)
-
-            sf.write(get_docstring_text(overload.docstring))
-
-            if overload.docstring.signature is DocstringSignature.APPENDED:
-                sf.write(NEWLINE)
-                _g_method_auto_docstring(sf, spec, overload, is_method)
-
-            auto_docstring = False
+            ds += v12v13Backend.get_overload_docstring(spec, scope, overload)
         elif all_auto or any_implied:
-            _g_method_auto_docstring(sf, spec, overload, is_method)
+            ds += get_overload_type_hint(spec, scope, overload)
 
-        is_first = False
+    sf.write(ds)
 
-    return auto_docstring
+    return all_auto
 
 
 def _g_module_init_body(sf, spec):
     """ Generate the body of the module initialisation function. """
 
+    project = spec.bindings.project
     module = spec.module
     module_name = module.py_name
 
     sf.write('\n    PyObject *sipModule, *sipModuleDict;\n')
 
-    if spec.bindings.project.sip_module:
+    if project.sip_module:
         sf.write('    PyObject *sip_sipmod, *sip_capiobj;\n\n')
 
     # Generate any pre-initialisation code.
@@ -2986,7 +2968,7 @@ def _g_module_init_body(sf, spec):
     # Generate any initialisation code.
     sf.write_code(module.initialisation_code)
 
-    abi_major, abi_minor = spec.bindings.project.abi_version
+    abi_major, abi_minor = project.abi_version
 
     sf.write(
 f'''    /* Export the module and publish it's API. */
@@ -2997,7 +2979,12 @@ f'''    /* Export the module and publish it's API. */
     }}
 ''')
 
-    _g_pyqt_helper_init(sf, spec)
+    # Invoke any plugins.
+    if project.plugins:
+        plugin_spec = Specification(spec)
+
+        for plugin in project.plugins:
+            plugin.sip_module_generate_initialisation_code(sf, plugin_spec)
 
     sf.write(
 f'''
@@ -3041,31 +3028,6 @@ f'''
 f'''
     sipExportedExceptions_{module_name}[{module.nr_exceptions}] = SIP_NULLPTR;
 ''')
-
-    # Generate the enum and QFlag meta-type registrations for PyQt6.
-    if pyqt6_supported(spec):
-        for enum in spec.enums:
-            if enum.module is not module or enum.fq_cpp_name is None:
-                continue
-
-            if enum.is_protected:
-                continue
-
-            if isinstance(enum.scope, WrappedClass) and enum.scope.pyqt_no_qmetaobject:
-                continue
-
-            sf.write(f'    qMetaTypeId<{enum.fq_cpp_name.as_cpp}>();\n')
-
-        for mapped_type in spec.mapped_types:
-            if mapped_type.iface_file.module is not module:
-                continue
-
-            if mapped_type.pyqt_flags == 0:
-                continue
-
-            mapped_type_type = fmt_argument_as_cpp_type(spec, mapped_type.type,
-                    plain=True, no_derefs=True)
-            sf.write(f'    qMetaTypeId<{mapped_type_type}>();\n')
 
     # Generate any post-initialisation code. */
     sf.write_code(module.postinitialisation_code)
@@ -3119,7 +3081,7 @@ def _g_module_function_table_entries(sf, bindings, module, members):
                 sf.write(f'func_{member.py_name.name}, METH_VARARGS')
 
             docstring_ref = get_optional_ptr(
-                    has_method_docstring(bindings, member, module.overloads),
+                    _has_method_docstring(bindings, member, module.overloads),
                     'doc_' + member.py_name.name)
             sf.write(f', {docstring_ref}}},\n')
 
@@ -3163,7 +3125,7 @@ def _g_py_method_table(sf, bindings, members, scope):
             cast_suffix = ''
             flags = ''
 
-        if has_method_docstring(bindings, member, scope.overloads):
+        if _has_method_docstring(bindings, member, scope.overloads):
             docstring = f'doc_{scope_name}_{py_name.name}'
         else:
             docstring = 'SIP_NULLPTR'
@@ -3409,290 +3371,6 @@ f'''
 ''')
 
     sf.write('}\n')
-
-
-def _g_pyqt_class_plugin(sf, spec, klass):
-    """ Generate any extended class definition data for PyQt.  Return True if
-    anything was generated.
-    """
-
-    is_signals = _g_pyqt_signals_table(sf, spec, klass)
-
-    # The PyQt6 support code doesn't assume the structure is generated.
-    if pyqt6_supported(spec):
-        generated = is_signals
-
-        if klass.is_qobject and not klass.pyqt_no_qmetaobject:
-            generated = True
-
-        if klass.pyqt_interface is not None:
-            generated = True
-
-        if not generated:
-            return False
-
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-
-    pyqt_version = '5' if pyqt5_supported(spec) else '6'
-    sf.write(f'\n\nstatic pyqt{pyqt_version}ClassPluginDef plugin_{klass_name} = {{\n')
-
-    mo_ref = f'&{scoped_class_name(spec, klass)}::staticMetaObject' if klass.is_qobject and not klass.pyqt_no_qmetaobject else 'SIP_NULLPTR'
-    sf.write(f'    {mo_ref},\n')
-
-    if pyqt5_supported(spec):
-        sf.write(f'    {klass.pyqt_flags},\n')
-
-    signals_ref = f'signals_{klass_name}' if is_signals else 'SIP_NULLPTR'
-    sf.write(f'    {signals_ref},\n')
-
-    interface_ref = f'"{klass.pyqt_interface}"' if klass.pyqt_interface is not None else 'SIP_NULLPTR'
-    sf.write(f'    {interface_ref}\n')
-
-    sf.write('};\n')
-
-    return True
-
-
-def _g_pyqt_emitters(sf, spec, klass):
-    """ Generate the PyQt emitters for a class. """
-
-    backend = spec.bindings.project.backend
-
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-    scope_s = scoped_class_name(spec, klass)
-    klass_name_ref = backend.cached_name_ref(klass.py_name)
-
-    for member in klass.members:
-        in_emitter = False
-        signature_nr = 0
-
-        for overload in klass.overloads:
-            if not (overload.common is member and overload.pyqt_method_specifier is PyQtMethodSpecifier.SIGNAL and _has_optional_args(overload)):
-                continue
-
-            if not in_emitter:
-                in_emitter = True
-
-                sf.write('\n\n')
-
-                if not spec.c_bindings:
-                    sf.write(f'extern "C" {{static int emit_{klass_name}_{overload.cpp_name}(void *, PyObject *);}}\n\n')
-
-                sf.write(
-f'''static int emit_{klass_name}_{overload.cpp_name}(void *sipCppV, PyObject *sipArgs)
-{{
-    PyObject *sipParseErr = SIP_NULLPTR;
-    {scope_s} *sipCpp = reinterpret_cast<{scope_s} *>(sipCppV);
-''')
-
-            # Generate the code that parses the args and emits the appropriate
-            # overloaded signal.
-            sf.write('\n    {\n')
-
-            _g_arg_parser(sf, spec, klass, overload.py_signature, signature_nr,
-                    ctor=None, is_method=False, overload=None)
-            signature_nr += 1
-
-            sf.write(
-f'''        {{
-            Py_BEGIN_ALLOW_THREADS
-            sipCpp->{overload.cpp_name}(''')
-
-            g_call_args(sf, spec, overload.cpp_signature,
-                    overload.py_signature)
-
-            sf.write(''');
-            Py_END_ALLOW_THREADS
-
-''')
-
-            g_delete_temporaries(sf, spec, overload.py_signature)
-
-            sf.write(
-'''
-            return 0;
-        }
-    }
-''')
-
-        if in_emitter:
-            member_name_ref = backend.cached_name_ref(member.py_name)
-
-            sf.write(
-f'''
-    sipNoMethod(sipParseErr, {klass_name_ref}, {member_name_ref}, SIP_NULLPTR);
-
-    return -1;
-}}
-''')
-
-
-def _g_pyqt_helper_defns(sf, spec):
-    """ Generate the PyQt helper definitions. """
-
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        module_name = spec.module.py_name
-
-        sf.write(
-f'''
-sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
-sip_qt_metacall_func sip_{module_name}_qt_metacall;
-sip_qt_metacast_func sip_{module_name}_qt_metacast;
-''')
-
-
-def _g_pyqt_helper_init(sf, spec):
-    """ Initialise the PyQt helpers. """
-
-    if pyqt5_supported(spec) or pyqt6_supported(spec):
-        module_name = spec.module.py_name
-
-        sf.write(
-f'''
-
-    sip_{module_name}_qt_metaobject = (sip_qt_metaobject_func)sipImportSymbol("qtcore_qt_metaobject");
-    sip_{module_name}_qt_metacall = (sip_qt_metacall_func)sipImportSymbol("qtcore_qt_metacall");
-    sip_{module_name}_qt_metacast = (sip_qt_metacast_func)sipImportSymbol("qtcore_qt_metacast");
-
-    if (!sip_{module_name}_qt_metacast)
-        Py_FatalError("Unable to import qtcore_qt_metacast");
-''')
-
-
-def _g_pyqt_signal_table_entry(sf, spec, klass, signal, member_nr):
-    """ Generate an entry in the PyQt signal table. """
-
-    klass_name = klass.iface_file.fq_cpp_name.as_word
-
-    stripped = False
-    signature_state = {}
-
-    args = []
-
-    for arg in signal.cpp_signature.args:
-        # Do some signal argument normalisation so that Qt doesn't have to.
-        if arg.is_const and (arg.is_reference or len(arg.derefs) == 0):
-            signature_state[arg] = arg.is_reference
-
-            arg.is_const = False
-            arg.is_reference = False
-
-        if arg.scopes_stripped != 0:
-            strip = arg.scopes_stripped
-            stripped = True
-        else:
-            strip = STRIP_GLOBAL
-
-        args.append(
-                fmt_argument_as_cpp_type(spec, arg, scope=klass.iface_file,
-                        strip=strip))
-
-    # Note the lack of a separating space.
-    args = ','.join(args)
-
-    sf.write(f'    {{"{signal.cpp_name}({args})')
-
-    # If a scope was stripped then append an unstripped version which can
-        # be parsed by PyQt.
-    if stripped:
-        args = []
-
-        for arg in signal.cpp_signature.args:
-            args.append(
-                    fmt_argument_as_cpp_type(spec, arg,
-                            scope=klass.iface_file, strip=STRIP_GLOBAL))
-
-        # Note the lack of a separating space.
-        args = ','.join(args)
-
-        sf.write(f'|({args})')
-
-    sf.write('", ')
-
-    # Restore the signature state.
-    for arg, is_reference in signature_state.items():
-        arg.is_const = True
-        arg.is_reference = is_reference
-
-    if spec.bindings.docstrings:
-        sf.write('"')
-
-        if signal.docstring is not None:
-            if signal.docstring.signature is DocstringSignature.PREPENDED:
-                g_overload_type_hint(sf, spec, signal)
-                sf.write('\\n')
-
-            sf.write(get_docstring_text(signal.docstring))
-
-            if signal.docstring.signature is DocstringSignature.APPENDED:
-                sf.write('\\n')
-                g_overload_type_hint(sf, spec, signal)
-        else:
-            sf.write('\\1')
-            g_overload_type_hint(sf, spec, signal)
-
-        sf.write('", ')
-    else:
-        sf.write('SIP_NULLPTR, ')
-
-    sf.write(f'&methods_{klass_name}[{member_nr}], ' if member_nr >= 0 else 'SIP_NULLPTR, ')
-
-    sf.write(f'emit_{klass_name}_{signal.cpp_name}' if _has_optional_args(signal) else 'SIP_NULLPTR')
-
-    sf.write('},\n')
-
-
-def _g_pyqt_signals_table(sf, spec, klass):
-    """ Generate the PyQt signals table and return True if anything was
-    generated.
-    """
-
-    # Handle the trivial case.
-    if not klass.is_qobject:
-        return False
-
-    is_signals = False
-
-    # The signals must be grouped by name.
-    for member in klass.members:
-        member_nr = member.member_nr
-
-        for overload in klass.overloads:
-            if overload.common is not member or overload.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
-                continue
-
-            if member_nr >= 0:
-                # See if there is a non-signal overload.
-                for non_sig in klass.overloads:
-                    if non_sig is not overload and non_sig.common is member and non_sig.pyqt_method_specifier is not PyQtMethodSpecifier.SIGNAL:
-                        break
-                else:
-                    member_nr = -1
-
-            if not is_signals:
-                is_signals = True
-
-                _g_pyqt_emitters(sf, spec, klass)
-
-                pyqt_version = '5' if pyqt5_supported(spec) else '6'
-                sf.write(
-f'''
-
-/* Define this type's signals. */
-static const pyqt{pyqt_version}QtSignal signals_{klass.iface_file.fq_cpp_name.as_word}[] = {{
-''')
-
-            # We enable a hack that supplies any missing optional arguments.
-            # We only include the version with all arguments and provide an
-            # emitter function which handles the optional arguments.
-            _g_pyqt_signal_table_entry(sf, spec, klass, overload, member_nr)
-
-            member_nr = -1
-
-    if is_signals:
-        sf.write('    {SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR, SIP_NULLPTR}\n};\n')
-
-    return is_signals
 
 
 def _g_sip_api(sf, spec):
@@ -4537,41 +4215,38 @@ def _get_variable_to_cpp(spec, variable, has_state):
 def _has_class_docstring(bindings, klass):
     """ Return True if a class has a docstring. """
 
+    if not bindings.docstrings or not klass.can_create:
+        return False
+
+    if klass.docstring is not None:
+        return True
+
+    # Check for any callable ctor docstrings.
+    for ctor in klass.ctors:
+        if ctor.access_specifier is not AccessSpecifier.PRIVATE:
+            return True
+
+    return False
+
+
+def _has_method_docstring(bindings, member, overloads):
+    """ Return True if a function/method has a docstring. """
+
     auto_docstring = False
 
     # Check for any explicit docstrings and remember if there were any that
     # could be automatically generated.
-    if klass.docstring is not None:
-        return True
-
-    for ctor in klass.ctors:
-        if ctor.access_specifier is AccessSpecifier.PRIVATE:
-            continue
-
-        if ctor.docstring is not None:
+    for overload in callable_overloads(member, overloads):
+        if overload.docstring is not None:
             return True
 
         if bindings.docstrings:
             auto_docstring = True
 
-    if not klass.can_create:
+    if member.no_arg_parser:
         return False
 
     return auto_docstring
-
-
-def _has_optional_args(overload):
-    """ Return True if an overload has optional arguments. """
-
-    args = overload.cpp_signature.args
-
-    return len(args) != 0 and args[-1].default_value is not None
-
-
-def _legacy_qt_support(spec):
-    """ Return True if the module implements legacy Qt support. """
-
-    return spec.pyqt_qobject is not None and spec.pyqt_qobject.iface_file.module is spec.module
 
 
 def _name_cache_as_list(name_cache):

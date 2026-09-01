@@ -25,10 +25,10 @@ The content of this section is defined in `PEP 518
 following::
 
     [build-system]
-    requires = ["sip >=5, <6"]
+    requires = ["sip >=6, <7"]
     build-backend = "sipbuild.api"
 
-This specifies that v5 of the ``sip`` package at PyPI should be used.  You may
+This specifies that v6 of the ``sip`` package at PyPI should be used.  You may
 want to adjust the ``requires`` value if you use features introduced in a later
 version of SIP.
 

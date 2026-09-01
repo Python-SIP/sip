@@ -26,9 +26,6 @@ build systems.
     The version number as it should be displayed to the user.
 
 
-:py:class:`~sipbuild.AbstractBuilder`
--------------------------------------
-
 .. py:class:: AbstractBuilder(project, **kwargs)
 
     An abstract class that defines the API of a builder.
@@ -72,9 +69,6 @@ build systems.
 
         The :py:class:`~sipbuild.Project` object.
 
-
-:py:class:`~sipbuild.AbstractProject`
--------------------------------------
 
 .. py:class:: AbstractProject
 
@@ -131,9 +125,6 @@ build systems.
             ``'install'``, ``'sdist'`` or ``'wheel'``.
         :param str tool_description: is a short description of the tool.
 
-
-:py:class:`~sipbuild.Bindings`
-------------------------------
 
 .. py:class:: Bindings(project, name, **kwargs)
 
@@ -194,9 +185,6 @@ build systems.
         The :py:class:`~sipbuild.Project` object.
 
 
-:py:class:`~sipbuild.Buildable`
--------------------------------
-
 .. py:class:: Buildable(project, name)
 
     Encapsulate a generic buildable.
@@ -228,9 +216,6 @@ build systems.
         The :py:class:`~sipbuild.Project` object.
 
 
-:py:class:`~sipbuild.BuildableBindings`
----------------------------------------
-
 .. py:class:: BuildableBindings(bindings, fq_name, *, uses_limited_api=False, gil_disabled=False)
 
     A :py:class:`~sipbuild.BuildableModule` sub-class that encapsulates the
@@ -248,9 +233,6 @@ build systems.
         The :py:class:`~sipbuild.Bindings` object.
 
 
-:py:class:`~sipbuild.BuildableExecutable`
------------------------------------------
-
 .. py:class:: BuildableExecutable(project, name, target, *, uses_limited_api=False, gil_disabled=False)
 
     A :py:class:`~sipbuild.BuildableFromSources` sub-class that encapsulates an
@@ -265,9 +247,6 @@ build systems.
     :param bool gil_disabled: is ``True`` if the source code supports
         free-threading.
 
-
-:py:class:`~sipbuild.BuildableFromSources`
-------------------------------------------
 
 .. py:class:: BuildableFromSources(project, name, target, *, uses_limited_api=False, gil_disabled=False)
 
@@ -331,9 +310,6 @@ build systems.
         ``True`` if the source code uses only the limited Python API.
 
 
-:py:class:`~sipbuild.BuildableModule`
--------------------------------------
-
 .. py:class:: BuildableModule(project, name, fq_name, *, uses_limited_api=False)
 
     A :py:class:`~sipbuild.BuildableFromSources` sub-class that encapsulates a
@@ -373,9 +349,6 @@ build systems.
 
         ``True`` if the module should be built as a static library.
 
-
-:py:class:`~sipbuild.Builder`
------------------------------
 
 .. py:class:: Builder(project, **kwargs)
 
@@ -443,9 +416,6 @@ build systems.
         :param str wheel_tag: is the wheel tag if a wheel is being created.
 
 
-:py:class:`~sipbuild.DistutilsBuilder`
---------------------------------------
-
 .. py:class:: DistutilsBuilder(project, **kwargs)
 
     A :py:class:`~sipbuild.Builder` that uses the Python :py:mod:`distutils`
@@ -460,9 +430,6 @@ build systems.
         command line option.
 
 
-:py:func:`~sipbuild.handle_exception`
--------------------------------------
-
 .. py:function:: handle_exception(e)
 
     Handle an exception by displaying an appropriate error message to
@@ -470,9 +437,6 @@ build systems.
 
     :param exception e: is the exception to be handled.
 
-
-:py:class:`~sipbuild.Installable`
----------------------------------
 
 .. py:class:: Installable(name, *, target_subdir=None)
 
@@ -516,9 +480,6 @@ build systems.
         The name of the target sub-directory.
 
 
-:py:class:`~sipbuild.Option`
-----------------------------
-
 .. py:class:: Option(name, *, option_type=str, choices=None, default=None, help=None, metavar=None, inverted=False, tools=None)
 
     Encapsulate a configurable option.  Option values may be specified in code,
@@ -543,9 +504,6 @@ build systems.
         command line option.  If it isn't specified then the list of build
         tools is used, i.e. ``['build', 'install', 'wheel']``.
 
-
-:py:class:`~sipbuild.Project`
------------------------------
 
 .. py:class:: Project(**kwargs)
 
@@ -679,6 +637,14 @@ build systems.
             :option:`sip-distinfo --generator-version` command line option.
         :return: the sequence of command line arguments.
 
+    .. py:method:: install_plugin(plugin)
+
+        Install a plugin that uses the :ref:`plugin API <ref-plugin-api>` to
+        implement new SIP functionality.  It should be called from the
+        ``__init__`` method of a :py:class:`~sipbuild.Project` sub-class.
+
+        :param Plugin plugin: is the plugin to install.
+
     .. py:attribute:: installables
 
         The list of :py:class:`~sipbuild.Installable` objects that the project
@@ -756,9 +722,6 @@ build systems.
         buildable or have been explicitly enabled.
 
 
-:py:class:`~sipbuild.PyProject`
--------------------------------
-
 .. py:class:: PyProject
 
     An encapsulation of a parsed :file:`pyproject.toml` file.
@@ -781,9 +744,6 @@ build systems.
         :return: the section.
 
 
-:py:exc:`~sipbuild.PyProjectOptionException`
---------------------------------------------
-
 .. py:exception:: PyProjectOptionException(name, text, *, section_name=None, detail=None)
 
     The exception raised to describe an error with a particular option (i.e.
@@ -796,9 +756,6 @@ build systems.
     :param str detail: is additional detail about the error.
 
 
-:py:exc:`~sipbuild.PyProjectUndefinedOptionException`
------------------------------------------------------
-
 .. py:exception:: PyProjectUndefinedOptionException(name, *, section_name=None)
 
     The exception raised to when a particular option (i.e.  key/value) in a
@@ -808,9 +765,6 @@ build systems.
     :param str section_name: is the name of the section, defaulting to
         ``[tool.sip.project]``.
 
-
-:py:class:`~sipbuild.SetuptoolsBuilder`
----------------------------------------
 
 .. py:class:: SetuptoolsBuilder(project, **kwargs)
 
@@ -825,9 +779,6 @@ build systems.
         overridden in the :file:`pyproject.toml` file or by using a tool
         command line option.
 
-
-:py:exc:`~sipbuild.UserException`
----------------------------------
 
 .. py:exception:: UserException(text, *, detail=None)
 
