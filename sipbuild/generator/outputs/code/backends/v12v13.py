@@ -1155,8 +1155,8 @@ f'''
         abi_major, abi_minor = spec.bindings.project.abi_version
 
         if abi_major >= 13:
+            # ABI v13.9 and later.
             if abi_minor >= 9:
-                # ABI v13.9 and later.
                 sf.write(
 f'''#define sipDeprecated               sipAPI_{module_name}->api_deprecated_13_9
 ''')
@@ -1184,6 +1184,12 @@ f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
 #define sipReleaseTypeUS            sipAPI_{module_name}->api_release_type_us
 ''')
         else:
+            # ABI v12.20 and later
+            if abi_minor >= 20:
+                sf.write(
+f'''#define sipGetFrameRef              sipAPI_{module_name}->api_get_frame_ref
+''')
+
             # ABI v12.16 and later
             if abi_minor >= 16:
                 sf.write(

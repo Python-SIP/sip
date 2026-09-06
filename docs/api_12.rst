@@ -978,7 +978,27 @@ API Reference
 
 .. c:function:: PyFrameObject *sipGetFrame(int depth)
 
+    .. version-deprecated:: 12.20
+        Use :c:func:`sipGetFrameRef` instead.
+
     This retrieves a borrowed reference to the frame object from the current
+    execution stack.
+
+    .. note::
+        On PyPy this will always return NULL.
+
+    :param depth:
+        the depth of frame to retrieve where 0 is the current frame, 1 is the
+        previous frame etc.
+    :return:
+        the opaque frame or NULL if there wasn't one at the given depth.
+
+
+.. c:function:: PyFrameObject *sipGetFrameRef(int depth)
+
+    .. version-added:: 12.20
+
+    This retrieves a new reference to the frame object from the current
     execution stack.
 
     .. note::
@@ -1321,6 +1341,22 @@ API Reference
     .. c:member:: PyObject *pm_self
 
         The bound object.
+
+
+.. c:type:: sipModuleState
+
+    .. version-added:: 12.20
+
+    This is provided as an aid to porting handwritten code to API v14 and is an
+    opaque type.
+
+
+.. c:macro:: sipMS
+
+    .. version-added:: 12.20
+
+    This is provided as an aid to porting handwritten code to API v14 and is
+    defined as ``NULL``.
 
 
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
@@ -1839,6 +1875,14 @@ API Reference
         instance's destructor is always transfered to C++.
 
 
+.. c:macro:: sipType_Invalid
+
+    .. version-added:: 12.20
+
+    This is provided as an aid to porting handwritten code to API v14 and is
+    defined as ``NULL``.
+
+
 .. c:function:: PyTypeObject *sipTypeAsPyTypeObject(const sipTypeDef *td)
 
     This returns a pointer to the Python type object that SIP creates for a
@@ -1870,6 +1914,14 @@ API Reference
     :return:
         the type structure or ``NULL`` if the Python type object doesn't
         correspond to a type structure.
+
+
+.. c:type:: sipTypeID
+
+    .. version-added:: 12.20
+
+    This is provided as an aid to porting handwritten code to API v14 and is
+    defined as a ``const`` pointer to :c:type:`sipTypeDef`.
 
 
 .. c:function:: int sipTypeIsClass(sipTypeDef *td)
@@ -2063,6 +2115,15 @@ API Reference
 Version History
 ---------------
 
+v12.20.0
+........
+
+- Added :c:func:`sipGetFrameRef` to the public API.
+- Deprecated :c:func:`sipGetFrame` in the public API.
+- Added definitions of :c:type:`sipModuleState` and :c:macro:`sipMS` to aid
+  porting to ABI v14.
+
+
 v12.19.0
 ........
 
@@ -2071,8 +2132,8 @@ v12.19.0
   and faster.  The legacy format can still be read and will be converted to the
   new format when written.  Older versions of the sip module can already read
   the new format.
-- Added definitions of ``sipTypeID`` and ``sipType_Invalid`` to aid porting to
-  ABI v14.
+- Added definitions of :c:type:`sipTypeID` and :c:macro:`sipType_Invalid` to
+  aid porting to ABI v14.
 
 
 v12.18.0

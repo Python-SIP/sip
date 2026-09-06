@@ -25,7 +25,7 @@ This also fixes a regression in SIP v6.16.0.  Resolves
 
 ## v6.16.0
 
-### ABI Versions
+### ABI versions
 
 The current ABI versions are now v12.19.0 and v13.12.0 and v14.0.0.
 

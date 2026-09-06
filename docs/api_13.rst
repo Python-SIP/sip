@@ -1300,6 +1300,22 @@ API Reference
         The bound object.
 
 
+.. c:type:: sipModuleState
+
+    .. version-added:: 13.13
+
+    This is provided as an aid to porting handwritten code to API v14 and is an
+    opaque type.
+
+
+.. c:macro:: sipMS
+
+    .. version-added:: 13.13
+
+    This is provided as an aid to porting handwritten code to API v14 and is
+    defined as ``NULL``.
+
+
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
 
     This converts a Python object (usually returned by a method) to C/C++ based
@@ -1800,6 +1816,14 @@ API Reference
         instance's destructor is always transfered to C++.
 
 
+.. c:macro:: sipType_Invalid
+
+    .. version-added:: 13.12
+
+    This is provided as an aid to porting handwritten code to API v14 and is
+    defined as ``NULL``.
+
+
 .. c:function:: PyTypeObject *sipTypeAsPyTypeObject(const sipTypeDef *td)
 
     This returns a pointer to the Python type object that SIP creates for a
@@ -1834,6 +1858,8 @@ API Reference
 
 
 .. c:type:: sipTypeID
+
+    .. version-added:: 13.12
 
     This is provided as an aid to porting handwritten code to API v14 and is
     defined as a ``const`` pointer to :c:type:`sipTypeDef`.
@@ -2034,6 +2060,13 @@ API Reference
 Version History
 ---------------
 
+v13.13.0
+........
+
+- Added definitions of :c:type:`sipModuleState` and :c:macro:`sipMS` to aid
+  porting to ABI v14.
+
+
 v13.12.0
 ........
 
@@ -2042,8 +2075,8 @@ v13.12.0
   and faster.  The legacy format can still be read and will be converted to the
   new format when written.  Older versions of the sip module can already read
   the new format.
-- Added definitions of ``sipTypeID`` and ``sipType_Invalid`` to aid porting to
-  ABI v14.
+- Added definitions of :c:type:`sipTypeID` and :c:macro:`sipType_Invalid` to
+  aid porting to ABI v14.
 
 
 v13.11.1
