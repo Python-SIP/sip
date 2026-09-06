@@ -4028,7 +4028,7 @@ f'''            if ((sipRes = ({result_cpp_type} *)sipMalloc(sizeof ({result_cpp
 ''')
 
     if overload.transfer is Transfer.TRANSFER_THIS:
-        sf.write('\n            sipTransferTo(sipSelf, SIP_NULLPTR);\n')
+        sf.write('\n            sipTransferTo(sipSelf, Py_None);\n')
 
     _gc_ellipsis(sf, overload.py_signature)
 

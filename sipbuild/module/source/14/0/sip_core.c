@@ -1438,7 +1438,12 @@ void sip_transfer_to(sipSipModuleState *sms, PyObject *self,
 
     if (owner == NULL)
     {
-        /* There is no owner. */
+        /*
+         * There is no owner.  This code implements 'sip.transferto(obj, None)'
+         * but it's likely that the correct implementation is that in the
+         * following block.  We choose to leave this as it is to avoid breaking
+         * user code.
+         */
 
         if (sipCppHasRef(sw))
         {
@@ -1458,8 +1463,8 @@ void sip_transfer_to(sipSipModuleState *sms, PyObject *self,
         /*
          * The owner is a C++ instance and not a Python object (ie. there is no
          * parent) so there is an explicit extra reference to keep this Python
-         * object alive.  Note that there is no way to specify this from a .sip
-         * file - it is useful when embedding in C/C++ applications.
+         * object alive.  This code implements the '/TransferThis/' function
+         * annotation.
          */
 
         if (!sipCppHasRef(sw))
