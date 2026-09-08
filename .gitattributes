@@ -1,1 +1,3 @@
+*.sip linguist-detectable=true
+*.sip linguist-language=SIP
 .git_archival.txt export-subst
