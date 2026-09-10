@@ -1110,13 +1110,13 @@ API Reference
         there was an error.
 
 
-.. c:function:: PyObject *sipGetTypeUserObject(sipWrapperType *type)
+.. c:function:: PyObject *sipGetTypeUserObjectRef(sipWrapperType *type)
 
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, contains an optional reference to a Python object
     that can be used for any purpose by handwritten code and will automatically
-    be garbage collected at the appropriate time.  This returns a reference to
-    that object.
+    be garbage collected at the appropriate time.  This returns a new reference
+    to that object.
 
     :param type:
         the wrapped type object.
@@ -1124,12 +1124,12 @@ API Reference
         a new reference to the type-specific user object.
 
 
-.. c:function:: PyObject *sipGetUserObject(sipSimpleWrapper *obj)
+.. c:function:: PyObject *sipGetUserObjectRef(sipSimpleWrapper *obj)
 
     Each wrapped instance contains an optional reference to a Python object
     that can be used for any purpose by handwritten code and will automatically
-    be garbage collected at the appropriate time.  This returns a reference to
-    that object.
+    be garbage collected at the appropriate time.  This returns a new reference
+    to that object.
 
     :param obj:
         the wrapped instance.
@@ -1692,7 +1692,8 @@ API Reference
     Each generated type corresponding to a wrapped C/C++ type, or a user
     sub-class of such a type, can contain a reference to a single Python object
     that can be used for any purpose by handwritten code and will automatically
-    be garbage collected at the appropriate time.  This sets that object.
+    be garbage collected at the appropriate time.  This sets that object using
+    a new reference and replacing any existing object.
 
     :param type:
         the type object.
@@ -1704,7 +1705,8 @@ API Reference
 
     Each wrapped object can contain a reference to a single Python object that
     can be used for any purpose by handwritten code and will automatically be
-    garbage collected at the appropriate time.  This sets that object.
+    garbage collected at the appropriate time.  This sets that object using a
+    new reference and replacing any existing object.
 
     :param obj:
         the wrapped object.

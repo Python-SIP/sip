@@ -1007,7 +1007,7 @@ struct _sipABISpec {
             const char *format, Py_ssize_t len, int flags);
     PyInterpreterView *(*api_get_interpreter_view)(sipModuleState *ms);
     void (*api_set_type_user_object)(sipWrapperType *wt, PyObject *data);
-    PyObject *(*api_get_type_user_object)(sipWrapperType *wt);
+    PyObject *(*api_get_type_user_object_ref)(sipWrapperType *wt);
     int (*api_get_method)(PyObject *, sipMethodDef *);
     PyObject *(*api_from_method)(const sipMethodDef *);
     int (*api_get_c_function)(PyObject *, sipCFunctionDef *);
@@ -1021,7 +1021,7 @@ struct _sipABISpec {
     PyObject *(*api_unicode_new)(Py_ssize_t, unsigned, int *, void **);
     void (*api_unicode_write)(int, void *, int, unsigned);
     void *(*api_unicode_data)(PyObject *, int *, Py_ssize_t *);
-    PyObject *(*api_get_user_object)(sipSimpleWrapper *sw);
+    PyObject *(*api_get_user_object_ref)(sipSimpleWrapper *sw);
     void (*api_set_user_object)(sipSimpleWrapper *sw, PyObject *user);
     void (*api_instance_destroyed)(sipModuleState *ms,
             sipSimpleWrapper **self_p);

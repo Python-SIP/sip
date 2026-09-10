@@ -990,8 +990,8 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipGetPyObjectRef(...)          sipABI_{module_name}->api_get_py_object_ref(sipMS, __VA_ARGS__)
 #define sipGetPyTypeRef(...)            sipABI_{module_name}->api_get_py_type_ref(sipMS, __VA_ARGS__)
 #define sipGetState                     sipABI_{module_name}->api_get_state
-#define sipGetTypeUserObject            sipABI_{module_name}->api_get_type_user_object
-#define sipGetUserObject                sipABI_{module_name}->api_get_user_object
+#define sipGetTypeUserObjectRef         sipABI_{module_name}->api_get_type_user_object_ref
+#define sipGetUserObjectRef             sipABI_{module_name}->api_get_user_object_ref
 #define sipIsUserType(...)              sipABI_{module_name}->api_is_user_type
 #define sipGetSimpleWrapperType(...)    sipABI_{module_name}->api_get_simple_wrapper_type(sipMS, __VA_ARGS__)
 #define sipGetVoidPtrType(...)          sipABI_{module_name}->api_get_void_ptr_type(sipMS, __VA_ARGS__)

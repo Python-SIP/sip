@@ -51,8 +51,8 @@ static PyTypeObject *sip_api_get_py_type_ref(sipModuleState *ms,
         sipTypeID type_id);
 static PyTypeObject *sip_api_get_simple_wrapper_type(sipModuleState *ms);
 static int sip_api_get_state(PyObject *transferObj);
-static PyObject *sip_api_get_type_user_object(sipWrapperType *wt);
-static PyObject *sip_api_get_user_object(sipSimpleWrapper *sw);
+static PyObject *sip_api_get_type_user_object_ref(sipWrapperType *wt);
+static PyObject *sip_api_get_user_object_ref(sipSimpleWrapper *sw);
 static PyTypeObject *sip_api_get_void_ptr_type(sipModuleState *ms);
 static PyTypeObject *sip_api_get_wrapper_type(sipModuleState *ms);
 static PyTypeObject *sip_api_get_wrapper_type_type(sipModuleState *ms);
@@ -145,7 +145,7 @@ const sipABISpec sip_abi = {
     sip_api_convert_to_array,
     sip_api_get_interpreter_view,
     sip_api_set_type_user_object,
-    sip_api_get_type_user_object,
+    sip_api_get_type_user_object_ref,
     sip_api_get_method,
     sip_api_from_method,
     sip_api_get_c_function,
@@ -159,7 +159,7 @@ const sipABISpec sip_abi = {
     sip_api_unicode_new,
     sip_api_unicode_write,
     sip_api_unicode_data,
-    sip_api_get_user_object,
+    sip_api_get_user_object_ref,
     sip_api_set_user_object,
     sip_api_instance_destroyed,
     sip_api_is_owned_by_python,
@@ -1642,30 +1642,23 @@ static int sip_api_is_derived_class(sipSimpleWrapper *sw)
 
 
 /*
- * Return a borrowed reference to the user defined object from a wrapped
+ * Return a new reference to the optional user defined object from a wrapped
  * instance.
  */
-static PyObject *sip_api_get_user_object(sipSimpleWrapper *sw)
+static PyObject *sip_api_get_user_object_ref(sipSimpleWrapper *sw)
 {
-    return sw->user;
+    return Py_XNewRef(sw->user);
 }
 
 
 /*
- * Set the user defined object in a wrapped instance.  This steals a reference
- * to the object.
+ * Set the user defined object in a wrapped instance.
  */
 static void sip_api_set_user_object(sipSimpleWrapper *sw, PyObject *user)
 {
-    /*
-     * Note that there are multiple issues with the current implementation:
-     * - the getter should return a strong reference
-     * - only one object can be stored (there may be use cases where different
-     *   modules each want to set an object).
-     * We choose not to change the implementation for the moment and wait until
-     * we have specific use cases to inform the design.
-     */
-    sw->user = user;
+    Py_BEGIN_CRITICAL_SECTION(wt);
+    Py_XSETREF(sw->user, Py_XNewRef(user));
+    Py_END_CRITICAL_SECTION();
 }
 
 
@@ -2395,11 +2388,6 @@ void *sip_get_final_address(sipSipModuleState *sms, PyTypeObject *py_type,
  */
 static void sip_api_set_type_user_object(sipWrapperType *wt, PyObject *data)
 {
-    /*
-     * Note that there are similar issues to those with the user object stored
-     * in a wrapped instance.  Likewise we choose to wait for specific use
-     * cases to inform a better implementation.
-     */
     Py_BEGIN_CRITICAL_SECTION(wt);
     Py_XSETREF(wt->user_data, Py_XNewRef(data));
     Py_END_CRITICAL_SECTION();
@@ -2409,7 +2397,7 @@ static void sip_api_set_type_user_object(sipWrapperType *wt, PyObject *data)
 /*
  * Get the user-specific type data.
  */
-static PyObject *sip_api_get_type_user_object(sipWrapperType *wt)
+static PyObject *sip_api_get_type_user_object_ref(sipWrapperType *wt)
 {
     return Py_XNewRef(wt->user_data);
 }
