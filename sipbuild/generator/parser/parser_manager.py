@@ -1956,7 +1956,7 @@ class ParserManager:
                     # The major number is supported.
                     if minor is not None and min_minor is not None and minor < min_minor:
                         # We have specified a minor number which is too old.
-                        raise UserException(f"ABI v{major.minor} is being targeted but the {spec.module.fq_py_name.name} module requires v{min_major}.{min_minor}")
+                        raise UserException(f"ABI v{major}.{minor} is being targeted but the {spec.module.fq_py_name.name} module requires v{min_major}.{min_minor}")
 
                     break
             else:

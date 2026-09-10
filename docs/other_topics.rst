@@ -204,11 +204,6 @@ handwritten code handles the type conversion for.  It doesn't matter which
 one, but a sensible choice would be the one at the root of that class
 hierarchy in the module.
 
-.. note::
-
-    In a future version of SIP this use of the directive will be deprecated and
-    it will instead be placed outside any class specification.
-
 If a class hierarchy extends over a number of modules then this directive
 should be used in each of those modules to handle the part of the hierarchy
 defined in that module.  SIP will ensure that the different pieces of code are

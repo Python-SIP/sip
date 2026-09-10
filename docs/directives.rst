@@ -325,13 +325,13 @@ void \*\*sipCppRet
     C++ address of the instance when cast (usually using ``static_cast``)
     from the super-class to the sub-class.
 
-const sipTypeDef \*sipType
-    The handwritten code must set this to the SIP generated type structure
+sipTypeID sipType
+    The handwritten code must set this to the SIP generated type specification
     that corresponds to the class instance.  (The type structure for class
     ``Klass`` is ``sipType_Klass``.)  If the RTTI of the class instance isn't
-    recognised then ``sipType`` must be set to ``NULL``.  The code doesn't
-    have to recognise the exact class, only the most specific sub-class that
-    it can.
+    recognised then ``sipType`` must be set to ``sipType_Invalid``.  The code
+    doesn't have to recognise the exact class, only the most specific sub-class
+    that it can.
 
     The code may also set the value to a type that is apparently unrelated to
     the requested type.  If this happens then the whole conversion process is
@@ -364,7 +364,7 @@ class hierarchy in PyQt5::
 
         default:
             // We don't recognise the type.
-            sipType = NULL;
+            sipType = sipType_Invalid;
         }
     %End
 
