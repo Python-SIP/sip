@@ -190,6 +190,7 @@ const sipABISpec sip_abi = {
     sip_api_get_frame_ref,
     sip_api_get_module_user_state,
     sip_api_set_module_user_state,
+    sip_api_get_imported_module_state,
     /*
      * The following are not part of the public ABI.
      */

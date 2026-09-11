@@ -985,6 +985,7 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipForceConvertToTypeUS(...)    sipABI_{module_name}->api_force_convert_to_type_us(sipMS, __VA_ARGS__)
 #define sipFree                         sipABI_{module_name}->api_free
 #define sipGetAddress                   sipABI_{module_name}->api_get_address
+#define sipGetImportedModuleState(...)  sipABI_{module_name}->api_get_imported_module_state(sipMS, __VA_ARGS__)
 #define sipGetInterpreterView()         sipABI_{module_name}->api_get_interpreter_view(sipMS)
 #define sipGetModuleUserState()         sipABI_{module_name}->api_get_module_user_state(sipMS)
 #define sipGetPyObjectRef(...)          sipABI_{module_name}->api_get_py_object_ref(sipMS, __VA_ARGS__)

@@ -1054,9 +1054,11 @@ struct _sipABISpec {
     PyFrameObject *(*api_get_frame_ref)(int);
     void *(*api_get_module_user_state)(sipModuleState *ms);
     void (*api_set_module_user_state)(sipModuleState *ms, void *user_state,
-        sipModuleUserStateClearFunc user_state_clear,
-        sipModuleUserStateFreeFunc user_state_free,
-        sipModuleUserStateTraverseFunc user_state_traverse);
+            sipModuleUserStateClearFunc user_state_clear,
+            sipModuleUserStateFreeFunc user_state_free,
+            sipModuleUserStateTraverseFunc user_state_traverse);
+    sipModuleState *(*api_get_imported_module_state)(sipModuleState *ms,
+            const char *name);
 
     /*
      * The following are not part of the public API.

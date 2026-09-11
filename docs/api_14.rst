@@ -1021,6 +1021,18 @@ API Reference
         the current interpreter view.
 
 
+.. c:function:: sipModuleState *sipGetImportedModuleState(const char *name)
+
+    This returns a pointer to the opaque module state of an imported module
+    (i.e. one specified using the :directive:`%Import` directive).
+
+    :param name:
+        the name of the imported module.
+    :return:
+        the module state or ``NULL`` is returned (and an exception raised) if
+        the name is not known.
+
+
 .. c:function:: int sipGetMethod(PyObject *obj, sipMethodDef *method)
 
     This checks to see if an object is a Python method object and, if so,

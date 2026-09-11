@@ -15,6 +15,7 @@
 
 #include "sip.h"
 #include "sip_core.h"
+#include "sip_wrapped_module.h"
 
 
 /*
@@ -274,6 +275,25 @@ PyFrameObject *sip_api_get_frame_ref(int depth)
 
     return frame;
 #endif
+}
+
+
+/*
+ * Return the module state of an imported module.
+ */
+sipModuleState *sip_api_get_imported_module_state(sipModuleState *ms,
+        const char *name)
+{
+    const sipModuleSpec *m_spec = ms->module_spec;
+    sipModuleNr i;
+
+    for (i = 0; i < m_spec->nr_import_specs; i++)
+        if (strcmp(m_spec->import_specs[i].name, name) == 0)
+            return sip_get_module_state(ms->imported_modules[i].module);
+
+    PyErr_Format(PyExc_NameError, "unknown module '%s'", name);
+
+    return NULL;
 }
 
 

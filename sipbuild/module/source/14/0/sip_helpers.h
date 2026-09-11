@@ -31,6 +31,8 @@ int sip_api_get_c_function(PyObject *obj, sipCFunctionDef *c_function);
 int sip_api_get_date(PyObject *obj, sipDateDef *date);
 int sip_api_get_date_time(PyObject *obj, sipDateDef *date, sipTimeDef *time);
 PyFrameObject *sip_api_get_frame_ref(int depth);
+sipModuleState *sip_api_get_imported_module_state(sipModuleState *ms,
+        const char *name);
 int sip_api_get_method(PyObject *obj, sipMethodDef *method);
 int sip_api_get_time(PyObject *obj, sipTimeDef *time);
 void sip_api_object_dump(PyObject *obj);
