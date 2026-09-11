@@ -1465,15 +1465,12 @@ def _resolve_func_types(spec, mod, scope, overload, error_log, final_checks):
     # These slots must return Py_hash_t.
     if is_hash_return_slot(overload.common.py_slot):
         if abi_major >= 13:
-            required_type = ArgumentType.HASH
-            required_type_name = 'Py_hash_t'
+            required_types = (ArgumentType.HASH, )
         else:
-            required_type = ArgumentType.LONG
-            required_type_name = 'long'
+            required_types = (ArgumentType.HASH, ArgumentType.LONG)
 
-        if result.type is not required_type or len(result.derefs) != 0 or result.is_reference or result.is_const:
-            _log_overload_error(error_log,
-                    "must return a {0}".format(required_type_name), overload,
+        if result.type not in required_types or len(result.derefs) != 0 or result.is_reference or result.is_const:
+            _log_overload_error(error_log, "must return a Py_hash_t", overload,
                     scope=scope)
 
 
