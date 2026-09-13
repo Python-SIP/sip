@@ -1351,14 +1351,6 @@ API Reference
     opaque type.
 
 
-.. c:macro:: sipMS
-
-    .. version-added:: 12.20
-
-    This is provided as an aid to porting handwritten code to API v14 and is
-    defined as ``NULL``.
-
-
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
 
     This converts a Python object (usually returned by a method) to C/C++ based
@@ -1576,13 +1568,12 @@ API Reference
 
 .. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
 
-    This provides access to a Python type object's ``tp_name`` field and is
-    typically used when the limited Python API is enabled.
+    This returns the unqualified name of a Python type.
 
     :param py_type:
         the type object.
     :return:
-        the value of the type object's ``tp_name`` field.
+        the unqualified name.
 
 
 .. c:function:: int sipRegisterAttributeGetter(const sipTypeDef *td, sipAttrGetterFunc getter)
@@ -2120,8 +2111,7 @@ v12.20.0
 
 - Added :c:func:`sipGetFrameRef` to the public API.
 - Deprecated :c:func:`sipGetFrame` in the public API.
-- Added definitions of :c:type:`sipModuleState` and :c:macro:`sipMS` to aid
-  porting to ABI v14.
+- Added :c:type:`sipModuleState` to aid porting to ABI v14.
 
 
 v12.19.0

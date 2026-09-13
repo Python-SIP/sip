@@ -435,19 +435,20 @@ sip_qt_metacast_func sip_{module_name}_qt_metacast;
             return
 
         module_name = spec.module_name
+        type_spec_type = 'sipTypeID' if spec.abi_major_version >= 14 else 'const sipTypeDef *'
 
         writer.write(
 f'''
 #include <QMetaType>
 #include <QThread>
 
-typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, sipTypeDef *);
+typedef const QMetaObject *(*sip_qt_metaobject_func)(sipSimpleWrapper *, {type_spec_type});
 extern sip_qt_metaobject_func sip_{module_name}_qt_metaobject;
 
-typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, sipTypeDef *, QMetaObject::Call, int, void **);
+typedef int (*sip_qt_metacall_func)(sipSimpleWrapper *, {type_spec_type}, QMetaObject::Call, int, void **);
 extern sip_qt_metacall_func sip_{module_name}_qt_metacall;
 
-typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, const sipTypeDef *, const char *, void **);
+typedef bool (*sip_qt_metacast_func)(sipSimpleWrapper *, {type_spec_type}, const char *, void **);
 extern sip_qt_metacast_func sip_{module_name}_qt_metacast;
 ''')
 

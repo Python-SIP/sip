@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 def test_wrapped_module_name(module):
@@ -33,3 +33,6 @@ def test_wrappertype(module, abi_version):
     assert module.wrappertype.__module__ == module_name
     assert module.wrappertype.__name__ == 'wrappertype'
     assert module.wrappertype.__qualname__ == 'wrappertype'
+
+def test_py_type_name(module):
+    assert module.get_py_type_name(module.Klass.Nested) == b'Nested'

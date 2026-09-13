@@ -11,6 +11,8 @@
 #include <Python.h>
 #include <datetime.h>
 
+#include <string.h>
+
 #include "sip_helpers.h"
 
 #include "sip.h"
@@ -339,6 +341,18 @@ int sip_api_get_time(PyObject *obj, sipTimeDef *time)
     }
 
     return 1;
+}
+
+
+/*
+ * Get the unqualified name of a Python type.
+ */
+const char *sip_api_py_type_name(const PyTypeObject *py_type)
+{
+    /* We allow any Python type, not just wrapper types. */
+    const char *name = strrchr(py_type->tp_name, '.');
+
+    return name != NULL ? name + 1 : py_type->tp_name;
 }
 
 

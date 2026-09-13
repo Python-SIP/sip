@@ -12631,7 +12631,7 @@ static PyObject *sip_api_py_type_dict_ref(PyTypeObject *py_type)
 
 
 /*
- * Get the name of a Python type (on behalf of the limited API).
+ * Get the unqualified name of a Python type.
  */
 static const char *sip_api_py_type_name(const PyTypeObject *py_type)
 {

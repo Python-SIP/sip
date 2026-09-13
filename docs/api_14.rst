@@ -1597,6 +1597,16 @@ API Reference
         a new reference to type object's read-only type dictionary.
 
 
+.. c:function:: const char *sipPyTypeName(const PyTypeObject *py_type)
+
+    This returns the unqualified name of a Python type.
+
+    :param py_type:
+        the type object.
+    :return:
+        the unqualified name.
+
+
 .. c:function:: int sipRegisterEventHandlers(const sipEventHandlerSpec *const handler_specs)
 
     This registers a number of event handlers which will be called whenever the

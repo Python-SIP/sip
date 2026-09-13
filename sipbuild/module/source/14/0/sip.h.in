@@ -1059,6 +1059,7 @@ struct _sipABISpec {
             sipModuleUserStateTraverseFunc user_state_traverse);
     sipModuleState *(*api_get_imported_module_state)(sipModuleState *ms,
             const char *name);
+    const char *(*api_py_type_name)(const PyTypeObject *py_type);
 
     /*
      * The following are not part of the public API.

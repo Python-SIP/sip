@@ -27,3 +27,9 @@ public:
     {
     };
 };
+
+
+const char *get_py_type_name(SIP_PYTYPE py_type);
+%MethodCode
+    sipRes = sipPyTypeName((PyTypeObject *)a0);
+%End

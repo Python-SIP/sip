@@ -768,7 +768,7 @@ extern const sipMappedTypeSpec sipTypeSpec_{module_name}_{mapped_type_name};
         # Invoke any plugins.
         if project.plugins:
             plugin_spec = Specification(spec)
-            plugin_mapped_type = PluginMappedType(mapped_type)
+            plugin_mapped_type = PluginMappedType(mapped_type, spec)
 
             for plugin in project.plugins:
                 plugin.sip_mapped_type_generate_impl(sf, plugin_spec,
@@ -1014,6 +1014,7 @@ extern const sipABISpec *sipABI_{module_name};
 #define sipLong_AsSizeT                 sipABI_{module_name}->api_long_as_size_t
 #define sipMalloc                       sipABI_{module_name}->api_malloc
 #define sipParseResult(...)             sipABI_{module_name}->api_parse_result(sipMS, __VA_ARGS__)
+#define sipPyTypeName                   sipABI_{module_name}->api_py_type_name
 #define sipRaiseTypeException(...)      sipABI_{module_name}->api_raise_type_exception(sipMS, __VA_ARGS__)
 #define sipRegisterEventHandlers(...)   sipABI_{module_name}->api_register_event_handlers(sipMS, __VA_ARGS__)
 #define sipRegisterPyType(...)          sipABI_{module_name}->api_register_py_type(sipMS, __VA_ARGS__)
@@ -1956,7 +1957,7 @@ def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, overload):
     else:
         args.append('&sipSelf')
 
-        if scope is None or overload.is_static:
+        if scope is None or overload is None or overload.is_static:
             args.append('sipType_Invalid')
             args.append('SIP_NULLPTR')
         else:
@@ -2359,7 +2360,7 @@ def _g_type_hints_docstring(sf, spec, scope, member, overloads, callable_name):
 
             sf.write('},\n')
 
-        sf.write('    {0}\n};\n\n')
+        sf.write('    {NULL, NULL}\n};\n\n')
 
 
 def _g_variables_table(sf, spec, attrs, static_variables, scope=None):

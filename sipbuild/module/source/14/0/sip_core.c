@@ -191,6 +191,7 @@ const sipABISpec sip_abi = {
     sip_api_get_module_user_state,
     sip_api_set_module_user_state,
     sip_api_get_imported_module_state,
+    sip_api_py_type_name,
     /*
      * The following are not part of the public ABI.
      */
@@ -752,13 +753,8 @@ int sip_add_attrs_to_type(sipModuleState *ms, PyTypeObject *py_type,
  */
 PyObject *sip_get_type_name(const sipTypeSpec *ts)
 {
-    const char *name = strrchr(ts->tp_name, '.');
-    if (name != NULL)
-        name++;
-    else
-        name = ts->tp_name;
-
-    return PyUnicode_FromString(name);
+    /* The tp_name will always contain a dot. */
+    return PyUnicode_FromString(strrchr(ts->tp_name, '.') + 1);
 }
 
 

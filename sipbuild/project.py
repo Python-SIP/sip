@@ -982,34 +982,34 @@ class Project(AbstractProject, Configurable):
         if self._limited_abi_version is not None:
             return self._limited_abi_version
 
-        self._limited_abi_version = self.get_limited_abi_version()
+        version = self.get_limited_abi_version()
 
-        if self._limited_abi_version is not None:
-            return self._limited_abi_version
+        if version is None:
+            try:
+                # The version of the ABI to use is taken from the project
+                # metadata.
+                spec_set = packaging.specifiers.SpecifierSet(
+                        self.metadata['requires-python'])
 
-        try:
-            # The version of the ABI to use is taken from the project metadata.
-            spec_set = packaging.specifiers.SpecifierSet(
-                    self.metadata['requires-python'])
+                # Find the oldest Python version that satisfies the
+                # requirement.  The 100 is an arbitrary upper bound.
+                min_req_version = next(
+                        spec_set.filter((f'3.{v}' for v in range(100))))
 
-            # Find the oldest Python version that satisfies the requirement.
-            # The 100 is an arbitrary upper bound.
-            min_req_version = next(
-                    spec_set.filter((f'3.{v}' for v in range(100))))
-
-            min_req_version = packaging.version.parse(min_req_version)
-            minor = min_req_version.minor
-            micro = min_req_version.micro
-
-            # ABI v14 requires Python v3.15 as a minimum.
-            if self.abi_version[0] >= 14 and minor < 15:
-                minor = 15
+                min_req_version = packaging.version.parse(min_req_version)
+                minor = min_req_version.minor
+                micro = min_req_version.micro
+            except Exception as e:
+                # Default to the oldest version of Python we support.
+                minor = OLDEST_SUPPORTED_MINOR
                 micro = 0
-        except Exception as e:
-            # Default to the oldest version of Python we support.
-            minor = OLDEST_SUPPORTED_MINOR
-            micro = 0
 
-        self._limited_abi_version = (3, minor, micro)
+            version = (3, minor, micro)
+
+        # ABI v14 requires Python v3.15 as a minimum.
+        if self.abi_version[0] >= 14 and version < (3, 15, 0):
+            version = (3, 15, 0)
+
+        self._limited_abi_version = version
 
         return self._limited_abi_version

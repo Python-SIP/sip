@@ -46,7 +46,7 @@ extern "C" {
  * The change history of the ABI.
  *
  * v13.13
- *  - Added definitions of sipMS and sipModuleState to aid porting to ABI v14.
+ *  - Added definitions of sipModuleState to aid porting to ABI v14.
  *
  * v13.12
  *  - Added support for Python v3.15.
@@ -214,7 +214,6 @@ typedef struct _sipWrapper sipWrapper;
 /*
  * The following make it easier to write code that supports ABI v14.
  */
-#define sipMS           NULL
 #define sipType_Invalid NULL
 struct sipModuleState;
 typedef const sipTypeDef *sipTypeID;
