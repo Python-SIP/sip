@@ -1060,6 +1060,10 @@ struct _sipABISpec {
     sipModuleState *(*api_get_imported_module_state)(sipModuleState *ms,
             const char *name);
     const char *(*api_py_type_name)(const PyTypeObject *py_type);
+    sipTypeID (*api_type_from_py_type_object)(sipModuleState *ms,
+            PyTypeObject *py_type);
+    sipTypeID (*api_make_absolute)(sipModuleState *ms, sipTypeID type_id);
+    const char *(*api_type_name)(sipModuleState *ms, sipTypeID type_id);
 
     /*
      * The following are not part of the public API.
@@ -1154,8 +1158,9 @@ struct _sipABISpec {
  * defined (the defining module).  For example a class A.K (ie. class K defined
  * in module A) with have different type IDs when referenced from module A and
  * module B.  However the symbolic name of these different type IDs will be the
- * same.  Absolute type IDs are created dynamically by sipFindType() and their
- * values do not need a module context to be interpreted.
+ * same.  Absolute type IDs are created dynamically by sipFindType() and
+ * sipTypeFromPyTypeObject() and their values do not need the defining module
+ * to be interpreted.
  *
  * The most significant 3 bits of the value specify the general type, either a
  * type that has an immutable type specification (eg. a class) or a POD type.
@@ -1182,9 +1187,10 @@ struct _sipABISpec {
 #define SIP_TYPE_ID_TYPE_MASK           0xe0000000
 #define SIP_TYPE_ID_TYPE_POD            0x00000000      /* This must be 0. */
 #define SIP_TYPE_ID_TYPE_CLASS          0x20000000
-#define SIP_TYPE_ID_TYPE_MAPPED         0x40000000
-#define SIP_TYPE_ID_TYPE_ENUM           0x60000000
-#define SIP_TYPE_ID_TYPE_EXCEPTION      0x80000000
+#define SIP_TYPE_ID_TYPE_NAMESPACE      0x40000000
+#define SIP_TYPE_ID_TYPE_MAPPED         0x60000000
+#define SIP_TYPE_ID_TYPE_ENUM           0x80000000
+#define SIP_TYPE_ID_TYPE_EXCEPTION      0xa0000000
 
 /* The flags part of a type ID. */
 #define SIP_TYPE_ID_SENTINEL            0x01000000
@@ -1339,6 +1345,7 @@ struct _sipABISpec {
 #define sipTypeIsClass(id)      (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_CLASS)
 #define sipTypeIsEnum(id)       (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_ENUM)
 #define sipTypeIsMapped(id)     (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_MAPPED)
+#define sipTypeIsNamespace(id)  (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_NAMESPACE)
 #if defined(SIP_CONFIGURATION_CustomEnums)
 #define sipTypeIsScopedEnum(id) (((id) & SIP_TYPE_ID_TYPE_MASK) == SIP_TYPE_ID_TYPE_SCOPED_ENUM)
 #endif

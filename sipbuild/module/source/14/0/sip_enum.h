@@ -33,6 +33,9 @@ typedef struct {
 
     /* The enum specification. */
     const sipEnumTypeSpec *spec;
+
+    /* The absolute type ID. */
+    sipTypeID type_id;
 } sipEnumTypeImpl;
 #endif
 

@@ -192,6 +192,9 @@ const sipABISpec sip_abi = {
     sip_api_set_module_user_state,
     sip_api_get_imported_module_state,
     sip_api_py_type_name,
+    sip_api_type_from_py_type_object,
+    sip_api_make_absolute,
+    sip_api_type_name,
     /*
      * The following are not part of the public ABI.
      */
@@ -354,7 +357,7 @@ static int sip_api_convert_to_enum(sipModuleState *ms, PyObject *obj,
 static int sip_api_register_py_type(sipModuleState *ms, PyTypeObject *type)
 {
     return sip_append_py_object_to_list(ms->sip_module_state,
-            &ms->registered_py_types, (PyObject *)type);
+            &ms->registered_py_types, (PyObject *)type) < 0 ? -1 : 0;
 }
 
 
@@ -939,12 +942,14 @@ static PyTypeObject *create_class_type(sipModuleState *ms, sipTypeNr type_nr,
     sipSipModuleState *sms = ms->sip_module_state;
 
     PyObject *bases;
+    sipTypeID type_type = sipTypeSpecIsNamespace(&cts->base) ?
+            SIP_TYPE_ID_TYPE_NAMESPACE : SIP_TYPE_ID_TYPE_CLASS;
 
     if (cts->supers == NULL)
     {
         if (cts->supertype == NULL)
         {
-            bases = sipTypeSpecIsNamespace(&cts->base) ?
+            bases = (type_type == SIP_TYPE_ID_TYPE_NAMESPACE) ?
                 Py_NewRef(sms->simple_wrapper_type) :
                 Py_NewRef(sms->wrapper_type);
         }
@@ -1048,7 +1053,7 @@ static PyTypeObject *create_class_type(sipModuleState *ms, sipTypeNr type_nr,
         metatype = (PyTypeObject *)Py_NewRef(Py_TYPE(first));
     }
 
-    sipTypeID type_id = SIP_TYPE_ID_TYPE_CLASS | SIP_TYPE_ID_LOCAL_MODULE | type_nr;
+    sipTypeID type_id = SIP_TYPE_ID_ABSOLUTE | type_type | (ms->module_nr << 16) | type_nr;
 
     PyTypeObject *py_type = create_container_type(ms, type_id, &cts->base,
             cts->init_slot, cts->getbuffer, cts->releasebuffer, cts->attrs,
@@ -1238,7 +1243,7 @@ static PyTypeObject *create_mapped_type(sipModuleState *ms, sipTypeNr type_nr,
     sipSipModuleState *sms = ms->sip_module_state;
 
     return create_container_type(ms,
-            SIP_TYPE_ID_TYPE_MAPPED | SIP_TYPE_ID_LOCAL_MODULE | type_nr,
+            SIP_TYPE_ID_ABSOLUTE | SIP_TYPE_ID_TYPE_MAPPED | (ms->module_nr << 16) | type_nr,
             &mts->base, NULL, NULL, NULL, mts->attrs,
             (PyObject *)sms->simple_wrapper_type, sms->wrapper_type_type);
 }
@@ -1718,7 +1723,8 @@ static sipTypeID sip_api_find_type(sipModuleState *ms, const char *type)
         if (mod == NULL)
             continue;
 
-        const sipModuleSpec *m_spec = sip_get_module_state(mod)->module_spec;
+        sipModuleState *m_state = sip_get_module_state(mod);
+        const sipModuleSpec *m_spec = m_state->module_spec;
 
         /* Everything from here uses const specifications. */
         Py_DECREF(mod);
@@ -1753,7 +1759,7 @@ static sipTypeID sip_api_find_type(sipModuleState *ms, const char *type)
              * that a type that this module knows nothing about can still be
              * referenced.
              */
-            return type_type | SIP_TYPE_ID_ABSOLUTE | (sipTypeID)(i << 16) | type_nr;
+            return SIP_TYPE_ID_ABSOLUTE | type_type | (m_state->module_nr << 16) | type_nr;
         }
     }
 
@@ -1861,7 +1867,7 @@ static void *sip_api_cast_to_target_type(sipModuleState *ms, sipTypeID type_id,
 static PyObject *resolve_type_id(sipModuleState *ms, sipTypeID type_id,
         sipTypeNr *def_type_nr_p)
 {
-    if (!sipTypeIsClass(type_id) && !sipTypeIsMapped(type_id) && !sipTypeIsEnum(type_id) && !sipTypeIsException(type_id))
+    if (!sipTypeIsClass(type_id) && !sipTypeIsNamespace(type_id) && !sipTypeIsMapped(type_id) && !sipTypeIsEnum(type_id) && !sipTypeIsException(type_id))
     {
         PyErr_Format(PyExc_TypeError,
                 "type ID %0x does not refer to a wrapped type", type_id);
@@ -2184,12 +2190,13 @@ static int compare_typedef_name(const void *key, const void *el)
 
 
 /*
- * Add a Python type object to a list.  Return 0 if there was no error.
+ * Add a Python type object to a list.  Return the position in the list or -1
+ * if there was an error.
  */
-int sip_append_py_object_to_list(sipSipModuleState *sms, PyObject **listp,
-        PyObject *object)
+Py_ssize_t sip_append_py_object_to_list(sipSipModuleState *sms,
+        PyObject **listp, PyObject *object)
 {
-    int rc;
+    Py_ssize_t pos;
 
     Py_BEGIN_CRITICAL_SECTION_MUTEX(&sms->mutex);
 
@@ -2197,22 +2204,25 @@ int sip_append_py_object_to_list(sipSipModuleState *sms, PyObject **listp,
 
     if (list != NULL)
     {
-        rc = PyList_Append(list, object);
+        if (PyList_Append(list, object) < 0)
+            pos = -1;
+        else
+            pos = PyList_GET_SIZE(list) - 1;
     }
     else if ((list = PyList_New(1)) != NULL)
     {
         PyList_SET_ITEM(list, 0, Py_NewRef(object));
         *listp = list;
-        rc = 0;
+        pos = 0;
     }
     else
     {
-        rc = -1;
+        pos = -1;
     }
 
     Py_END_CRITICAL_SECTION();
 
-    return rc;
+    return pos;
 }
 
 

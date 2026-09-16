@@ -1155,6 +1155,12 @@ f'''
         abi_major, abi_minor = spec.bindings.project.abi_version
 
         if abi_major >= 13:
+            # ABI v13.13 and later
+            if abi_minor >= 13:
+                sf.write(
+f'''#define sipGetPyTypeRef             sipAPI_{module_name}->api_get_py_type_ref
+''')
+
             # ABI v13.9 and later.
             if abi_minor >= 9:
                 sf.write(
@@ -1188,6 +1194,7 @@ f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
             if abi_minor >= 20:
                 sf.write(
 f'''#define sipGetFrameRef              sipAPI_{module_name}->api_get_frame_ref
+#define sipGetPyTypeRef             sipAPI_{module_name}->api_get_py_type_ref
 ''')
 
             # ABI v12.16 and later

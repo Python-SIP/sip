@@ -218,7 +218,7 @@ f'''    if (sipIsTargetType(sipMS, {sc_type_ref}, target_cts))
             module_ref = iface_file.module.module_nr
 
         if not is_namespace_extender(klass):
-            sf.write(f'#define {_get_type_ref(klass)} SIP_TYPE_ID_TYPE_CLASS|{external}{module_ref}|{iface_file.type_nr}\n')
+            sf.write(f'#define {_get_type_ref(klass)} (SIP_TYPE_ID_TYPE_CLASS|{external}{module_ref}|{iface_file.type_nr})\n')
 
     @staticmethod
     def g_class_spec_extern_decl(sf, spec, klass):
@@ -542,7 +542,7 @@ f'''    {{
 
         for exception in spec.exceptions:
             if exception.iface_file.module is module and exception.exception_nr >= 0:
-                sf.write(f'{newline}#define {_get_type_ref(exception)} SIP_TYPE_ID_TYPE_EXCEPTION|SIP_TYPE_ID_LOCAL_MODULE|{exception.iface_file.type_nr}\n')
+                sf.write(f'{newline}#define {_get_type_ref(exception)} (SIP_TYPE_ID_TYPE_EXCEPTION|SIP_TYPE_ID_LOCAL_MODULE|{exception.iface_file.type_nr})\n')
                 newline = ''
 
     @classmethod
@@ -688,7 +688,7 @@ static const sipInitExtenderSpec sipInitExtenders_{module.py_name}[] = {{
 
         sf.write(
 f'''
-#define {_get_type_ref(mapped_type)} SIP_TYPE_ID_TYPE_MAPPED|{module_ref}|{iface_file.type_nr}
+#define {_get_type_ref(mapped_type)} (SIP_TYPE_ID_TYPE_MAPPED|{module_ref}|{iface_file.type_nr})
 ''')
 
         if iface_file.module is module:
@@ -1050,8 +1050,11 @@ f'''#define sipBadLengthForSlice            sipABI_{module_name}->api_bad_length
 #define sipGetFrameRef                  sipABI_{module_name}->api_get_frame_ref
 #define sipGetMethod                    sipABI_{module_name}->api_get_method
 #define sipGetTime                      sipABI_{module_name}->api_get_time
+#define sipMakeAbsolute(...)            sipABI_{module_name}->api_make_absolute(sipMS, __VA_ARGS__)
 #define sipObjectDump                   sipABI_{module_name}->api_object_dump
 #define sipPyTypeDictRef                sipABI_{module_name}->api_py_type_dict_ref
+#define sipTypeFromPyTypeObject(...)    sipABI_{module_name}->api_type_from_py_type_object(sipMS, __VA_ARGS__)
+#define sipTypeName(...)                sipABI_{module_name}->api_type_name(sipMS, __VA_ARGS__)
 #define sipUnicodeData                  sipABI_{module_name}->api_unicode_data
 #define sipUnicodeNew                   sipABI_{module_name}->api_unicode_new
 #define sipUnicodeWrite                 sipABI_{module_name}->api_unicode_write
@@ -1558,7 +1561,7 @@ static void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipModuleS
 
         module_nr = 'SIP_TYPE_ID_LOCAL_MODULE' if enum.module is spec.module else enum.module.module_nr
 
-        return f'SIP_TYPE_ID_TYPE_ENUM|{module_nr}|{enum.type_nr}'
+        return f'(SIP_TYPE_ID_TYPE_ENUM|{module_nr}|{enum.type_nr})'
 
     @staticmethod
     def get_error_handler_ref(spec, error_handler):

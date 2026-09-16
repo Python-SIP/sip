@@ -397,6 +397,7 @@ static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
         void *closure);
 static int sip_api_register_exit_notifier(PyMethodDef *md);
 static sipExceptionHandler sip_api_next_exception_handler(void **statep);
+static PyTypeObject *sip_api_get_py_type_ref(const sipTypeDef *td);
 
 
 /*
@@ -613,6 +614,7 @@ static const sipAPIDef sip_api = {
      * The following are part of the public API.
      */
     sip_api_get_frame_ref,
+    sip_api_get_py_type_ref,
 };
 
 
@@ -7291,6 +7293,20 @@ static const sipTypeDef *sip_api_type_from_py_type_object(PyTypeObject *py_type)
         return ((sipEnumTypeObject *)py_type)->type;
 
     return NULL;
+}
+
+
+/*
+ * Return a new reference to the Python type object for a generated type or
+ * NULL if there was an error.
+ */
+static PyTypeObject *sip_api_get_py_type_ref(const sipTypeDef *td)
+{
+    PyTypeObject *py_type = td->td_py_type;
+
+    Py_INCREF(py_type);
+
+    return py_type;
 }
 
 

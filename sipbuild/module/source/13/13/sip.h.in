@@ -46,7 +46,9 @@ extern "C" {
  * The change history of the ABI.
  *
  * v13.13
- *  - Added definitions of sipModuleState to aid porting to ABI v14.
+ *  - Added sipGetPyTypeRef() and deprecated sipTypeAsPyTypeObject().
+ *  - Added definitions of sipMakeAbsolute() and sipModuleState to aid porting
+ *    to ABI v14.
  *
  * v13.12
  *  - Added support for Python v3.15.
@@ -214,7 +216,8 @@ typedef struct _sipWrapper sipWrapper;
 /*
  * The following make it easier to write code that supports ABI v14.
  */
-#define sipType_Invalid NULL
+#define sipMakeAbsolute(id)     id
+#define sipType_Invalid         NULL
 struct sipModuleState;
 typedef const sipTypeDef *sipTypeID;
 
@@ -1382,7 +1385,7 @@ typedef struct _sipAPIDef {
     int (*api_register_exit_notifier)(PyMethodDef *md);
     int (*api_is_enum_flag)(PyObject *o);
     PyObject *(*api_py_type_dict_ref)(PyTypeObject *);
-    void (*unused_public_2)(void);
+    PyTypeObject *(*api_get_py_type_ref)(const sipTypeDef *td);
     void (*unused_public_3)(void);
     void (*unused_public_4)(void);
     void (*unused_public_5)(void);

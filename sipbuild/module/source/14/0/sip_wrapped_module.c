@@ -218,10 +218,27 @@ int sip_api_module_exec(PyObject *mod, const sipModuleSpec *m_spec)
     if (weak_mod == NULL)
         return -1;
 
-    int rc = sip_append_py_object_to_list(sms, &sms->module_list, weak_mod);
+    Py_ssize_t module_nr = sip_append_py_object_to_list(sms, &sms->module_list,
+            weak_mod);
     Py_DECREF(weak_mod);
 
-    return rc;
+    if (module_nr < 0)
+        return -1;
+
+    /* Check we haven't imported too many modules. */
+    if ((sipModuleNr)module_nr != module_nr)
+    {
+        PyErr_Format(PyExc_ImportError,
+                "importing %s exceeds the limit on the number of modules that "
+                "can be imported",
+                PyModule_GetName(mod));
+        return -1;
+    }
+
+    /* Save the module number for creating absolute type IDs. */
+    ms->module_nr = (sipModuleNr)module_nr;
+
+    return 0;
 }
 
 

@@ -17,7 +17,10 @@
 
 #include "sip.h"
 #include "sip_core.h"
+#include "sip_enum.h"
+#include "sip_sip_module.h"
 #include "sip_wrapped_module.h"
+#include "sip_wrapper_type.h"
 
 
 /*
@@ -345,14 +348,32 @@ int sip_api_get_time(PyObject *obj, sipTimeDef *time)
 
 
 /*
- * Get the unqualified name of a Python type.
+ * Return the absolute type ID of a (possibly) relative type ID.
  */
-const char *sip_api_py_type_name(const PyTypeObject *py_type)
+sipTypeID sip_api_make_absolute(sipModuleState *ms, sipTypeID type_id)
 {
-    /* We allow any Python type, not just wrapper types. */
-    const char *name = strrchr(py_type->tp_name, '.');
+    /* Handle the trivial cases. */
+    if (sipTypeIDIsAbsolute(type_id) || sipTypeIDIsPOD(type_id))
+        return type_id;
 
-    return name != NULL ? name + 1 : py_type->tp_name;
+    sipModuleState *def_ms;
+    sipTypeNr def_type_nr;
+
+    if (sipTypeIDIsLocalModule(type_id))
+    {
+        def_ms = ms;
+        def_type_nr = sipTypeIDTypeNr(type_id);
+    }
+    else
+    {
+        sipImportedModule *im = &ms->imported_modules[sipTypeIDModuleNr(type_id)];
+
+        def_ms = sip_get_module_state(im->module);
+        def_type_nr = im->type_nr_map[sipTypeIDTypeNr(type_id)];
+    }
+
+    return SIP_TYPE_ID_ABSOLUTE | (type_id & SIP_TYPE_ID_TYPE_MASK) |
+            (def_ms->module_nr << 16) | def_type_nr;
 }
 
 
@@ -367,11 +388,85 @@ void sip_api_object_dump(PyObject *obj)
 
 
 /*
+ * Get the unqualified name of a Python type.
+ */
+const char *sip_api_py_type_name(const PyTypeObject *py_type)
+{
+    /* We allow any Python type, not just wrapper types. */
+    const char *name = strrchr(py_type->tp_name, '.');
+
+    return name != NULL ? name + 1 : py_type->tp_name;
+}
+
+
+/*
  * A thin wrapper around PyType_GetDict() (on behalf of the limited API).
  */
 PyObject *sip_api_py_type_dict_ref(PyTypeObject *py_type)
 {
     return PyType_GetDict(py_type);
+}
+
+
+/*
+ * Return the absolute type ID of a Python type or sipType_Invalid if it
+ * doesn't have a type specification.
+ */
+sipTypeID sip_api_type_from_py_type_object(sipModuleState *ms,
+        PyTypeObject *py_type)
+{
+    sipSipModuleState *sms = ms->sip_module_state;
+
+    if (PyObject_TypeCheck((PyObject *)py_type, sms->wrapper_type_type))
+        return ((sipWrapperType *)py_type)->type_id;
+
+#if defined(SIP_CONFIGURATION_CustomEnums)
+    if (PyObject_TypeCheck((PyObject *)py_type, sms->custom_enum_type))
+        return ((sipEnumTypeImpl *)py_type)->type_id;
+#endif
+
+    if (sip_enum_is_enum(sms, (PyObject *)py_type))
+    {
+        PyObject *dunder_sip = PyUnicode_InternFromString("__sip__");
+        if (dunder_sip == NULL)
+            return sipType_Invalid;
+
+        PyObject *type_id_obj = PyObject_GetAttr((PyObject *)py_type,
+                dunder_sip);
+
+        Py_DECREF(dunder_sip);
+
+        if (type_id_obj == NULL)
+            return sipType_Invalid;
+
+        sipTypeID type_id;
+
+        if (PyLong_AsUInt32(type_id_obj, &type_id) < 0)
+            type_id = sipType_Invalid;
+
+        Py_DECREF(type_id_obj);
+
+        return type_id;
+    }
+
+    return sipType_Invalid;
+}
+
+
+/*
+ * Return the C/C++ name of a wrapped type.
+ */
+const char *sip_api_type_name(sipModuleState *ms, sipTypeID type_id)
+{
+    PyObject *def_mod;
+    const sipTypeSpec *ts = sip_get_type_spec(ms, type_id, &def_mod);
+
+    if (def_mod == NULL)
+        return NULL;
+
+    Py_DECREF(def_mod);
+
+    return ts->cpp_name;
 }
 
 

@@ -1063,6 +1063,19 @@ API Reference
         C/C++ instance hasn't been wrapped.
 
 
+.. c:function:: PyTypeObject *sipGetPyTypeRef(const sipTypeDef *td)
+
+    .. version-added:: 12.20
+
+    This returns a new reference to the Python type object that SIP creates for
+    a wrapped type.
+
+    :param td:
+        the C/C++ type's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the Python type object or ``NULL`` if there was an error.
+
+
 .. c:function:: int sipGetState(PyObject *transferObj)
 
     The :directive:`%ConvertToTypeCode` directive requires that the provided
@@ -1313,6 +1326,14 @@ API Reference
         the Python object.
     :return:
         the converted C/C++ value.
+
+
+.. c:function:: const sipTypeDef *sipMakeAbsolute(const sipTypeDef *td)
+
+    .. version-added:: 12.20
+
+    This is provided as an aid to porting handwritten code to API v14 and is a
+    no-op.
 
 
 .. c:function:: void *sipMalloc(size_t nbytes)
@@ -1876,8 +1897,11 @@ API Reference
 
 .. c:function:: PyTypeObject *sipTypeAsPyTypeObject(const sipTypeDef *td)
 
-    This returns a pointer to the Python type object that SIP creates for a
-    :ref:`generated type specification <ref-type-specs>`.
+    .. version-deprecated:: 12.20
+        Use :c:func:`sipGetPyTypeRef` instead.
+
+    This returns a borrowed reference to the Python type object that SIP
+    creates for a :ref:`generated type specification <ref-type-specs>`.
 
     :param td:
         the type structure.
@@ -2109,8 +2133,11 @@ Version History
 v12.20.0
 ........
 
+- Added :c:func:`sipGetPyTypeRef` to the public API.
+- Deprecated :c:func:`sipTypeAsPyTypeObject` in the public API.
 - Added :c:func:`sipGetFrameRef` to the public API.
 - Deprecated :c:func:`sipGetFrame` in the public API.
+- Added :c:func:`sipMakeAbsolute` to aid porting to ABI v14.
 - Added :c:type:`sipModuleState` to aid porting to ABI v14.
 
 

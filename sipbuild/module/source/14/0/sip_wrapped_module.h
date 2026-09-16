@@ -69,6 +69,9 @@ struct sipModuleStateImpl {
     /* The array of imported modules. */
     sipImportedModule *imported_modules;
 
+    /* The module number. */
+    sipModuleNr module_nr;
+
     /* The specification of the wrapped module. */
     const sipModuleSpec *module_spec;
 

@@ -103,11 +103,11 @@ static int add_operator_attrs(sipModuleState *ms, PyObject *enum_obj,
         const sipEnumTypeSpec *ets);
 #if defined(SIP_CONFIGURATION_CustomEnums)
 static PyTypeObject *create_custom_enum_type(sipModuleState *ms,
-        const sipEnumTypeSpec *ets, PyObject *name);
+        sipTypeNr type_nr, const sipEnumTypeSpec *ets, PyObject *name);
 #endif
 static PyObject *create_dict_with_module(sipModuleState *ms,
         const char *key_name);
-static PyTypeObject *create_py_enum_type(sipModuleState *ms,
+static PyTypeObject *create_py_enum_type(sipModuleState *ms, sipTypeNr type_nr,
         const sipEnumTypeSpec *ets, PyObject *name);
 static void enum_expected(PyObject *obj, PyObject *py_type);
 static int init_enum_module_types(sipSipModuleState *sms);
@@ -148,14 +148,14 @@ PyTypeObject *sip_create_enum_type(sipModuleState *ms, sipTypeNr type_nr,
     PyTypeObject *enum_type;
 
 #if defined(SIP_CONFIGURATION_PyEnums)
-    enum_type = create_py_enum_type(ms, ets, name);
+    enum_type = create_py_enum_type(ms, type_nr, ets, name);
 #endif
 
 #if defined(SIP_CONFIGURATION_CustomEnums)
     if (sipTypeSpecIsScopedEnum((const sipTypeSpec *)ets))
-        enum_type = create_py_enum_type(ms, ets, name);
+        enum_type = create_py_enum_type(ms, type_nr, ets, name);
     else
-        enum_type = create_custom_enum_type(ms, ets, name);
+        enum_type = create_custom_enum_type(ms, type_nr, ets, name);
 #endif
 
     Py_DECREF(name);
@@ -439,7 +439,7 @@ int sip_enum_is_enum(sipSipModuleState *sms, PyObject *obj)
  * Create a custom enum type.
  */
 static PyTypeObject *create_custom_enum_type(sipModuleState *ms,
-        const sipEnumTypeSpec *ets, PyObject *name)
+        sipTypeNr type_nr, const sipEnumTypeSpec *ets, PyObject *name)
 {
     PyObject *bases = PyTuple_Pack(1, (PyObject *)&PyLong_Type);
     if (bases == NULL)
@@ -470,6 +470,8 @@ static PyTypeObject *create_custom_enum_type(sipModuleState *ms,
 
     ((sipEnumTypeImpl *)enum_obj)->spec = ets;
 
+    ((sipEnumTypeImpl *)enum_obj)->type_id = SIP_TYPE_ID_ABSOLUTE | SIP_TYPE_ID_TYPE_ENUM | (ms->module_nr << 16) | type_nr;
+
     if (add_operator_attrs(ms, enum_obj, ets) < 0)
     {
         Py_DECREF(enum_obj);
@@ -484,7 +486,7 @@ static PyTypeObject *create_custom_enum_type(sipModuleState *ms,
 /*
  * Create a Python enum type.
  */
-static PyTypeObject *create_py_enum_type(sipModuleState *ms,
+static PyTypeObject *create_py_enum_type(sipModuleState *ms, sipTypeNr type_nr,
         const sipEnumTypeSpec *ets, PyObject *name)
 {
     sipSipModuleState *sms = ms->sip_module_state;
@@ -647,6 +649,37 @@ static PyTypeObject *create_py_enum_type(sipModuleState *ms,
         }
     }
 
+    /* Store the absolute type ID in the enum type. */
+    PyObject *dunder_sip = PyUnicode_InternFromString("__sip__");
+
+    if (dunder_sip == NULL)
+    {
+        Py_DECREF(enum_obj);
+        return NULL;
+    }
+
+    PyObject *type_id_obj = PyLong_FromUInt32(
+            SIP_TYPE_ID_ABSOLUTE | SIP_TYPE_ID_TYPE_ENUM | (ms->module_nr << 16) | type_nr);
+
+    if (type_id_obj == NULL)
+    {
+        Py_DECREF(dunder_sip);
+        Py_DECREF(enum_obj);
+        return NULL;
+    }
+
+    if (PyObject_SetAttr(enum_obj, dunder_sip, type_id_obj) < 0)
+    {
+        Py_DECREF(dunder_sip);
+        Py_DECREF(type_id_obj);
+        Py_DECREF(enum_obj);
+        return NULL;
+    }
+
+    Py_DECREF(dunder_sip);
+    Py_DECREF(type_id_obj);
+
+    /* Add any operators and attributes. */
     if (add_operator_attrs(ms, enum_obj, ets) < 0)
     {
         Py_DECREF(enum_obj);

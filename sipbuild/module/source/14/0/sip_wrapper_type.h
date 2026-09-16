@@ -32,7 +32,10 @@ struct sipWrapperTypeImpl {
      */
     PyHeapTypeObject super;
 
-    /* A strong reference to the defining module. */
+    /*
+     * A strong reference to the defining module.  Note that we don't use
+     * PyType_GetModuleState() because this is NULL for Python classes.
+     */
     PyObject *defining_module;
 
     /*
@@ -40,7 +43,7 @@ struct sipWrapperTypeImpl {
      */
     PyObject *user_data;
 
-    /* The type ID in the context of the defining module. */
+    /* The absolute type ID. */
     sipTypeID type_id;
 
     /* Set if autoconversion of the type is disabled. */

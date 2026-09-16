@@ -46,8 +46,10 @@ extern "C" {
  * The change history of the ABI.
  *
  * v12.20
+ *  - Added sipGetPyTypeRef() and deprecated sipTypeAsPyTypeObject().
  *  - Added sipGetFrameRef() and deprecated sipGetFrame().
- *  - Added definitions of sipModuleState to aid porting to ABI v14.
+ *  - Added definitions of sipMakeAbsolute() and sipModuleState to aid porting
+ *    to ABI v14.
  *
  * v12.19
  *  - Added support for Python v3.15.
@@ -240,7 +242,8 @@ typedef struct _sipWrapper sipWrapper;
 /*
  * The following make it easier to write code that supports ABI v14.
  */
-#define sipType_Invalid NULL
+#define sipMakeAbsolute(id)     id
+#define sipType_Invalid         NULL
 struct sipModuleState;
 typedef const sipTypeDef *sipTypeID;
 
@@ -1716,6 +1719,7 @@ typedef struct _sipAPIDef {
      * The following are part of the public API.
      */
     PyFrameObject *(*api_get_frame_ref)(int);
+    PyTypeObject *(*api_get_py_type_ref)(const sipTypeDef *td);
 } sipAPIDef;
 
 const sipAPIDef *sip_init_library(PyObject *mod_dict);

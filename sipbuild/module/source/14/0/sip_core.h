@@ -76,8 +76,8 @@ void *sip_api_malloc(size_t nbytes);
 int sip_add_attrs_to_type(sipModuleState *ms, PyTypeObject *py_type,
         const sipAttrGroupSpec *attrs, const sipTypeSpec *ts);
 void sip_add_to_parent(sipWrapper *self, sipWrapper *owner);
-int sip_append_py_object_to_list(sipSipModuleState *sms, PyObject **listp,
-        PyObject *object);
+Py_ssize_t sip_append_py_object_to_list(sipSipModuleState *sms,
+        PyObject **listp, PyObject *object);
 void *sip_cast_cpp_ptr(void *ptr, PyTypeObject *src_type,
         PyTypeObject *target_type);
 int sip_check_pointer(void *ptr, PyObject *w_inst);

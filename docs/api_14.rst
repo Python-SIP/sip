@@ -1078,8 +1078,7 @@ API Reference
     :param type_id:
         the C/C++ type's :ref:`generated type specification <ref-type-specs>`.
     :return:
-        the Python type object.  If the type structure refers to a mapped type
-        then ``NULL`` will be returned.
+        the Python type object or ``NULL`` if there was an error.
 
 
 .. c:function:: PyTypeObject *sipGetSimpleWrapperType()
@@ -1364,6 +1363,19 @@ API Reference
         the Python object.
     :return:
         the converted C/C++ value.
+
+
+.. c:function:: sipTypeID sipMakeAbsolute(sipTypeID type_id)
+
+    This converts a (possibly) relative C/C++ :ref:`generated type
+    specification <ref-type-specs>` to an absolute one.  See
+    :c:type:`sipTypeID` for an explanation of relative and absolute type
+    specifications.
+
+    :param type_id:
+        the relative type specification.
+    :return:
+        the corresponding absolute type specification.
 
 
 .. c:function:: void *sipMalloc(size_t nbytes)
@@ -1817,6 +1829,29 @@ API Reference
     This opaque C type is the ABI's representation of a
     :ref:`generated type specification <ref-type-specs>`.
 
+    When SIP generates a type specification (named with the prefix
+    ``sipType_``) the value is specific to the module that is using the type
+    (ie. it is *relative* to the using module).  The value will be different
+    (but will have the same name) in every other module that uses the type
+    (including the module that actually defines it).
+
+    An *absolute* type specification has the same value in all contexts.
+
+    The only way to compare two specifications for equality is to ensure that
+    both are absolute or both are relative to the same module.
+
+
+.. c:function:: sipTypeID sipTypeFromPyTypeObject(PyTypeObject *py_type)
+
+    This returns the :ref:`generated type specification <ref-type-specs>` for
+    a Python type object.
+
+    :param py_type:
+        the Python type object.
+    :return:
+        the type specification or ``NULL`` if the Python type object doesn't
+        correspond to a type specification.
+
 
 .. c:function:: int sipTypeIsClass(sipTypeID type_id)
 
@@ -1857,6 +1892,16 @@ API Reference
         a non-zero value if the type specification refers to a mapped type.
 
 
+.. c:function:: int sipTypeIsNamespace(sipTypeID type_id)
+
+    This checks if a type specification refers to a C++ namespace.
+
+    :param type_id:
+        the C/C++ type's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        a non-zero value if the type specification refers to a C++ namespace.
+
+
 .. c:function:: int sipTypeIsScopedEnum(sipTypeID type_id)
 
     This checks if a type specification refers to a C++11 scoped enum.  It is
@@ -1868,6 +1913,16 @@ API Reference
     :return:
         a non-zero value if the type specification refers to a C++11 scoped
         enum.
+
+
+.. c:function:: const char *sipTypeName(sipTypeID type_id)
+
+    This returns the C/C++ name of a wrapped type.
+
+    :param type_id:
+        the type's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the name of the C/C++ type.
 
 
 .. c:function:: sipTypeID sipTypeScope(sipTypeID type_id)

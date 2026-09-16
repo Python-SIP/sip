@@ -35,9 +35,13 @@ sipModuleState *sip_api_get_imported_module_state(sipModuleState *ms,
         const char *name);
 int sip_api_get_method(PyObject *obj, sipMethodDef *method);
 int sip_api_get_time(PyObject *obj, sipTimeDef *time);
-const char *sip_api_py_type_name(const PyTypeObject *py_type);
+sipTypeID sip_api_make_absolute(sipModuleState *ms, sipTypeID type_id);
 void sip_api_object_dump(PyObject *obj);
+const char *sip_api_py_type_name(const PyTypeObject *py_type);
 PyObject *sip_api_py_type_dict_ref(PyTypeObject *py_type);
+sipTypeID sip_api_type_from_py_type_object(sipModuleState *ms,
+        PyTypeObject *py_type);
+const char *sip_api_type_name(sipModuleState *ms, sipTypeID type_id);
 void *sip_api_unicode_data(PyObject *obj, int *char_size, Py_ssize_t *len);
 PyObject *sip_api_unicode_new(Py_ssize_t len, unsigned maxchar, int *kind,
         void **data);
