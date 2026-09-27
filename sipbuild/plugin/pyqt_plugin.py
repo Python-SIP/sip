@@ -148,9 +148,9 @@ void *sip{klass_name_as_word}::qt_metacast(const char *_clname)
 ''')
 
     def sip_class_generate_impl(self, writer, spec, klass):
-        """ Generate code that implements support for a class.  The name
-        of a plugin data structure can be returned.  This is used by ABIs v12
-        and v13 but ignored by v14.
+        """ Generate code that implements support for a class, usually in the
+        form of a type-specific data structure.  The name of the data structure
+        should be returned.
         """
 
         # This test can go when we are moved to PyQt-builder.

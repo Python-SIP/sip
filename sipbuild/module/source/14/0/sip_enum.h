@@ -41,7 +41,7 @@ typedef struct {
 
 
 /* These are part of the module API. */
-PyObject *sip_api_convert_from_enum(sipModuleState *ms, void *addr,
+PyObject *sip_api_convert_from_based_enum(sipModuleState *ms, void *addr,
         sipTypeID type_id);
 #if defined(SIP_CONFIGURATION_PyEnums)
 int sip_api_is_enum_flag(sipModuleState *ms, PyObject *obj);
@@ -50,8 +50,8 @@ int sip_api_is_enum_flag(sipModuleState *ms, PyObject *obj);
 
 PyTypeObject *sip_create_enum_type(sipModuleState *ms, sipTypeNr type_nr,
         const sipEnumTypeSpec *ets);
-int sip_enum_convert_to_enum(sipModuleState *ms, PyObject *obj, void *addr,
-        sipTypeID type_id, int unconstrained);
+int sip_enum_convert_to_based_enum(sipModuleState *ms, PyObject *obj,
+        void *addr, sipTypeID type_id, int unconstrained);
 int sip_enum_init(PyObject *mod, sipSipModuleState *sms);
 int sip_enum_is_enum(sipSipModuleState *sms, PyObject *obj);
 

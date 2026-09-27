@@ -357,7 +357,7 @@ f'''#ifndef _{module_name}API_H
     for imported_module in module.all_imports:
         _append_qualifier_defines(imported_module, bindings, qualifier_defines)
 
-    if len(qualifier_defines) != 0:
+    if qualifier_defines:
         sf.write('\n/* These are the qualifiers that are enabled. */\n')
 
         for qualifier_define in qualifier_defines:
@@ -824,7 +824,7 @@ def _ctor_call(sf, spec, klass, ctor, error_flag, old_error_flag):
         sf.write(f'            sipCallHook("{ctor.prehook}");\n\n')
 
     if ctor.method_code is not None:
-        sf.write_code(ctor.method_code)
+        backend.g_code(sf, ctor.method_code)
     elif spec.c_bindings:
         sf.write(f'            sipCpp = sipMalloc(sizeof ({scope_s}));\n')
     else:
@@ -1136,7 +1136,7 @@ def g_static_function(sf, spec, member, scope=None):
             continue
 
         if member.no_arg_parser:
-            sf.write_code(overload.method_code)
+            backend.g_code(sf, overload.method_code)
             break
 
         if signature_nr == 0:
@@ -1301,7 +1301,7 @@ f'''static PyObject *convertFrom_{mapped_type_name}({context}void *sipCppV, PyOb
 
 ''')
 
-        sf.write_code(mapped_type.convert_from_type_code)
+        backend.g_code(sf, mapped_type.convert_from_type_code)
 
         sf.write('}\n')
 
@@ -1344,7 +1344,7 @@ f'''static PyObject *convertFrom_{name}({context}void *sipCppV, PyObject *{xfer}
 
 ''')
 
-            sf.write_code(klass.convert_from_type_code)
+            backend.g_code(sf, klass.convert_from_type_code)
 
             sf.write('}\n')
 
@@ -1415,7 +1415,7 @@ def _convert_to_definitions(sf, spec, scope):
                 derefs='**');
         sf.write(f'    {type_s} **sipCppPtr = {cast_value};\n\n')
 
-    sf.write_code(convert_to_type_code)
+    spec.bindings.project.backend.g_code(sf, convert_to_type_code)
 
     sf.write('}\n')
 
@@ -2018,7 +2018,7 @@ def _virtual_handler_call(sf, spec, klass, virtual_overload, result):
     result_type = fmt_argument_as_cpp_type(spec, overload.cpp_signature.result,
             scope=klass.iface_file)
 
-    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, {backend.get_error_handler_ref_type()}, sipSimpleWrapper *, PyObject *')
+    sf.write(f'    extern {result_type} sipVH_{module_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t, {backend.get_error_handler_type(spec)}, sipSimpleWrapper *, PyObject *')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_declaration(spec,
@@ -2431,7 +2431,7 @@ def _virtual_handler(sf, spec, handler):
 
     sf.write(
 f'''
-{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, {backend.get_error_handler_ref_type()} sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod''')
+{result_decl} sipVH_{module.py_name}_{handler.handler_nr}({backend.get_module_context_decl()}sip_gilstate_t sipGILState, {backend.get_error_handler_type(spec)} sipErrorHandler, sipSimpleWrapper *sipPySelf, PyObject *sipMethod''')
 
     if len(handler.cpp_signature.args) > 0:
         sf.write(', ' + fmt_signature_as_cpp_definition(spec,
@@ -2527,13 +2527,9 @@ f'''
 ''')
 
     if handler.virtual_catcher_code is not None:
-        error_flag = need_error_flag(handler.virtual_catcher_code)
-        old_error_flag = backend.need_deprecated_error_flag(
-                handler.virtual_catcher_code)
+        error_flag = is_used_in_code(handler.virtual_catcher_code, 'sipIsErr')
 
         if error_flag:
-            sf.write('    sipErrorState sipError = sipErrorNone;\n')
-        elif old_error_flag:
             sf.write('    int sipIsErr = 0;\n')
 
         sf.write('\n')
@@ -2545,12 +2541,10 @@ f'''
     Py_DECREF(sipMethod);
 ''')
 
-        if error_flag or old_error_flag:
-            error_test = 'sipError != sipErrorNone' if error_flag else 'sipIsErr'
-
+        if error_flag:
             sf.write(
 f'''
-    if ({error_test})
+    if (sipIsErr)
         sipCallErrorHandler({backend.get_module_context()}sipErrorHandler, sipPySelf, sipGILState);
 ''')
 
@@ -2593,7 +2587,7 @@ f'    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ')
 
         return
 
-    # Generate the call to sipParseResultEx().
+    # Generate the call to sipParseResult().
     params = ['sipGILState', 'sipErrorHandler', 'sipPySelf', 'sipMethod',
             'sipResObj']
 
@@ -2641,7 +2635,7 @@ f'    PyObject *sipResObj = sipCallMethod(SIP_NULLPTR, sipMethod, ')
 
     sf.write(f''');
 
-    {return_code}{backend.get_result_parser()}({params});
+    {return_code}{backend.get_result_parser(spec)}({params});
 ''')
 
     if result_is_returned:
@@ -2667,7 +2661,7 @@ f'''
 
 
 def _add_parse_result_extra_params(spec, params, module, arg, arg_nr=-1):
-    """ Add any extra parameters needed by sipParseResultEx() for a particular
+    """ Add any extra parameters needed by sipParseResult() for a particular
     type to a list.
     """
 
@@ -2697,7 +2691,7 @@ def _add_parse_result_extra_params(spec, params, module, arg, arg_nr=-1):
 
 def _get_parse_result_format(spec, arg, result_is_reference=False,
         transfer_result=False):
-    """ Return the format characters used by sipParseResultEx() for a
+    """ Return the format characters used by sipParseResult() for a
     particular type.
     """
 
@@ -3370,7 +3364,7 @@ def g_member_function(sf, spec, scope, member, original_scope=None):
             continue
 
         if member.no_arg_parser:
-            sf.write_code(overload.method_code)
+            backend.g_code(sf, overload.method_code)
             break
 
         g_function_body(sf, spec, scope, overload, signature_nr,
@@ -3934,7 +3928,7 @@ f'''            if (!sipOrigSelf)
         sf.write(f'            sipCallHook("{overload.prehook}");\n\n')
 
     if overload.method_code is not None:
-        sf.write_code(overload.method_code)
+        backend.g_code(sf, overload.method_code)
     else:
         rel_gil = release_gil(overload.gil_action, bindings)
         needs_closing_paren = False

@@ -1659,6 +1659,12 @@ bool sipSelfWasArg
 
         self.foo(...)
 
+sipModuleState \*sipMS
+    This is a pointer to the opaque :c:type:`sipModuleState` structure used
+    by ABI v14 and made available so it can be passed to handwritten helper
+    functions.  It is also provided to ABIs v12 and v13 as a dummy value to
+    ease the porting of handwritten code to v14.
+
 If the :fanno:`NoArgParser` annotation has been used then only the following
 variables are made available to the handwritten code:
 
@@ -1667,6 +1673,9 @@ PyObject \*sipArgs
 
 PyObject \*sipKwds
     This is the dictionary of keyword arguments.
+
+sipModuleState \*sipMS
+    This is the opaque module state.
 
 The following is a complete example::
 
@@ -2489,13 +2498,12 @@ This directive can also be used in the context of a class destructor to
 specify handwritten code that is embedded in-line in the internal derived
 class's destructor.
 
-In the context of a method the Python Global Interpreter Lock (GIL) is
-automatically acquired before the specified code is executed and automatically
-released afterwards.
+In the context of a method a thread state is automatically attached before the
+specified code is executed and automatically detached afterwards.
 
-In the context of a destructor the specified code must handle the GIL.  The
-GIL must be acquired before any calls to the Python API and released after the
-last call as shown in this example fragment::
+In the context of a destructor the specified code must handle the thread state.
+A thread state must be attached before any calls to the Python API and detached
+after the last call as shown in this example fragment::
 
     SIP_BLOCK_THREADS
     Py_DECREF(obj);
@@ -2609,12 +2617,15 @@ that is called when a Python re-implementation of a virtual C++ function raises
 a Python exception.  If a virtual C++ function does not have a handler the
 ``PyErr_Print()`` function is called.
 
-The handler is called after all tidying up has been completed, with the Python
-Global Interpreter Lock (GIL) held and from the thread that raised the
-exception.  If the handler wants to change the execution path by, for example,
-throwing a C++ exception, it must first release the GIL by calling
-:c:func:`SIP_RELEASE_GIL`.  It must not call :c:func:`SIP_RELEASE_GIL` if the
-execution path is not changed.
+.. note::
+    The names :c:func:`SIP_RELEASE_GIL` and :c:type:`sip_gilstate_t` are
+    historical and are used to enable code to support all ABI versions.
+
+The handler is called after all tidying up has been completed, with the thread
+state attached for the thread that raised the exception.  If the handler wants
+to change the execution path by, for example, throwing a C++ exception, it must
+detach the thread state by calling :c:func:`SIP_RELEASE_GIL`.  It must not call
+:c:func:`SIP_RELEASE_GIL` if the execution path is not changed.
 
 The following variables are made available to the handwritten code:
 
@@ -2623,7 +2634,8 @@ sipSimpleWrapper \*sipPySelf
 
 sip_gilstate_t sipGILState
     This is an opaque value that must be passed to :c:func:`SIP_RELEASE_GIL` in
-    order to release the GIL prior to changing the execution path.
+    order to detach the current thread state prior to changing the execution
+    path.
 
 For example::
 

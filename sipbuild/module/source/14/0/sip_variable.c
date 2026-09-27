@@ -240,7 +240,7 @@ PyObject *sip_variable_get(sipModuleState *ms, PyObject *instance,
     }
 
     if (sipTypeIsEnum(v_spec->type_id))
-        return sip_api_convert_from_enum(ms, addr, v_spec->type_id);
+        return sip_api_convert_from_based_enum(ms, addr, v_spec->type_id);
 
     /* If there is no key then the variable is a pointer to a wrapped type. */
     if (v_spec->key == 0)
@@ -758,7 +758,7 @@ int sip_variable_set(sipModuleState *ms, PyObject *instance, PyObject *value,
     }
 
     if (sipTypeIsEnum(v_spec->type_id))
-        return sip_enum_convert_to_enum(ms, value, addr, v_spec->type_id,
+        return sip_enum_convert_to_based_enum(ms, value, addr, v_spec->type_id,
                 FALSE);
 
     int is_err = 0, state;

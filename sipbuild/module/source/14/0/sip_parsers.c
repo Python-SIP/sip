@@ -95,7 +95,7 @@ static const char *detail_from_failure(PyObject *failure_obj,
         PyObject **detail_p);
 static void failure_dtor(PyObject *capsule);
 static sipVirtErrorHandlerFunc find_error_handler(sipModuleState *ms,
-        const char *error_handler);
+        sipVirtErrorHandler error_handler);
 static PyObject *get_py_object(sipSipModuleState *sms, void *cppPtr,
         PyTypeObject *w_type);
 static PyObject *get_self_from_args(PyObject *const *args,
@@ -269,8 +269,9 @@ PyObject *sip_api_build_result(sipModuleState *ms, int *is_err_p,
  * Call a virtual error handler.  This is called with the GIL and from the
  * thread that raised the error.
  */
-void sip_api_call_error_handler(sipModuleState *ms, const char *error_handler,
-        sipSimpleWrapper *sw, PyThreadStateToken *tst)
+void sip_api_call_error_handler(sipModuleState *ms,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *sw,
+        PyThreadStateToken *tst)
 {
     sipModuleState *handler_ms;
     sipVirtErrorHandlerFunc handler;
@@ -336,7 +337,7 @@ void sip_api_call_error_handler(sipModuleState *ms, const char *error_handler,
  * If an error handler is defined in a module then return it.
  */
 static sipVirtErrorHandlerFunc find_error_handler(sipModuleState *ms,
-        const char *error_handler)
+        sipVirtErrorHandler error_handler)
 {
     const sipVirtErrorHandlerSpec *veh = ms->module_spec->virt_error_handlers;
     if (veh == NULL)
@@ -574,9 +575,9 @@ void sip_no_callable(PyObject *p_state, const char *scope, const char *name)
  * reference to the Python re-implementation and release the current thread
  * state.
  */
-int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
-        const char *error_handler, sipSimpleWrapper *sw, PyObject *method,
-        PyObject *res, const char *fmt, ...)
+int sip_api_parse_result_object(sipModuleState *ms, PyThreadStateToken *tst,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *sw,
+        PyObject *method, PyObject *res, const char *fmt, ...)
 {
     int rc;
 
@@ -1138,7 +1139,7 @@ static PyObject *build_object(sipModuleState *ms, PyObject *obj,
                 void *addr = va_arg(va, void *);
                 sipTypeID type_id = va_arg(va, sipTypeID);
 
-                el = sip_api_convert_from_enum(ms, addr, type_id);
+                el = sip_api_convert_from_based_enum(ms, addr, type_id);
             }
 
             break;
@@ -2102,7 +2103,7 @@ static bool parse_vc_kwd_args(sipModuleState *ms, PyObject **p_state_p,
                  */
                 if (sipTypeIsEnum(self_type_id))
                 {
-                    if (sip_enum_convert_to_enum(ms, self, (void *)self_cpp_p, self_type_id, FALSE) < 0)
+                    if (sip_enum_convert_to_based_enum(ms, self, (void *)self_cpp_p, self_type_id, FALSE) < 0)
                     {
                         handle_failed_type_conversion(&failure, self);
                         goto failed_setup;
@@ -2876,7 +2877,7 @@ static void parse_pass_1(sipModuleState *ms, PyObject *arg,
 
             if (sipTypeIsEnum(type_id))
             {
-                if (sip_enum_convert_to_enum(ms, arg, *fmt_params, type_id, is_constrained ? FALSE : TRUE) < 0)
+                if (sip_enum_convert_to_based_enum(ms, arg, *fmt_params, type_id, is_constrained ? FALSE : TRUE) < 0)
                     type_conversion_failed = true;
             }
             else if (is_array)
@@ -3337,7 +3338,7 @@ static int parse_result(sipModuleState *ms, PyObject *method, PyObject *res,
                     sipTypeID type_id = va_arg(va, sipTypeID);
                     void *p = va_arg(va, void *);
 
-                    if (sip_enum_convert_to_enum(ms, arg, p, type_id, TRUE) < 0)
+                    if (sip_enum_convert_to_based_enum(ms, arg, p, type_id, TRUE) < 0)
                         invalid = TRUE;
                 }
 

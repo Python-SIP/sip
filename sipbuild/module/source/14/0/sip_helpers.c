@@ -35,6 +35,17 @@ void sip_api_bad_length_for_slice(Py_ssize_t seqlen, Py_ssize_t slicelen)
 
 
 /*
+ * Create a Python object for a member of a named enum which is assumed to have
+ * the default underlying type (ie. int).
+ */
+PyObject *sip_api_convert_from_enum(sipModuleState *ms, int eval,
+        sipTypeID type_id)
+{
+    return sip_api_convert_from_based_enum(ms, &eval, type_id);
+}
+
+
+/*
  * Convert a sequence index.  Return the index or a negative value if there was
  * an error.
  */
@@ -51,6 +62,22 @@ Py_ssize_t sip_api_convert_from_sequence_index(Py_ssize_t idx, Py_ssize_t len)
     }
 
     return idx;
+}
+
+
+/*
+ * Convert a Python object implementing an enum to a member value.  An
+ * exception is raised if there was an error.  The enum is assumed to have the
+ * default underlying type (ie. int).
+ */
+int sip_api_convert_to_enum(sipModuleState *ms, PyObject *obj,
+        sipTypeID type_id)
+{
+    int eval;
+
+    sip_enum_convert_to_based_enum(ms, obj, &eval, type_id, TRUE);
+
+    return eval;
 }
 
 
@@ -182,6 +209,30 @@ PyObject *sip_api_from_time(const sipTimeDef *time)
 
 
 /*
+ * Return the assignment helper function for a type or NULL if it doesn't have
+ * one.
+ */
+sipAssignFunc sip_api_get_assignment_function(sipModuleState *ms,
+        sipTypeID type_id)
+{
+    PyObject *def_mod;
+    const sipTypeSpec *spec = sip_get_type_spec(ms, type_id, &def_mod);
+    if (spec == NULL)
+        return NULL;
+
+    Py_DECREF(def_mod);
+
+    if (sipTypeIsClass(type_id))
+        return ((const sipClassTypeSpec *)spec)->assign;
+
+    if (sipTypeIsMapped(type_id))
+        return ((const sipMappedTypeSpec *)spec)->assign;
+
+    return NULL;
+}
+
+
+/*
  * Check an object is a C function and return TRUE and its component parts if
  * it is.
  */
@@ -284,25 +335,6 @@ PyFrameObject *sip_api_get_frame_ref(int depth)
 
 
 /*
- * Return the module state of an imported module.
- */
-sipModuleState *sip_api_get_imported_module_state(sipModuleState *ms,
-        const char *name)
-{
-    const sipModuleSpec *m_spec = ms->module_spec;
-    sipModuleNr i;
-
-    for (i = 0; i < m_spec->nr_import_specs; i++)
-        if (strcmp(m_spec->import_specs[i].name, name) == 0)
-            return sip_get_module_state(ms->imported_modules[i].module);
-
-    PyErr_Format(PyExc_NameError, "unknown module '%s'", name);
-
-    return NULL;
-}
-
-
-/*
  * Check an object is a method and return TRUE and its component parts if it
  * is.
  */
@@ -318,6 +350,69 @@ int sip_api_get_method(PyObject *obj, sipMethodDef *method)
     }
 
     return TRUE;
+}
+
+
+/*
+ * Return the module state for the module with a particular token.
+ */
+sipModuleState *sip_api_get_module_state(sipModuleState *ms, void *token)
+{
+    PyObject *mods = ms->sip_module_state->module_list;
+    Py_ssize_t i;
+
+    for (i = 0; i < PyList_GET_SIZE(mods); i++)
+    {
+        PyObject *mod;
+
+        if (PyWeakref_GetRef(PyList_GET_ITEM(mods, i), &mod) < 0)
+            return NULL;
+
+        if (mod == NULL)
+            continue;
+
+        void *mod_token;
+        if (PyModule_GetToken(mod, &mod_token) == 0 && mod_token == token)
+        {
+            sipModuleState *mod_state = sip_get_module_state(mod);
+
+            /*
+             * It should be Ok to release the reference as the module should be
+             * referenced by the calling module's import chain.
+             */
+            Py_DECREF(mod);
+
+            return mod_state;
+        }
+
+        Py_DECREF(mod);
+    }
+
+    PyErr_SetString(PyExc_RuntimeError, "the token isn't recognised");
+
+    return NULL;
+}
+
+
+/*
+ * Return the module state from a Python type.
+ */
+sipModuleState *sip_api_get_module_state_by_type(void *token,
+        PyTypeObject *py_type)
+{
+    PyObject *mod = PyType_GetModuleByToken(py_type, token);
+    if (!mod)
+        return NULL;
+
+    sipModuleState *sipMS = (sipModuleState *)PyModule_GetState(mod);
+
+    /*
+     * It should be Ok to release the reference as the module should be
+     * referenced by the calling module's import chain.
+     */
+    Py_DECREF(mod);
+
+    return sipMS;
 }
 
 
@@ -467,6 +562,39 @@ const char *sip_api_type_name(sipModuleState *ms, sipTypeID type_id)
     Py_DECREF(def_mod);
 
     return ts->cpp_name;
+}
+
+
+/*
+ * Return a pointer to the immutable plugin-specific data for a type.
+ */
+const void *sip_api_type_plugin_data(sipModuleState *ms, uint32_t plugin_id,
+        sipTypeID type_id)
+{
+    if (!sipTypeIsClass(type_id))
+        return NULL;
+
+    PyObject *def_mod;
+    const sipTypeSpec *ts = sip_get_type_spec( ms, type_id, &def_mod);
+
+    if (def_mod == NULL)
+        return NULL;
+
+    Py_DECREF(def_mod);
+
+    const sipPluginDataSpec *pds = ((const sipClassTypeSpec *)ts)->plugins_data;
+    if (pds == NULL)
+        return NULL;
+
+    while (pds->data != NULL)
+    {
+        if (pds->plugin_id == plugin_id)
+            return pds->data;
+
+        pds++;
+    }
+
+    return NULL;
 }
 
 

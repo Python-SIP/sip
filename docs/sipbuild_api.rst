@@ -640,8 +640,9 @@ build systems.
     .. py:method:: install_plugin(plugin)
 
         Install a plugin that uses the :ref:`plugin API <ref-plugin-api>` to
-        implement new SIP functionality.  It should be called from the
-        ``__init__`` method of a :py:class:`~sipbuild.Project` sub-class.
+        implement new SIP functionality.  It must be called from the
+        ``__init__`` method of a :py:class:`~sipbuild.Project` sub-class and
+        **after** the call to the super-class's ``__init__`` method.
 
         :param Plugin plugin: is the plugin to install.
 

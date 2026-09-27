@@ -45,6 +45,13 @@ API Reference
     :c:macro:`SIP_UNBLOCK_THREADS` at the same lexical scope.
 
 
+.. c:type:: sip_gilstate_t
+
+    This is an opaque type that represents a thread state.  It is implemented
+    as :c:type:`PyThreadStateToken`.  The name is historical and retained for
+    compatibility with older ABI versions.
+
+
 .. c:macro:: SIP_NO_CONVERTORS
 
     This is a flag used by various type convertors that suppresses the use of a
@@ -86,20 +93,14 @@ API Reference
     array is read-only.
 
 
-.. c:function:: void SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
+.. c:function:: void SIP_RELEASE_GIL(sip_gilstate_t token)
 
-    .. note::
-        This is provided to ease the support for multiple versions of the ABI.
-        Code targeting ABI v14 only should use :c:func:`PyThreadState_Release`
-        instead.
+    This is called in order to ensure that a thread state is detached.  It is
+    implemented as a call to :c:func:`PyThreadState_Release`.  The name is
+    historical and retained for compatibility with older ABI versions.
 
-    This is called from the handwritten code specified with the
-    :directive:`VirtualErrorHandler` in order to release the attached thread
-    state prior to changing the execution path (e.g. by throwing a C++
-    exception).  It should not be called under any other circumstances.
-
-    :param sipGILState:
-        an opaque value provided to the handwritten code by SIP.
+    :param token:
+        an opaque value representing a thread state.
 
 
 .. c:macro:: SIP_UNBLOCK_THREADS
@@ -364,6 +365,19 @@ API Reference
         The optional bound object.
 
 
+.. c:function:: PyObject *sipConvertFromBasedEnum(void *eval_p, sipTypeID type_id)
+
+    This converts a named based C/C++ ``enum`` to a Python object.  A based
+    enum is one that may have an explicit underlying type.
+
+    :param eval_p:
+        a pointer to the enumerated value to convert.
+    :param type_id:
+        the enum's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the Python object.
+
+
 .. c:function:: PyObject *sipConvertFromConstVoidPtr(const void *cpp)
 
     This creates a :class:`sip.voidptr` object for a memory address.  The
@@ -388,13 +402,14 @@ API Reference
         the :class:`sip.voidptr` object.
 
 
-.. c:function:: PyObject *sipConvertFromEnum(void *eval_p, sipTypeID type_id)
+.. c:function:: PyObject *sipConvertFromEnum(int eval, sipTypeID type_id)
 
-    This converts a named C/C++ ``enum`` to a Python object.
+    This converts a named C/C++ ``enum`` to a Python object.  The underlying
+    type of the enum must be ``int`` (ie. the default).
 
-    :param eval_p:
-        a pointer to the enumerated value to convert.
-    :param type_id:
+    :param eval:
+        the enumerated value to convert.
+    :param td:
         the enum's :ref:`generated type specification <ref-type-specs>`.
     :return:
         the Python object.
@@ -559,20 +574,9 @@ API Reference
         the :class:`sip.array` object.
 
 
-.. c:function:: bool sipConvertToBool(PyObject *obj)
+.. c:function:: int sipConvertToBasedEnum(PyObject *obj, void *eval_p, sipTypeID type_id)
 
-    This converts a Python object to a C++ ``bool``.
-
-    :param obj:
-        the Python object to convert.
-    :return:
-        the boolean value.  An exception will have been raised (to be tested by
-        calling :c:func:`PyErr_Occurred`) if the conversion failed.
-
-
-.. c:function:: int sipConvertToEnum(PyObject *obj, void *eval_p, sipTypeID type_id)
-
-    This converts a Python object to the value of a named C/C++ ``enum``
+    This converts a Python object to the value of a named based C/C++ ``enum``
     member.
 
     :param obj:
@@ -585,6 +589,30 @@ API Reference
     :return:
         ``-1`` is returned, and a Python exception raised, if there was an
         error.  Otherwise ``0`` is returned.
+
+
+.. c:function:: bool sipConvertToBool(PyObject *obj)
+
+    This converts a Python object to a C++ ``bool``.
+
+    :param obj:
+        the Python object to convert.
+    :return:
+        the boolean value.  An exception will have been raised (to be tested by
+        calling :c:func:`PyErr_Occurred`) if the conversion failed.
+
+
+.. c:function:: int sipConvertToEnum(PyObject *obj, sipTypeID type_id)
+
+    This converts a Python object to the value of a named C/C++ ``enum``
+    member.  The underlying type of the enum must be ``int`` (ie. the default).
+
+    :param obj:
+        the Python object to convert.
+    :param td:
+        the enum's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the integer value.  An exception is raised if there was an error.
 
 
 .. c:function:: void *sipConvertToType(PyObject *obj, sipTypeID type_id, PyObject *transferObj, int flags, int *state_p, int *is_err_p)
@@ -949,6 +977,23 @@ API Reference
         the address of the C/C++ instance.
 
 
+.. c:function:: sipAssignFunc sipGetAssignmentFunction(sipTypeID type_id)
+
+    This returns the address of a helper function for assigning (ie. copying)
+    an instance of a C/C++ type.
+
+    The function is passed three arguments: the first is a ``void *`` which is
+    a pointer to (potentially) destination array of instances; the second is a
+    ``Py_ssize_t`` index within the destination array (which should be ``0`` if
+    the destination is actually an ordinary variable rather than an array);
+    the third is a ``void *`` which is a pointer to the source instance.
+
+    :param type_id:
+        the type's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        The address of the function or ``NULL`` if the type doesn't have one.
+
+
 .. c:function:: int sipGetCFunction(PyObject *obj, sipCFunctionDef *c_function)
 
     This checks to see if an object is a Python C function object and, if so,
@@ -1021,18 +1066,6 @@ API Reference
         the current interpreter view.
 
 
-.. c:function:: sipModuleState *sipGetImportedModuleState(const char *name)
-
-    This returns a pointer to the opaque module state of an imported module
-    (i.e. one specified using the :directive:`%Import` directive).
-
-    :param name:
-        the name of the imported module.
-    :return:
-        the module state or ``NULL`` is returned (and an exception raised) if
-        the name is not known.
-
-
 .. c:function:: int sipGetMethod(PyObject *obj, sipMethodDef *method)
 
     This checks to see if an object is a Python method object and, if so,
@@ -1045,6 +1078,27 @@ API Reference
         component parts are returned in this structure.
     :return:
         a non-zero value if the object is a Python method object.
+
+
+.. c:function:: sipModuleState *sipGetModuleState()
+
+    This returns a pointer to the opaque module state of the current module.
+
+    :return:
+        the module state or ``NULL`` is returned (and an exception raised) if
+        there was an error.
+
+
+.. c:function:: sipModuleState *sipGetModuleStateByType(PyTypeObject *py_type)
+
+    This returns a pointer to the opaque module state of the module that wraps
+    a type.
+
+    :param py_type:
+        the Python type.
+    :return:
+        the module state or ``NULL`` is returned (and an exception raised) if
+        there was an error.
 
 
 .. c:function:: void *sipGetModuleUserState()
@@ -1405,12 +1459,14 @@ API Reference
 
         The bound object.
 
+
 .. c:type:: sipModuleState
 
     This mutable opaque C structure is the state data of a generated extension
     module.  A pointer to this (called ``sipMS``) is made available to all
     handwritten code and should be passed to any helper functions that make API
     calls themselves.
+
 
 .. c:function:: void sipObjectDump(PyObject *obj)
 
@@ -1421,7 +1477,103 @@ API Reference
         the Python object.
 
 
-.. c:function:: int sipParseResult(PyThreadStateToken *tst, const char *error_handler, PyObject *self, PyObject *method, PyObject *result, const char *format, ...)
+.. c:type:: sipObjectGuard
+
+    This opaque C structure implements a guard for a Python object allowing a
+    new reference to it to be obtained along with an attached thread state.
+
+
+.. c:function:: int sipObjectGuard_Clear(sipObjectGuard *guard)
+
+    This clears the Python object during garbage collection if it owned by the
+    current interpreter.  It is normally called by the ``clear`` function
+    installed by :c:func:`sipSetModuleUserState`.
+
+    :param guard:
+        the object guard.
+    :return:
+        0 if there was no error.
+
+
+.. c:function:: int sipObjectGuard_Free(sipObjectGuard *guard)
+
+    This frees the guard if it is owned by the current interpreter.  It is
+    normally called by the ``free`` function installed by
+    :c:func:`sipSetModuleUserState`.
+
+    :param guard:
+        the object guard.
+    :return:
+        a non-zero value if the guard was freed.
+
+
+.. c:function:: sipModuleState *sipObjectGuard_GetModuleState(sipObjectGuard *guard)
+
+    This returns the state of the module that provided the context when the
+    guard was created.  It must only be called after a successful call to
+    :c:func:`sipObjectGuard_GetRef`.
+
+    :param guard:
+        the object guard.
+    :return:
+        the module state.
+
+
+.. c:function:: PyObject *sipObjectGuard_GetRef(sipObjectGuard *guard, PyThreadStateToken **token_p)
+
+    This returns a new reference to the guarded object and a token for the
+    newly attached thread state.  Once the reference to the guarded object has
+    been released the token must be passed to :c:func:`PyThreadState_Release`.
+    This may be called without a currently attached thread state.
+
+    :param guard:
+        the object guard.
+    :param token_p:
+        if the guarded object is available then the token for the newly
+        attached thread state is returned via this pointer.
+    :return:
+        a new reference to the guarded object or ``NULL`` (and no exception
+        raised) if the object is no longer available.
+
+
+.. c:function:: sipObjectGuard *sipObjectGuard_New(PyObject *obj)
+
+    This creates a guard for a Python object.
+
+    :param obj:
+        the Python object being guarded.
+    :return:
+        the object guard or ``NULL`` (and an exception raised) if there was an
+        error.
+
+
+.. c:function:: void sipObjectGuard_Release(sipObjectGuard *guard)
+
+    This removes the reference to the Python object and the guard itself.  It
+    must only be called after a successful call to
+    :c:func:`sipObjectGuard_GetRef`.
+
+    :param guard:
+        the object guard.
+
+
+.. c:function:: int sipObjectGuard_Traverse(sipObjectGuard *guard, visitproc visit, void *arg)
+
+    This traverses the Python object during garbage collection if it is owned
+    by the current interpreter.  It is normally called by the ``traverse``
+    function installed by :c:func:`sipSetModuleUserState`.
+
+    :param guard:
+        the object guard.
+    :param visitproc:
+        the visitor function.
+    :param arg:
+        the visitor function argument.
+    :return:
+        0 if there was no error.
+
+
+.. c:function:: int sipParseResultObject(PyThreadStateToken *tst, sipVirtErrorHandler error_handler, sipSimpleWrapper *self, PyObject *method, PyObject *result, const char *format, ...)
 
     This converts a Python object (usually returned by a method) to C/C++ based
     on a format string and associated values in a similar way to the Python
@@ -1430,7 +1582,7 @@ API Reference
     :param tst:
         the thread state token.
     :param error_handler:
-        the name of the error handler.
+        the error handler.
     :param self:
         the Python self object.
     :param method:
@@ -1445,9 +1597,9 @@ API Reference
 
     This is normally called by handwritten code specified with the
     :directive:`%VirtualCatcherCode` directive with *tst* being the supplied
-    ``sipTST``, *error_handler* being the the supplied ``sipErrorHandler``,
-    *self* being the supplied ``sipPySelf``, *method* being the supplied
-    ``sipMethod`` and *result* being the value returned by
+    ``sipGILState``, *error_handler* being the the supplied
+    ``sipErrorHandler``, *self* being the supplied ``sipPySelf``, *method*
+    being the supplied ``sipMethod`` and *result* being the value returned by
     :c:func:`sipCallMethod`.
 
     If *format* begins and ends with parentheses then *result* must be a Python
@@ -1701,6 +1853,9 @@ API Reference
     can be supported.  This function is normally called from
     :directive:`%InitialisationCode`.
 
+    Note that lifecycle of the state reflects that of the module itself and the
+    lifecycle functions will still be called even if a ``NULL`` state was set.
+
     :param user_state:
         the address of the state structure.
     :param clear:
@@ -1923,6 +2078,18 @@ API Reference
         the type's :ref:`generated type specification <ref-type-specs>`.
     :return:
         the name of the C/C++ type.
+
+
+.. c:function:: const void *sipTypePluginData(sipTypeID type_id)
+
+    Bindings authors can implement a plugin that generates an additional
+    immutable data structure for a wrapped class.  This returns a pointer to
+    that data structure.
+
+    :param type_id:
+        the class's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the immutable plugin-specific data structure.
 
 
 .. c:function:: sipTypeID sipTypeScope(sipTypeID type_id)

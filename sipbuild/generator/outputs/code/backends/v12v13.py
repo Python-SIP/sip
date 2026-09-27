@@ -137,6 +137,16 @@ f'''    if (targetType == {sc_type_ref})
         sf.write(f'\nextern sipClassTypeDef sipTypeDef_{module_name}_{klass_name};\n')
 
     @staticmethod
+    def g_code(sf, code):
+        """ Generate a block of handwritten code. """
+
+        # Provide a dummy module state if it is refered to in the code.
+        if is_used_in_code(code, 'sipMS'):
+            sf.write('            sipModuleState *sipMS = NULL;\n\n')
+
+        sf.write_code(code)
+
+    @staticmethod
     def g_conversion_to_enum(sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -1026,8 +1036,6 @@ f'''
 #define sipCallMethod               sipAPI_{module_name}->api_call_method
 #define sipCallProcedureMethod      sipAPI_{module_name}->api_call_procedure_method
 #define sipCallErrorHandler         sipAPI_{module_name}->api_call_error_handler
-#define sipParseResultEx            sipAPI_{module_name}->api_parse_result_ex
-#define sipParseResult              sipAPI_{module_name}->api_parse_result
 #define sipParseArgs                sipAPI_{module_name}->api_parse_args
 #define sipParseKwdArgs             sipAPI_{module_name}->api_parse_kwd_args
 #define sipParsePair                sipAPI_{module_name}->api_parse_pair
@@ -1149,6 +1157,8 @@ f'''
 #define sipLong_AsSizeT             sipAPI_{module_name}->api_long_as_size_t
 #define sipVisitWrappers            sipAPI_{module_name}->api_visit_wrappers
 #define sipRegisterExitNotifier     sipAPI_{module_name}->api_register_exit_notifier
+#define sipParseResult              sipAPI_{module_name}->api_parse_result
+#define sipParseResultEx            sipAPI_{module_name}->api_parse_result_ex
 ''')
 
         # These are dependent on the specific ABI version.
@@ -1159,6 +1169,11 @@ f'''
             if abi_minor >= 13:
                 sf.write(
 f'''#define sipGetPyTypeRef             sipAPI_{module_name}->api_get_py_type_ref
+#define sipGetAssignmentFunction    sipAPI_{module_name}->api_get_assignment_function
+#define sipObjectGuard_New          sipAPI_{module_name}->api_object_guard_new
+#define sipObjectGuard_GetRef       sipAPI_{module_name}->api_object_guard_get_ref
+#define sipObjectGuard_Release      sipAPI_{module_name}->api_object_guard_release
+#define sipParseResultObject        sipAPI_{module_name}->api_parse_result_ex
 ''')
 
             # ABI v13.9 and later.
@@ -1195,6 +1210,11 @@ f'''#define sipIsEnumFlag               sipAPI_{module_name}->api_is_enum_flag
                 sf.write(
 f'''#define sipGetFrameRef              sipAPI_{module_name}->api_get_frame_ref
 #define sipGetPyTypeRef             sipAPI_{module_name}->api_get_py_type_ref
+#define sipGetAssignmentFunction    sipAPI_{module_name}->api_get_assignment_function
+#define sipObjectGuard_New          sipAPI_{module_name}->api_object_guard_new
+#define sipObjectGuard_GetRef       sipAPI_{module_name}->api_object_guard_get_ref
+#define sipObjectGuard_Release      sipAPI_{module_name}->api_object_guard_release
+#define sipParseResultObject        sipAPI_{module_name}->api_parse_result_ex
 ''')
 
             # ABI v12.16 and later
@@ -2002,10 +2022,10 @@ void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper 
         return f'sipImportedVirtErrorHandlers_{module_name}_{error_handler.module.py_name}[{error_handler.handler_nr}].iveh_handler'
 
     @staticmethod
-    def get_error_handler_ref_type():
-        """ Return the type of a reference to an error handler. """
+    def get_error_handler_type(spec):
+        """ Return the type of a virtual error handler. """
 
-        return 'sipVirtErrorHandlerFunc'
+        return 'sipVirtErrorHandler' if _abi_version_check(spec, (12, 20), (13, 13)) else 'sipVirtErrorHandlerFunc'
 
     @staticmethod
     def get_overload_docstring(spec, scope, overload):
@@ -2033,7 +2053,7 @@ void sipVEH_{spec.module.py_name}_{virtual_error_handler.name}(sipSimpleWrapper 
         return 'sipRaiseUnknownException()'
 
     @staticmethod
-    def get_result_parser():
+    def get_result_parser(spec):
         """ Return the name of the Python reimplementation result parser. """
 
         return 'sipParseResultEx'
@@ -2960,6 +2980,11 @@ def _g_module_init_body(sf, spec):
     module_name = module.py_name
 
     sf.write('\n    PyObject *sipModule, *sipModuleDict;\n')
+
+    if is_used_in_code(module.preinitialisation_code, 'sipMS') or \
+       is_used_in_code(module.initialisation_code, 'sipMS') or \
+       is_used_in_code(module.postinitialisation_code, 'sipMS'):
+        sf.write('    sipModuleState *sipMS = NULL;\n')
 
     if project.sip_module:
         sf.write('    PyObject *sip_sipmod, *sip_capiobj;\n\n')

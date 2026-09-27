@@ -28,6 +28,12 @@ API Reference
     :c:macro:`SIP_UNBLOCK_THREADS` at the same lexical scope.
 
 
+.. c:type:: sip_gilstate_t
+
+    This is an opaque type that represents the state of the GIL.  It is
+    implemented as :c:type:`PyGILState_STATE`.
+
+
 .. c:macro:: SIP_NO_CONVERTORS
 
     This is a flag used by various type convertors that suppresses the use of a
@@ -69,16 +75,13 @@ API Reference
     array is read-only.
 
 
-.. c:function:: void SIP_RELEASE_GIL(sip_gilstate_t sipGILState)
+.. c:function:: void SIP_RELEASE_GIL(sip_gilstate_t gil_state)
 
-    This is called from the handwritten code specified with the
-    :directive:`VirtualErrorHandler` in order to release the Python Global
-    Interpreter Lock (GIL) prior to changing the execution path (e.g. by
-    throwing a C++ exception).  It should not be called under any other
-    circumstances.
+    This is called in order to ensure that the GIL is released.  It is
+    implemented as a call to :c:func:`PyGILState_Ensure`.
 
-    :param sipGILState:
-        an opaque value provided to the handwritten code by SIP.
+    :param gil_state:
+        an opaque value representing the GIL state.
 
 
 .. c:macro:: SIP_UNBLOCK_THREADS
@@ -913,6 +916,25 @@ API Reference
         the address of the C/C++ instance
 
 
+.. c:function:: sipAssignFunc sipGetAssignmentFunction(const sipTypeDef *td)
+
+    .. version-added:: 13.13
+
+    This returns the address of a helper function for assigning (ie. copying)
+    an instance of a C/C++ type.
+
+    The function is passed three arguments: the first is a ``void *`` which is
+    a pointer to (potentially) destination array of instances; the second is a
+    ``Py_ssize_t`` index within the destination array (which should be ``0`` if
+    the destination is actually an ordinary variable rather than an array);
+    the third is a ``void *`` which is a pointer to the source instance.
+
+    :param td:
+        the type's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        The address of the function or ``NULL`` if the type doesn't have one.
+
+
 .. c:function:: int sipGetBufferInfo(PyObject *obj, sipBufferInfoDef *buffer_info)
 
     This checks to see if an object implements the Python buffer protocol and,
@@ -1017,6 +1039,90 @@ API Reference
         the address of the C++ instance
 
 
+.. c:function:: sipModuleState *sipGetModuleState()
+
+    .. version-added:: 13.13
+
+    This is provided as an aid to porting handwritten code to API v14 and
+    returns a non-``NULL`` value.
+
+
+.. c:function:: sipModuleState *sipGetModuleStateByType(PyTypeObject *py_type)
+
+    .. version-added:: 13.13
+
+    This is provided as an aid to porting handwritten code to API v14 and
+    returns a non-``NULL`` value.
+
+
+.. c:type:: sipObjectGuard
+
+    .. version-added:: 13.13
+
+    This opaque C structure implements a guard for a Python object allowing a
+    new reference to it to be obtained along with an attached thread state.
+    (In this ABI's implementation a guard is actually a new reference to the
+    object itself.)
+ 
+
+.. c:function:: sipModuleState *sipObjectGuard_GetModuleState(sipObjectGuard *guard)
+
+    .. version-added:: 13.13
+
+    This returns the state of the module that provided the context when the
+    guard was created.  It must only be called after a successful call to
+    :c:func:`sipObjectGuard_GetRef`.
+
+    :param guard:
+        the object guard.
+    :return:
+        the module state.
+
+
+.. c:function:: PyObject *sipObjectGuard_GetRef(sipObjectGuard *guard, sip_gilstate_t *gil_state_p)
+
+    .. version-added:: 13.13
+
+    This returns a new reference to the guarded object and ensures the GIL has
+    been acquired.  Once the reference to the guarded object has been released
+    the GIL state must be passed to :c:func:`SIP_RELEASE_GIL`.  This may be
+    called without the GIL being held.
+
+    :param guard:
+        the object guard.
+    :param gil_state_p:
+        if the guarded object is available then the GIL is acquired and the
+        state is returned via this pointer.
+    :return:
+        a new reference to the guarded object or ``NULL`` (and no exception
+        raised) if the object is no longer available.
+
+
+.. c:function:: sipObjectGuard *sipObjectGuard_New(PyObject *obj)
+
+    .. version-added:: 13.13
+
+    This creates a guard for a Python object.
+
+    :param obj:
+        the Python object being guarded.
+    :return:
+        the object guard or ``NULL`` (and an exception raised) if there was an
+        error.
+
+
+.. c:function:: void sipObjectGuard_Release(sipObjectGuard *guard)
+
+    .. version-added:: 13.13
+
+    This removes the reference to the Python object and releases the guard
+    itself.  It must only be called after a successful call to
+    :c:func:`sipObjectGuard_GetRef`.
+
+    :param guard:
+        the object guard.
+
+
 .. c:function:: PyObject *sipGetPyObject(void *cppptr, const sipTypeDef *td)
 
     This returns a borrowed reference to the Python object for a C structure or
@@ -1095,6 +1201,14 @@ API Reference
         the wrapped object.
     :return:
         the user object.
+
+
+.. c:function:: PyTypeObject *sipGetVoidPtrType()
+
+    .. version-added:: 13.13
+
+    This is provided as an aid to porting handwritten code to API v14 and
+    returns a borrowed reference to :c:var:`sipVoidPtr_Type`.
 
 
 .. c:function:: void *sipImportSymbol(const char *name)
@@ -1331,9 +1445,12 @@ API Reference
 
 .. c:function:: int sipParseResult(int *iserr, PyObject *method, PyObject *result, const char *format, ...)
 
+    .. version-deprecated:: 13.13
+        This has a race condition, use :c:func:`sipParseResultObject` instead.
+
     This converts a Python object (usually returned by a method) to C/C++ based
     on a format string and associated values in a similar way to the Python
-    :c:func:`PyArg_ParseTuple()` function.
+    :c:func:`PyArg_ParseTuple` function.
 
     :param iserr:
         if this is not ``NULL`` then the location it points to is set to a
@@ -1351,7 +1468,7 @@ API Reference
     This is normally called by handwritten code specified with the
     :directive:`%VirtualCatcherCode` directive with *method* being the supplied
     ``sipMethod`` and *result* being the value returned by
-    :c:func:`sipCallMethod()`.
+    :c:func:`sipCallMethod`.
 
     If *format* begins and ends with parentheses then *result* must be a Python
     tuple and the rest of *format* is applied to the tuple contents.
@@ -1477,6 +1594,185 @@ API Reference
         This format character, if used, must be the first.  It is used with
         other format characters to define a context and doesn't itself convert
         an argument.
+
+    ``T`` (object) [PyTypeObject \*, PyObject \*\*]
+        A Python object is checked to see if it is a certain type and then
+        returned without any conversions.  The reference count is incremented.
+        The Python object may not be ``Py_None``.
+
+    ``V`` (:class:`sip.voidptr`) [void \*\*]
+        Convert a Python :class:`sip.voidptr` object to a C/C++ ``void *``.
+
+    ``z`` (object) [const char \*, void \*\*]
+        Convert a Python named capsule object to a C/C++ ``void *``.
+
+    ``Z`` (object) []
+        Check that a Python object is ``Py_None``.  No value is returned.
+
+    ``!`` (object) [PyObject \*\*]
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may not be ``Py_None``.
+
+    ``$`` (object) [PyObject \*\*]
+        A Python object is checked to see if it implements the buffer protocol
+        and then returned without any conversions.  The reference count is
+        incremented.  The Python object may be ``Py_None``.
+
+    ``=`` (long) [size_t \*]
+        Convert a Python long to a C/C++ ``size_t``.
+
+
+.. c:function:: int sipParseResultObject(sip_gilstate_t gil_state, sipVirtErrorHandler error_handler, sipSimpleWrapper *self, PyObject *method, PyObject *result, const char *format, ...)
+
+    .. version-added:: 13.13
+
+    This converts a Python object (usually returned by a method) to C/C++ based
+    on a format string and associated values in a similar way to the Python
+    :c:func:`PyArg_ParseTuple` function.
+
+    :param gil_state:
+        an opaque value representing the GIL state.
+    :param error_handler:
+        the error handler.
+    :param self:
+        the Python self object.
+    :param method:
+        the Python method that returned *result*.
+    :param result:
+        the Python object returned by *method*.
+    :param format:
+        the format string.
+    :return:
+        0 if there was no error.  Otherwise a negative value is returned, and
+        an exception raised.
+
+    This is normally called by handwritten code specified with the
+    :directive:`%VirtualCatcherCode` directive with *gil_state* being the
+    supplied ``sipGILState``, *error_handler* being the the supplied
+    ``sipErrorHandler``, *self* being the supplied ``sipPySelf``, *method*
+    being the supplied ``sipMethod`` and *result* being the value returned by
+    :c:func:`sipCallMethod`.
+
+    If *format* begins and ends with parentheses then *result* must be a Python
+    tuple and the rest of *format* is applied to the tuple contents.
+
+    In the following description the first letter is the format character, the
+    entry in parentheses is the Python object type that the format character
+    will convert, and the entry in brackets are the types of the C/C++ values
+    to be passed. 
+
+    ``ae`` (object) [char \*]
+        Convert a Python string-like object of length 1 to a C/C++ ``char``
+        according to the encoding ``e``.  ``e`` can either be ``A`` for ASCII,
+        ``L`` for Latin-1, or ``8`` for UTF-8.  The object may either be a
+        ``bytes`` object or a ``str`` object that can be encoded.  An object
+        that supports the buffer protocol may also be used.
+
+    ``b`` (integer) [bool \*]
+        Convert a Python bool or integer to a C/C++ ``bool``.
+
+    ``c`` (bytes) [char \*]
+        Convert a Python ``bytes`` object of length 1 to a C/C++ ``char``.
+
+    ``d`` (float) [double \*]
+        Convert a Python floating point number to a C/C++ ``double``.
+
+    ``e`` (integer) [enum \*]
+        Convert a Python integer to an anonymous C/C++ ``enum``.
+
+    ``f`` (float) [float \*]
+        Convert a Python floating point number to a C/C++ ``float``.
+
+    ``g`` (bytes) [const char \*\*, :c:type:`Py_ssize_t` \*]
+        Convert a Python ``bytes`` object to a C/C++ character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
+
+    ``h`` (integer) [short \*]
+        Convert a Python integer to a C/C++ ``short``.
+
+    ``i`` (integer) [int \*]
+        Convert a Python integer to a C/C++ ``int``.
+
+    ``l`` (long) [long \*]
+        Convert a Python long to a C/C++ ``long``.
+
+    ``m`` (long) [unsigned long \*]
+        Convert a Python long to a C/C++ ``unsigned long``.
+
+    ``n`` (long) [long long \*]
+        Convert a Python long to a C/C++ ``long long``.
+
+    ``o`` (long) [unsigned long long \*]
+        Convert a Python long to a C/C++ ``unsigned long long``.
+
+    ``t`` (long) [unsigned short \*]
+        Convert a Python long to a C/C++ ``unsigned short``.
+
+    ``u`` (long) [unsigned int \*]
+        Convert a Python long to a C/C++ ``unsigned int``.
+
+    ``w`` (string) [wchar_t \*]
+        Convert a Python ``str`` object of length 1 to a C/C++ wide character.
+
+    ``x`` (string) [wchar_t \*\*]
+        Convert a Python ``str`` object to a C/C++ ``L'\0'`` terminated wide
+        character string.  If the Python object is ``Py_None`` then the string
+        is ``NULL``.
+
+    ``Ae`` (object) [int, const char \*\*]
+        Convert a Python string-like object to a C/C++ ``'\0'`` terminated
+        string according to the encoding ``e``.  ``e`` can either be ``A`` for
+        ASCII, ``L`` for Latin-1, or ``8`` for UTF-8.  If the Python object is
+        ``Py_None`` then the string is ``NULL``.  The integer uniquely
+        identifies the object in the context defined by the ``S`` format
+        character and allows an extra reference to the object to be kept to
+        ensure that the string remains valid.  The object may either be a
+        ``bytes`` object or a ``str`` object that can be encoded.  An object
+        that supports the buffer protocol may also be used.
+
+    ``B`` (bytes) [int, const char \*\*]
+        Convert a Python ``bytes`` object to a C/C++ ``'\0'`` terminated
+        string.  If the Python object is ``Py_None`` then the string is
+        ``NULL``.  The integer uniquely identifies the object in the context
+        defined by the ``S`` format character and allows an extra reference to
+        the object to be kept to ensure that the string remains valid.
+
+    ``F`` (wrapped enum) [:c:type:`sipTypeDef` \*, enum \*]
+        Convert a Python named enum type to the corresponding C/C++ ``enum``.
+
+    ``G`` (string) [wchar_t \*\*, :c:type:`Py_ssize_t` \*]
+        Convert a Python ``str`` object to a C/C++ wide character array and its
+        length.  If the Python object is ``Py_None`` then the array and length
+        are ``NULL`` and zero respectively.
+
+    ``Hf`` (wrapped instance) [const :c:type:`sipTypeDef` \*, int \*, void \*\*]
+        Convert a Python object to a C structure, C++ class or mapped type
+        instance as described in :c:func:`sipConvertToType()`.  ``f`` is a
+        combination of the following flags encoded as an ASCII character by
+        adding ``0`` to the combined value:
+
+        0x01 disallows the conversion of ``Py_None`` to ``NULL``
+
+        0x02 implements the :fanno:`Factory` and :fanno:`TransferBack` annotations
+
+        0x04 returns a copy of the C/C++ instance.
+
+    ``L`` (integer) [signed char \*]
+        Convert a Python integer to a C/C++ ``signed char``.
+
+    ``M`` (long) [unsigned char \*]
+        Convert a Python long to a C/C++ ``unsigned char``.
+
+    ``N`` (object) [PyTypeObject \*, PyObject \*\*]
+        A Python object is checked to see if it is a certain type and then
+        returned without any conversions.  The reference count is incremented.
+        The Python object may be ``Py_None``.
+
+    ``O`` (object) [PyObject \*\*]
+        A Python object is returned without any conversions.  The reference
+        count is incremented.
 
     ``T`` (object) [PyTypeObject \*, PyObject \*\*]
         A Python object is checked to see if it is a certain type and then
@@ -1880,7 +2176,7 @@ API Reference
     defined as a ``const`` pointer to :c:type:`sipTypeDef`.
 
 
-.. c:function:: int sipTypeIsClass(sipTypeDef *td)
+.. c:function:: int sipTypeIsClass(const sipTypeDef *td)
 
     This checks if a :ref:`generated type specification <ref-type-specs>`
     refers to a C structure or C++ class.
@@ -1892,7 +2188,7 @@ API Reference
         class.
 
 
-.. c:function:: int sipTypeIsEnum(sipTypeDef *td)
+.. c:function:: int sipTypeIsEnum(const sipTypeDef *td)
 
     This checks if a :ref:`generated type specification <ref-type-specs>`
     refers to a C-style named enum.
@@ -1904,7 +2200,7 @@ API Reference
         enum.
 
 
-.. c:function:: int sipTypeIsMapped(sipTypeDef *td)
+.. c:function:: int sipTypeIsMapped(const sipTypeDef *td)
 
     This checks if a :ref:`generated type specification <ref-type-specs>`
     refers to a mapped type.
@@ -1915,7 +2211,7 @@ API Reference
         a non-zero value if the type specification refers to a mapped type.
 
 
-.. c:function:: int sipTypeIsNamespace(sipTypeDef *td)
+.. c:function:: int sipTypeIsNamespace(const sipTypeDef *td)
 
     This checks if a :ref:`generated type specification <ref-type-specs>`
     refers to a C++ namespace.
@@ -1926,7 +2222,7 @@ API Reference
         a non-zero value if the type specification refers to a namespace.
 
 
-.. c:function:: int sipTypeIsScopedEnum(sipTypeDef *td)
+.. c:function:: int sipTypeIsScopedEnum(const sipTypeDef *td)
 
     This checks if a :ref:`generated type specification <ref-type-specs>`
     refers to a C++11 scoped enum.
@@ -1946,6 +2242,18 @@ API Reference
         the type's :ref:`generated type specification <ref-type-specs>`.
     :return:
         the name of the C/C++ type.
+
+
+.. c:function:: const void *sipTypePluginData(const sipTypeDef *td)
+
+    Bindings authors can implement a plugin that generates an additional
+    immutable data structure for a wrapped class.  This returns a pointer to
+    that data structure.
+
+    :param type_id:
+        the class's :ref:`generated type specification <ref-type-specs>`.
+    :return:
+        the immutable plugin-specific data structure.
 
 
 .. c:function:: const sipTypeDef *sipTypeScope(const sipTypeDef *td)
@@ -2078,10 +2386,18 @@ Version History
 v13.13.0
 ........
 
+- Added :c:func:`sipGetAssignmentFunction` to the public API.
 - Added :c:func:`sipGetPyTypeRef` to the public API.
 - Deprecated :c:func:`sipTypeAsPyTypeObject` in the public API.
-- Added :c:func:`sipMakeAbsolute` to aid porting to ABI v14.
+- Added :c:type:`sipObjectGuard`, :c:func:`sipObjectGuard_New`,
+  :c:func:`sipObjectGuard_GetModuleState`, :c:func:`sipObjectGuard_GetRef`
+  and :c:func:`sipObjectGuard_Release` to the public API.
+- Added :c:func:`sipParseResultObject()` to the public API.
 - Added :c:type:`sipModuleState` to aid porting to ABI v14.
+- Added :c:func:`sipGetModuleState` to aid porting to ABI v14.
+- Added :c:func:`sipGetModuleStateByType` to aid porting to ABI v14.
+- Added :c:func:`sipGetVoidPtrType` to aid porting to ABI v14.
+- Added :c:func:`sipMakeAbsolute` to aid porting to ABI v14.
 
 
 v13.12.0

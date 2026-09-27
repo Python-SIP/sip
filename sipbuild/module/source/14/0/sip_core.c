@@ -24,6 +24,7 @@
 #include "sip_helpers.h"
 #include "sip_int_convertors.h"
 #include "sip_method_descriptor.h"
+#include "sip_object_guard.h"
 #include "sip_parsers.h"
 #include "sip_simple_wrapper.h"
 #include "sip_sip_module.h"
@@ -39,7 +40,7 @@ static void sip_api_abstract_method(const char *classname, const char *method);
 static void sip_api_call_hook(const char *hookname);
 static void *sip_api_cast_to_target_type(sipModuleState *ms, sipTypeID type_id,
         void *cpp, const sipClassTypeSpec *target_cts);
-static int sip_api_convert_to_enum(sipModuleState *ms, PyObject *obj,
+static int sip_api_convert_to_based_enum(sipModuleState *ms, PyObject *obj,
         void *addr, sipTypeID type_id);
 static int sip_api_enable_autoconversion(sipModuleState *ms,
         PyTypeObject *py_type, int enable);
@@ -112,6 +113,7 @@ const sipABISpec sip_abi = {
     sip_api_release_type_us,
     sip_api_convert_from_type,
     sip_api_convert_from_new_type,
+    sip_api_convert_from_based_enum,
     sip_api_convert_from_enum,
     sip_api_get_state,
     sip_api_free,
@@ -166,6 +168,7 @@ const sipABISpec sip_abi = {
     sip_api_enable_gc,
     sip_api_object_dump,
     sip_api_register_event_handlers,
+    sip_api_convert_to_based_enum,
     sip_api_convert_to_enum,
     sip_api_convert_to_bool,
     sip_api_long_as_char,
@@ -190,11 +193,21 @@ const sipABISpec sip_abi = {
     sip_api_get_frame_ref,
     sip_api_get_module_user_state,
     sip_api_set_module_user_state,
-    sip_api_get_imported_module_state,
+    sip_api_get_module_state,
+    sip_api_get_module_state_by_type,
     sip_api_py_type_name,
     sip_api_type_from_py_type_object,
     sip_api_make_absolute,
     sip_api_type_name,
+    sip_api_get_assignment_function,
+    sip_api_type_plugin_data,
+    sip_api_object_guard_new,
+    sip_api_object_guard_get_module_state,
+    sip_api_object_guard_get_ref,
+    sip_api_object_guard_release,
+    sip_api_object_guard_clear,
+    sip_api_object_guard_free,
+    sip_api_object_guard_traverse,
     /*
      * The following are not part of the public ABI.
      */
@@ -213,7 +226,7 @@ const sipABISpec sip_abi = {
     sip_api_deprecated,
     sip_api_keep_reference,
     sip_api_add_exception,
-    sip_api_parse_result,
+    sip_api_parse_result_object,
     sip_api_call_error_handler,
     sip_api_call_procedure_method,
     sip_api_init_slot_impl,
@@ -344,10 +357,10 @@ static void sip_api_trace(sipModuleState *ms, unsigned mask, const char *fmt,
  * Convert a Python object implementing an enum to a member value.  An
  * exception is raised if there was an error.
  */
-static int sip_api_convert_to_enum(sipModuleState *ms, PyObject *obj,
+static int sip_api_convert_to_based_enum(sipModuleState *ms, PyObject *obj,
         void *addr, sipTypeID type_id)
 {
-    return sip_enum_convert_to_enum(ms, obj, addr, type_id, TRUE);
+    return sip_enum_convert_to_based_enum(ms, obj, addr, type_id, TRUE);
 }
 
 

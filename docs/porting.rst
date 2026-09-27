@@ -54,15 +54,9 @@ This section summarises the differences between the v14 API and older versions.
   :c:type:`sipBufferInfoDef` are no longer supported as the corresponding
   Python support is now part of the stable ABI.
 
-- :c:func:`sipConvertFromEnum` is passed a pointer to the enum's value rather
-  than the value itself.
-
 - :c:func:`sipConvertToBool` now returned a C/C++ ``bool`` rather than an
   ``int``.  :c:func:`PyErr_Occurred` must be called to check if the conversion
   was successful.
-
-- :c:func:`sipConvertToEnum` is passed a pointer to return the enum's value
-  rather than returning the value from the function itself.
 
 - :c:func:`sipEnableAutoconversion` is passed the Python type object rather
   than the generated type structure.
@@ -86,17 +80,12 @@ This section summarises the differences between the v14 API and older versions.
   (rather than just a ``PyObject *``) which will be set to ``NULL`` when the
   call returns.
 
-- :c:func:`sipParseResult` has additional arguments that are provided by
-  :directive:`%VirtualCatcherCode`.  The ``S`` format character is no longer
-  supported.
+- :c:func:`sipParseResult` has been replaced by :c:func:`sipParseResultObject`.
 
 - :c:func:`sipPrintObject` has been replaced by :c:func:`sipObjectDump`.
 
 - :c:func:`sipPyTypeDict` has been removed, use :c:func:`sipPyTypeDictRef`
   instead.
-
-- :c:func:`sipPyTypeName` has been removed, use
-  ``(const char *)PyType_GetSlot(type, Py_tp_name)`` instead.
 
 - :c:func:`sipRegisterAttributeGetter` is no longer supported.  A handler for
   the :c:enumerator:`sipEventFinalisingType` event type should be used instead.
@@ -123,12 +112,6 @@ This section summarises the differences between the v14 API and older versions.
 
 - :c:func:`sipTypeAsPyTypeObject` has been replaced by
   :c:func:`sipGetPyTypeRef`.
-
-- :c:func:`sipTypeIsNamespace` is no longer supported.
-
-- :c:func:`sipTypeName` is no longer supported.  Calls to
-  :c:func:`sipGetPyTypeRef` and :c:func:`PyType_GetSlot` should be used
-  instead.
 
 - :c:var:`sipVoidPtr_Type` is no longer supported, call
   :c:func:`sipGetVoidPtrType` instead.

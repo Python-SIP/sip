@@ -535,14 +535,13 @@ the ``[tool.sip]`` section.  There is no need for a ``project.py`` file.
 
     .. py:method:: sip_class_generate_impl(writer, spec, klass)
 
-        Generate code that implements support for a class.  The name of an
-        optional plugin-specific data structure can be returned.  This is used
-        by ABIs v12 and v13 but ignored by v14.
+        Generate code that implements support for a class, usually in the form
+        of a type-specific data structure.
 
         :param writer: is an object with a ``write()`` method.
         :param Specification spec: is the specification.
         :param Class klass: is the class.
-        :return: the name of a plugin-specific data structure or ``None``.
+        :return: the name of the plugin-specific data structure or ``None``.
 
     .. py:method:: sip_class_generate_release_code(writer, spec, klass)
 

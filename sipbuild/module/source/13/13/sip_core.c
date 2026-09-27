@@ -3,7 +3,7 @@
 /*
  * The core sip module code.
  *
- * Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+ * Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
  */
 
 
@@ -246,7 +246,7 @@ static PyObject *sip_api_build_result(int *isErr, const char *fmt, ...);
 static PyObject *sip_api_call_method(int *isErr, PyObject *method,
         const char *fmt, ...);
 static void sip_api_call_procedure_method(sip_gilstate_t gil_state,
-        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *py_self,
         PyObject *method, const char *fmt, ...);
 static Py_ssize_t sip_api_convert_from_sequence_index(Py_ssize_t idx,
         Py_ssize_t len);
@@ -271,11 +271,11 @@ static PyObject *sip_api_convert_from_new_pytype(void *cpp,
 static int sip_api_get_state(PyObject *transferObj);
 static PyObject *sip_api_get_pyobject(void *cppPtr, const sipTypeDef *td);
 static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
-        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *py_self,
         PyObject *method, PyObject *res, const char *fmt, ...);
 static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
         const char *fmt, ...);
-static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
+static void sip_api_call_error_handler(sipVirtErrorHandler error_handler,
         sipSimpleWrapper *py_self, sip_gilstate_t gil_state);
 static void sip_api_trace(unsigned mask,const char *fmt,...);
 static void sip_api_transfer_back(PyObject *self);
@@ -389,6 +389,11 @@ static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
 static int sip_api_register_exit_notifier(PyMethodDef *md);
 static sipExceptionHandler sip_api_next_exception_handler(void **statep);
 static PyTypeObject *sip_api_get_py_type_ref(const sipTypeDef *td);
+static sipAssignFunc sip_api_get_assignment_function(const sipTypeDef *td);
+static sipObjectGuard *sip_api_object_guard_new(PyObject *obj);
+static PyObject *sip_api_object_guard_get_ref(sipObjectGuard *obj_guard,
+        sip_gilstate_t *gs_p);
+static void sip_api_object_guard_release(sipObjectGuard *obj_guard);
 
 
 /*
@@ -498,7 +503,7 @@ static const sipAPIDef sip_api = {
     sip_api_is_enum_flag,
     sip_api_py_type_dict_ref,
     sip_api_get_py_type_ref,
-    NULL,
+    sip_api_get_assignment_function,
     NULL,
     NULL,
     /*
@@ -548,6 +553,12 @@ static const sipAPIDef sip_api = {
     NULL,
     NULL,
     NULL,
+    /*
+     * The following are part of the public API.
+     */
+    sip_api_object_guard_new,
+    sip_api_object_guard_get_ref,
+    sip_api_object_guard_release,
 };
 
 
@@ -1994,7 +2005,7 @@ static PyObject *call_method(PyObject *method, const char *fmt, va_list va)
  * value and handle the result..
  */
 static void sip_api_call_procedure_method(sip_gilstate_t gil_state,
-        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *py_self,
         PyObject *method, const char *fmt, ...)
 {
     PyObject *res;
@@ -2409,7 +2420,7 @@ static int sip_api_parse_result(int *isErr, PyObject *method, PyObject *res,
  * Parse a result object based on a format string.
  */
 static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
-        sipVirtErrorHandlerFunc error_handler, sipSimpleWrapper *py_self,
+        sipVirtErrorHandler error_handler, sipSimpleWrapper *py_self,
         PyObject *method, PyObject *res, const char *fmt, ...)
 {
     int rc;
@@ -2444,7 +2455,7 @@ static int sip_api_parse_result_ex(sip_gilstate_t gil_state,
  * Call a virtual error handler.  This is called with the GIL and from the
  * thread that raised the error.
  */
-static void sip_api_call_error_handler(sipVirtErrorHandlerFunc error_handler,
+static void sip_api_call_error_handler(sipVirtErrorHandler error_handler,
         sipSimpleWrapper *py_self, sip_gilstate_t sipGILState)
 {
     if (error_handler != NULL)
@@ -6312,6 +6323,22 @@ int sip_add_all_lazy_attrs(const sipTypeDef *td)
     }
 
     return 0;
+}
+
+
+/*
+ * Return the assignment helper function for a type or NULL if it doesn't have
+ * one.
+ */
+static sipAssignFunc sip_api_get_assignment_function(const sipTypeDef *td)
+{
+    if (sipTypeIsClass(td))
+        return ((sipClassTypeDef *)td)->ctd_assign;
+
+    if (sipTypeIsMapped(td))
+        return ((sipMappedTypeDef *)td)->mtd_assign;
+
+    return NULL;
 }
 
 
@@ -11957,4 +11984,39 @@ sipExceptionHandler sip_api_next_exception_handler(void **statep)
     *statep = em;
 
     return em->em_exception_handler;
+}
+
+
+/*
+ * Create a new guard for an object.  Returns NULL with an exception raised if
+ * there was an error.
+ */
+static sipObjectGuard *sip_api_object_guard_new(PyObject *obj)
+{
+    /* In this implementation the guard is the object. */
+    return Py_NewRef(obj);
+}
+
+
+/*
+ * Return a new reference to a guarded object and a sip_gilstate_t for the
+ * (now attached) thread state.  The token must be passed to SIP_RELEASE_GIL()
+ * once the reference to the guarded object has been released.  This may be
+ * called without an attached thread state.
+ */
+static PyObject *sip_api_object_guard_get_ref(sipObjectGuard *obj_guard,
+        sip_gilstate_t *gs_p)
+{
+    *gs_p = PyGILState_Ensure();
+
+    return Py_NewRef(obj_guard);
+}
+
+
+/*
+ * Release a guarded object.
+ */
+static void sip_api_object_guard_release(sipObjectGuard *obj_guard)
+{
+    Py_DECREF(obj_guard);
 }

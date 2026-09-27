@@ -53,6 +53,12 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
+    def g_code(self, sf, code):
+        """ Generate a block of handwritten code. """
+
+        ...
+
+    @abstractmethod
     def g_conversion_to_enum(self, sf, enum):
         """ Generate the code to convert a Python enum (sipSelf) to a C/C++
         enum (sipCpp).
@@ -409,8 +415,8 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_error_handler_ref_type(self):
-        """ Return the type of a reference to an error handler. """
+    def get_error_handler_type(self, spec):
+        """ Return the type of a virtual error handler. """
 
         ...
 
@@ -443,7 +449,7 @@ class AbstractBackend(ABC):
         ...
 
     @abstractmethod
-    def get_result_parser(self):
+    def get_result_parser(self, spec):
         """ Return the name of the Python reimplementation result parser. """
 
         ...
