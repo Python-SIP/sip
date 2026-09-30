@@ -4332,10 +4332,6 @@ def _get_binary_slot_call(spec, scope, overload, operator, dereferenced):
         slot_call += '!'
 
     if overload.is_global:
-        # If it has been moved from a namespace then get the C++ scope.
-        if overload.common.namespace_iface_file is not None:
-            slot_call += overload.common.namespace_iface_file.fq_cpp_name.as_cpp + '::'
-
         sip_cpp = '(*sipCpp)' if dereferenced else 'sipCpp'
 
         # C++20 handles comparison operators differently so we can't invoke the
@@ -4343,6 +4339,10 @@ def _get_binary_slot_call(spec, scope, overload, operator, dereferenced):
         if operator in _OPERATOR_COMPLEMENTS:
             slot_call += f'({sip_cpp} {operator} '
         else:
+            # If it has been moved from a namespace then get the C++ scope.
+            if overload.common.namespace_iface_file is not None:
+                slot_call += overload.common.namespace_iface_file.fq_cpp_name.as_cpp + '::'
+
             slot_call += f'operator{operator}({sip_cpp}, '
     else:
         dereference = '->' if dereferenced else '.'
