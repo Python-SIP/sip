@@ -1905,6 +1905,7 @@ def _g_arg_parser(sf, spec, scope, py_signature, signature_nr, ctor, overload):
             _add_format_flags(flags, arg)
 
             if arg.transfer is Transfer.TRANSFER_THIS:
+                params.append(('sipOwner', ))
                 flags.append('TRANSFER_THIS')
 
             if len(arg.derefs) != 0 and not arg.disallow_none:

@@ -1397,6 +1397,7 @@ PyObject *sip_api_convert_from_new_type(sipModuleState *ms, void *cpp,
     if (cpp == NULL)
         Py_RETURN_NONE;
 
+    PyObject *res;
     const sipTypeSpec *ts;
     PyTypeObject *py_type;
     PyObject *def_mod = sip_get_type_detail(ms, type_id, &ts, &py_type);
@@ -1412,9 +1413,7 @@ PyObject *sip_api_convert_from_new_type(sipModuleState *ms, void *cpp,
 
     if (cfrom != NULL)
     {
-        PyObject *res = cfrom(ms, cpp, transferObj);
-
-        if (res != NULL)
+        if ((res = cfrom(ms, cpp, transferObj)) != NULL)
         {
             /*
              * We no longer need the C/C++ instance so we release it (unless
@@ -1436,6 +1435,24 @@ PyObject *sip_api_convert_from_new_type(sipModuleState *ms, void *cpp,
         goto gc_def_mod;
     }
 
+    /*
+     * Check to see if we already have a wrapper.  Although the context that
+     * this called is expecting a new C++ instance, the instance may have been
+     * created by a Python reimplementation of a C++ virtual, ie. there is
+     * already a wrapper and it may have Python-only attributes that we want to
+     * preserve.
+     */
+    if ((res = get_py_object(sms, cpp, py_type)) != NULL)
+    {
+        if (transferObj == NULL || transferObj == Py_None)
+            sip_transfer_back(sms, res);
+        else
+            sip_transfer_to(sms, res, transferObj);
+
+        Py_DECREF(def_mod);
+        return res;
+    }
+
     /* Apply any sub-class convertor. */
     if (sipTypeSpecHasSCC(ts) && convert_subclass(sms, &def_mod, &py_type, &ts, &cpp) < 0)
         goto gc_def_mod;
@@ -1448,7 +1465,7 @@ PyObject *sip_api_convert_from_new_type(sipModuleState *ms, void *cpp,
     else
         owner = transferObj;
 
-    PyObject *res = sip_wrap_instance(ms, cpp, py_type, NULL, owner,
+    res = sip_wrap_instance(ms, cpp, py_type, NULL, owner,
             (owner == NULL ? SIP_PY_OWNED : 0));
 
     Py_DECREF(def_mod);

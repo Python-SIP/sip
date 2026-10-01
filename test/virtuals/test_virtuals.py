@@ -17,7 +17,9 @@ def test_base_implementation_int(module):
 def test_py_reimplementation_class(module):
     class Derived(module.Base):
         def default_value_class(self):
-            return Derived(b'Derived')
+            inst = Derived(b'Derived')
+            inst.py_attr = True
+            return inst
 
     value = Derived().get_value_class()
 
@@ -26,6 +28,8 @@ def test_py_reimplementation_class(module):
     # Note that we don't test the type as it will be Base (not Derived) as we
     # haven't implemented %ConvertToSubClassCode.
     assert value.get_class_name() == b'Derived'
+
+    assert value.py_attr
 
 
 def test_py_reimplementation_int(module):
@@ -36,3 +40,12 @@ def test_py_reimplementation_int(module):
     value = Derived().get_value_int()
 
     assert value == 20
+
+
+def test_transferto_factory(module):
+    parent = module.Base()
+    child = module.Child.New(parent)
+    assert not module.ispyowned(child)
+
+    orphan = module.Child.New()
+    assert module.ispyowned(orphan)

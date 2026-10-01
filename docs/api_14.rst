@@ -446,8 +446,7 @@ API Reference
 .. c:function:: PyObject *sipConvertFromNewType(void *cpp, sipTypeID type_id, PyObject *transferObj)
 
     This converts a new C structure or a C++ class instance to an instance of
-    the corresponding generated Python type.  Note that care should be taken to
-    ensure that the instance really is new.
+    the corresponding generated Python type.
 
     :param cpp:
         the C/C++ instance.

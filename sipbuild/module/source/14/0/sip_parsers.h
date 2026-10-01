@@ -71,7 +71,7 @@ bool sip_api_parse_ctor_args(sipModuleState *ms, PyObject **p_state_p,
         PyObject *const *args, Py_ssize_t nr_pos_args, PyObject *kwd_names,
         const sipArgParserSpec *ap_spec, void **params, PyObject *self,
         PyObject **unused_p);
-int sip_api_parse_result(sipModuleState *ms, PyThreadStateToken *tst,
+int sip_api_parse_result_object(sipModuleState *ms, PyThreadStateToken *tst,
         sipVirtErrorHandler error_handler, sipSimpleWrapper *sw,
         PyObject *method, PyObject *res, const char *fmt, ...);
 void sip_api_release_type(sipModuleState *ms, void *cpp, sipTypeID type_id,

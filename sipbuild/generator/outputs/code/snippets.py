@@ -3463,7 +3463,7 @@ f'''            Py_INCREF(Py_None);
     if result is not None and result.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
         result_type_ref = backend.get_type_ref(result.definition)
 
-        if overload.transfer is Transfer.TRANSFER_BACK or overload.factory:
+        if overload.transfer is Transfer.TRANSFER_BACK:
             result_owner = 'Py_None'
         elif overload.transfer is Transfer.TRANSFER:
             result_owner = 'sipSelf'
@@ -3472,12 +3472,7 @@ f'''            Py_INCREF(Py_None);
 
         sip_res = get_const_cast(spec, result, 'sipRes')
 
-        # Note that this used to test for /Factory/ as well but such a method
-        # can still return a previously wrapped instance if ends up calling a
-        # Python reimplementation of a virtual.  In such a case the previous
-        # wrapping must be returned as it may include additional
-        # Python-specific behaviour.
-        if is_new_instance:
+        if is_new_instance or overload.factory:
             this_action = action if nr_return_values == 1 else 'PyObject *sipResObj ='
             owner = '(PyObject *)sipOwner' if has_owner and overload.factory else result_owner
 

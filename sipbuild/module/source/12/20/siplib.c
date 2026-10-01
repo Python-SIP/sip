@@ -9163,6 +9163,7 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
 {
     sipWrapper *owner;
     sipConvertFromFunc cfrom;
+    PyObject *res;
 
     /* Handle None. */
     if (cpp == NULL)
@@ -9177,9 +9178,7 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
 
     if (cfrom != NULL)
     {
-        PyObject *res = cfrom(cpp, transferObj);
-
-        if (res != NULL)
+        if ((res = cfrom(cpp, transferObj)) != NULL)
         {
             /*
              * We no longer need the C/C++ instance so we release it (unless
@@ -9190,6 +9189,25 @@ static PyObject *sip_api_convert_from_new_type(void *cpp, const sipTypeDef *td,
             if (transferObj == NULL || transferObj == Py_None)
                 release(cpp, td, 0);
         }
+
+        return res;
+    }
+
+    /*
+     * Check to see if we already have a wrapper.  Although the context that
+     * this called is expecting a new C++ instance, the instance may have been
+     * created by a Python reimplementation of a C++ virtual, ie. there is
+     * already a wrapper and it may have Python-only attributes that we want to
+     * preserve.
+     */
+    if ((res = sip_api_get_pyobject(cpp, td)) != NULL)
+    {
+        Py_INCREF(res);
+
+        if (transferObj == NULL || transferObj == Py_None)
+            sip_api_transfer_back(res);
+        else
+            sip_api_transfer_to(res, transferObj);
 
         return res;
     }

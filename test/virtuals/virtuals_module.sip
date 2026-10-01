@@ -26,6 +26,16 @@ public:
 private:
     const char *m_class_name;
 };
+
+
+class Child
+{
+public:
+    Child() {}
+    virtual ~Child() {}
+
+    static Child *New(Base *parent = 0) {return new Child();}
+};
 %End
 
 
@@ -41,4 +51,14 @@ public:
     virtual Base *default_value_class() const /Factory/;
     Base *get_value_class() const /Factory/;
     const char *get_class_name() const;
+};
+
+
+class Child
+{
+public:
+    Child();
+    virtual ~Child();
+
+    static Child *New(Base *parent /TransferThis/ = 0) /Factory/;
 };
