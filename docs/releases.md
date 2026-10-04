@@ -1,5 +1,71 @@
 # Release Notes
 
+## v6.17.0
+
+### ABI versions
+
+The current ABI versions are now v12.20.0 and v13.13.0 and v14.0.0.
+
+### Plugin API
+
+A new plugin API has been added.  This allows bindings authors to extend SIP,
+for example by adding new directives and annotations.
+
+As a consequence all hard-coded support for PyQt has been removed.
+
+Resolves [#6](https://github.com/Python-SIP/sip/issues/6)
+
+### Support for porting to API v14.
+
+Handwritten code is provided with a dummy `sipMS`.
+
+When targeting ABI v12 `__hash__()` implementations are now allowed to return
+`Py_hash_t` as well as `long`.
+
+The following have been added to APIs v12 and v13 to aid in porting handwritten
+code to v14.
+
+- `sipGetAssignmentFunction()`
+- `sipMakeAbsolute()`
+- `sipGetModuleStateByType()`
+- `sipGetPyTypeRef()`
+- `sipGetVoidPtrType()`
+- `sipObjectGuard`, `sipObjectGuard_New()`, `sipObjectGuard_GetModuleState()`,
+  `sipObjectGuard_GetRef()` and `sipObjectGuard_Release()`
+- `sipParseResultObject()`
+- `sipTypePluginData()`
+
+### API deprecations
+
+- `sipParseResult()` has been deprecated, `sipParseResultObject()` should be
+  used instead.
+- `sipTypeAsPyTypeObject()` has been deprecated, `sipGetPyTypeRef()` should be
+  used instead.
+
+### Restore `sip` module v13.11.1
+
+v13.11.1 of the `sip` module was mistakenly released from a branch that was
+never merged.  Instead the changes were included in v13.12.0 of the module.
+The timeline has now been fixed.
+
+### Bug fixes
+
+- Fixed a regression in reporting unsupported ABI versions.
+- The `TransferThis` function annotation has been fixed so that `self` won't be
+  garbage collected before the corresponding C++ instance is destroyed.
+- Fixed a regression in SIP v6.16.1 that meant that bindings using legacy ABIs
+  would not build if they didn't specify `%MinimumABIVersion`.  Resolves
+  [#114](https://github.com/Python-SIP/sip/issues/114)
+- Fixed a regression in SIP v6.16.1 in the handling of comparison operators
+  defined in namespaces.
+- Reverted a change in SIP v6.15.2 that broke methods with the `/Factory/`
+  annotation that had an argument with the `/TransferThis/` annotation.
+  Resolves [#117](https://github.com/Python-SIP/sip/issues/117)
+- Methods with the `/Factory/` annotation can now return wrappers that were
+  created by a Python reimplementation of a C++ virtual with any Python
+  attributes intact.
+
+
 ## v6.16.1
 
 ### Support for GCC v16
