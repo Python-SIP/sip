@@ -490,7 +490,7 @@ def _callable(pf, spec, member, overloads, defined, scope=None,
                                 "multiple plugins have returned values from sip_overload_get_typing()")
 
         if type_hint:
-            pf.write(_indent(indent) + type_hint)
+            pf.write(_indent(indent) + type_hint + '\n')
 
             if ignore_others:
                 return
