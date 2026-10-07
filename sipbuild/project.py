@@ -247,6 +247,15 @@ class Project(AbstractProject, Configurable):
 
         super().apply_user_defaults(tool)
 
+        # Get the provisional ABI version to target.  If it is not specified
+        # then the major number will be 0 which is interpreted as being any ABI
+        # prior to v14 (ie. v12 or v13).  The parser will finalise the actual
+        # target ABI.
+        if self.abi_version:
+            self.abi_version = parse_abi_version(self.abi_version)
+        else:
+            self.abi_version = (0, None)
+
         # Adjust the list of bindings according to what has been explicitly
         # enabled and disabled.
         self._enable_disable_bindings()
@@ -775,15 +784,6 @@ class Project(AbstractProject, Configurable):
             raise UserException(
                     "Python v{}.{} is not supported".format(
                             self.py_major_version, self.py_minor_version))
-
-        # Get the provisional ABI version to target.  If it is not specified
-        # then the major number will be 0 which is interpreted as being any ABI
-        # prior to v14 (ie. v12 or v13).  The parser will finalise the actual
-        # target ABI.
-        if self.abi_version:
-            self.abi_version = parse_abi_version(self.abi_version)
-        else:
-            self.abi_version = (0, None)
 
         # We know enough about the ABI to create an appropriate backend.
         self.backend = AbstractBackend.factory(self)
