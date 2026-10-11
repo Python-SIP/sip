@@ -1,5 +1,17 @@
 # Release Notes
 
+## v6.17.1
+
+### Bug fixes
+
+- Fixed a regression in SIP v6.17.0 that affected projects that created new
+  buildables before the configuration was fully completed.  Resolves
+  [#118](https://github.com/Python-SIP/sip/issues/118)
+- Fixed the generated `.pyi` stubs for `__eq__` and `__ne__`.
+- Fixed a regression in SIP v6.17.0 in the generation of `.pyi` stub files that
+  only affects PyQt-based projects.
+
+
 ## v6.17.0
 
 ### ABI versions
