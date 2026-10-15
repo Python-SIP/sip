@@ -360,7 +360,7 @@ def _ctor(pf, spec, ctor, overloaded, defined, indent):
         
     s = _indent(indent)
     s += 'def __init__'
-    s += _python_signature(spec, ctor.py_signature, defined)
+    s += _python_signature(spec, ctor.py_signature, ctor.kw_args, defined)
     s += ': ...\n'
 
     pf.write(s)
@@ -542,7 +542,8 @@ def _property(pf, spec, prop, is_setter, member, overloads, defined, indent):
 
         pf.write(s)
 
-        signature = _python_signature(spec, overload.py_signature, defined)
+        signature = _python_signature(spec, overload.py_signature,
+                overload.kw_args, defined)
 
         s = _indent(indent)
         s += f'def {prop.name.name}{signature}: ...\n'
@@ -578,7 +579,7 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
     s = _indent(indent)
 
     if is_eq_slot:
-        signature = '(self, other: object) -> bool'
+        signature = '(self, other: object, /) -> bool'
     else:
         need_self = (is_method and not overload.is_static)
 
@@ -598,19 +599,19 @@ def _overload(pf, spec, overload, overloaded, first_overload, is_method,
                 py_signature = Signature(args=[arg],
                         result=py_signature.result)
 
-        signature = _python_signature(spec, py_signature, defined,
-                need_self=need_self)
+        signature = _python_signature(spec, py_signature, overload.kw_args,
+                defined, need_self=need_self)
 
     s += f'def {py_name}{signature}: ...\n'
 
     pf.write(s)
 
 
-def _python_signature(spec, signature, defined, need_self=True):
+def _python_signature(spec, signature, kw_args, defined, need_self=True):
     """ Return a Python signature. """
 
-    return fmt_signature_as_type_hint(spec, signature, need_self=need_self,
-            defined=defined)
+    return fmt_signature_as_type_hint(spec, signature, kw_args,
+            need_self=need_self, defined=defined)
 
 
 def _indent(indent):

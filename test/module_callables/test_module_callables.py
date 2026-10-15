@@ -11,6 +11,8 @@ def test_module_void_ret_no_args(module):
     module.module_void_ret_no_args()
     assert module.was_module_procedure_called()
 
+    assert module.module_void_ret_no_args.__doc__ == 'module_void_ret_no_args()'
+
 def test_module_int_ret_int_arg(module):
     assert module.module_doubler(3) == 6
 
@@ -58,6 +60,8 @@ def test_no_kwd_args_support(module):
     with pytest.raises(TypeError):
         module.module_doubler(value=3)
 
+    assert module.module_doubler.__doc__ == 'module_doubler(value: int, /) -> int'
+
 def test_bad_kwd_args(module):
     with pytest.raises(TypeError):
         module.incr_optional_kwd_args(1, bad=3)
@@ -70,6 +74,8 @@ def test_optional_kwd_args_support(module):
     assert module.incr_optional_kwd_args(1, 2) == 3
     assert module.incr_optional_kwd_args(1, incr=3) == 4
 
+    assert module.incr_optional_kwd_args.__doc__ == 'incr_optional_kwd_args(value: int, /, incr: int = 1) -> int'
+
 def test_all_kwd_args_support(module):
     assert module.incr_all_kwd_args(1) == 2
     assert module.incr_all_kwd_args(1, 2) == 3
@@ -81,3 +87,5 @@ def test_all_kwd_args_support(module):
 
     with pytest.raises(TypeError):
         module.incr_all_kwd_args(incr=3)
+
+    assert module.incr_all_kwd_args.__doc__ == 'incr_all_kwd_args(value: int, incr: int = 1) -> int'

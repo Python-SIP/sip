@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...scoped_name import STRIP_NONE
-from ...specification import ArgumentType
+from ...specification import ArgumentType, KwArgs
 
 from .argument import (fmt_argument_as_cpp_type, fmt_argument_as_name,
         fmt_argument_as_type_hint)
@@ -41,7 +41,7 @@ def fmt_signature_as_cpp_definition(spec, cpp_signature, scope=None,
     return ', '.join(args)
 
 
-def fmt_signature_as_type_hint(spec, py_signature, need_self=True,
+def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
         exclude_result=False, defined=None):
     """ Return a signature as a type hint. """
 
@@ -52,16 +52,38 @@ def fmt_signature_as_type_hint(spec, py_signature, need_self=True,
         in_args.append('self')
 
     nr_out = 0
+    slash_idx = -1
 
     for arg_nr, arg in enumerate(py_signature.args):
         if arg.is_out:
             nr_out += 1
 
         if arg.is_in:
+            # If all arguments can be passed as keywords then the / is placed
+            # after the last one without a name.  It means that any preceding
+            # arguments that do have a name cannot be passed as keywords.  This
+            # prevents internally generated names (a0, a1 etc) from being
+            # keywords.  Arguably we should detect this in the parser and raise
+            # an exception.
+            if kw_args is KwArgs.ALL and arg.name is None:
+                slash_idx = len(in_args) + 1
+
+            # If keyword arguments are optional and this is the first keyword
+            # argument then put a slash before it.
+            if slash_idx < 0 and kw_args is KwArgs.OPTIONAL and arg.default_value is not None:
+                slash_idx = len(in_args)
+
             type_hint = fmt_argument_as_type_hint(spec, arg, defined,
                     arg_nr=arg_nr)
             if type_hint:
                 in_args.append(type_hint)
+
+    if in_args:
+        if slash_idx < 0:
+            if kw_args is not KwArgs.ALL:
+                in_args.append('/')
+        elif slash_idx > 0:
+            in_args.insert(slash_idx, '/')
 
     args_s = '(' + ', '.join(in_args) +')'
 

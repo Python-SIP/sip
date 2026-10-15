@@ -1412,7 +1412,6 @@ class ParserManager:
         th_in = annotations.pop('TypeHintIn')
         th_out = annotations.pop('TypeHintOut')
         th_value = annotations.pop('TypeHintValue')
-        no_type_hint = annotations.pop('NoTypeHint')
 
         if th_in is None:
             th_in = th
@@ -1432,7 +1431,7 @@ class ParserManager:
 
         if th_in is not None or th_out is not None or th_value is not None:
             # Check that type hints haven't been suppressed.
-            if no_type_hint:
+            if 'NoTypeHint' in annotations:
                 self.parser_error(p, symbol,
                         "'NoTypeHint' cannot be specified with a type hint")
 

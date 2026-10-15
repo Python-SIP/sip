@@ -55,7 +55,7 @@ def get_ctor_type_hint(spec, klass, ctor):
 
     py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
     signature = fmt_signature_as_type_hint(spec, ctor.py_signature,
-            need_self=False, exclude_result=True)
+            ctor.kw_args, need_self=False, exclude_result=True)
 
     return py_name + signature
 
@@ -241,7 +241,7 @@ def get_overload_type_hint(spec, scope, overload):
 
     need_self = isinstance(scope, WrappedClass) and not overload.is_static
     signature = fmt_signature_as_type_hint(spec, overload.py_signature,
-            need_self=need_self)
+            overload.kw_args, need_self=need_self)
 
     return overload.common.py_name.name + signature
 
