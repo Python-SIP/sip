@@ -198,8 +198,9 @@ class Builder(AbstractBuilder):
         zip_timestamp = time.gmtime(epoch)[:6]
 
         with ZipFile(wheel_path, 'w') as zf:
-            for dirpath, _, filenames in os.walk('.'):
-                for filename in filenames:
+            for dirpath, dirnames, filenames in os.walk('.'):
+                dirnames.sort()
+                for filename in sorted(filenames):
                     # This will result in a name with no leading '.'.
                     name = os.path.relpath(os.path.join(dirpath, filename))
 
