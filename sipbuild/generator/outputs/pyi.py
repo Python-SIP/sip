@@ -8,8 +8,8 @@ from ...plugin import Overload as PluginOverload, Specification
 from ...version import SIP_VERSION_STR
 
 from ..python_slots import is_number_slot, reflected_slot
-from ..specification import (AccessSpecifier, ArgumentType, ArrayArgument,
-        EnumBaseType, IfaceFileType, PySlot, Signature)
+from ..specification import (AccessSpecifier, ArgumentType, EnumBaseType,
+        IfaceFileType, PySlot, Signature)
 from ..utils import append_iface_file, find_method
 
 from .formatters import (fmt_argument_as_type_hint, fmt_class_as_type_hint,

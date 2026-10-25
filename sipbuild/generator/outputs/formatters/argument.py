@@ -304,6 +304,17 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
         # It's a callable result or output argument.
         out = True
 
+    # Determine if the argument is an implied sequence.
+    arg_is_sequence = False
+
+    if arg.array is ArrayArgument.ARRAY and arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED):
+        arg_is_sequence = True
+
+        if pep484:
+            s += 'collections.abc.'
+
+        s += 'Sequence['
+
     hint = _get_hint(arg, out)
 
     # Assume pointers can be None unless specified otherwise.
@@ -350,6 +361,10 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
             type_name = type_hint_manager.as_docstring(hint, out, context)
 
     s += type_name
+
+    if arg_is_sequence:
+        # At the moment arrays are always optional.
+        s += ']|None'
 
     # See if the argument is optional.
     if arg_nr is not None and arg_nr >= 0 and arg.default_value is not None:
