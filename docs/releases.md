@@ -1,5 +1,19 @@
 # Release Notes
 
+## v6.17.2
+
+### Reproduceable builds
+
+Files are now added to wheels in a reproduceable order.
+
+### Bug fixes
+
+- Fixed the type hints for classes and mapped types with the `/Array/`
+  argument annotation.
+- Include `/` in the appropriate place in a callable's docstring.
+- Fixed a regression in the handling of the `/NoTypeHint/` function annotation.
+
+
 ## v6.17.1
 
 ### Bug fixes
