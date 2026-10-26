@@ -147,6 +147,8 @@ sipSimpleWrapper *sipOMFindObject(sipObjectMap *om, void *key,
         const sipTypeDef *td);
 void sipOMAddObject(sipObjectMap *om, sipSimpleWrapper *val);
 int sipOMRemoveObject(sipObjectMap *om, sipSimpleWrapper *val);
+void sipOMVisitWrappers(sipObjectMap *om, sipWrapperVisitorFunc visitor,
+        void *closure);
 
 #define sip_set_bool(p, v)    (*(_Bool *)(p) = (v))
 
