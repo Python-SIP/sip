@@ -361,17 +361,18 @@ static void reorganise_map(sipObjectMap *om)
     om->prime_idx = new_prime_idx;
     om->stale = 0;
 
+    sipHashEntry *ohe = old_hash_array;
     uintptr_t i;
 
     for (i = 0; i < old_size; i++)
     {
-        if (old_hash_array->key != NULL && old_hash_array->first != NULL)
+        if (ohe->key != NULL && ohe->first != NULL)
         {
-            *find_hash_entry(om, old_hash_array->key) = *old_hash_array;
+            *find_hash_entry(om, ohe->key) = *ohe;
             om->unused--;
         }
 
-        old_hash_array++;
+        ohe++;
     }
 
     sip_api_free(old_hash_array);
