@@ -42,7 +42,7 @@ def fmt_signature_as_cpp_definition(spec, cpp_signature, scope=None,
 
 
 def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
-        exclude_result=False, defined=None):
+        exclude_result=False, defined=None, scope=None):
     """ Return a signature as a type hint. """
 
     # Handle the input values.
@@ -74,9 +74,12 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
                 slash_idx = len(in_args)
 
             type_hint = fmt_argument_as_type_hint(spec, arg, defined,
-                    arg_nr=arg_nr)
+                    arg_nr=arg_nr, scope=scope)
             if type_hint:
                 in_args.append(type_hint)
+
+        if arg.type is ArgumentType.ELLIPSIS:
+            slash_idx = 0
 
     if in_args:
         if slash_idx < 0:
@@ -110,19 +113,20 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
         needs_tuple = ((is_result and nr_out > 0) or nr_out > 1)
 
         if needs_tuple:
-            results_s += '(' if defined is None else 'typing.Tuple['
+            results_s += '(' if defined is None else 'tuple['
 
         out_args = []
 
         if is_result:
             type_hint = fmt_argument_as_type_hint(spec, result, defined,
-                    is_result=True)
+                    is_result=True, scope=scope)
             if type_hint:
                 out_args.append(type_hint)
 
         for arg in py_signature.args:
             if arg.is_out:
-                type_hint = fmt_argument_as_type_hint(spec, arg, defined)
+                type_hint = fmt_argument_as_type_hint(spec, arg, defined,
+                        scope=scope)
                 if type_hint:
                     out_args.append(type_hint)
 

@@ -181,6 +181,11 @@ class Bindings(Configurable):
             elif project.abi_version[0] == 13:
                 buildable.cpp_standard = 'c++11'
 
+        # Generate the bindings.
+        output_code(spec, buildable)
+
+        buildable.headers.extend(self.headers)
+
         # Generate any API file.
         if project.api_dir and not self.internal:
             project.progress(
@@ -207,11 +212,6 @@ class Bindings(Configurable):
                     target_subdir=buildable.get_install_subdir())
             installable.files.append(pyi_path)
             buildable.installables.append(installable)
-
-        # Generate the bindings.
-        output_code(spec, buildable)
-
-        buildable.headers.extend(self.headers)
 
         # Add the sip module code if it is not shared.
         buildable.include_dirs.append(buildable.build_dir)

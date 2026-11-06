@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...utils import fast_contains
@@ -9,10 +9,15 @@ from ...utils import fast_contains
 def fmt_copying(copying, comment):
     """ Return a formatted %Copying text. """
 
-    s = ''.join([b.text for b in copying]).rstrip().replace('\n', '\n' + comment + ' ')
+    s = ''
 
-    if s:
-        s = comment + '\n' + comment + ' ' + s + '\n'
+    for block in copying:
+        for line in block.text.rstrip().split('\n'):
+            line = line.rstrip()
+            if line:
+                s = f'{s}{comment} {line}\n'
+            else:
+                s = f'{s}{comment}\n'
 
     return s
 

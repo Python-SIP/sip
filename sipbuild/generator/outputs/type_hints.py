@@ -447,7 +447,7 @@ class TypeHintManager:
                             defined, as_xml, context_stack))
 
         if node.definition == 'Union':
-            return '|'.join(children)
+            return ' | '.join(children)
 
         return '[' + ', '.join(children) + ']'
 

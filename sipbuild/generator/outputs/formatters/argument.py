@@ -234,7 +234,7 @@ def fmt_argument_as_py_type(spec, arg, pep484=False, default_value=False,
     s = fmt_scoped_py_name(scope, name)
 
     if is_optional:
-        s += '|None'
+        s += ' | None'
 
     if default_value and arg.default_value is not None:
         if arg.name is not None:
@@ -278,7 +278,8 @@ def fmt_argument_as_rest_ref(spec, arg, out, as_xml=False):
     return s
 
 
-def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
+def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False,
+        scope=None):
     """ Return an argument as a type hint. """
 
     if arg.array is ArrayArgument.ARRAY_SIZE:
@@ -320,21 +321,27 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
     # Assume pointers can be None unless specified otherwise.
     allow_none = arg.allow_none or (arg.type in (ArgumentType.CLASS, ArgumentType.MAPPED) and arg.definition.handles_none)
 
-    if hint is None and allow_none:
+    if hint is None and allow_none and not arg_is_sequence:
         is_optional = True
     else:
         nr_derefs = len(arg.derefs)
         if out and not is_result:
             nr_derefs -= 1
 
+        if arg_is_sequence:
+            nr_derefs -= 1
+
         is_optional = (not arg.disallow_none and nr_derefs > 0)
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
-            from .klass import fmt_class_as_type_hint
+            if arg.definition is scope:
+                type_name = 'typing.Self' if pep484 else 'Self'
+            else:
+                from .klass import fmt_class_as_type_hint
 
-            type_name = fmt_class_as_type_hint(spec, arg.definition, defined,
-                    is_optional)
+                type_name = fmt_class_as_type_hint(spec, arg.definition,
+                        defined, is_optional)
         elif arg.type is ArgumentType.ENUM:
             if arg.definition.py_name is not None:
                 from .enum import fmt_enum_as_type_hint
@@ -363,8 +370,8 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False):
     s += type_name
 
     if arg_is_sequence:
-        # At the moment arrays are always optional.
-        s += ']|None'
+        # At the moment arrays are always optional, ie. /AllowNone/ is implied.
+        s += '] | None'
 
     # See if the argument is optional.
     if arg_nr is not None and arg_nr >= 0 and arg.default_value is not None:
@@ -473,7 +480,7 @@ def _py_arg(spec, arg, pep484, as_xml):
         name = 'dict'
 
     elif type is ArgumentType.PYCALLABLE:
-        name = 'typing.Callable[..., None]' if pep484 else 'Callable[..., None]'
+        name = 'collections.abc.Callable[..., None]' if pep484 else 'Callable[..., None]'
 
     elif type is ArgumentType.PYSLICE:
         name = 'slice'
@@ -482,11 +489,7 @@ def _py_arg(spec, arg, pep484, as_xml):
         name = 'type'
 
     elif type is ArgumentType.PYBUFFER:
-        if pep484:
-            name = sip_module_name + 'Buffer'
-        else:
-            # This replicates sip.pyi.
-            name = f'bytes|bytearray|memoryview|{sip_module_name}array|{sip_module_name}voidptr'
+        name = 'collections.abc.Buffer' if pep484 else 'Buffer'
 
     elif type is ArgumentType.PYENUM:
         name = 'enum.Enum'

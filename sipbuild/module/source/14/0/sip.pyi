@@ -1,40 +1,39 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from typing import Any, Generic, Iterable, overload, Sequence, TypeVar, Union
-
-
-# PEP 484 has no explicit support for the buffer protocol so we just name types
-# we know that implement it.
-Buffer = Union[bytes, bytearray, memoryview, 'array', 'voidptr']
+from collections.abc import Buffer, Iterable, Sequence
+from typing import Any, overload, Self, TypeVar
 
 
 # Constants.
-SIP_VERSION = ...       # type: int
-SIP_VERSION_STR = ...   # type: str
+SIP_VERSION: int
+SIP_VERSION_STR: str
 
 
 # The bases for SIP generated types.
 class wrappertype:
     def __init__(self, *args, **kwargs) -> None: ...
 
+
 class simplewrapper:
     def __init__(self, *args, **kwargs) -> None: ...
 
-class wrapper(simplewrapper): ...
+
+class wrapper(simplewrapper):
+    ...
 
 
 # The array type.
 _T = TypeVar('_T')
 
-class array(Sequence[_T], Generic[_T]):
 
+class array(Sequence[_T]):
     @overload
     def __getitem__(self, key: int) -> _T: ...
     @overload
-    def __getitem__(self, key: slice) -> 'array[_T]': ...
+    def __getitem__(self, key: slice) -> Self: ...
 
     @overload
     def __setitem__(self, key: int, value: _T) -> None: ...
@@ -51,8 +50,8 @@ class array(Sequence[_T], Generic[_T]):
 
 # The voidptr type.
 class voidptr:
-
-    def __init__(self, addr: Union[int, Buffer], size: int = -1, writeable: bool = True) -> None: ...
+    def __init__(self, addr: int | Buffer, size: int = -1,
+                 writeable: bool = True) -> None: ...
 
     def __int__(self) -> int: ...
 
@@ -60,11 +59,11 @@ class voidptr:
     def __getitem__(self, i: int) -> bytes: ...
 
     @overload
-    def __getitem__(self, s: slice) -> 'voidptr': ...
+    def __getitem__(self, s: slice) -> Self: ...
 
     def __len__(self) -> int: ...
 
-    def __setitem__(self, i: Union[int, slice], v: Buffer) -> None: ...
+    def __setitem__(self, i: int | slice, v: Buffer) -> None: ...
 
     def asarray(self, size: int = -1) -> array[int]: ...
 

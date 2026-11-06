@@ -1006,6 +1006,9 @@ class Module:
     # Set if any class defined in the module has a delayed dtor.
     has_delayed_dtors: bool = False
 
+    # Set if any API element is deprecated. (code generator)
+    has_deprecations: bool = False
+
     # The list of direct imports.
     imports: list['Module'] = field(default_factory=list)
 
@@ -1078,6 +1081,10 @@ class Module:
 
     # The interface files used by the module.
     used: list[IfaceFile] = field(default_factory=list)
+
+    # Set if any class is based on a sip.wrapper or sip.simplewrapper. (code
+    # generator)
+    uses_sip_supertypes: bool = False
 
 
 @dataclass

@@ -45,7 +45,7 @@ def fmt_class_as_type_hint(spec, klass, defined, is_optional=False):
     # We assume that an external class will be handled properly by some
     # handwritten type hint code.
     quote = '' if klass.external or iface_is_defined(klass.iface_file, klass.scope, module, defined) else "'"
-    optional = '|None' if is_optional else ''
+    optional = ' | None' if is_optional else ''
 
     # Include the module name if it is not the current one.
     module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module and defined is not None else ''

@@ -61,7 +61,7 @@ def fmt_enum_as_type_hint(spec, enum, defined, is_optional=False):
                 defined)
 
     quote = '' if is_defined else "'"
-    optional = '|None' if is_optional else ''
+    optional = ' | None' if is_optional else ''
 
     # Include the module name if it is not the current one.
     module_name = enum.module.py_name + '.' if enum.module is not module and defined is not None else ''

@@ -809,6 +809,8 @@ def _ctor_call(sf, spec, klass, ctor, error_flag, old_error_flag):
         sf.write('            int sipIsErr = 0;\n\n')
 
     if ctor.deprecated is not None:
+        spec.module.has_deprecations = True
+
         # Note that any temporaries will leak if an exception is raised.
 
         if backend.abi_has_deprecated_message(spec):
@@ -1449,6 +1451,9 @@ def _class_functions(sf, spec, klass):
     # The cast function.
     if len(klass.superclasses) != 0:
         backend.g_cast_function(sf, spec, klass)
+    else:
+        # The class must derive from sip.wrapper or sip.simplewrapper.
+        spec.module.uses_sip_supertypes = True
 
     if klass.iface_file.type is not IfaceFileType.NAMESPACE and not spec.c_bindings:
         # Generate the release function without compiler warnings.
@@ -3906,6 +3911,7 @@ f'''            if (!sipOrigSelf)
 ''')
 
     if overload.deprecated is not None:
+        spec.module.has_deprecations = True
         scope_py_name_ref = backend.cached_name_ref(scope.py_name) if scope is not None and scope.py_name is not None else 'SIP_NULLPTR'
         error_return = '-1' if is_void_return_slot(py_slot) or is_int_return_slot(py_slot) or is_ssize_return_slot(py_slot) or is_hash_return_slot(py_slot) else 'SIP_NULLPTR'
 
