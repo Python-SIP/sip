@@ -361,17 +361,18 @@ static void reorganise_map(sipObjectMap *om)
     om->prime_idx = new_prime_idx;
     om->stale = 0;
 
+    sipHashEntry *ohe = old_hash_array;
     uintptr_t i;
 
     for (i = 0; i < old_size; i++)
     {
-        if (old_hash_array->key != NULL && old_hash_array->first != NULL)
+        if (ohe->key != NULL && ohe->first != NULL)
         {
-            *find_hash_entry(om, old_hash_array->key) = *old_hash_array;
+            *find_hash_entry(om, ohe->key) = *ohe;
             om->unused--;
         }
 
-        old_hash_array++;
+        ohe++;
     }
 
     sip_api_free(old_hash_array);
@@ -511,17 +512,67 @@ static int remove_object(sipModuleState *ms, sipSimpleWrapper *obj, void *addr)
 void sip_om_visit_wrappers(sipObjectMap *om, sipWrapperVisitorFunc visitor,
         void *closure)
 {
-    const sipHashEntry *he;
-    uintptr_t i;
+    sipHashEntry *wrappers, *he;
+    uintptr_t i, nr_wrappers;
+
+    /*
+     * The visitor may run Python code that creates wrappers, which can
+     * reorganise the map, or that destroys them.  Therefore make a list of the
+     * wrappers first and only visit those that are still in the map.
+     */
+    nr_wrappers = 0;
 
     for (he = om->hash_array, i = 0; i < om->size; ++i, ++he)
     {
+        sipSimpleWrapper *sw;
+
+        if (he->key != NULL)
+            for (sw = he->first; sw != NULL; sw = sw->next)
+                ++nr_wrappers;
+    }
+
+    if (nr_wrappers == 0)
+        return;
+
+    wrappers = (sipHashEntry *)sip_api_malloc(
+            sizeof (sipHashEntry) * nr_wrappers);
+
+    if (wrappers == NULL)
+    {
+        PyErr_Clear();
+        return;
+    }
+
+    nr_wrappers = 0;
+
+    for (he = om->hash_array, i = 0; i < om->size; ++i, ++he)
+    {
+        sipSimpleWrapper *sw;
+
         if (he->key != NULL)
         {
-            sipSimpleWrapper *sw;
-
             for (sw = he->first; sw != NULL; sw = sw->next)
-                visitor(sw, closure);
+            {
+                wrappers[nr_wrappers].key = he->key;
+                wrappers[nr_wrappers].first = sw;
+                ++nr_wrappers;
+            }
         }
     }
+
+    for (i = 0; i < nr_wrappers; ++i)
+    {
+        sipSimpleWrapper *sw = find_hash_entry(om, wrappers[i].key)->first;
+
+        for ( ; sw != NULL; sw = sw->next)
+        {
+            if (sw == wrappers[i].first)
+            {
+                visitor(sw, closure);
+                break;
+            }
+        }
+    }
+
+    sip_api_free(wrappers);
 }

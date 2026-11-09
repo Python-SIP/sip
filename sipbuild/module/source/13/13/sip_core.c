@@ -11926,19 +11926,7 @@ int sip_api_convert_from_slice_object(PyObject *slice, Py_ssize_t length,
 static void sip_api_visit_wrappers(sipWrapperVisitorFunc visitor,
         void *closure)
 {
-    const sipHashEntry *he;
-    unsigned long i;
-
-    for (he = cppPyMap.hash_array, i = 0; i < cppPyMap.size; ++i, ++he)
-    {
-        if (he->key != NULL)
-        {
-            sipSimpleWrapper *sw;
-
-            for (sw = he->first; sw != NULL; sw = sw->next)
-                visitor(sw, closure);
-        }
-    }
+    sipOMVisitWrappers(&cppPyMap, visitor, closure);
 }
 
 
