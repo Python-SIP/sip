@@ -104,13 +104,8 @@ except ImportError:
     first = _type_hint_code(pf, module.type_hint_code, first)
     first = _type_hint_code(pf, spec.exported_type_hint_code, first)
 
-    # Generate the types - global enums must be first.
+    # Generate the types.
     _enums(pf, spec)
-
-    # The list of enums and classes that have been defined at any particular
-    # point so we know if they can be referenced directly rather than by their
-    # names as a string.
-    defined = []
 
     for klass in spec.classes:
         if klass.iface_file.module is not module:
@@ -130,23 +125,23 @@ except ImportError:
         if klass.real_class is not None:
             continue
 
-        _class(pf, spec, klass, defined)
+        _class(pf, spec, klass)
 
     for mapped_type in spec.mapped_types:
         if mapped_type.iface_file.module is not module:
             continue
 
         if mapped_type.py_name is not None:
-            _mapped_type(pf, spec, mapped_type, defined)
+            _mapped_type(pf, spec, mapped_type)
 
-    _variables(pf, spec, defined)
+    _variables(pf, spec)
 
     first = True
 
     for member in module.global_functions:
         if member.py_slot is None:
             first = _separate(pf, first=first)
-            _callable(pf, spec, member, module.overloads, defined)
+            _callable(pf, spec, member, module.overloads)
 
 
 def _type_hint_code(pf, type_hint_code, first=True, indent=0):
@@ -177,7 +172,7 @@ def _type_hint_code(pf, type_hint_code, first=True, indent=0):
     return first
 
 
-def _class(pf, spec, klass, defined, indent=0):
+def _class(pf, spec, klass, indent=0):
     """ Output the type hints for a class. """
 
     nr_overloads = 0
@@ -195,7 +190,7 @@ def _class(pf, spec, klass, defined, indent=0):
 
         if klass.superclasses:
             s += ', '.join(
-                    [fmt_class_as_type_hint(spec, sc, defined)
+                    [fmt_class_as_type_hint(spec, sc, pep484=True)
                             for sc in klass.superclasses])
 
         elif klass.supertype is not None:
@@ -265,14 +260,14 @@ def _class(pf, spec, klass, defined, indent=0):
         if klass.type_hint_code is not None:
             _type_hint_code(pf, [klass.type_hint_code], indent=indent)
 
-    _enums(pf, spec, defined=defined, scope=klass, indent=indent)
+    _enums(pf, spec, scope=klass, indent=indent)
 
     # Handle any nested classes.
     for nested in spec.classes:
         if nested.scope is klass and not nested.no_type_hint:
-            _class(pf, spec, nested, defined, indent=indent)
+            _class(pf, spec, nested, indent=indent)
 
-    _variables(pf, spec, defined, scope=klass, indent=indent)
+    _variables(pf, spec, scope=klass, indent=indent)
 
     first = True
 
@@ -285,14 +280,14 @@ def _class(pf, spec, klass, defined, indent=0):
 
         first = _separate(pf, first=first, indent=indent)
 
-        _ctor(pf, spec, klass, ctor, nr_overloads > 1, defined, indent)
+        _ctor(pf, spec, klass, ctor, nr_overloads > 1, indent)
 
     first = True
 
     for member in klass.members:
         first = _separate(pf, first=first, indent=indent)
 
-        _callable(pf, spec, member, klass.overloads, defined, scope=klass,
+        _callable(pf, spec, member, klass.overloads, scope=klass,
                 is_method=not klass.is_hidden_namespace, indent=indent)
 
     for prop in klass.properties:
@@ -301,13 +296,13 @@ def _class(pf, spec, klass, defined, indent=0):
         getter = find_method(klass, prop.getter)
         if getter is not None:
             _property(pf, spec, klass, prop, False, getter, klass.overloads,
-                    defined, indent)
+                    indent)
 
             if prop.setter is not None:
                 setter = find_method(klass, prop.setter)
                 if setter is not None:
                     _property(pf, spec, klass, prop, True, setter,
-                            klass.overloads, defined, indent)
+                            klass.overloads, indent)
 
     if klass.bi_get_buffer_code is not None:
         s = _indent(indent)
@@ -319,13 +314,8 @@ def _class(pf, spec, klass, defined, indent=0):
         s += 'def __release_buffer__(self, buffer: memoryview, /) -> None: ...\n'
         pf.write(s)
 
-    if not klass.is_hidden_namespace:
-        # Keep track of what has been defined so that forward references are no
-        # longer required.
-        append_iface_file(defined, klass.iface_file)
 
-
-def _mapped_type(pf, spec, mapped_type, defined):
+def _mapped_type(pf, spec, mapped_type):
     """ Output the type hints for a mapped type. """
 
     # See if there is anything in the mapped type body.
@@ -341,21 +331,17 @@ def _mapped_type(pf, spec, mapped_type, defined):
         _separate(pf)
         pf.write(f'class {mapped_type.py_name.name}({_sip_module_name(spec)}wrapper):\n')
 
-        _enums(pf, spec, defined=defined, scope=mapped_type, indent=1)
+        _enums(pf, spec, scope=mapped_type, indent=1)
 
         first = True
 
         for member in mapped_type.members:
             first = _separate(pf, first=first, indent=1)
-            _callable(pf, spec, member, member.overloads, defined,
-                    scope=mapped_type, is_method=True, indent=1)
-
-    # Keep track of what has been defined so that forward references are no
-    # longer required.
-    append_iface_file(defined, mapped_type.iface_file)
+            _callable(pf, spec, member, member.overloads, scope=mapped_type,
+                    is_method=True, indent=1)
 
 
-def _ctor(pf, spec, scope, ctor, overloaded, defined, indent):
+def _ctor(pf, spec, scope, ctor, overloaded, indent):
     """ Output a ctor type hint. """
 
     if overloaded:
@@ -368,14 +354,13 @@ def _ctor(pf, spec, scope, ctor, overloaded, defined, indent):
         
     s = _indent(indent)
     s += 'def __init__'
-    s += _python_signature(spec, ctor.py_signature, ctor.kw_args, defined,
-            scope=scope)
+    s += _python_signature(spec, ctor.py_signature, ctor.kw_args, scope=scope)
     s += ': ...\n'
 
     pf.write(s)
 
 
-def _enums(pf, spec, defined=None, scope=None, indent=0):
+def _enums(pf, spec, scope=None, indent=0):
     """ Output the type hints for all the enums in a scope. """
 
     abi_major = spec.bindings.project.abi_version[0]
@@ -420,7 +405,7 @@ def _enums(pf, spec, defined=None, scope=None, indent=0):
         for member in enum.members:
             if not member.no_type_hint:
                 s = _indent(indent)
-                s += f'{member.py_name.name}: \'{enum_type}\'\n'
+                s += f'{member.py_name.name}: {enum_type}\n'
                 pf.write(s)
                 no_members = False
 
@@ -433,7 +418,7 @@ def _enums(pf, spec, defined=None, scope=None, indent=0):
             indent -= 1
 
 
-def _variables(pf, spec, defined, scope=None, indent=0):
+def _variables(pf, spec, scope=None, indent=0):
     """ Output the type hints for all the variables in a scope. """
 
     first = True
@@ -448,8 +433,8 @@ def _variables(pf, spec, defined, scope=None, indent=0):
         if variable.no_type_hint:
             continue
 
-        py_type = fmt_argument_as_type_hint(spec, variable.type, defined,
-                arg_nr=None)
+        py_type = fmt_argument_as_type_hint(spec, variable.type, arg_nr=None,
+                pep484=True)
 
         first = _separate(pf, first=first, indent=indent)
 
@@ -458,9 +443,14 @@ def _variables(pf, spec, defined, scope=None, indent=0):
         pf.write(s)
 
 
-def _callable(pf, spec, member, overloads, defined, scope=None,
-        is_method=False, indent=0):
+def _callable(pf, spec, member, overloads, scope=None, is_method=False,
+        indent=0):
     """ Output the type hints for a callable. """
+
+    # The recommendation seems to be that these shouldn't be included in type
+    # stubs.
+    if member.py_slot in (PySlot.REPR, PySlot.STR):
+        return
 
     # Get the non-reflected and reflected overloads.
     nonreflected_overloads = []
@@ -516,7 +506,7 @@ def _callable(pf, spec, member, overloads, defined, scope=None,
 
     for overload in nonreflected_overloads:
         _overload(pf, spec, scope, overload, overloaded, first_overload,
-                is_method, defined, indent)
+                is_method, indent)
         first_overload = False
 
     # Handle each reflected overload.
@@ -525,12 +515,11 @@ def _callable(pf, spec, member, overloads, defined, scope=None,
 
     for overload in reflected_overloads:
         _overload(pf, spec, scope, overload, overloaded, first_overload,
-                is_method, defined, indent)
+                is_method, indent)
         first_overload = False
 
 
-def _property(pf, spec, scope, prop, is_setter, member, overloads, defined,
-        indent):
+def _property(pf, spec, scope, prop, is_setter, member, overloads, indent):
     """ Output the type hints for a property. """
 
     for overload in overloads:
@@ -553,7 +542,7 @@ def _property(pf, spec, scope, prop, is_setter, member, overloads, defined,
         pf.write(s)
 
         signature = _python_signature(spec, overload.py_signature,
-                overload.kw_args, defined, scope=scope)
+                overload.kw_args, scope=scope)
 
         s = _indent(indent)
         s += f'def {prop.name.name}{signature}: ...\n'
@@ -563,7 +552,7 @@ def _property(pf, spec, scope, prop, is_setter, member, overloads, defined,
 
 
 def _overload(pf, spec, scope, overload, overloaded, first_overload, is_method,
-        defined, indent):
+        indent):
     """ Output the type hints for a single overload. """
 
     # mypy recommends using 'object' as the argument type.
@@ -609,19 +598,19 @@ def _overload(pf, spec, scope, overload, overloaded, first_overload, is_method,
                         result=py_signature.result)
 
         signature = _python_signature(spec, py_signature, overload.kw_args,
-                defined, scope=scope, need_self=need_self)
+                scope=scope, need_self=need_self)
 
     s += f'def {py_name}{signature}: ...\n'
 
     pf.write(s)
 
 
-def _python_signature(spec, signature, kw_args, defined, scope=None,
+def _python_signature(spec, signature, kw_args, scope=None,
         need_self=True):
     """ Return a Python signature. """
 
     return fmt_signature_as_type_hint(spec, signature, kw_args,
-            need_self=need_self, defined=defined, scope=scope)
+            need_self=need_self, scope=scope, pep484=True)
 
 
 def _indent(indent):

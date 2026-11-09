@@ -6,7 +6,7 @@
 from ...scoped_name import STRIP_NONE
 from ...specification import IfaceFileType
 
-from .misc import fmt_scoped_py_name, iface_is_defined
+from .misc import fmt_scoped_py_name
 
 
 def fmt_enum_member_as_rest_ref(enum_member):
@@ -45,26 +45,14 @@ def fmt_enum_as_rest_ref(enum):
     return f':sip:ref:`~{module_name}.{enum_name}`'
 
 
-def fmt_enum_as_type_hint(spec, enum, defined, is_optional=False):
+def fmt_enum_as_type_hint(spec, enum, is_optional=False, pep484=False):
     """ Return the type hint. """
 
     module = spec.module
 
-    if enum.scope is None:
-        # Global enums are defined early on.
-        is_defined = True
-    else:
-        scope_iface = enum.scope.iface_file
-        outer_scope = enum.scope.scope if scope_iface.type is IfaceFileType.CLASS else None
-
-        is_defined = iface_is_defined(scope_iface, outer_scope, module,
-                defined)
-
-    quote = '' if is_defined else "'"
+    # Include the module name if it is not the current one.
+    module_name = enum.module.py_name + '.' if enum.module is not module and pep484 else ''
+    py_name = fmt_scoped_py_name(enum.scope, enum.py_name.name)
     optional = ' | None' if is_optional else ''
 
-    # Include the module name if it is not the current one.
-    module_name = enum.module.py_name + '.' if enum.module is not module and defined is not None else ''
-    py_name = fmt_scoped_py_name(enum.scope, enum.py_name.name)
-
-    return f'{quote}{module_name}{py_name}{optional}{quote}'
+    return f'{module_name}{py_name}{optional}'

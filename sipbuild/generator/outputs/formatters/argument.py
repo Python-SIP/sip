@@ -278,14 +278,12 @@ def fmt_argument_as_rest_ref(spec, arg, out, as_xml=False):
     return s
 
 
-def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False,
-        scope=None):
+def fmt_argument_as_type_hint(spec, arg, arg_nr=-1, is_result=False,
+        scope=None, pep484=False):
     """ Return an argument as a type hint. """
 
     if arg.array is ArrayArgument.ARRAY_SIZE:
         return ''
-
-    pep484 = defined is not None
 
     s = ''
 
@@ -341,13 +339,13 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False,
                 from .klass import fmt_class_as_type_hint
 
                 type_name = fmt_class_as_type_hint(spec, arg.definition,
-                        defined, is_optional)
+                        is_optional=is_optional, pep484=pep484)
         elif arg.type is ArgumentType.ENUM:
             if arg.definition.py_name is not None:
                 from .enum import fmt_enum_as_type_hint
 
                 type_name = fmt_enum_as_type_hint(spec, arg.definition,
-                        defined, is_optional)
+                        is_optional=is_optional, pep484=pep484)
             else:
                 type_name = 'int'
         elif arg.type is ArgumentType.MAPPED:
@@ -362,8 +360,7 @@ def fmt_argument_as_type_hint(spec, arg, defined, arg_nr=-1, is_result=False,
         context = arg.definition if arg.type is ArgumentType.CLASS else None
 
         if pep484:
-            type_name = type_hint_manager.as_type_hint(hint, out, context,
-                    defined)
+            type_name = type_hint_manager.as_type_hint(hint, out, context)
         else:
             type_name = type_hint_manager.as_docstring(hint, out, context)
 

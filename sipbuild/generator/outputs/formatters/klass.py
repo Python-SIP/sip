@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2025 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from ...scoped_name import STRIP_NONE
 
-from .misc import fmt_scoped_py_name, iface_is_defined
+from .misc import fmt_scoped_py_name
 from .template import fmt_template_as_cpp_type
 
 
@@ -37,18 +37,14 @@ def fmt_class_as_scoped_name(spec, klass, scope=None, strip=STRIP_NONE,
     return klass.iface_file.fq_cpp_name.cpp_stripped(strip)
 
 
-def fmt_class_as_type_hint(spec, klass, defined, is_optional=False):
+def fmt_class_as_type_hint(spec, klass, is_optional=False, pep484=False):
     """ Return the type hint. """
 
     module = spec.module
 
-    # We assume that an external class will be handled properly by some
-    # handwritten type hint code.
-    quote = '' if klass.external or iface_is_defined(klass.iface_file, klass.scope, module, defined) else "'"
+    # Include the module name if it is not the current one.
+    module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module and pep484 else ''
+    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
     optional = ' | None' if is_optional else ''
 
-    # Include the module name if it is not the current one.
-    module_name = klass.iface_file.module.py_name + '.' if klass.iface_file.module is not module and defined is not None else ''
-    py_name = fmt_scoped_py_name(klass.scope, klass.py_name.name)
-
-    return f'{quote}{module_name}{py_name}{optional}{quote}'
+    return f'{module_name}{py_name}{optional}'

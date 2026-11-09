@@ -42,7 +42,7 @@ def fmt_signature_as_cpp_definition(spec, cpp_signature, scope=None,
 
 
 def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
-        exclude_result=False, defined=None, scope=None):
+        exclude_result=False, scope=None, pep484=False):
     """ Return a signature as a type hint. """
 
     # Handle the input values.
@@ -73,8 +73,8 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
             if slash_idx < 0 and kw_args is KwArgs.OPTIONAL and arg.default_value is not None:
                 slash_idx = len(in_args)
 
-            type_hint = fmt_argument_as_type_hint(spec, arg, defined,
-                    arg_nr=arg_nr, scope=scope)
+            type_hint = fmt_argument_as_type_hint(spec, arg, arg_nr=arg_nr,
+                    scope=scope, pep484=pep484)
             if type_hint:
                 in_args.append(type_hint)
 
@@ -113,28 +113,28 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
         needs_tuple = ((is_result and nr_out > 0) or nr_out > 1)
 
         if needs_tuple:
-            results_s += '(' if defined is None else 'tuple['
+            results_s += 'tuple[' if pep484 else '('
 
         out_args = []
 
         if is_result:
-            type_hint = fmt_argument_as_type_hint(spec, result, defined,
-                    is_result=True, scope=scope)
+            type_hint = fmt_argument_as_type_hint(spec, result,
+                    is_result=True, scope=scope, pep484=pep484)
             if type_hint:
                 out_args.append(type_hint)
 
         for arg in py_signature.args:
             if arg.is_out:
-                type_hint = fmt_argument_as_type_hint(spec, arg, defined,
-                        scope=scope)
+                type_hint = fmt_argument_as_type_hint(spec, arg, scope=scope,
+                        pep484=pep484)
                 if type_hint:
                     out_args.append(type_hint)
 
         results_s += ', '.join(out_args)
 
         if needs_tuple:
-            results_s += ')' if defined is None else ']'
-    elif defined is not None:
+            results_s += ']' if pep484 else ')'
+    elif pep484:
         results_s = ' -> None'
     else:
         # We don't show 'None' returns in docstrings.

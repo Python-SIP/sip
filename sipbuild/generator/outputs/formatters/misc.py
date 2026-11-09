@@ -3,9 +3,6 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from ...utils import fast_contains
-
-
 def fmt_copying(copying, comment):
     """ Return a formatted %Copying text. """
 
@@ -36,29 +33,3 @@ def fmt_scoped_py_name(scope, py_name):
         py_name_s = py_name
 
     return scope_s + py_name_s
-
-
-def iface_is_defined(iface_file, scope, module, defined):
-    """ Return True if a type corresponding to an interface file has been
-    defined in the context of a module.
-    """
-
-    # It is implicitly defined if we are not keeping a record.
-    if defined is None:
-        return True
-
-    # A type in another module would have been imported.
-    if iface_file.module is not module:
-        return True
-
-    if not fast_contains(defined, iface_file):
-        return False
-
-    # Check all enclosing scopes have been defined as well.
-    while scope is not None:
-        if not fast_contains(defined, scope.iface_file):
-            return False
-
-        scope = scope.scope
-
-    return True

@@ -156,15 +156,18 @@ class TypeHintManager:
 
         return managed_type_hint.as_rest_ref
 
-    def as_type_hint(self, type_hint, out, context, defined):
+    def as_type_hint(self, type_hint, out, context):
         """ Return the type hint as a type hint. """
 
         managed_type_hint = self._get_managed_type_hint(type_hint, out)
 
         # Note that we always render type hints as they can be different before
-        # and after a class or enum is defined in the .pyi file.
+        # and after a class or enum is defined in the .pyi file.  (This may no
+        # longer be true now that we don't quote forward references, in which
+        # case we should merge as_docstring() with as_type_hint() and pass a
+        # pep484 flag.)
         return self._render(managed_type_hint, out, pep484=True,
-                context=context, defined=defined)
+                context=context)
 
     def _get_managed_type_hint(self, type_hint, out):
         """ Return the unique (for the specification) managed type hint for a
@@ -312,8 +315,8 @@ class TypeHintManager:
 
         return node
 
-    def _render(self, managed_type_hint, out, context=None, defined=None,
-            pep484=False, rest_ref=False, as_xml=False, context_stack=None):
+    def _render(self, managed_type_hint, out, context=None, pep484=False,
+            rest_ref=False, as_xml=False, context_stack=None):
         """ Return a rendered type hint. """
 
         self._parse(managed_type_hint, out)
@@ -327,7 +330,7 @@ class TypeHintManager:
                 context_stack.append(context)
 
             s = self._render_node(managed_type_hint.root, out, pep484,
-                    rest_ref, defined, as_xml, context_stack)
+                    rest_ref, as_xml, context_stack)
 
             if context is not None:
                 context_stack.pop()
@@ -337,8 +340,7 @@ class TypeHintManager:
 
         return s
 
-    def _render_node(self, node, out, pep484, rest_ref, defined, as_xml,
-            context_stack):
+    def _render_node(self, node, out, pep484, rest_ref, as_xml, context_stack):
         """ Render a single node. """
 
         if node.type is NodeType.TYPING:
@@ -350,8 +352,8 @@ class TypeHintManager:
                 s = node.definition
 
             if node.children is not None:
-                s += self._render_children(node, out, pep484, rest_ref,
-                        defined, as_xml, context_stack)
+                s += self._render_children(node, out, pep484, rest_ref, as_xml,
+                        context_stack)
 
             return s
 
@@ -372,22 +374,18 @@ class TypeHintManager:
                         context_stack.append(klass)
                         s = self._render(managed_type_hint, out,
                                 pep484=pep484, rest_ref=rest_ref,
-                                defined=defined, as_xml=as_xml,
-                                context_stack=context_stack)
+                                as_xml=as_xml, context_stack=context_stack)
                         context_stack.pop()
 
                         return s
 
             from .formatters import (fmt_class_as_rest_ref,
-                    fmt_class_as_type_hint, fmt_scoped_py_name)
+                    fmt_class_as_type_hint)
 
             if rest_ref:
                 return fmt_class_as_rest_ref(klass)
 
-            if pep484:
-                return fmt_class_as_type_hint(self._spec, klass, defined)
-
-            return fmt_scoped_py_name(klass.scope, klass.py_name.name)
+            return fmt_class_as_type_hint(self._spec, klass, pep484=pep484)
 
         if node.type is NodeType.MAPPED_TYPE:
             mapped_type = node.definition
@@ -401,7 +399,7 @@ class TypeHintManager:
                             out)
 
                     return self._render(managed_type_hint, out, pep484=pep484,
-                            rest_ref=rest_ref, defined=defined, as_xml=as_xml,
+                            rest_ref=rest_ref, as_xml=as_xml,
                             context_stack=context_stack)
 
             # This will only happen if the mapped type doesn't have type hints.
@@ -409,26 +407,23 @@ class TypeHintManager:
 
         if node.type is NodeType.ENUM:
             from .formatters import (fmt_enum_as_rest_ref,
-                    fmt_enum_as_type_hint, fmt_scoped_py_name)
+                    fmt_enum_as_type_hint)
 
             enum = node.definition
 
             if rest_ref:
                 return fmt_enum_as_rest_ref(enum)
 
-            if pep484:
-                return fmt_enum_as_type_hint(self._spec, enum, defined)
-
-            return fmt_scoped_py_name(enum.scope, enum.py_name.name)
+            return fmt_enum_as_type_hint(self._spec, enum, pep484=pep484)
 
         # We only render children for docstrings.
-        if node.children is not None and defined is None:
+        if node.children is not None and not pep484:
             return node.definition + self._render_children(node, out, pep484,
-                    rest_ref, defined, as_xml, context_stack)
+                    rest_ref, as_xml, context_stack)
 
         return self._maybe_any_object(node.definition, pep484, as_xml)
 
-    def _render_children(self, node, out, pep484, rest_ref, defined, as_xml,
+    def _render_children(self, node, out, pep484, rest_ref, as_xml,
             context_stack):
         """ Render the children of a node. """
 
@@ -444,7 +439,7 @@ class TypeHintManager:
 
             children.append(
                     self._render_node(child, fixed_out, pep484, rest_ref,
-                            defined, as_xml, context_stack))
+                            as_xml, context_stack))
 
         if node.definition == 'Union':
             return ' | '.join(children)
