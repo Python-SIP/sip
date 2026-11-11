@@ -1,5 +1,24 @@
 # Release Notes
 
+## v6.17.3
+
+### ABI versions
+
+The current ABI versions are now v12.20.1 and v13.13.1 and v14.0.0.
+
+### `.pyi` stub files
+
+The generation of `.pyi` stub files has been improved so that they pass the
+scrutiny of `flake8-pyi`.  Support has been added for PEP 526 (Syntax for
+Variable Annotations) and PEP 673 (Self Type).
+
+### Bug fixes
+
+- The `build-backend` of v12 of the `sip` module is now set explicitly.
+- `sipVisitWrappers()` is now much more resilient when visitors create or
+  destroy wrappers so reducing the risk of crashes at exit.
+
+
 ## v6.17.2
 
 ### Reproduceable builds
