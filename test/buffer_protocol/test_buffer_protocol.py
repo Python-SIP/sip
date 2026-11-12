@@ -5,12 +5,16 @@
 
 import pytest
 
-from collections.abc import Buffer
-
 
 def test_nonbuffer(module):
     nonbuffer = module.NonbufferClass()
-    assert not isinstance(nonbuffer, Buffer)
+
+    # Buffer was added in Python v3.12.
+    try:
+        from collections.abc import Buffer
+        assert not isinstance(nonbuffer, Buffer)
+    except ImportError:
+        assert not hasattr(nonbuffer, '__buffer__')
 
 def test_buffer(module):
     buffer = module.BufferClass(b'abc')

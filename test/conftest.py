@@ -346,7 +346,11 @@ def _build_sip_module(test_dir, abi_version, package,
     sdist = sdists[0]
 
     with tarfile.open(sdist) as tf:
-        tf.extractall(path=test_dir, filter='data')
+        if hasattr(tarfile, 'data_filter'):
+            tf.extractall(path=test_dir, filter='data')
+        else:
+            # Python v3.11 and earlier.
+            tf.extractall(path=test_dir)
 
     # Build and move the module.
     src_dir = os.path.join(test_dir, os.path.basename(sdist)[:-7])
