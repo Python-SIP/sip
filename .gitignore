@@ -1,5 +1,4 @@
 # Local additions to Python.gitignore from GitHub.
-sipbuild/_version.py
 test/*/*.pyd
 test/*/*.so
 test/*/*.tar.gz

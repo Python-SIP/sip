@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
-from ._version import version, version_tuple
+from importlib.metadata import version
+from packaging.version import parse
 
 
-# Convert the setuptools_scm generated version number to our historic names and
-# formats.
+SIP_VERSION_STR = version('sip')
 
-SIP_VERSION_STR = version
-SIP_VERSION = (version_tuple[0] << 16) + (version_tuple[1] << 8) + version_tuple[2]
+_parsed = parse(SIP_VERSION_STR)
+SIP_VERSION = (_parsed.major << 16) + (_parsed.minor << 8) + _parsed.micro
