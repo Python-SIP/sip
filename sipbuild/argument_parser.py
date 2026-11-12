@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Copyright (c) 2024 Phil Thompson <phil@riverbankcomputing.com>
+# Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
 from argparse import ArgumentParser as ArgParser
 
-from ._version import version
+from .version import SIP_VERSION_STR
 
 
 class ArgumentParser(ArgParser):
@@ -16,7 +16,8 @@ class ArgumentParser(ArgParser):
 
         super().__init__(description=description, **kwargs)
 
-        self.add_argument('-V', '--version', action='version', version=version)
+        self.add_argument('-V', '--version', action='version',
+                version=SIP_VERSION_STR)
 
         # This option is handled by the bootstrap process and is only here to
         # contribute to the help.
