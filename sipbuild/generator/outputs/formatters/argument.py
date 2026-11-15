@@ -278,7 +278,7 @@ def fmt_argument_as_rest_ref(spec, arg, out, as_xml=False):
     return s
 
 
-def fmt_argument_as_type_hint(spec, arg, arg_nr=-1, is_result=False,
+def fmt_argument_as_type_hint(spec, arg, is_static, arg_nr=-1, is_result=False,
         scope=None, pep484=False):
     """ Return an argument as a type hint. """
 
@@ -333,8 +333,11 @@ def fmt_argument_as_type_hint(spec, arg, arg_nr=-1, is_result=False,
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
-            if arg.definition is scope:
+            if arg.definition is scope and not is_static:
                 type_name = 'typing.Self' if pep484 else 'Self'
+
+                if is_optional:
+                    type_name += ' | None'
             else:
                 from .klass import fmt_class_as_type_hint
 

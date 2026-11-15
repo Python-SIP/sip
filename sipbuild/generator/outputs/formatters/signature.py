@@ -42,7 +42,7 @@ def fmt_signature_as_cpp_definition(spec, cpp_signature, scope=None,
 
 
 def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
-        exclude_result=False, scope=None, pep484=False):
+        exclude_result=False, scope=None, pep484=False, is_static=False):
     """ Return a signature as a type hint. """
 
     # Handle the input values.
@@ -73,8 +73,8 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
             if slash_idx < 0 and kw_args is KwArgs.OPTIONAL and arg.default_value is not None:
                 slash_idx = len(in_args)
 
-            type_hint = fmt_argument_as_type_hint(spec, arg, arg_nr=arg_nr,
-                    scope=scope, pep484=pep484)
+            type_hint = fmt_argument_as_type_hint(spec, arg, is_static,
+                    arg_nr=arg_nr, scope=scope, pep484=pep484)
             if type_hint:
                 in_args.append(type_hint)
 
@@ -118,15 +118,15 @@ def fmt_signature_as_type_hint(spec, py_signature, kw_args, need_self=True,
         out_args = []
 
         if is_result:
-            type_hint = fmt_argument_as_type_hint(spec, result,
+            type_hint = fmt_argument_as_type_hint(spec, result, is_static,
                     is_result=True, scope=scope, pep484=pep484)
             if type_hint:
                 out_args.append(type_hint)
 
         for arg in py_signature.args:
             if arg.is_out:
-                type_hint = fmt_argument_as_type_hint(spec, arg, scope=scope,
-                        pep484=pep484)
+                type_hint = fmt_argument_as_type_hint(spec, arg, is_static,
+                        scope=scope, pep484=pep484)
                 if type_hint:
                     out_args.append(type_hint)
 
