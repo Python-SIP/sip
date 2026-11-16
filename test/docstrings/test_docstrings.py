@@ -8,7 +8,7 @@ CLASS_DOCSTRING = '''Klass overview
 Klass()
 Default constructor
 
-Klass(other: Self, /)
+Klass(other: Klass, /)
 Copy constructor'''
 
 
