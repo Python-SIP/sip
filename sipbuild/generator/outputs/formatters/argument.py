@@ -333,7 +333,7 @@ def fmt_argument_as_type_hint(spec, arg, is_static, arg_nr=-1, is_result=False,
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
-            if arg.definition is scope and not is_static:
+            if is_result and arg.definition is scope and not is_static:
                 type_name = 'typing.Self' if pep484 else 'Self'
 
                 if is_optional:
