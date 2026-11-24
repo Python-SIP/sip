@@ -4517,7 +4517,7 @@ def _exception_handler(sf, spec):
 
     need_decl = True
 
-    for exception in spec.exceptions:
+    for exception in reversed(spec.exceptions):
         if exception.iface_file.module is spec.module:
             if need_decl:
                 sf.write(
