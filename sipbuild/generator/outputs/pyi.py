@@ -433,8 +433,8 @@ def _variables(pf, spec, scope=None, indent=0):
         if variable.no_type_hint:
             continue
 
-        py_type = fmt_argument_as_type_hint(spec, variable.type,
-                variable.is_static, arg_nr=None, pep484=True)
+        py_type = fmt_argument_as_type_hint(spec, variable.type, arg_nr=None,
+                pep484=True)
 
         first = _separate(pf, first=first, indent=indent)
 
@@ -542,7 +542,7 @@ def _property(pf, spec, scope, prop, is_setter, member, overloads, indent):
         pf.write(s)
 
         signature = _python_signature(spec, overload.py_signature,
-                overload.kw_args, scope=scope, is_static=overload.is_static)
+                overload.kw_args, scope=scope)
 
         s = _indent(indent)
         s += f'def {prop.name.name}{signature}: ...\n'
@@ -555,8 +555,10 @@ def _overload(pf, spec, scope, overload, overloaded, first_overload, is_method,
         indent):
     """ Output the type hints for a single overload. """
 
+    py_slot = overload.common.py_slot
+
     # mypy recommends using 'object' as the argument type.
-    is_eq_slot = (overload.common.py_slot in (PySlot.EQ, PySlot.NE))
+    is_eq_slot = (py_slot in (PySlot.EQ, PySlot.NE))
 
     # The recommendation means any subsequent overloads are pointless.
     if is_eq_slot:
@@ -581,10 +583,10 @@ def _overload(pf, spec, scope, overload, overloaded, first_overload, is_method,
     else:
         need_self = (is_method and not overload.is_static)
 
-        if is_number_slot(overload.common.py_slot):
+        if is_number_slot(py_slot):
             # Use the reflected name if appropriate.
             if overload.is_reflected:
-                py_name = reflected_slot(overload.common.py_slot)
+                py_name = reflected_slot(py_slot)
 
             # A global slot will still have both arguments so pick the relevant
             # one.
@@ -598,19 +600,19 @@ def _overload(pf, spec, scope, overload, overloaded, first_overload, is_method,
                         result=py_signature.result)
 
         signature = _python_signature(spec, py_signature, overload.kw_args,
-                scope=scope, need_self=need_self, is_static=overload.is_static)
+                py_slot=py_slot, scope=scope, need_self=need_self)
 
     s += f'def {py_name}{signature}: ...\n'
 
     pf.write(s)
 
 
-def _python_signature(spec, signature, kw_args, scope=None, need_self=True,
-        is_static=False):
+def _python_signature(spec, signature, kw_args, py_slot=None, scope=None,
+        need_self=True):
     """ Return a Python signature. """
 
     return fmt_signature_as_type_hint(spec, signature, kw_args,
-            need_self=need_self, scope=scope, pep484=True, is_static=is_static)
+            need_self=need_self, py_slot=py_slot, scope=scope, pep484=True)
 
 
 def _indent(indent):

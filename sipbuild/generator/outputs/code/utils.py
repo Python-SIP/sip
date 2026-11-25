@@ -241,8 +241,8 @@ def get_overload_type_hint(spec, scope, overload):
 
     need_self = isinstance(scope, WrappedClass) and not overload.is_static
     signature = fmt_signature_as_type_hint(spec, overload.py_signature,
-            overload.kw_args, need_self=need_self, scope=scope,
-            is_static=overload.is_static)
+            overload.kw_args, need_self=need_self,
+            py_slot=overload.common.py_slot, scope=scope)
 
     return overload.common.py_name.name + signature
 

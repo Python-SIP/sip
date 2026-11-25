@@ -3,6 +3,7 @@
 # Copyright (c) 2026 Phil Thompson <phil@riverbankcomputing.com>
 
 
+from ...python_slots import is_inplace_number_slot, is_inplace_sequence_slot
 from ...scoped_name import STRIP_NONE
 from ...specification import ArgumentType, ArrayArgument, ClassKey, ValueType
 
@@ -278,8 +279,8 @@ def fmt_argument_as_rest_ref(spec, arg, out, as_xml=False):
     return s
 
 
-def fmt_argument_as_type_hint(spec, arg, is_static, arg_nr=-1, is_result=False,
-        scope=None, pep484=False):
+def fmt_argument_as_type_hint(spec, arg, arg_nr=-1, is_result=False,
+        py_slot=None, scope=None, pep484=False):
     """ Return an argument as a type hint. """
 
     if arg.array is ArrayArgument.ARRAY_SIZE:
@@ -333,7 +334,7 @@ def fmt_argument_as_type_hint(spec, arg, is_static, arg_nr=-1, is_result=False,
 
     if hint is None:
         if arg.type is ArgumentType.CLASS:
-            if is_result and arg.definition is scope and not is_static:
+            if is_result and arg.definition is scope and (is_inplace_number_slot(py_slot) or is_inplace_sequence_slot(py_slot)):
                 type_name = 'typing.Self' if pep484 else 'Self'
 
                 if is_optional:
